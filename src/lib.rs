@@ -4,7 +4,6 @@ extern crate threadpool;
 use std::any::{Any, TypeId};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::default::Default;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use pulse::{Pulse, Signal};
 use threadpool::ThreadPool;
@@ -17,7 +16,7 @@ mod storage;
 pub type Entity = u32;
 
 pub trait Component: Any + Sized {
-    type Storage: Storage<Self> + Any + Default + Send + Sync;
+    type Storage: Storage<Self> + Any + Send + Sync;
 }
 
 pub struct World {
@@ -33,7 +32,7 @@ impl World {
         }
     }
     pub fn register<T: Component>(&mut self) {
-        let any = RwLock::new(<T::Storage as Default>::default());
+        let any = RwLock::new(T::Storage::new());
         self.components.insert(TypeId::of::<T>(), Box::new(any));
     }
     fn lock<T: Component>(&self) -> &RwLock<T::Storage> {
