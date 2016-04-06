@@ -43,19 +43,30 @@ impl World {
     }
 }
 
-pub struct WorldArg(Arc<World>, RefCell<Option<Pulse>>);
-impl WorldArg {
-    pub fn read<'a, T: Component>(&'a self) -> RwLockReadGuard<'a, T::Storage> {
-        assert!(self.1.borrow().is_some());
+#[derive(Copy, Clone)]
+pub struct Components<'a>(&'a World);
+
+impl<'a> Components<'a> {
+    pub fn read<T: Component>(self) -> RwLockReadGuard<'a, T::Storage> {
         self.0.lock::<T>().read().unwrap()
     }
-    pub fn write<'a, T: Component>(&'a self) -> RwLockWriteGuard<'a, T::Storage> {
-        assert!(self.1.borrow().is_some());
+    pub fn write<T: Component>(self) -> RwLockWriteGuard<'a, T::Storage> {
         self.0.lock::<T>().write().unwrap()
     }
-    pub fn entities<'a>(&'a self) -> RwLockReadGuard<'a, Vec<Entity>> {
-        self.1.borrow_mut().take().unwrap().pulse();
+    pub fn entities(self) -> RwLockReadGuard<'a, Vec<Entity>> {
         self.0.entities.read().unwrap()
+    }
+}
+
+pub struct WorldArg(Arc<World>, RefCell<Option<Pulse>>);
+impl WorldArg {
+    pub fn fetch<'a, U, F>(&'a self, f: F) -> U
+        where F: FnOnce(Components<'a>) -> U
+    {
+        let pulse = self.1.borrow_mut().take().expect("fetch may only be called once.");
+        let u = f(Components(&self.0));
+        pulse.pulse();
+        u
     }
 }
 
@@ -115,9 +126,12 @@ macro_rules! impl_run {
         >(&mut self, functor: F) {
             self.run(|warg| {
                 let mut fun = functor;
-                $( let mut $write = warg.write::<$write>(); )*
-                $( let $read = warg.read::<$read>(); )*
-                for &ent in warg.entities().iter() {
+                let ($(mut $write,)* $($read,)* entities) = warg.fetch(|comp|
+                    ($(comp.write::<$write>(),)*
+                     $(comp.read::<$read>(),)*
+                       comp.entities())
+                );
+                for &ent in entities.iter() {
                     if let ( $( Some($write), )* $( Some($read), )* ) =
                         ( $( $write.get_mut(ent), )* $( $read.get(ent), )* ) {
                         fun( $($write,)* $($read,)* );

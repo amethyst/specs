@@ -23,10 +23,14 @@ fn main() {
         b.0 = a.0 > 0;
     });
     scheduler.run(|warg| {
-        let mut sa = warg.write::<CompInt>();
-        let sb = warg.read::<CompBool>();
+        let (mut sa, sb, entities) = warg.fetch(|comp| {
+            (comp.write::<CompInt>(),
+             comp.read::<CompBool>(),
+             comp.entities())
+        });
+
         //println!("{:?} {:?}", &*sa, &*sb);
-        for &ent in warg.entities().iter() {
+        for &ent in entities.iter() {
             use parsec::Storage;
             if let (Some(a), Some(b)) = (sa.get_mut(ent), sb.get(ent)) {
                 a.0 = if b.0 {2} else {0};
