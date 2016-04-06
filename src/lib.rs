@@ -8,7 +8,7 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use pulse::{Pulse, Signal};
 use threadpool::ThreadPool;
 
-pub use storage::{Storage, VecStorage};
+pub use storage::{Storage, VecStorage, HashMapStorage};
 
 mod storage;
 

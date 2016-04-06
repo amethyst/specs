@@ -8,7 +8,7 @@ impl parsec::Component for CompInt {
 #[derive(Clone, Debug)]
 struct CompBool(bool);
 impl parsec::Component for CompBool {
-    type Storage = parsec::VecStorage<CompBool>;
+    type Storage = parsec::HashMapStorage<CompBool>;
 }
 
 fn main() {
