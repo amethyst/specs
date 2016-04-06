@@ -4,6 +4,7 @@ extern crate threadpool;
 use std::any::{Any, TypeId};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::default::Default;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use pulse::{Pulse, Signal};
 use threadpool::ThreadPool;
@@ -16,7 +17,7 @@ mod storage;
 pub type Entity = u32;
 
 pub trait Component: Any + Sized {
-    type Storage: Storage<Self> + Any + Send + Sync;
+    type Storage: Storage<Self> + Any + Default + Send + Sync;
 }
 
 pub struct World {
@@ -31,8 +32,8 @@ impl World {
             components: HashMap::new(),
         }
     }
-    pub fn register<T: Component>(&mut self, storage: T::Storage) {
-        let any = RwLock::new(storage);
+    pub fn register<T: Component>(&mut self) {
+        let any = RwLock::new(<T::Storage as Default>::default());
         self.components.insert(TypeId::of::<T>(), Box::new(any));
     }
     fn lock<T: Component>(&self) -> &RwLock<T::Storage> {
@@ -58,17 +59,31 @@ impl WorldArg {
     }
 }
 
+pub struct EntityBuilder<'a>(Entity, &'a World);
+
+impl<'a> EntityBuilder<'a> {
+    pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
+        self.1.lock::<T>().write().unwrap().add(self.0, value);
+        self
+    }
+    pub fn build(self) -> Entity {
+        self.1.entities.write().unwrap().push(self.0);
+        self.0
+    }
+}
 
 pub struct Scheduler {
     world: Arc<World>,
     threads: ThreadPool,
+    last_entity: Entity,
 }
 
 impl Scheduler {
-    pub fn new(num_threads: usize) -> Scheduler {
+    pub fn new(world: World, num_threads: usize) -> Scheduler {
         Scheduler {
-            world: Arc::new(World::new()),
+            world: Arc::new(world),
             threads: ThreadPool::new(num_threads),
+            last_entity: 0,
         }
     }
     pub fn run<F>(&mut self, functor: F) where
@@ -81,6 +96,13 @@ impl Scheduler {
             functor(warg);
         });
         signal.wait().unwrap();
+    }
+    pub fn add_entity<'a>(&'a mut self) -> EntityBuilder<'a> {
+        self.last_entity += 1;
+        EntityBuilder(self.last_entity, &self.world)
+    }
+    pub fn wait(&self) {
+        while self.threads.active_count() > 0 {} //TODO
     }
 }
 
