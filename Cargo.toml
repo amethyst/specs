@@ -1,0 +1,13 @@
+[package]
+name = "parsec"
+version = "0.1.0"
+description = "Parallel Systems for Entity Components"
+homepage = "https://github.com/kvark/parsec"
+repository = "https://github.com/kvark/parsec"
+keywords = ["gamedev"]
+license = "Apache-2.0"
+authors = ["Dzmitry Malyshau"]
+
+[dependencies]
+pulse = "0.5"
+threadpool = "1.0"
