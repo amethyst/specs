@@ -12,9 +12,19 @@ pub use storage::{Storage, VecStorage, HashMapStorage};
 
 mod storage;
 
-pub type Generation = u32;
+/// Index generation. When a new entity is placed at the old index,
+/// it bumps the generation by 1. This allows to avoid using components
+/// from the entities that were deleted.
+/// 0 - invalid generation
+/// (-X) - the entity at index X is dead
+/// (+X) - the entity at index X is alive
+pub type Generation = i32;
+/// Index type is arbitrary. It doesn't show up in any interfaces.
+/// Keeping it 32bit allows for a single 64bit word per entity.
+pub type Index = u32;
+/// Entity type, as seen by the user.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Entity(u32, Generation);
+pub struct Entity(Index, Generation);
 
 impl Entity {
     pub fn get_id(&self) -> usize { self.0 as usize }
@@ -27,6 +37,7 @@ pub trait Component: Any + Sized {
 
 pub struct World {
     entities: RwLock<Vec<Entity>>,
+    generations: RwLock<Vec<Generation>>,
     components: HashMap<TypeId, Box<Any+Send+Sync>>,
 }
 
@@ -34,6 +45,7 @@ impl World {
     pub fn new() -> World {
         World {
             entities: RwLock::new(Vec::new()),
+            generations: RwLock::new(Vec::new()),
             components: HashMap::new(),
         }
     }
@@ -91,15 +103,26 @@ impl<'a> EntityBuilder<'a> {
 pub struct Scheduler {
     world: Arc<World>,
     threads: ThreadPool,
-    last_entity: u32,
+    first_free: Index,
+}
+
+fn find_free<'a>(mut gens: RwLockWriteGuard<'a, Vec<Generation>>, base: usize) -> Index {
+    match gens[base..].iter().position(|g| *g <= 0) {
+        Some(pos) => (base + pos) as Index,
+        None => {
+            gens.push(0);
+            (gens.len() - 1) as Index
+        },
+    }
 }
 
 impl Scheduler {
     pub fn new(world: World, num_threads: usize) -> Scheduler {
+        let ff = find_free(world.generations.write().unwrap(), 0);
         Scheduler {
             world: Arc::new(world),
             threads: ThreadPool::new(num_threads),
-            last_entity: 0,
+            first_free: ff,
         }
     }
     pub fn run<F>(&mut self, functor: F) where
@@ -114,8 +137,14 @@ impl Scheduler {
         signal.wait().unwrap();
     }
     pub fn add_entity<'a>(&'a mut self) -> EntityBuilder<'a> {
-        self.last_entity += 1;
-        let ent = Entity(self.last_entity, 0); //TODO
+        let mut gens = self.world.generations.write().unwrap();
+        let ent = {
+            let gen = &mut gens[self.first_free as usize];
+            assert!(*gen <= 0);
+            *gen = 1 - *gen;
+            Entity(self.first_free, *gen)
+        };
+        self.first_free = find_free(gens, (self.first_free + 1) as usize);
         EntityBuilder(ent, &self.world)
     }
     pub fn wait(&self) {
