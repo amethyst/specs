@@ -15,9 +15,8 @@ mod storage;
 /// Index generation. When a new entity is placed at the old index,
 /// it bumps the generation by 1. This allows to avoid using components
 /// from the entities that were deleted.
-/// 0 - invalid generation
-/// (-X) - the entity at index X is dead
-/// (+X) - the entity at index X is alive
+/// G<=0 - the entity of generation G is dead
+/// G >0 - the entity of generation G is alive
 pub type Generation = i32;
 /// Index type is arbitrary. It doesn't show up in any interfaces.
 /// Keeping it 32bit allows for a single 64bit word per entity.
@@ -30,6 +29,7 @@ impl Entity {
     pub fn get_id(&self) -> usize { self.0 as usize }
     pub fn get_gen(&self) -> Generation { self.1 }
 }
+
 
 pub trait Component: Any + Sized {
     type Storage: Storage<Self> + Any + Send + Sync;
@@ -60,6 +60,29 @@ impl World {
     }
 }
 
+
+pub struct EntityIter<'a> {
+    guard: RwLockReadGuard<'a, Vec<Generation>>,
+    index: usize,
+}
+
+impl<'a> Iterator for EntityIter<'a> {
+    type Item = Entity;
+    fn next(&mut self) -> Option<Entity> {
+        loop {
+            match self.guard.get(self.index) {
+                Some(&gen) if gen > 0 => {
+                    let ent = Entity(self.index as Index, gen);
+                    self.index += 1;
+                    return Some(ent)
+                },
+                Some(_) => self.index += 1, // continue
+                None => return None,
+            }
+        }
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct Components<'a>(&'a World);
 
@@ -70,12 +93,16 @@ impl<'a> Components<'a> {
     pub fn write<T: Component>(self) -> RwLockWriteGuard<'a, T::Storage> {
         self.0.lock::<T>().write().unwrap()
     }
-    pub fn entities(self) -> RwLockReadGuard<'a, Vec<Entity>> {
-        self.0.entities.read().unwrap()
+    pub fn entities(self) -> EntityIter<'a> {
+        EntityIter {
+            guard: self.0.generations.read().unwrap(),
+            index: 0,
+        }
     }
 }
 
 pub struct WorldArg(Arc<World>, RefCell<Option<Pulse>>);
+
 impl WorldArg {
     pub fn fetch<'a, U, F>(&'a self, f: F) -> U
         where F: FnOnce(Components<'a>) -> U
@@ -99,6 +126,7 @@ impl<'a> EntityBuilder<'a> {
         self.0
     }
 }
+
 
 pub struct Scheduler {
     world: Arc<World>,
@@ -124,6 +152,10 @@ impl Scheduler {
             threads: ThreadPool::new(num_threads),
             first_free: ff,
         }
+    }
+    pub fn get_components<'a>(&'a self) -> Components<'a> {
+        //println!("{:?}", &*self.world.generations.read().unwrap());
+        Components(&*self.world)
     }
     pub fn run<F>(&mut self, functor: F) where
         F: 'static + Send + FnOnce(WorldArg)
@@ -176,7 +208,7 @@ macro_rules! impl_run {
                      $(comp.read::<$read>(),)*
                        comp.entities())
                 );
-                for &ent in entities.iter() {
+                for ent in entities {
                     if let ( $( Some($write), )* $( Some($read), )* ) =
                         ( $( $write.get_mut(ent), )* $( $read.get(ent), )* ) {
                         fun( $($write,)* $($read,)* );

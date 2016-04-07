@@ -30,7 +30,7 @@ fn main() {
         });
 
         //println!("{:?} {:?}", &*sa, &*sb);
-        for &ent in entities.iter() {
+        for ent in entities {
             use parsec::Storage;
             if let (Some(a), Some(b)) = (sa.get_mut(ent), sb.get(ent)) {
                 a.0 = if b.0 {2} else {0};
@@ -41,4 +41,12 @@ fn main() {
         println!("Entity {} {}", a.0, b.0);
     });
     scheduler.wait();
+    if false {   // some debug output
+        let comp = scheduler.get_components();
+        println!("{:?}", &*comp.read::<CompInt>());
+        println!("{:?}", &*comp.read::<CompBool>());
+        for e in comp.entities() {
+            println!("{:?}", e);
+        }
+    }
 }
