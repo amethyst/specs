@@ -147,6 +147,16 @@ impl Scheduler {
         self.first_free = find_free(gens, (self.first_free + 1) as usize);
         EntityBuilder(ent, &self.world)
     }
+    pub fn del_entity(&mut self, entity: Entity) {
+        for _boxed in self.world.components.values() {
+            //TODO!
+            //let lock = (boxed.deref() as &Any).downcast_ref().unwrap();
+        }
+        let mut gens = self.world.generations.write().unwrap();
+        let mut gen = &mut gens[entity.get_id() as usize];
+        assert!(*gen > 0);
+        *gen *= -1;
+    }
     pub fn wait(&self) {
         while self.threads.active_count() > 0 {} //TODO
     }

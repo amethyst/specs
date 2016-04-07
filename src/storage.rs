@@ -7,6 +7,7 @@ pub trait Storage<T>: Sized {
     fn get(&self, Entity) -> Option<&T>;
     fn get_mut(&mut self, Entity) -> Option<&mut T>;
     fn add(&mut self, Entity, T);
+    fn sub(&mut self, Entity) -> Option<T>;
 }
 
 #[derive(Debug)]
@@ -34,6 +35,9 @@ impl<T> Storage<T> for VecStorage<T> {
         }
         self.0[entity.get_id()] = Some((entity.get_gen(), value));
     }
+    fn sub(&mut self, entity: Entity) -> Option<T>{
+        self.0[entity.get_id()].take().map(|(_, v)| v)
+    }
 }
 
 #[derive(Debug)]
@@ -51,5 +55,8 @@ impl<T> Storage<T> for HashMapStorage<T> {
     }
     fn add(&mut self, entity: Entity, value: T) {
         self.0.insert(entity, value);
+    }
+    fn sub(&mut self, entity: Entity) -> Option<T> {
+        self.0.remove(&entity)
     }
 }
