@@ -36,7 +36,6 @@ pub trait Component: Any + Sized {
 }
 
 pub struct World {
-    entities: RwLock<Vec<Entity>>,
     generations: RwLock<Vec<Generation>>,
     components: HashMap<TypeId, Box<Any+Send+Sync>>,
 }
@@ -44,7 +43,6 @@ pub struct World {
 impl World {
     pub fn new() -> World {
         World {
-            entities: RwLock::new(Vec::new()),
             generations: RwLock::new(Vec::new()),
             components: HashMap::new(),
         }
@@ -122,7 +120,6 @@ impl<'a> EntityBuilder<'a> {
         self
     }
     pub fn build(self) -> Entity {
-        self.1.entities.write().unwrap().push(self.0);
         self.0
     }
 }
