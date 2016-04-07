@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use Entity;
+use {Entity, Generation};
 
 pub trait Storage<T>: Sized {
     fn new() -> Self;
@@ -10,24 +10,29 @@ pub trait Storage<T>: Sized {
 }
 
 #[derive(Debug)]
-pub struct VecStorage<T>(pub Vec<Option<T>>);
+pub struct VecStorage<T>(pub Vec<Option<(Generation, T)>>);
 
 impl<T> Storage<T> for VecStorage<T> {
     fn new() -> Self {
         VecStorage(Vec::new())
     }
     fn get(&self, entity: Entity) -> Option<&T> {
-        self.0.get(entity as usize).and_then(|x| x.as_ref())
+        self.0.get(entity.get_id()).and_then(|x| match x {
+            &Some((gen, ref value)) if gen == entity.get_gen() => Some(value),
+            _ => None
+        })
     }
     fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
-        self.0.get_mut(entity as usize).and_then(|x| x.as_mut())
+        self.0.get_mut(entity.get_id()).and_then(|x| match x {
+            &mut Some((gen, ref mut value)) if gen == entity.get_gen() => Some(value),
+            _ => None
+        })
     }
     fn add(&mut self, entity: Entity, value: T) {
-        let id = entity as usize;
-        while self.0.len() <= id {
+        while self.0.len() <= entity.get_id() {
             self.0.push(None);
         }
-        self.0[id] = Some(value);
+        self.0[entity.get_id()] = Some((entity.get_gen(), value));
     }
 }
 

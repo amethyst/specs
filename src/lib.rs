@@ -12,8 +12,14 @@ pub use storage::{Storage, VecStorage, HashMapStorage};
 
 mod storage;
 
+pub type Generation = u32;
+#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Entity(u32, Generation);
 
-pub type Entity = u32;
+impl Entity {
+    pub fn get_id(&self) -> usize { self.0 as usize }
+    pub fn get_gen(&self) -> Generation { self.1 }
+}
 
 pub trait Component: Any + Sized {
     type Storage: Storage<Self> + Any + Send + Sync;
@@ -85,7 +91,7 @@ impl<'a> EntityBuilder<'a> {
 pub struct Scheduler {
     world: Arc<World>,
     threads: ThreadPool,
-    last_entity: Entity,
+    last_entity: u32,
 }
 
 impl Scheduler {
@@ -109,7 +115,8 @@ impl Scheduler {
     }
     pub fn add_entity<'a>(&'a mut self) -> EntityBuilder<'a> {
         self.last_entity += 1;
-        EntityBuilder(self.last_entity, &self.world)
+        let ent = Entity(self.last_entity, 0); //TODO
+        EntityBuilder(ent, &self.world)
     }
     pub fn wait(&self) {
         while self.threads.active_count() > 0 {} //TODO
