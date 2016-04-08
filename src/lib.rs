@@ -30,6 +30,28 @@ impl Entity {
     pub fn get_gen(&self) -> Generation { self.1 }
 }
 
+pub struct EntityIter<'a> {
+    guard: RwLockReadGuard<'a, Vec<Generation>>,
+    index: usize,
+}
+
+impl<'a> Iterator for EntityIter<'a> {
+    type Item = Entity;
+    fn next(&mut self) -> Option<Entity> {
+        loop {
+            match self.guard.get(self.index) {
+                Some(&gen) if gen > 0 => {
+                    let ent = Entity(self.index as Index, gen);
+                    self.index += 1;
+                    return Some(ent)
+                },
+                Some(_) => self.index += 1, // continue
+                None => return None,
+            }
+        }
+    }
+}
+
 
 pub trait Component: Any + Sized {
     type Storage: Storage<Self> + Any + Send + Sync;
@@ -56,57 +78,30 @@ impl World {
         let boxed = self.components.get(&TypeId::of::<T>()).unwrap();
         (boxed.deref() as &Any).downcast_ref().unwrap()
     }
-}
-
-
-pub struct EntityIter<'a> {
-    guard: RwLockReadGuard<'a, Vec<Generation>>,
-    index: usize,
-}
-
-impl<'a> Iterator for EntityIter<'a> {
-    type Item = Entity;
-    fn next(&mut self) -> Option<Entity> {
-        loop {
-            match self.guard.get(self.index) {
-                Some(&gen) if gen > 0 => {
-                    let ent = Entity(self.index as Index, gen);
-                    self.index += 1;
-                    return Some(ent)
-                },
-                Some(_) => self.index += 1, // continue
-                None => return None,
-            }
-        }
+    pub fn read<'a, T: Component>(&'a self) -> RwLockReadGuard<'a, T::Storage> {
+        self.lock::<T>().read().unwrap()
     }
-}
-
-#[derive(Copy, Clone)]
-pub struct Components<'a>(&'a World);
-
-impl<'a> Components<'a> {
-    pub fn read<T: Component>(self) -> RwLockReadGuard<'a, T::Storage> {
-        self.0.lock::<T>().read().unwrap()
+    pub fn write<'a, T: Component>(&'a self) -> RwLockWriteGuard<'a, T::Storage> {
+        self.lock::<T>().write().unwrap()
     }
-    pub fn write<T: Component>(self) -> RwLockWriteGuard<'a, T::Storage> {
-        self.0.lock::<T>().write().unwrap()
-    }
-    pub fn entities(self) -> EntityIter<'a> {
+    pub fn entities<'a>(&'a self) -> EntityIter<'a> {
         EntityIter {
-            guard: self.0.generations.read().unwrap(),
+            guard: self.generations.read().unwrap(),
             index: 0,
         }
     }
 }
 
+
+
 pub struct WorldArg(Arc<World>, RefCell<Option<Pulse>>);
 
 impl WorldArg {
     pub fn fetch<'a, U, F>(&'a self, f: F) -> U
-        where F: FnOnce(Components<'a>) -> U
+        where F: FnOnce(&'a World) -> U
     {
         let pulse = self.1.borrow_mut().take().expect("fetch may only be called once.");
-        let u = f(Components(&self.0));
+        let u = f(&self.0);
         pulse.pulse();
         u
     }
@@ -116,7 +111,7 @@ pub struct EntityBuilder<'a>(Entity, &'a World);
 
 impl<'a> EntityBuilder<'a> {
     pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
-        self.1.lock::<T>().write().unwrap().add(self.0, value);
+        self.1.write::<T>().add(self.0, value);
         self
     }
     pub fn build(self) -> Entity {
@@ -150,9 +145,9 @@ impl Scheduler {
             first_free: ff,
         }
     }
-    pub fn get_components<'a>(&'a self) -> Components<'a> {
+    pub fn get_world(&self) -> &World {
         //println!("{:?}", &*self.world.generations.read().unwrap());
-        Components(&*self.world)
+        &self.world
     }
     pub fn run<F>(&mut self, functor: F) where
         F: 'static + Send + FnOnce(WorldArg)
@@ -200,10 +195,10 @@ macro_rules! impl_run {
         >(&mut self, functor: F) {
             self.run(|warg| {
                 let mut fun = functor;
-                let ($(mut $write,)* $($read,)* entities) = warg.fetch(|comp|
-                    ($(comp.write::<$write>(),)*
-                     $(comp.read::<$read>(),)*
-                       comp.entities())
+                let ($(mut $write,)* $($read,)* entities) = warg.fetch(|w|
+                    ($(w.write::<$write>(),)*
+                     $(w.read::<$read>(),)*
+                       w.entities())
                 );
                 for ent in entities {
                     if let ( $( Some($write), )* $( Some($read), )* ) =

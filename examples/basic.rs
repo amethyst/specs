@@ -12,10 +12,12 @@ impl parsec::Component for CompBool {
 }
 
 fn main() {
-    let mut w = parsec::World::new();
-    w.register::<CompInt>();
-    w.register::<CompBool>();
-    let mut scheduler = parsec::Scheduler::new(w, 4);
+    let mut scheduler = {
+        let mut w = parsec::World::new();
+        w.register::<CompInt>();
+        w.register::<CompBool>();
+        parsec::Scheduler::new(w, 4)
+    };
     scheduler.add_entity().with(CompInt(4)).with(CompBool(false)).build();
     scheduler.add_entity().with(CompInt(-1)).with(CompBool(false)).build();
 
@@ -42,10 +44,10 @@ fn main() {
     });
     scheduler.wait();
     if false {   // some debug output
-        let comp = scheduler.get_components();
-        println!("{:?}", &*comp.read::<CompInt>());
-        println!("{:?}", &*comp.read::<CompBool>());
-        for e in comp.entities() {
+        let w = scheduler.get_world();
+        println!("{:?}", &*w.read::<CompInt>());
+        println!("{:?}", &*w.read::<CompBool>());
+        for e in w.entities() {
             println!("{:?}", e);
         }
     }
