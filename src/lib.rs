@@ -57,9 +57,14 @@ pub trait Component: Any + Sized {
     type Storage: Storage<Self> + Any + Send + Sync;
 }
 
+struct ComponentInfo {
+    any_box: Box<Any+Send+Sync>,
+    dead_entities: RwLock<Vec<Entity>>,
+}
+
 pub struct World {
     generations: RwLock<Vec<Generation>>,
-    components: HashMap<TypeId, Box<Any+Send+Sync>>,
+    components: HashMap<TypeId, ComponentInfo>,
 }
 
 impl World {
@@ -70,19 +75,34 @@ impl World {
         }
     }
     pub fn register<T: Component>(&mut self) {
-        let any = RwLock::new(T::Storage::new());
-        self.components.insert(TypeId::of::<T>(), Box::new(any));
+        self.components.insert(TypeId::of::<T>(), ComponentInfo {
+            any_box: Box::new(RwLock::new(T::Storage::new())),
+            dead_entities: RwLock::new(Vec::new()),
+        });
     }
-    fn lock<T: Component>(&self) -> &RwLock<T::Storage> {
+    fn lock<T: Component>(&self) -> (&RwLock<T::Storage>, &RwLock<Vec<Entity>>) {
         use std::ops::Deref;
-        let boxed = self.components.get(&TypeId::of::<T>()).unwrap();
-        (boxed.deref() as &Any).downcast_ref().unwrap()
+        let ci = self.components.get(&TypeId::of::<T>()).unwrap();
+        let slock = (ci.any_box.deref() as &Any).downcast_ref().unwrap();
+        (slock, &ci.dead_entities)
     }
     pub fn read<'a, T: Component>(&'a self) -> RwLockReadGuard<'a, T::Storage> {
-        self.lock::<T>().read().unwrap()
+        //self.lock::<T>().0.read().unwrap()
+        let (lock, dead_lock) = self.lock::<T>();
+        let guard = lock.read().unwrap();
+        let mut dead_guard = dead_lock.write().unwrap();
+        dead_guard.retain(|&e| guard.get(e).is_some());
+        guard
     }
     pub fn write<'a, T: Component>(&'a self) -> RwLockWriteGuard<'a, T::Storage> {
-        self.lock::<T>().write().unwrap()
+        //self.lock::<T>().0.write().unwrap()
+        let (lock, dead_lock) = self.lock::<T>();
+        let mut guard = lock.write().unwrap();
+        let mut dead_guard = dead_lock.write().unwrap();
+        for e in dead_guard.drain(..) {
+            guard.sub(e);
+        }
+        guard
     }
     pub fn entities<'a>(&'a self) -> EntityIter<'a> {
         EntityIter {
@@ -172,9 +192,8 @@ impl Scheduler {
         EntityBuilder(ent, &self.world)
     }
     pub fn del_entity(&mut self, entity: Entity) {
-        for _boxed in self.world.components.values() {
-            //TODO!
-            //let lock = (boxed.deref() as &Any).downcast_ref().unwrap();
+        for ci in self.world.components.values() {
+            ci.dead_entities.write().unwrap().push(entity);
         }
         let mut gens = self.world.generations.write().unwrap();
         let mut gen = &mut gens[entity.get_id() as usize];
