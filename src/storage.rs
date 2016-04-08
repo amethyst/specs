@@ -36,7 +36,11 @@ impl<T> Storage<T> for VecStorage<T> {
         self.0[entity.get_id()] = Some((entity.get_gen(), value));
     }
     fn sub(&mut self, entity: Entity) -> Option<T>{
-        self.0[entity.get_id()].take().map(|(_, v)| v)
+        match self.0[entity.get_id()] {
+            Some((g, _)) if g == entity.get_gen() =>
+                Some(self.0[entity.get_id()].take().unwrap().1),
+            _ => None,
+        }
     }
 }
 
