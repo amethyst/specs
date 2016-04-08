@@ -87,9 +87,15 @@ impl World {
         (slock, &ci.dead_entities)
     }
     pub fn read<'a, T: Component>(&'a self) -> RwLockReadGuard<'a, T::Storage> {
-        self.lock::<T>().0.read().unwrap()
+        //self.lock::<T>().0.read().unwrap()
+        let (lock, dead_lock) = self.lock::<T>();
+        let guard = lock.read().unwrap();
+        let mut dead_guard = dead_lock.write().unwrap();
+        dead_guard.retain(|&e| guard.get(e).is_some());
+        guard
     }
     pub fn write<'a, T: Component>(&'a self) -> RwLockWriteGuard<'a, T::Storage> {
+        //self.lock::<T>().0.write().unwrap()
         let (lock, dead_lock) = self.lock::<T>();
         let mut guard = lock.write().unwrap();
         let mut dead_guard = dead_lock.write().unwrap();
