@@ -136,6 +136,13 @@ impl World {
             index: 0,
         }
     }
+    fn find_next(&self, base: usize) -> Entity {
+        let gens = self.generations.read().unwrap();
+        match gens.iter().enumerate().skip(base).find(|&(_, g)| *g <= 0) {
+            Some((id, gen)) => Entity(id as Index, 1 - gen),
+            None => Entity(gens.len() as Index, 1),
+        }
+    }
 }
 
 
@@ -171,30 +178,27 @@ impl<'a> EntityBuilder<'a> {
     }
 }
 
+struct Appendix {
+    next: Entity,
+    queue: Vec<Entity>,
+}
 
 pub struct Scheduler {
     world: Arc<World>,
     threads: ThreadPool,
-    first_free: Index,
-}
-
-fn find_free<'a>(mut gens: RwLockWriteGuard<'a, Vec<Generation>>, base: usize) -> Index {
-    match gens[base..].iter().position(|g| *g <= 0) {
-        Some(pos) => (base + pos) as Index,
-        None => {
-            gens.push(0);
-            (gens.len() - 1) as Index
-        },
-    }
+    appendix: RwLock<Appendix>,
 }
 
 impl Scheduler {
     pub fn new(world: World, num_threads: usize) -> Scheduler {
-        let ff = find_free(world.generations.write().unwrap(), 0);
+        let next = Appendix {
+            next: world.find_next(0),
+            queue: Vec::new(),
+        };
         Scheduler {
             world: Arc::new(world),
             threads: ThreadPool::new(num_threads),
-            first_free: ff,
+            appendix: RwLock::new(next),
         }
     }
     pub fn get_world(&self) -> &World {
@@ -213,14 +217,15 @@ impl Scheduler {
         signal.wait().unwrap();
     }
     pub fn add_entity<'a>(&'a mut self) -> EntityBuilder<'a> {
-        let mut gens = self.world.generations.write().unwrap();
-        let ent = {
-            let gen = &mut gens[self.first_free as usize];
-            assert!(*gen <= 0);
-            *gen = 1 - *gen;
-            Entity(self.first_free, *gen)
-        };
-        self.first_free = find_free(gens, (self.first_free + 1) as usize);
+        let mut appendix = self.appendix.write().unwrap();
+        let ent = appendix.next;
+        assert!(ent.get_gen() > 0);
+        if ent.get_gen() == 1 {
+            let mut gens = self.world.generations.write().unwrap();
+            assert!(gens.len() == ent.get_id());
+            gens.push(ent.get_gen());
+        }
+        appendix.next = self.world.find_next(ent.get_id() + 1);
         EntityBuilder(ent, &self.world)
     }
     pub fn del_entity(&mut self, entity: Entity) {
@@ -230,6 +235,10 @@ impl Scheduler {
         let mut gens = self.world.generations.write().unwrap();
         let mut gen = &mut gens[entity.get_id() as usize];
         assert!(*gen > 0);
+        let mut appendix = self.appendix.write().unwrap();
+        if entity.get_id() < appendix.next.get_id() {
+            appendix.next = Entity(entity.0, *gen+1);
+        }
         *gen *= -1;
     }
     pub fn wait(&self) {
