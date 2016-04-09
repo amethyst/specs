@@ -13,8 +13,8 @@ pub trait Storage<T>: StorageBase + Sized {
     fn new() -> Self;
     fn get(&self, Entity) -> Option<&T>;
     fn get_mut(&mut self, Entity) -> Option<&mut T>;
-    fn add(&mut self, Entity, T);
-    fn sub(&mut self, Entity) -> Option<T>;
+    fn insert(&mut self, Entity, T);
+    fn remove(&mut self, Entity) -> Option<T>;
 }
 
 
@@ -42,13 +42,13 @@ impl<T> Storage<T> for VecStorage<T> {
             _ => None
         })
     }
-    fn add(&mut self, entity: Entity, value: T) {
+    fn insert(&mut self, entity: Entity, value: T) {
         while self.0.len() <= entity.get_id() {
             self.0.push(None);
         }
         self.0[entity.get_id()] = Some((entity.get_gen(), value));
     }
-    fn sub(&mut self, entity: Entity) -> Option<T> {
+    fn remove(&mut self, entity: Entity) -> Option<T> {
         self.0.get_mut(entity.get_id()).and_then(|x| {
             if let &mut Some((gen, _)) = x {
                 // if the generation does not match avoid deleting
@@ -80,10 +80,10 @@ impl<T> Storage<T> for HashMapStorage<T> {
     fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
         self.0.get_mut(&entity)
     }
-    fn add(&mut self, entity: Entity, value: T) {
+    fn insert(&mut self, entity: Entity, value: T) {
         self.0.insert(entity, value);
     }
-    fn sub(&mut self, entity: Entity) -> Option<T> {
+    fn remove(&mut self, entity: Entity) -> Option<T> {
         self.0.remove(&entity)
     }
 }
@@ -97,7 +97,7 @@ mod test {
     fn test_add<S>() where S: Storage<u32> {
         let mut s = S::new();
         for i in 0..1_000 {
-            s.add(Entity::new(i, 1), i + 2718);
+            s.insert(Entity::new(i, 1), i + 2718);
         }
 
         for i in 0..1_000 {
@@ -108,19 +108,19 @@ mod test {
     fn test_sub<S>() where S: Storage<u32> {
         let mut s = S::new();
         for i in 0..1_000 {
-            s.add(Entity::new(i, 1), i + 2718);
+            s.insert(Entity::new(i, 1), i + 2718);
         }
 
         for i in 0..1_000 {
-            assert_eq!(s.sub(Entity::new(i, 1)).unwrap(), i + 2718);
-            assert!(s.sub(Entity::new(i, 1)).is_none());
+            assert_eq!(s.remove(Entity::new(i, 1)).unwrap(), i + 2718);
+            assert!(s.remove(Entity::new(i, 1)).is_none());
         }
     }
 
     fn test_get_mut<S>() where S: Storage<u32> {
         let mut s = S::new();
         for i in 0..1_000 {
-            s.add(Entity::new(i, 1), i + 2718);
+            s.insert(Entity::new(i, 1), i + 2718);
         }
 
         for i in 0..1_000 {
@@ -135,8 +135,8 @@ mod test {
     fn test_add_gen<S>() where S: Storage<u32> {
         let mut s = S::new();
         for i in 0..1_000 {
-            s.add(Entity::new(i, 1), i + 2718);
-            s.add(Entity::new(i, 2), i + 31415);
+            s.insert(Entity::new(i, 1), i + 2718);
+            s.insert(Entity::new(i, 2), i + 31415);
         }
 
         for i in 0..1_000 {
@@ -150,11 +150,11 @@ mod test {
     fn test_sub_gen<S>() where S: Storage<u32> {
         let mut s = S::new();
         for i in 0..1_000 {
-            s.add(Entity::new(i, 2), i + 2718);
+            s.insert(Entity::new(i, 2), i + 2718);
         }
 
         for i in 0..1_000 {
-            assert!(s.sub(Entity::new(i, 1)).is_none());
+            assert!(s.remove(Entity::new(i, 1)).is_none());
         }
     }
 

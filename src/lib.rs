@@ -162,7 +162,7 @@ pub struct EntityBuilder<'a>(Entity, &'a World);
 impl<'a> EntityBuilder<'a> {
     /// Add a component value to the new entity.
     pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
-        self.1.write::<T>().add(self.0, value);
+        self.1.write::<T>().insert(self.0, value);
         self
     }
     /// Finish entity construction.
