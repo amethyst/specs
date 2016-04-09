@@ -29,10 +29,14 @@ pub type Index = u32;
 pub struct Entity(Index, Generation);
 
 impl Entity {
+    /// Get the index of the entity.
     pub fn get_id(&self) -> usize { self.0 as usize }
+    /// Get the generation of the entity.
     pub fn get_gen(&self) -> Generation { self.1 }
 }
 
+/// A custom entity iterator. Needed because the world doesn't really store
+/// entities directly, but rather has just a vector of Index -> Generation.
 pub struct EntityIter<'a> {
     guard: RwLockReadGuard<'a, Vec<Generation>>,
     index: usize,
@@ -55,6 +59,7 @@ impl<'a> Iterator for EntityIter<'a> {
     }
 }
 
+/// Abstract component type. Doesn't have to be Copy or even Clone.
 pub trait Component: Any + Sized {
     type Storage: Storage<Self> + Any + Send + Sync;
 }
@@ -75,6 +80,8 @@ impl<S: StorageBase + Any + Send + Sync> StorageLock for RwLock<S> {
 }
 
 
+/// The world struct contains all the data, which is entities and their components.
+/// The methods are supposed to be valid for any context they are available in.
 pub struct World {
     generations: RwLock<Vec<Generation>>,
     components: HashMap<TypeId, Box<StorageLock>>,
@@ -82,26 +89,40 @@ pub struct World {
 
 
 impl World {
+    /// Create a new empty world.
     pub fn new() -> World {
         World {
             generations: RwLock::new(Vec::new()),
             components: HashMap::new(),
         }
     }
+    /// Register a new component type.
     pub fn register<T: Component>(&mut self) {
         let any = RwLock::new(T::Storage::new());
         self.components.insert(TypeId::of::<T>(), Box::new(any));
+    }
+    /// Unregister a component type.
+    pub fn unregister<T: Component>(&mut self) -> Option<T::Storage> {
+        self.components.remove(&TypeId::of::<T>()).map(|boxed|
+            match boxed.downcast::<RwLock<T::Storage>>() {
+                Ok(b) => (*b).into_inner().unwrap(),
+                Err(_) => panic!("Unable to downcast the storage type"),
+            }
+        )
     }
     fn lock<T: Component>(&self) -> &RwLock<T::Storage> {
         let boxed = self.components.get(&TypeId::of::<T>()).unwrap();
         boxed.downcast_ref().unwrap()
     }
+    /// Lock a component for reading.
     pub fn read<'a, T: Component>(&'a self) -> RwLockReadGuard<'a, T::Storage> {
         self.lock::<T>().read().unwrap()
     }
+    /// Lock a component for writing.
     pub fn write<'a, T: Component>(&'a self) -> RwLockWriteGuard<'a, T::Storage> {
         self.lock::<T>().write().unwrap()
     }
+    /// Return the entity iterator.
     pub fn entities<'a>(&'a self) -> EntityIter<'a> {
         EntityIter {
             guard: self.generations.read().unwrap(),

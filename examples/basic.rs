@@ -28,10 +28,10 @@ fn main() {
     scheduler.del_entity(e);
 
     scheduler.run(|warg| {
-        let (mut sa, sb, entities) = warg.fetch(|comp| {
-            (comp.write::<CompInt>(),
-             comp.read::<CompBool>(),
-             comp.entities())
+        let (mut sa, sb, entities) = warg.fetch(|w| {
+            (w.write::<CompInt>(),
+             w.read::<CompBool>(),
+             w.entities())
         });
 
         //println!("{:?} {:?}", &*sa, &*sb);
