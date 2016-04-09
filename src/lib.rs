@@ -287,8 +287,25 @@ impl Scheduler {
         }
         *gen *= -1;
     }
-    pub fn wait(&self) {
-        while self.threads.active_count() > 0 {} //TODO
+    pub fn rest(&self) {
+        let mut gens = self.world.generations.write().unwrap();
+        let mut app = self.appendix.write().unwrap();
+        for ent in app.add_queue.drain(..) {
+            while gens.len() <= ent.get_id() {
+                gens.push(0);
+            }
+            assert_eq!(ent.get_gen(), 1 - gens[ent.get_id()]);
+            gens[ent.get_id()] = ent.get_gen();
+        }
+        let mut next = app.next;
+        for ent in app.sub_queue.drain(..) {
+            assert_eq!(ent.get_gen(), gens[ent.get_id()]);
+            if ent.get_id() < next.get_id() {
+                next = Entity(ent.0, ent.1 + 1);
+            }
+            gens[ent.get_id()] *= -1;
+        }
+        app.next = next;
     }
 }
 

@@ -45,7 +45,7 @@ fn main() {
     scheduler.run0w2r(|a: &CompInt, b: &CompBool| {
         println!("Entity {} {}", a.0, b.0);
     });
-    scheduler.wait();
+    scheduler.rest();
     if false {   // some debug output
         let w = scheduler.get_world();
         println!("{:?}", &*w.read::<CompInt>());
