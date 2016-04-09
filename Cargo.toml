@@ -12,3 +12,4 @@ authors = ["Dzmitry Malyshau"]
 mopa = "0.2"
 pulse = "0.5"
 threadpool = "1.0"
+fnv = "1.0"

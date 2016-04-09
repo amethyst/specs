@@ -2,6 +2,7 @@
 extern crate mopa;
 extern crate pulse;
 extern crate threadpool;
+extern crate fnv;
 
 use std::any::TypeId;
 use std::cell::RefCell;
