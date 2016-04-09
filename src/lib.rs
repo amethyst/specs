@@ -133,9 +133,12 @@ impl World {
 
 
 
+/// World argument for a system closure.
 pub struct WorldArg(Arc<World>, RefCell<Option<Pulse>>);
 
 impl WorldArg {
+    /// Borrows the world, allowing the system lock some components and get the entity
+    /// iterator. Has to be called only once. Fires a pulse at the end.
     pub fn fetch<'a, U, F>(&'a self, f: F) -> U
         where F: FnOnce(&'a World) -> U
     {
@@ -146,13 +149,16 @@ impl WorldArg {
     }
 }
 
+/// Helper builder for entities.
 pub struct EntityBuilder<'a>(Entity, &'a World);
 
 impl<'a> EntityBuilder<'a> {
+    /// Add a component value to the new entity.
     pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
         self.1.write::<T>().add(self.0, value);
         self
     }
+    /// Finish entity construction.
     pub fn build(self) -> Entity {
         self.0
     }

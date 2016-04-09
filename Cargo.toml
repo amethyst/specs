@@ -1,6 +1,6 @@
 [package]
 name = "parsec"
-version = "0.1.0"
+version = "0.2.0"
 description = "Parallel Systems for Entity Components"
 homepage = "https://github.com/kvark/parsec"
 repository = "https://github.com/kvark/parsec"
