@@ -30,6 +30,12 @@ pub type Index = u32;
 pub struct Entity(Index, Generation);
 
 impl Entity {
+    #[cfg(test)]
+    /// Create a new entity (externally from ECS)
+    pub fn new(index: u32, gen: i32) -> Entity {
+        Entity(index, gen)
+    }
+
     /// Get the index of the entity.
     pub fn get_id(&self) -> usize { self.0 as usize }
     /// Get the generation of the entity.
