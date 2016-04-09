@@ -146,9 +146,33 @@ impl World {
 }
 
 
+struct Appendix {
+    next: Entity,
+    add_queue: Vec<Entity>,
+    sub_queue: Vec<Entity>
+}
+
+/// A custom entity iterator for dynamically added entities.
+pub struct ExtraEntityIter<'a> {
+    guard: RwLockReadGuard<'a, Appendix>,
+    index: usize,
+}
+
+impl<'a> Iterator for ExtraEntityIter<'a> {
+    type Item = Entity;
+    fn next(&mut self) -> Option<Entity> {
+        let ent = self.guard.add_queue.get(self.index);
+        self.index += 1;
+        ent.map(|e| *e)
+    }
+}
 
 /// World argument for a system closure.
-pub struct WorldArg(Arc<World>, RefCell<Option<Pulse>>);
+pub struct WorldArg {
+    world: Arc<World>,
+    pulse: RefCell<Option<Pulse>>,
+    app: Arc<RwLock<Appendix>>,
+}
 
 impl WorldArg {
     /// Borrows the world, allowing the system lock some components and get the entity
@@ -156,10 +180,31 @@ impl WorldArg {
     pub fn fetch<'a, U, F>(&'a self, f: F) -> U
         where F: FnOnce(&'a World) -> U
     {
-        let pulse = self.1.borrow_mut().take().expect("fetch may only be called once.");
-        let u = f(&self.0);
+        let pulse = self.pulse.borrow_mut().take()
+                        .expect("fetch may only be called once.");
+        let u = f(&self.world);
         pulse.pulse();
         u
+    }
+    /// Insert a new entity dynamically.
+    pub fn insert(&self) -> Entity {
+        let mut app = self.app.write().unwrap();
+        let ent = app.next;
+        app.add_queue.push(ent);
+        app.next = self.world.find_next(ent.get_id() + 1);
+        ent
+    }
+    /// Remove an entity dynamically.
+    pub fn remove(&self, entity: Entity) {
+        let mut app = self.app.write().unwrap();
+        app.sub_queue.push(entity);
+    }
+    /// Iterate dynamically added entities.
+    pub fn extra_entities<'a>(&'a self) -> ExtraEntityIter<'a> {
+        ExtraEntityIter {
+            guard: self.app.read().unwrap(),
+            index: 0,
+        }
     }
 }
 
@@ -178,27 +223,24 @@ impl<'a> EntityBuilder<'a> {
     }
 }
 
-struct Appendix {
-    next: Entity,
-    queue: Vec<Entity>,
-}
 
 pub struct Scheduler {
     world: Arc<World>,
     threads: ThreadPool,
-    appendix: RwLock<Appendix>,
+    appendix: Arc<RwLock<Appendix>>,
 }
 
 impl Scheduler {
     pub fn new(world: World, num_threads: usize) -> Scheduler {
         let next = Appendix {
             next: world.find_next(0),
-            queue: Vec::new(),
+            add_queue: Vec::new(),
+            sub_queue: Vec::new(),
         };
         Scheduler {
             world: Arc::new(world),
             threads: ThreadPool::new(num_threads),
-            appendix: RwLock::new(next),
+            appendix: Arc::new(RwLock::new(next)),
         }
     }
     pub fn get_world(&self) -> &World {
@@ -210,9 +252,13 @@ impl Scheduler {
     {
         let (signal, pulse) = Signal::new();
         let world = self.world.clone();
+        let app = self.appendix.clone();
         self.threads.execute(|| {
-            let warg = WorldArg(world, RefCell::new(Some(pulse)));
-            functor(warg);
+            functor(WorldArg {
+                world: world,
+                pulse: RefCell::new(Some(pulse)),
+                app: app,
+            });
         });
         signal.wait().unwrap();
     }
