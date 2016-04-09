@@ -28,6 +28,7 @@ fn main() {
     scheduler.del_entity(e);
 
     scheduler.run(|warg| {
+        use parsec::Storage;
         let (mut sa, sb, entities) = warg.fetch(|w| {
             (w.write::<CompInt>(),
              w.read::<CompBool>(),
@@ -41,6 +42,12 @@ fn main() {
                 a.0 = if b.0 {2} else {0};
             }
         }
+
+        let e0 = warg.insert();
+        sa.insert(e0, CompInt(-4));
+        let e1 = warg.insert();
+        sa.insert(e1, CompInt(-5));
+        warg.remove(e0);
     });
     scheduler.run0w2r(|a: &CompInt, b: &CompBool| {
         println!("Entity {} {}", a.0, b.0);
@@ -48,6 +55,7 @@ fn main() {
     scheduler.rest();
     if false {   // some debug output
         let w = scheduler.get_world();
+        println!("Generations: {:?}", &*w.get_generations());
         println!("{:?}", &*w.read::<CompInt>());
         println!("{:?}", &*w.read::<CompBool>());
         for e in w.entities() {

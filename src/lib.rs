@@ -143,6 +143,10 @@ impl World {
             None => Entity(gens.len() as Index, 1),
         }
     }
+    /// Return the generations array locked for reading. Useful for debugging.
+    pub fn get_generations<'a>(&'a self) -> RwLockReadGuard<'a, Vec<Generation>> {
+        self.generations.read().unwrap()
+    }
 }
 
 
@@ -153,12 +157,12 @@ struct Appendix {
 }
 
 /// A custom entity iterator for dynamically added entities.
-pub struct ExtraEntityIter<'a> {
+pub struct NewEntityIter<'a> {
     guard: RwLockReadGuard<'a, Appendix>,
     index: usize,
 }
 
-impl<'a> Iterator for ExtraEntityIter<'a> {
+impl<'a> Iterator for NewEntityIter<'a> {
     type Item = Entity;
     fn next(&mut self) -> Option<Entity> {
         let ent = self.guard.add_queue.get(self.index);
@@ -200,8 +204,8 @@ impl WorldArg {
         app.sub_queue.push(entity);
     }
     /// Iterate dynamically added entities.
-    pub fn extra_entities<'a>(&'a self) -> ExtraEntityIter<'a> {
-        ExtraEntityIter {
+    pub fn new_entities<'a>(&'a self) -> NewEntityIter<'a> {
+        NewEntityIter {
             guard: self.app.read().unwrap(),
             index: 0,
         }
@@ -244,7 +248,6 @@ impl Scheduler {
         }
     }
     pub fn get_world(&self) -> &World {
-        //println!("{:?}", &*self.world.generations.read().unwrap());
         &self.world
     }
     pub fn run<F>(&mut self, functor: F) where
@@ -324,6 +327,12 @@ macro_rules! impl_run {
                        w.entities())
                 );
                 for ent in entities {
+                    if let ( $( Some($write), )* $( Some($read), )* ) =
+                        ( $( $write.get_mut(ent), )* $( $read.get(ent), )* ) {
+                        fun( $($write,)* $($read,)* );
+                    }
+                }
+                for ent in warg.new_entities() {
                     if let ( $( Some($write), )* $( Some($read), )* ) =
                         ( $( $write.get_mut(ent), )* $( $read.get(ent), )* ) {
                         fun( $($write,)* $($read,)* );
