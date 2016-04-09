@@ -9,5 +9,6 @@ license = "Apache-2.0"
 authors = ["Dzmitry Malyshau"]
 
 [dependencies]
+mopa = "0.2"
 pulse = "0.5"
 threadpool = "1.0"
