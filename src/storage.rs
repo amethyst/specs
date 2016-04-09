@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::hash::BuildHasherDefault;
+use fnv::FnvHasher;
 
 use {Entity, Generation};
 
@@ -55,7 +57,7 @@ impl<T> Storage<T> for VecStorage<T> {
 }
 
 #[derive(Debug)]
-pub struct HashMapStorage<T>(pub HashMap<Entity, T>);
+pub struct HashMapStorage<T>(pub HashMap<Entity, T, BuildHasherDefault<FnvHasher>>);
 
 impl<T> StorageBase for HashMapStorage<T> {
     fn del(&mut self, entity: Entity) {
@@ -64,7 +66,8 @@ impl<T> StorageBase for HashMapStorage<T> {
 }
 impl<T> Storage<T> for HashMapStorage<T> {
     fn new() -> Self {
-        HashMapStorage(HashMap::new())
+        let fnv = BuildHasherDefault::<FnvHasher>::default();
+        HashMapStorage(HashMap::with_hasher(fnv))
     }
     fn get(&self, entity: Entity) -> Option<&T> {
         self.0.get(&entity)
