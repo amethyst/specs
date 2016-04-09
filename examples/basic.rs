@@ -19,11 +19,14 @@ fn main() {
         parsec::Scheduler::new(w, 4)
     };
     scheduler.add_entity().with(CompInt(4)).with(CompBool(false)).build();
+    let e = scheduler.add_entity().with(CompInt(9)).with(CompBool(true)).build();
     scheduler.add_entity().with(CompInt(-1)).with(CompBool(false)).build();
 
     scheduler.run1w1r(|b: &mut CompBool, a: &CompInt| {
         b.0 = a.0 > 0;
     });
+    scheduler.del_entity(e);
+
     scheduler.run(|warg| {
         let (mut sa, sb, entities) = warg.fetch(|comp| {
             (comp.write::<CompInt>(),

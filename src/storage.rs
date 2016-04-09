@@ -2,7 +2,12 @@ use std::collections::HashMap;
 
 use {Entity, Generation};
 
-pub trait Storage<T>: Sized {
+
+pub trait StorageBase {
+    fn del(&mut self, Entity);
+}
+
+pub trait Storage<T>: StorageBase + Sized {
     fn new() -> Self;
     fn get(&self, Entity) -> Option<&T>;
     fn get_mut(&mut self, Entity) -> Option<&mut T>;
@@ -10,9 +15,15 @@ pub trait Storage<T>: Sized {
     fn sub(&mut self, Entity) -> Option<T>;
 }
 
+
 #[derive(Debug)]
 pub struct VecStorage<T>(pub Vec<Option<(Generation, T)>>);
 
+impl<T> StorageBase for VecStorage<T> {
+    fn del(&mut self, entity: Entity) {
+        self.0[entity.get_id()] = None;
+    }
+}
 impl<T> Storage<T> for VecStorage<T> {
     fn new() -> Self {
         VecStorage(Vec::new())
@@ -36,13 +47,21 @@ impl<T> Storage<T> for VecStorage<T> {
         self.0[entity.get_id()] = Some((entity.get_gen(), value));
     }
     fn sub(&mut self, entity: Entity) -> Option<T>{
-        self.0[entity.get_id()].take().map(|(_, v)| v)
+        self.0[entity.get_id()].take().map(|(g, v)| {
+            assert_eq!(g, entity.get_gen());
+            v
+        })
     }
 }
 
 #[derive(Debug)]
 pub struct HashMapStorage<T>(pub HashMap<Entity, T>);
 
+impl<T> StorageBase for HashMapStorage<T> {
+    fn del(&mut self, entity: Entity) {
+        self.0.remove(&entity);
+    }
+}
 impl<T> Storage<T> for HashMapStorage<T> {
     fn new() -> Self {
         HashMapStorage(HashMap::new())

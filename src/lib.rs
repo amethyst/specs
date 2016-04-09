@@ -1,14 +1,17 @@
+#[macro_use]
+extern crate mopa;
 extern crate pulse;
 extern crate threadpool;
 
-use std::any::{Any, TypeId};
+use std::any::TypeId;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use mopa::Any;
 use pulse::{Pulse, Signal};
 use threadpool::ThreadPool;
 
-pub use storage::{Storage, VecStorage, HashMapStorage};
+pub use storage::{Storage, StorageBase, VecStorage, HashMapStorage};
 
 mod storage;
 
@@ -52,15 +55,31 @@ impl<'a> Iterator for EntityIter<'a> {
     }
 }
 
-
 pub trait Component: Any + Sized {
     type Storage: Storage<Self> + Any + Send + Sync;
 }
 
+trait StorageLock: Any + Send + Sync {
+    fn del_slice(&self, &[Entity]);
+}
+
+mopafy!(StorageLock);
+
+impl<S: StorageBase + Any + Send + Sync> StorageLock for RwLock<S> {
+    fn del_slice(&self, entities: &[Entity]) {
+        let mut guard = self.write().unwrap();
+        for &e in entities.iter() {
+            guard.del(e);
+        }
+    }
+}
+
+
 pub struct World {
     generations: RwLock<Vec<Generation>>,
-    components: HashMap<TypeId, Box<Any+Send+Sync>>,
+    components: HashMap<TypeId, Box<StorageLock>>,
 }
+
 
 impl World {
     pub fn new() -> World {
@@ -74,9 +93,8 @@ impl World {
         self.components.insert(TypeId::of::<T>(), Box::new(any));
     }
     fn lock<T: Component>(&self) -> &RwLock<T::Storage> {
-        use std::ops::Deref;
         let boxed = self.components.get(&TypeId::of::<T>()).unwrap();
-        (boxed.deref() as &Any).downcast_ref().unwrap()
+        boxed.downcast_ref().unwrap()
     }
     pub fn read<'a, T: Component>(&'a self) -> RwLockReadGuard<'a, T::Storage> {
         self.lock::<T>().read().unwrap()
@@ -172,9 +190,8 @@ impl Scheduler {
         EntityBuilder(ent, &self.world)
     }
     pub fn del_entity(&mut self, entity: Entity) {
-        for _boxed in self.world.components.values() {
-            //TODO!
-            //let lock = (boxed.deref() as &Any).downcast_ref().unwrap();
+        for boxed in self.world.components.values() {
+            boxed.del_slice(&[entity]);
         }
         let mut gens = self.world.generations.write().unwrap();
         let mut gen = &mut gens[entity.get_id() as usize];
