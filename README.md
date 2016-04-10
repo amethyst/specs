@@ -1,4 +1,7 @@
 # parsec
+[![Build Status](https://travis-ci.org/kvark/parsec.svg)](https://travis-ci.org/kvark/parsec)
+[![Crates.io](https://img.shields.io/crates/v/parsec.svg?maxAge=2592000)](https://crates.io/crates/parsec)
+
 Parallel Systems for Entity Components
 
 Features:
