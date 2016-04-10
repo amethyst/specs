@@ -87,11 +87,18 @@ impl<S: StorageBase + Any + Send + Sync> StorageLock for RwLock<S> {
 }
 
 
+struct Appendix {
+    next: Entity,
+    add_queue: Vec<Entity>,
+    sub_queue: Vec<Entity>
+}
+
 /// The world struct contains all the data, which is entities and their components.
 /// The methods are supposed to be valid for any context they are available in.
 pub struct World {
     generations: RwLock<Vec<Generation>>,
     components: HashMap<TypeId, Box<StorageLock>>,
+    appendix: RwLock<Appendix>,
 }
 
 
@@ -101,6 +108,11 @@ impl World {
         World {
             generations: RwLock::new(Vec::new()),
             components: HashMap::new(),
+            appendix: RwLock::new(Appendix {
+                next: Entity(0, 1),
+                add_queue: Vec::new(),
+                sub_queue: Vec::new(),
+            }),
         }
     }
     /// Register a new component type.
@@ -150,11 +162,7 @@ impl World {
 }
 
 
-struct Appendix {
-    next: Entity,
-    add_queue: Vec<Entity>,
-    sub_queue: Vec<Entity>
-}
+
 
 /// A custom entity iterator for dynamically added entities.
 pub struct NewEntityIter<'a> {
@@ -175,7 +183,6 @@ impl<'a> Iterator for NewEntityIter<'a> {
 pub struct WorldArg {
     world: Arc<World>,
     pulse: RefCell<Option<Pulse>>,
-    app: Arc<RwLock<Appendix>>,
 }
 
 impl WorldArg {
@@ -192,7 +199,7 @@ impl WorldArg {
     }
     /// Create a new entity dynamically.
     pub fn create(&self) -> Entity {
-        let mut app = self.app.write().unwrap();
+        let mut app = self.world.appendix.write().unwrap();
         let ent = app.next;
         app.add_queue.push(ent);
         app.next = self.world.find_next(ent.get_id() + 1);
@@ -200,13 +207,13 @@ impl WorldArg {
     }
     /// Delete an entity dynamically.
     pub fn delete(&self, entity: Entity) {
-        let mut app = self.app.write().unwrap();
+        let mut app = self.world.appendix.write().unwrap();
         app.sub_queue.push(entity);
     }
     /// Iterate dynamically added entities.
     pub fn new_entities<'a>(&'a self) -> NewEntityIter<'a> {
         NewEntityIter {
-            guard: self.app.read().unwrap(),
+            guard: self.world.appendix.read().unwrap(),
             index: 0,
         }
     }
@@ -231,20 +238,13 @@ impl<'a> EntityBuilder<'a> {
 pub struct Scheduler {
     world: Arc<World>,
     threads: ThreadPool,
-    appendix: Arc<RwLock<Appendix>>,
 }
 
 impl Scheduler {
     pub fn new(world: World, num_threads: usize) -> Scheduler {
-        let next = Appendix {
-            next: world.find_next(0),
-            add_queue: Vec::new(),
-            sub_queue: Vec::new(),
-        };
         Scheduler {
             world: Arc::new(world),
             threads: ThreadPool::new(num_threads),
-            appendix: Arc::new(RwLock::new(next)),
         }
     }
     pub fn get_world(&self) -> &World {
@@ -255,18 +255,16 @@ impl Scheduler {
     {
         let (signal, pulse) = Signal::new();
         let world = self.world.clone();
-        let app = self.appendix.clone();
         self.threads.execute(|| {
             functor(WorldArg {
                 world: world,
                 pulse: RefCell::new(Some(pulse)),
-                app: app,
             });
         });
         signal.wait().unwrap();
     }
     pub fn add_entity<'a>(&'a mut self) -> EntityBuilder<'a> {
-        let mut appendix = self.appendix.write().unwrap();
+        let mut appendix = self.world.appendix.write().unwrap();
         let ent = appendix.next;
         assert!(ent.get_gen() > 0);
         if ent.get_gen() == 1 {
@@ -284,15 +282,15 @@ impl Scheduler {
         let mut gens = self.world.generations.write().unwrap();
         let mut gen = &mut gens[entity.get_id() as usize];
         assert!(*gen > 0);
-        let mut appendix = self.appendix.write().unwrap();
-        if entity.get_id() < appendix.next.get_id() {
-            appendix.next = Entity(entity.0, *gen+1);
+        let mut app = self.world.appendix.write().unwrap();
+        if entity.get_id() < app.next.get_id() {
+            app.next = Entity(entity.0, *gen+1);
         }
         *gen *= -1;
     }
     pub fn rest(&self) {
         let mut gens = self.world.generations.write().unwrap();
-        let mut app = self.appendix.write().unwrap();
+        let mut app = self.world.appendix.write().unwrap();
         for ent in app.add_queue.drain(..) {
             while gens.len() <= ent.get_id() {
                 gens.push(0);
