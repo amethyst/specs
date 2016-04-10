@@ -66,6 +66,57 @@ impl<'a> Iterator for EntityIter<'a> {
     }
 }
 
+/// Helper builder for entities.
+pub struct EntityBuilder<'a>(Entity, &'a World);
+
+impl<'a> EntityBuilder<'a> {
+    /// Add a component value to the new entity.
+    pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
+        self.1.write::<T>().insert(self.0, value);
+        self
+    }
+    /// Finish entity construction.
+    pub fn build(self) -> Entity {
+        self.0
+    }
+}
+
+
+struct Appendix {
+    next: Entity,
+    add_queue: Vec<Entity>,
+    sub_queue: Vec<Entity>
+}
+
+fn find_next(gens: &[Generation], base: usize) -> Entity {
+    match gens.iter().enumerate().skip(base).find(|&(_, g)| *g <= 0) {
+        Some((id, gen)) => Entity(id as Index, 1 - gen),
+        None => Entity(gens.len() as Index, 1),
+    }
+}
+
+pub struct CreateEntityIter<'a> {
+    gens: RwLockWriteGuard<'a, Vec<Generation>>,
+    app: RwLockWriteGuard<'a, Appendix>,
+}
+
+impl<'a> Iterator for CreateEntityIter<'a> {
+    type Item = Entity;
+    fn next(&mut self) -> Option<Entity> {
+        let ent = self.app.next;
+        assert!(ent.get_gen() > 0);
+        if ent.get_gen() == 1 {
+            assert!(self.gens.len() == ent.get_id());
+            self.gens.push(ent.get_gen());
+            self.app.next.0 += 1;
+        }else {
+            self.app.next = find_next(&self.gens, ent.get_id() + 1);
+        }
+        Some(ent)
+    }
+}
+
+
 /// Abstract component type. Doesn't have to be Copy or even Clone.
 pub trait Component: Any + Sized {
     type Storage: Storage<Self> + Any + Send + Sync;
@@ -86,27 +137,6 @@ impl<S: StorageBase + Any + Send + Sync> StorageLock for RwLock<S> {
     }
 }
 
-
-struct Appendix {
-    next: Entity,
-    add_queue: Vec<Entity>,
-    sub_queue: Vec<Entity>
-}
-
-/// Helper builder for entities.
-pub struct EntityBuilder<'a>(Entity, &'a World);
-
-impl<'a> EntityBuilder<'a> {
-    /// Add a component value to the new entity.
-    pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
-        self.1.write::<T>().insert(self.0, value);
-        self
-    }
-    /// Finish entity construction.
-    pub fn build(self) -> Entity {
-        self.0
-    }
-}
 
 /// The world struct contains all the data, which is entities and their components.
 /// The methods are supposed to be valid for any context they are available in.
@@ -163,13 +193,6 @@ impl World {
             index: 0,
         }
     }
-    fn find_next(&self, base: usize) -> Entity {
-        let gens = self.generations.read().unwrap();
-        match gens.iter().enumerate().skip(base).find(|&(_, g)| *g <= 0) {
-            Some((id, gen)) => Entity(id as Index, 1 - gen),
-            None => Entity(gens.len() as Index, 1),
-        }
-    }
     /// Create a new entity instantly, with locking the generations data.
     pub fn create_now<'a>(&'a self) -> EntityBuilder<'a> {
         let mut app = self.appendix.write().unwrap();
@@ -179,9 +202,20 @@ impl World {
             let mut gens = self.generations.write().unwrap();
             assert!(gens.len() == ent.get_id());
             gens.push(ent.get_gen());
+            app.next.0 += 1;
+        }else {
+            let gens = self.generations.read().unwrap();
+            app.next = find_next(&gens, ent.get_id() + 1);
         }
-        app.next = self.find_next(ent.get_id() + 1);
         EntityBuilder(ent, self)
+    }
+    /// Return the entity creation iterator. Can be used to create many
+    /// empty entities at once without paying the locking overhead.
+    pub fn create_iter<'a>(&'a self) -> CreateEntityIter<'a> {
+        CreateEntityIter {
+            gens: self.generations.write().unwrap(),
+            app: self.appendix.write().unwrap(),
+        }
     }
     /// Delete a new entity instantly, with locking the generations data.
     pub fn delete_now(&self, entity: Entity) {
@@ -231,12 +265,12 @@ impl World {
 
 
 /// A custom entity iterator for dynamically added entities.
-pub struct NewEntityIter<'a> {
+pub struct DynamicEntityIter<'a> {
     guard: RwLockReadGuard<'a, Appendix>,
     index: usize,
 }
 
-impl<'a> Iterator for NewEntityIter<'a> {
+impl<'a> Iterator for DynamicEntityIter<'a> {
     type Item = Entity;
     fn next(&mut self) -> Option<Entity> {
         let ent = self.guard.add_queue.get(self.index);
@@ -268,7 +302,7 @@ impl WorldArg {
         let mut app = self.world.appendix.write().unwrap();
         let ent = app.next;
         app.add_queue.push(ent);
-        app.next = self.world.find_next(ent.get_id() + 1);
+        app.next = find_next(&*self.world.generations.read().unwrap(), ent.get_id() + 1);
         ent
     }
     /// Delete an entity dynamically.
@@ -277,8 +311,8 @@ impl WorldArg {
         app.sub_queue.push(entity);
     }
     /// Iterate dynamically added entities.
-    pub fn new_entities<'a>(&'a self) -> NewEntityIter<'a> {
-        NewEntityIter {
+    pub fn new_entities<'a>(&'a self) -> DynamicEntityIter<'a> {
+        DynamicEntityIter {
             guard: self.world.appendix.read().unwrap(),
             index: 0,
         }
