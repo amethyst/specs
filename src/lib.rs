@@ -13,7 +13,7 @@ extern crate fnv;
 
 use std::cell::RefCell;
 use std::sync::Arc;
-use pulse::{Pulse, Signal};
+use pulse::{Pulse, Signal, Barrier, Signals};
 use threadpool::ThreadPool;
 
 pub use storage::{Storage, StorageBase, VecStorage, HashMapStorage};
@@ -90,6 +90,7 @@ pub struct Scheduler {
     /// Shared World.
     pub world: Arc<World>,
     threads: ThreadPool,
+    pending: Vec<Signal>
 }
 
 impl Scheduler {
@@ -98,6 +99,7 @@ impl Scheduler {
         Scheduler {
             world: Arc::new(world),
             threads: ThreadPool::new(num_threads),
+            pending: vec![]
         }
     }
     /// Run a custom system.
@@ -105,19 +107,23 @@ impl Scheduler {
         F: 'static + Send + FnOnce(RunArg)
     {
         let (signal, pulse) = Signal::new();
+        let (signal_done, pulse_done) = Signal::new();
         let world = self.world.clone();
         self.threads.execute(|| {
             functor(RunArg {
                 world: world,
                 pulse: RefCell::new(Some(pulse)),
             });
+            pulse_done.pulse();
         });
         signal.wait().unwrap();
+        self.pending.push(signal_done);
     }
     /// Wait for all the currently executed systems to finish.
     pub fn wait(&mut self) {
         self.world.merge();
-        //TODO: actually wait
+        Barrier::new(&self.pending[..]).wait().unwrap();
+        self.pending.clear();
     }
 }
 
