@@ -200,7 +200,7 @@ impl World {
             assert!(gens.len() == ent.get_id());
             gens.push(ent.get_gen());
             app.next.0 += 1;
-        }else {
+        } else {
             let gens = self.generations.read().unwrap();
             app.next = find_next(&gens, ent.get_id() + 1);
         }
