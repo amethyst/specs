@@ -136,12 +136,47 @@ impl World {
             index: 0,
         }
     }
+    fn find_next(&self, base: usize) -> Entity {
+        let gens = self.generations.read().unwrap();
+        match gens.iter().enumerate().skip(base).find(|&(_, g)| *g <= 0) {
+            Some((id, gen)) => Entity(id as Index, 1 - gen),
+            None => Entity(gens.len() as Index, 1),
+        }
+    }
+    /// Return the generations array locked for reading. Useful for debugging.
+    pub fn get_generations<'a>(&'a self) -> RwLockReadGuard<'a, Vec<Generation>> {
+        self.generations.read().unwrap()
+    }
 }
 
 
+struct Appendix {
+    next: Entity,
+    add_queue: Vec<Entity>,
+    sub_queue: Vec<Entity>
+}
+
+/// A custom entity iterator for dynamically added entities.
+pub struct NewEntityIter<'a> {
+    guard: RwLockReadGuard<'a, Appendix>,
+    index: usize,
+}
+
+impl<'a> Iterator for NewEntityIter<'a> {
+    type Item = Entity;
+    fn next(&mut self) -> Option<Entity> {
+        let ent = self.guard.add_queue.get(self.index);
+        self.index += 1;
+        ent.map(|e| *e)
+    }
+}
 
 /// World argument for a system closure.
-pub struct WorldArg(Arc<World>, RefCell<Option<Pulse>>);
+pub struct WorldArg {
+    world: Arc<World>,
+    pulse: RefCell<Option<Pulse>>,
+    app: Arc<RwLock<Appendix>>,
+}
 
 impl WorldArg {
     /// Borrows the world, allowing the system lock some components and get the entity
@@ -149,10 +184,31 @@ impl WorldArg {
     pub fn fetch<'a, U, F>(&'a self, f: F) -> U
         where F: FnOnce(&'a World) -> U
     {
-        let pulse = self.1.borrow_mut().take().expect("fetch may only be called once.");
-        let u = f(&self.0);
+        let pulse = self.pulse.borrow_mut().take()
+                        .expect("fetch may only be called once.");
+        let u = f(&self.world);
         pulse.pulse();
         u
+    }
+    /// Insert a new entity dynamically.
+    pub fn insert(&self) -> Entity {
+        let mut app = self.app.write().unwrap();
+        let ent = app.next;
+        app.add_queue.push(ent);
+        app.next = self.world.find_next(ent.get_id() + 1);
+        ent
+    }
+    /// Remove an entity dynamically.
+    pub fn remove(&self, entity: Entity) {
+        let mut app = self.app.write().unwrap();
+        app.sub_queue.push(entity);
+    }
+    /// Iterate dynamically added entities.
+    pub fn new_entities<'a>(&'a self) -> NewEntityIter<'a> {
+        NewEntityIter {
+            guard: self.app.read().unwrap(),
+            index: 0,
+        }
     }
 }
 
@@ -175,30 +231,23 @@ impl<'a> EntityBuilder<'a> {
 pub struct Scheduler {
     world: Arc<World>,
     threads: ThreadPool,
-    first_free: Index,
-}
-
-fn find_free<'a>(mut gens: RwLockWriteGuard<'a, Vec<Generation>>, base: usize) -> Index {
-    match gens[base..].iter().position(|g| *g <= 0) {
-        Some(pos) => (base + pos) as Index,
-        None => {
-            gens.push(0);
-            (gens.len() - 1) as Index
-        },
-    }
+    appendix: Arc<RwLock<Appendix>>,
 }
 
 impl Scheduler {
     pub fn new(world: World, num_threads: usize) -> Scheduler {
-        let ff = find_free(world.generations.write().unwrap(), 0);
+        let next = Appendix {
+            next: world.find_next(0),
+            add_queue: Vec::new(),
+            sub_queue: Vec::new(),
+        };
         Scheduler {
             world: Arc::new(world),
             threads: ThreadPool::new(num_threads),
-            first_free: ff,
+            appendix: Arc::new(RwLock::new(next)),
         }
     }
     pub fn get_world(&self) -> &World {
-        //println!("{:?}", &*self.world.generations.read().unwrap());
         &self.world
     }
     pub fn run<F>(&mut self, functor: F) where
@@ -206,21 +255,26 @@ impl Scheduler {
     {
         let (signal, pulse) = Signal::new();
         let world = self.world.clone();
+        let app = self.appendix.clone();
         self.threads.execute(|| {
-            let warg = WorldArg(world, RefCell::new(Some(pulse)));
-            functor(warg);
+            functor(WorldArg {
+                world: world,
+                pulse: RefCell::new(Some(pulse)),
+                app: app,
+            });
         });
         signal.wait().unwrap();
     }
     pub fn add_entity<'a>(&'a mut self) -> EntityBuilder<'a> {
-        let mut gens = self.world.generations.write().unwrap();
-        let ent = {
-            let gen = &mut gens[self.first_free as usize];
-            assert!(*gen <= 0);
-            *gen = 1 - *gen;
-            Entity(self.first_free, *gen)
-        };
-        self.first_free = find_free(gens, (self.first_free + 1) as usize);
+        let mut appendix = self.appendix.write().unwrap();
+        let ent = appendix.next;
+        assert!(ent.get_gen() > 0);
+        if ent.get_gen() == 1 {
+            let mut gens = self.world.generations.write().unwrap();
+            assert!(gens.len() == ent.get_id());
+            gens.push(ent.get_gen());
+        }
+        appendix.next = self.world.find_next(ent.get_id() + 1);
         EntityBuilder(ent, &self.world)
     }
     pub fn del_entity(&mut self, entity: Entity) {
@@ -230,10 +284,31 @@ impl Scheduler {
         let mut gens = self.world.generations.write().unwrap();
         let mut gen = &mut gens[entity.get_id() as usize];
         assert!(*gen > 0);
+        let mut appendix = self.appendix.write().unwrap();
+        if entity.get_id() < appendix.next.get_id() {
+            appendix.next = Entity(entity.0, *gen+1);
+        }
         *gen *= -1;
     }
-    pub fn wait(&self) {
-        while self.threads.active_count() > 0 {} //TODO
+    pub fn rest(&self) {
+        let mut gens = self.world.generations.write().unwrap();
+        let mut app = self.appendix.write().unwrap();
+        for ent in app.add_queue.drain(..) {
+            while gens.len() <= ent.get_id() {
+                gens.push(0);
+            }
+            assert_eq!(ent.get_gen(), 1 - gens[ent.get_id()]);
+            gens[ent.get_id()] = ent.get_gen();
+        }
+        let mut next = app.next;
+        for ent in app.sub_queue.drain(..) {
+            assert_eq!(ent.get_gen(), gens[ent.get_id()]);
+            if ent.get_id() < next.get_id() {
+                next = Entity(ent.0, ent.1 + 1);
+            }
+            gens[ent.get_id()] *= -1;
+        }
+        app.next = next;
     }
 }
 
@@ -252,6 +327,12 @@ macro_rules! impl_run {
                        w.entities())
                 );
                 for ent in entities {
+                    if let ( $( Some($write), )* $( Some($read), )* ) =
+                        ( $( $write.get_mut(ent), )* $( $read.get(ent), )* ) {
+                        fun( $($write,)* $($read,)* );
+                    }
+                }
+                for ent in warg.new_entities() {
                     if let ( $( Some($write), )* $( Some($read), )* ) =
                         ( $( $write.get_mut(ent), )* $( $read.get(ent), )* ) {
                         fun( $($write,)* $($read,)* );
