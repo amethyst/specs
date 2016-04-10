@@ -321,7 +321,7 @@ impl WorldArg {
 
 
 pub struct Scheduler {
-    world: Arc<World>,
+    pub world: Arc<World>,
     threads: ThreadPool,
 }
 
@@ -331,9 +331,6 @@ impl Scheduler {
             world: Arc::new(world),
             threads: ThreadPool::new(num_threads),
         }
-    }
-    pub fn get_world(&self) -> &World {
-        &self.world
     }
     pub fn run<F>(&mut self, functor: F) where
         F: 'static + Send + FnOnce(WorldArg)

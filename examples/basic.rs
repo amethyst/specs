@@ -25,7 +25,7 @@ fn main() {
     scheduler.run1w1r(|b: &mut CompBool, a: &CompInt| {
         b.0 = a.0 > 0;
     });
-    scheduler.get_world().delete_now(e);
+    scheduler.world.delete_now(e);
 
     scheduler.run(|warg| {
         use parsec::Storage;
@@ -55,7 +55,7 @@ fn main() {
 
     scheduler.wait();
     if false {   // some debug output
-        let w = scheduler.get_world();
+        let w = &scheduler.world;
         println!("Generations: {:?}", &*w.get_generations());
         println!("{:?}", &*w.read::<CompInt>());
         println!("{:?}", &*w.read::<CompBool>());
