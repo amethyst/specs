@@ -27,9 +27,9 @@ fn main() {
     });
     scheduler.world.delete_now(e);
 
-    scheduler.run(|warg| {
+    scheduler.run(|arg| {
         use parsec::Storage;
-        let (mut sa, sb, entities) = warg.fetch(|w| {
+        let (mut sa, sb, entities) = arg.fetch(|w| {
             (w.write::<CompInt>(),
              w.read::<CompBool>(),
              w.entities())
@@ -43,11 +43,11 @@ fn main() {
             }
         }
 
-        let e0 = warg.create();
+        let e0 = arg.create();
         sa.insert(e0, CompInt(-4));
-        let e1 = warg.create();
+        let e1 = arg.create();
         sa.insert(e1, CompInt(-5));
-        warg.delete(e0);
+        arg.delete(e0);
     });
     scheduler.run0w2r(|a: &CompInt, b: &CompBool| {
         println!("Entity {} {}", a.0, b.0);

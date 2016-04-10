@@ -1,3 +1,10 @@
+#![deny(missing_docs)]
+
+//! Parallel Systems for Entity Components
+//! This library provides an ECS variant designed for parallel execution
+//! and convenient usage. It is highly flexible when it comes to actual
+//! component data and the way it's stored and accessed.
+
 #[macro_use]
 extern crate mopa;
 extern crate pulse;
@@ -77,18 +84,23 @@ impl RunArg {
 }
 
 
+/// System execution scheduler. Allows running systems via closures,
+/// distributes the load in parallel using a thread pool.
 pub struct Scheduler {
+    /// Shared World.
     pub world: Arc<World>,
     threads: ThreadPool,
 }
 
 impl Scheduler {
+    /// Create a new scheduler, given the world and the thread count.
     pub fn new(world: World, num_threads: usize) -> Scheduler {
         Scheduler {
             world: Arc::new(world),
             threads: ThreadPool::new(num_threads),
         }
     }
+    /// Run a custom system.
     pub fn run<F>(&mut self, functor: F) where
         F: 'static + Send + FnOnce(RunArg)
     {
@@ -102,14 +114,16 @@ impl Scheduler {
         });
         signal.wait().unwrap();
     }
+    /// Wait for all the currently executed systems to finish.
     pub fn wait(&mut self) {
         self.world.merge();
+        //TODO: actually wait
     }
 }
 
 macro_rules! impl_run {
     ($name:ident [$( $write:ident ),*] [$( $read:ident ),*]) => (impl Scheduler {
-        #[allow(non_snake_case, unused_mut)]
+        #[allow(missing_docs, non_snake_case, unused_mut)]
         pub fn $name<
             $($write:Component,)* $($read:Component,)*
             F: 'static + Send + FnMut( $(&mut $write,)* $(&$read,)* )

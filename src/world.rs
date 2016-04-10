@@ -7,6 +7,7 @@ use {Index, Generation, Entity, StorageBase, Storage};
 
 /// Abstract component type. Doesn't have to be Copy or even Clone.
 pub trait Component: Any + Sized {
+    /// Associated storage type for this component.
     type Storage: Storage<Self> + Any + Send + Sync;
 }
 
@@ -64,6 +65,8 @@ fn find_next(gens: &[Generation], base: usize) -> Entity {
     }
 }
 
+/// Entity creation iterator. Will yield new empty entities infinitely.
+/// Useful for bulk entity construction, since the locks are only happening once.
 pub struct CreateEntityIter<'a> {
     gens: RwLockWriteGuard<'a, Vec<Generation>>,
     app: RwLockWriteGuard<'a, Appendix>,
