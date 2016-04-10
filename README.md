@@ -2,8 +2,6 @@
 [![Build Status](https://travis-ci.org/kvark/parsec.svg)](https://travis-ci.org/kvark/parsec)
 [![Crates.io](https://img.shields.io/crates/v/parsec.svg?maxAge=2592000)](https://crates.io/crates/parsec)
 
-Parallel Systems for Entity Components
-
 Features:
 - Automatic execution of the systems in parallel. Follows Rust ownership rules. Depends on the order the systems are started.
 - Component storage is abstract behind the trait. One can use vectors, hashmaps, trees, or whatever else.
