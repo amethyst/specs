@@ -5,19 +5,32 @@ use fnv::FnvHasher;
 use {Entity, Generation};
 
 
+/// Base trait for a component storage that is used as a trait object.
+/// Doesn't depent on the actual component type.
 pub trait StorageBase {
+    /// Delete a particular entity from the storage.
     fn del(&mut self, Entity);
 }
 
+/// Typed component storage trait.
 pub trait Storage<T>: StorageBase + Sized {
+    /// Create a new storage. This is called when you register a new
+    /// component type within the world.
     fn new() -> Self;
+    /// Try reading the data associated with an entity.
     fn get(&self, Entity) -> Option<&T>;
+    /// Try mutating the data associated with an entity.
     fn get_mut(&mut self, Entity) -> Option<&mut T>;
+    /// Insert a new data for a given entity.
     fn insert(&mut self, Entity, T);
+    /// Remove the data associated with an entity.
     fn remove(&mut self, Entity) -> Option<T>;
 }
 
 
+/// Vec-based storage, actually wraps data into options and stores the generations
+/// of the data in order to match with given entities. Supposed to have maximum
+/// performance for the components mostly present in entities.
 #[derive(Debug)]
 pub struct VecStorage<T>(pub Vec<Option<(Generation, T)>>);
 
@@ -61,6 +74,7 @@ impl<T> Storage<T> for VecStorage<T> {
     }
 }
 
+/// HashMap-based storage. Best suited for rare components.
 #[derive(Debug)]
 pub struct HashMapStorage<T>(pub HashMap<Entity, T, BuildHasherDefault<FnvHasher>>);
 
