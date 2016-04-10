@@ -12,20 +12,20 @@ impl parsec::Component for CompBool {
 }
 
 fn main() {
-    let mut scheduler = {
+    let (e, mut scheduler) = {
         let mut w = parsec::World::new();
         w.register::<CompInt>();
         w.register::<CompBool>();
-        parsec::Scheduler::new(w, 4)
+        w.create_now().with(CompInt(4)).with(CompBool(false)).build();
+        let e = w.create_now().with(CompInt(9)).with(CompBool(true)).build();
+        w.create_now().with(CompInt(-1)).with(CompBool(false)).build();
+        (e, parsec::Scheduler::new(w, 4))
     };
-    scheduler.add_entity().with(CompInt(4)).with(CompBool(false)).build();
-    let e = scheduler.add_entity().with(CompInt(9)).with(CompBool(true)).build();
-    scheduler.add_entity().with(CompInt(-1)).with(CompBool(false)).build();
 
     scheduler.run1w1r(|b: &mut CompBool, a: &CompInt| {
         b.0 = a.0 > 0;
     });
-    scheduler.del_entity(e);
+    scheduler.get_world().delete_now(e);
 
     scheduler.run(|warg| {
         use parsec::Storage;
@@ -52,7 +52,8 @@ fn main() {
     scheduler.run0w2r(|a: &CompInt, b: &CompBool| {
         println!("Entity {} {}", a.0, b.0);
     });
-    scheduler.rest();
+
+    scheduler.wait();
     if false {   // some debug output
         let w = scheduler.get_world();
         println!("Generations: {:?}", &*w.get_generations());

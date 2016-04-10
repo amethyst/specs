@@ -93,6 +93,21 @@ struct Appendix {
     sub_queue: Vec<Entity>
 }
 
+/// Helper builder for entities.
+pub struct EntityBuilder<'a>(Entity, &'a World);
+
+impl<'a> EntityBuilder<'a> {
+    /// Add a component value to the new entity.
+    pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
+        self.1.write::<T>().insert(self.0, value);
+        self
+    }
+    /// Finish entity construction.
+    pub fn build(self) -> Entity {
+        self.0
+    }
+}
+
 /// The world struct contains all the data, which is entities and their components.
 /// The methods are supposed to be valid for any context they are available in.
 pub struct World {
@@ -154,6 +169,33 @@ impl World {
             Some((id, gen)) => Entity(id as Index, 1 - gen),
             None => Entity(gens.len() as Index, 1),
         }
+    }
+    /// Create a new entity instantly, with locking the generations data.
+    pub fn create_now<'a>(&'a self) -> EntityBuilder<'a> {
+        let mut app = self.appendix.write().unwrap();
+        let ent = app.next;
+        assert!(ent.get_gen() > 0);
+        if ent.get_gen() == 1 {
+            let mut gens = self.generations.write().unwrap();
+            assert!(gens.len() == ent.get_id());
+            gens.push(ent.get_gen());
+        }
+        app.next = self.find_next(ent.get_id() + 1);
+        EntityBuilder(ent, self)
+    }
+    /// Delete a new entity instantly, with locking the generations data.
+    pub fn delete_now(&self, entity: Entity) {
+        for comp in self.components.values() {
+            comp.del_slice(&[entity]);
+        }
+        let mut gens = self.generations.write().unwrap();
+        let mut gen = &mut gens[entity.get_id() as usize];
+        assert!(*gen > 0);
+        let mut app = self.appendix.write().unwrap();
+        if entity.get_id() < app.next.get_id() {
+            app.next = Entity(entity.0, *gen+1);
+        }
+        *gen *= -1;
     }
     /// Merge in the appendix, recording all the dynamically created
     /// and deleted entities into the persistent generations vector.
@@ -243,21 +285,6 @@ impl WorldArg {
     }
 }
 
-/// Helper builder for entities.
-pub struct EntityBuilder<'a>(Entity, &'a World);
-
-impl<'a> EntityBuilder<'a> {
-    /// Add a component value to the new entity.
-    pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
-        self.1.write::<T>().insert(self.0, value);
-        self
-    }
-    /// Finish entity construction.
-    pub fn build(self) -> Entity {
-        self.0
-    }
-}
-
 
 pub struct Scheduler {
     world: Arc<World>,
@@ -287,32 +314,7 @@ impl Scheduler {
         });
         signal.wait().unwrap();
     }
-    pub fn add_entity<'a>(&'a mut self) -> EntityBuilder<'a> {
-        let mut appendix = self.world.appendix.write().unwrap();
-        let ent = appendix.next;
-        assert!(ent.get_gen() > 0);
-        if ent.get_gen() == 1 {
-            let mut gens = self.world.generations.write().unwrap();
-            assert!(gens.len() == ent.get_id());
-            gens.push(ent.get_gen());
-        }
-        appendix.next = self.world.find_next(ent.get_id() + 1);
-        EntityBuilder(ent, &self.world)
-    }
-    pub fn del_entity(&mut self, entity: Entity) {
-        for boxed in self.world.components.values() {
-            boxed.del_slice(&[entity]);
-        }
-        let mut gens = self.world.generations.write().unwrap();
-        let mut gen = &mut gens[entity.get_id() as usize];
-        assert!(*gen > 0);
-        let mut app = self.world.appendix.write().unwrap();
-        if entity.get_id() < app.next.get_id() {
-            app.next = Entity(entity.0, *gen+1);
-        }
-        *gen *= -1;
-    }
-    pub fn rest(&mut self) {
+    pub fn wait(&mut self) {
         self.world.merge();
     }
 }
