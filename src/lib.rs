@@ -155,13 +155,37 @@ impl World {
             None => Entity(gens.len() as Index, 1),
         }
     }
+    /// Merge in the appendix, recording all the dynamically created
+    /// and deleted entities into the persistent generations vector.
+    /// Also removes all the abandoned components.
+    pub fn merge(&self) {
+        let mut gens = self.generations.write().unwrap();
+        let mut app = self.appendix.write().unwrap();
+        for ent in app.add_queue.drain(..) {
+            while gens.len() <= ent.get_id() {
+                gens.push(0);
+            }
+            assert_eq!(ent.get_gen(), 1 - gens[ent.get_id()]);
+            gens[ent.get_id()] = ent.get_gen();
+        }
+        let mut next = app.next;
+        for comp in self.components.values() {
+            comp.del_slice(&app.sub_queue);
+        }
+        for ent in app.sub_queue.drain(..) {
+            assert_eq!(ent.get_gen(), gens[ent.get_id()]);
+            if ent.get_id() < next.get_id() {
+                next = Entity(ent.0, ent.1 + 1);
+            }
+            gens[ent.get_id()] *= -1;
+        }
+        app.next = next;
+    }
     /// Return the generations array locked for reading. Useful for debugging.
     pub fn get_generations<'a>(&'a self) -> RwLockReadGuard<'a, Vec<Generation>> {
         self.generations.read().unwrap()
     }
 }
-
-
 
 
 /// A custom entity iterator for dynamically added entities.
@@ -288,25 +312,8 @@ impl Scheduler {
         }
         *gen *= -1;
     }
-    pub fn rest(&self) {
-        let mut gens = self.world.generations.write().unwrap();
-        let mut app = self.world.appendix.write().unwrap();
-        for ent in app.add_queue.drain(..) {
-            while gens.len() <= ent.get_id() {
-                gens.push(0);
-            }
-            assert_eq!(ent.get_gen(), 1 - gens[ent.get_id()]);
-            gens[ent.get_id()] = ent.get_gen();
-        }
-        let mut next = app.next;
-        for ent in app.sub_queue.drain(..) {
-            assert_eq!(ent.get_gen(), gens[ent.get_id()]);
-            if ent.get_id() < next.get_id() {
-                next = Entity(ent.0, ent.1 + 1);
-            }
-            gens[ent.get_id()] *= -1;
-        }
-        app.next = next;
+    pub fn rest(&mut self) {
+        self.world.merge();
     }
 }
 
