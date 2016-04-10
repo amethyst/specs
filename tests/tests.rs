@@ -1,7 +1,7 @@
 extern crate parsec;
 
 use parsec::Storage;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Clone, Debug)]
@@ -83,4 +83,61 @@ fn task_panics_args_captured() {
         panic!();
     });
     scheduler.wait();
+}
+
+#[test]
+fn dynamic_create() {
+    let mut scheduler = create_world();
+
+    for _ in 0..1_000 {
+        scheduler.run(|arg| {
+            arg.fetch(|_| ());
+            arg.create();
+        });
+        scheduler.wait();
+    }
+}
+
+#[test]
+fn dynamic_deletion() {
+    let mut scheduler = create_world();
+
+    for _ in 0..1_000 {
+        scheduler.run(|arg| {
+            arg.fetch(|_| ());
+            let e = arg.create();
+            arg.delete(e);
+        });
+        scheduler.wait();
+    }
+}
+
+#[test]
+fn dynamic_create_and_delete() {
+    use std::mem::swap;
+    let mut scheduler = create_world();
+
+    let (mut ent0, mut ent1) = (
+        Arc::new(Mutex::new(None)),
+        Arc::new(Mutex::new(None))
+    );
+
+    for i in 0..1_000 {
+        let e = ent0.clone();
+        scheduler.run(move |arg| {
+            arg.fetch(|_| ());
+            let mut e = e.lock().unwrap();
+            *e = Some(arg.create());
+        });
+        if i >= 1 {
+            let e = ent1.clone();
+            scheduler.run(move |arg| {
+                arg.fetch(|_| ());
+                let mut e = e.lock().unwrap();
+                arg.delete(e.take().unwrap());
+            })
+        }
+        scheduler.wait();
+        swap(&mut ent1, &mut ent0)
+    }
 }

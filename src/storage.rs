@@ -36,7 +36,7 @@ pub struct VecStorage<T>(pub Vec<Option<(Generation, T)>>);
 
 impl<T> StorageBase for VecStorage<T> {
     fn del(&mut self, entity: Entity) {
-        self.0[entity.get_id()] = None;
+        self.0.get_mut(entity.get_id()).map(|x| *x = None);
     }
 }
 impl<T> Storage<T> for VecStorage<T> {

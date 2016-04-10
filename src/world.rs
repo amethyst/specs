@@ -55,13 +55,18 @@ impl<'a> EntityBuilder<'a> {
 struct Appendix {
     next: Entity,
     add_queue: Vec<Entity>,
-    sub_queue: Vec<Entity>
+    sub_queue: Vec<Entity>,
 }
 
-fn find_next(gens: &[Generation], base: usize) -> Entity {
-    match gens.iter().enumerate().skip(base).find(|&(_, g)| *g <= 0) {
-        Some((id, gen)) => Entity(id as Index, 1 - gen),
-        None => Entity(gens.len() as Index, 1),
+fn find_next(gens: &[Generation], lowest_free_index: usize) -> Entity {
+    if let Some((id, gen)) = gens.iter().enumerate().skip(lowest_free_index).find(|&(_, g)| *g <= 0) {
+        return Entity(id as Index, 1 - gen);
+    }
+
+    if lowest_free_index > gens.len() {
+        return Entity(lowest_free_index as Index, 1);
+    } else {
+        return Entity(gens.len() as Index, 1);
     }
 }
 
@@ -81,7 +86,7 @@ impl<'a> Iterator for CreateEntityIter<'a> {
             assert!(self.gens.len() == ent.get_id());
             self.gens.push(ent.get_gen());
             self.app.next.0 += 1;
-        }else {
+        } else {
             self.app.next = find_next(&self.gens, ent.get_id() + 1);
         }
         Some(ent)
