@@ -1,12 +1,12 @@
 [package]
 name = "parsec"
-version = "0.2.0"
+version = "0.3.0"
 description = "Parallel Systems for Entity Components"
 homepage = "https://github.com/kvark/parsec"
 repository = "https://github.com/kvark/parsec"
 keywords = ["gamedev"]
 license = "Apache-2.0"
-authors = ["Dzmitry Malyshau"]
+authors = ["Dzmitry Malyshau", "Colin Sherratt"]
 
 [dependencies]
 mopa = "0.2"
