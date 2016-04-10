@@ -116,6 +116,21 @@ impl<'a> Iterator for CreateEntityIter<'a> {
     }
 }
 
+/// A custom entity iterator for dynamically added entities.
+pub struct DynamicEntityIter<'a> {
+    guard: RwLockReadGuard<'a, Appendix>,
+    index: usize,
+}
+
+impl<'a> Iterator for DynamicEntityIter<'a> {
+    type Item = Entity;
+    fn next(&mut self) -> Option<Entity> {
+        let ent = self.guard.add_queue.get(self.index);
+        self.index += 1;
+        ent.map(|e| *e)
+    }
+}
+
 
 /// Abstract component type. Doesn't have to be Copy or even Clone.
 pub trait Component: Any + Sized {
@@ -145,7 +160,6 @@ pub struct World {
     components: HashMap<TypeId, Box<StorageLock>>,
     appendix: RwLock<Appendix>,
 }
-
 
 impl World {
     /// Create a new empty world.
@@ -193,6 +207,22 @@ impl World {
             index: 0,
         }
     }
+    /// Return the dynamic entity iterator. It goes through entities that were
+    /// dynamically created by systems but not yet merged.
+    pub fn dynamic_entities<'a>(&'a self) -> DynamicEntityIter<'a> {
+        DynamicEntityIter {
+            guard: self.appendix.read().unwrap(),
+            index: 0,
+        }
+    }
+    /// Return the entity creation iterator. Can be used to create many
+    /// empty entities at once without paying the locking overhead.
+    pub fn create_iter<'a>(&'a self) -> CreateEntityIter<'a> {
+        CreateEntityIter {
+            gens: self.generations.write().unwrap(),
+            app: self.appendix.write().unwrap(),
+        }
+    }
     /// Create a new entity instantly, with locking the generations data.
     pub fn create_now<'a>(&'a self) -> EntityBuilder<'a> {
         let mut app = self.appendix.write().unwrap();
@@ -209,14 +239,6 @@ impl World {
         }
         EntityBuilder(ent, self)
     }
-    /// Return the entity creation iterator. Can be used to create many
-    /// empty entities at once without paying the locking overhead.
-    pub fn create_iter<'a>(&'a self) -> CreateEntityIter<'a> {
-        CreateEntityIter {
-            gens: self.generations.write().unwrap(),
-            app: self.appendix.write().unwrap(),
-        }
-    }
     /// Delete a new entity instantly, with locking the generations data.
     pub fn delete_now(&self, entity: Entity) {
         for comp in self.components.values() {
@@ -230,6 +252,19 @@ impl World {
             app.next = Entity(entity.0, *gen+1);
         }
         *gen *= -1;
+    }
+    /// Create a new entity dynamically.
+    pub fn create_later(&self) -> Entity {
+        let mut app = self.appendix.write().unwrap();
+        let ent = app.next;
+        app.add_queue.push(ent);
+        app.next = find_next(&*self.generations.read().unwrap(), ent.get_id() + 1);
+        ent
+    }
+    /// Delete an entity dynamically.
+    pub fn delete_later(&self, entity: Entity) {
+        let mut app = self.appendix.write().unwrap();
+        app.sub_queue.push(entity);
     }
     /// Merge in the appendix, recording all the dynamically created
     /// and deleted entities into the persistent generations vector.
@@ -264,20 +299,6 @@ impl World {
 }
 
 
-/// A custom entity iterator for dynamically added entities.
-pub struct DynamicEntityIter<'a> {
-    guard: RwLockReadGuard<'a, Appendix>,
-    index: usize,
-}
-
-impl<'a> Iterator for DynamicEntityIter<'a> {
-    type Item = Entity;
-    fn next(&mut self) -> Option<Entity> {
-        let ent = self.guard.add_queue.get(self.index);
-        self.index += 1;
-        ent.map(|e| *e)
-    }
-}
 
 /// World argument for a system closure.
 pub struct WorldArg {
@@ -299,23 +320,15 @@ impl WorldArg {
     }
     /// Create a new entity dynamically.
     pub fn create(&self) -> Entity {
-        let mut app = self.world.appendix.write().unwrap();
-        let ent = app.next;
-        app.add_queue.push(ent);
-        app.next = find_next(&*self.world.generations.read().unwrap(), ent.get_id() + 1);
-        ent
+        self.world.create_later()
     }
     /// Delete an entity dynamically.
     pub fn delete(&self, entity: Entity) {
-        let mut app = self.world.appendix.write().unwrap();
-        app.sub_queue.push(entity);
+        self.world.delete_later(entity)
     }
     /// Iterate dynamically added entities.
     pub fn new_entities<'a>(&'a self) -> DynamicEntityIter<'a> {
-        DynamicEntityIter {
-            guard: self.world.appendix.read().unwrap(),
-            index: 0,
-        }
+        self.world.dynamic_entities()
     }
 }
 
