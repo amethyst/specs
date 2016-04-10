@@ -190,16 +190,16 @@ impl WorldArg {
         pulse.pulse();
         u
     }
-    /// Insert a new entity dynamically.
-    pub fn insert(&self) -> Entity {
+    /// Create a new entity dynamically.
+    pub fn create(&self) -> Entity {
         let mut app = self.app.write().unwrap();
         let ent = app.next;
         app.add_queue.push(ent);
         app.next = self.world.find_next(ent.get_id() + 1);
         ent
     }
-    /// Remove an entity dynamically.
-    pub fn remove(&self, entity: Entity) {
+    /// Delete an entity dynamically.
+    pub fn delete(&self, entity: Entity) {
         let mut app = self.app.write().unwrap();
         app.sub_queue.push(entity);
     }

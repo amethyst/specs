@@ -43,11 +43,11 @@ fn main() {
             }
         }
 
-        let e0 = warg.insert();
+        let e0 = warg.create();
         sa.insert(e0, CompInt(-4));
-        let e1 = warg.insert();
+        let e1 = warg.create();
         sa.insert(e1, CompInt(-5));
-        warg.remove(e0);
+        warg.delete(e0);
     });
     scheduler.run0w2r(|a: &CompInt, b: &CompBool| {
         println!("Entity {} {}", a.0, b.0);
