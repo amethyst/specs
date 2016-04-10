@@ -56,7 +56,7 @@ fn main() {
     scheduler.wait();
     if false {   // some debug output
         let w = &scheduler.world;
-        println!("Generations: {:?}", &*w.get_generations());
+        //println!("Generations: {:?}", &*w.get_generations());
         println!("{:?}", &*w.read::<CompInt>());
         println!("{:?}", &*w.read::<CompBool>());
         for e in w.entities() {

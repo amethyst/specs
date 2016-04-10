@@ -234,30 +234,58 @@ impl World {
     /// and deleted entities into the persistent generations vector.
     /// Also removes all the abandoned components.
     pub fn merge(&self) {
-        let mut gens = self.generations.write().unwrap();
-        let mut app = self.appendix.write().unwrap();
-        for ent in app.add_queue.drain(..) {
-            while gens.len() <= ent.get_id() {
-                gens.push(0);
+        // We can't lock Appendix and components at the same time,
+        // or otherwise we deadlock with a system that tries to process
+        // newly added entities.
+        // So we copy dead components out first, and then process them separately.
+        let mut temp_list = Vec::new(); //TODO: avoid allocation
+        {
+            let mut gens = self.generations.write().unwrap();
+            let mut app = self.appendix.write().unwrap();
+            for ent in app.add_queue.drain(..) {
+                while gens.len() <= ent.get_id() {
+                    gens.push(0);
+                }
+                assert_eq!(ent.get_gen(), 1 - gens[ent.get_id()]);
+                gens[ent.get_id()] = ent.get_gen();
             }
-            assert_eq!(ent.get_gen(), 1 - gens[ent.get_id()]);
-            gens[ent.get_id()] = ent.get_gen();
+            let mut next = app.next;
+            for ent in app.sub_queue.drain(..) {
+                assert_eq!(ent.get_gen(), gens[ent.get_id()]);
+                temp_list.push(ent);
+                if ent.get_id() < next.get_id() {
+                    next = Entity(ent.0, ent.1 + 1);
+                }
+                gens[ent.get_id()] *= -1;
+            }
+            app.next = next;
         }
-        let mut next = app.next;
         for comp in self.components.values() {
-            comp.del_slice(&app.sub_queue);
+            comp.del_slice(&temp_list);
         }
-        for ent in app.sub_queue.drain(..) {
-            assert_eq!(ent.get_gen(), gens[ent.get_id()]);
-            if ent.get_id() < next.get_id() {
-                next = Entity(ent.0, ent.1 + 1);
-            }
-            gens[ent.get_id()] *= -1;
-        }
-        app.next = next;
     }
-    /// Return the generations array locked for reading. Useful for debugging.
-    pub fn get_generations<'a>(&'a self) -> RwLockReadGuard<'a, Vec<Generation>> {
-        self.generations.read().unwrap()
+}
+
+/// System fetch-time argument. The fetch is executed at the start of the run.
+/// It contains a subset of World methods that make sense during initialization.
+pub struct FetchArg<'a>(&'a World);
+
+impl<'a> FetchArg<'a> {
+    /// Construct the new arg, not supposed to be used.
+    #[doc(hidden)]
+    pub fn new(w: &'a World) -> FetchArg<'a> {
+        FetchArg(w)
+    }
+    /// Lock a component for reading.
+    pub fn read<T: Component>(&self) -> RwLockReadGuard<'a, T::Storage> {
+        self.0.read::<T>()
+    }
+    /// Lock a component for writing.
+    pub fn write<T: Component>(&self) -> RwLockWriteGuard<'a, T::Storage> {
+        self.0.write::<T>()
+    }
+    /// Return the entity iterator.
+    pub fn entities(self) -> EntityIter<'a> {
+        self.0.entities()
     }
 }

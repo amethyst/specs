@@ -10,7 +10,8 @@ use pulse::{Pulse, Signal};
 use threadpool::ThreadPool;
 
 pub use storage::{Storage, StorageBase, VecStorage, HashMapStorage};
-pub use world::{Component, World, EntityBuilder, EntityIter, CreateEntityIter, DynamicEntityIter};
+pub use world::{Component, World, FetchArg,
+    EntityBuilder, EntityIter, CreateEntityIter, DynamicEntityIter};
 
 mod storage;
 mod world;
@@ -43,21 +44,21 @@ impl Entity {
 }
 
 
-/// World argument for a system closure.
-pub struct WorldArg {
+/// System closure run-time argument.
+pub struct RunArg {
     world: Arc<World>,
     pulse: RefCell<Option<Pulse>>,
 }
 
-impl WorldArg {
+impl RunArg {
     /// Borrows the world, allowing the system lock some components and get the entity
     /// iterator. Has to be called only once. Fires a pulse at the end.
     pub fn fetch<'a, U, F>(&'a self, f: F) -> U
-        where F: FnOnce(&'a World) -> U
+        where F: FnOnce(FetchArg<'a>) -> U
     {
         let pulse = self.pulse.borrow_mut().take()
                         .expect("fetch may only be called once.");
-        let u = f(&self.world);
+        let u = f(FetchArg::new(&self.world));
         pulse.pulse();
         u
     }
@@ -89,12 +90,12 @@ impl Scheduler {
         }
     }
     pub fn run<F>(&mut self, functor: F) where
-        F: 'static + Send + FnOnce(WorldArg)
+        F: 'static + Send + FnOnce(RunArg)
     {
         let (signal, pulse) = Signal::new();
         let world = self.world.clone();
         self.threads.execute(|| {
-            functor(WorldArg {
+            functor(RunArg {
                 world: world,
                 pulse: RefCell::new(Some(pulse)),
             });
@@ -113,9 +114,9 @@ macro_rules! impl_run {
             $($write:Component,)* $($read:Component,)*
             F: 'static + Send + FnMut( $(&mut $write,)* $(&$read,)* )
         >(&mut self, functor: F) {
-            self.run(|warg| {
+            self.run(|run| {
                 let mut fun = functor;
-                let ($(mut $write,)* $($read,)* entities) = warg.fetch(|w|
+                let ($(mut $write,)* $($read,)* entities) = run.fetch(|w|
                     ($(w.write::<$write>(),)*
                      $(w.read::<$read>(),)*
                        w.entities())
@@ -126,7 +127,7 @@ macro_rules! impl_run {
                         fun( $($write,)* $($read,)* );
                     }
                 }
-                for ent in warg.new_entities() {
+                for ent in run.new_entities() {
                     if let ( $( Some($write), )* $( Some($read), )* ) =
                         ( $( $write.get_mut(ent), )* $( $read.get(ent), )* ) {
                         fun( $($write,)* $($read,)* );
