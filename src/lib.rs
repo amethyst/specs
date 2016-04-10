@@ -123,15 +123,15 @@ impl Scheduler {
     }
     /// Wait for all the currently executed systems to finish.
     pub fn wait(&mut self) {
-        self.world.merge();
         Barrier::new(&self.pending[..]).wait().unwrap();
-
         for signal in self.pending.drain(..) {
             if signal.wait().is_err() {
                 panic!("one or more task as panicked.")
             }
         }
         self.pending.clear();
+
+        self.world.merge();
     }
 }
 
