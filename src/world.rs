@@ -161,14 +161,15 @@ impl World {
         )
     }
     fn lock<T: Component>(&self) -> &RwLock<T::Storage> {
-        let boxed = self.components.get(&TypeId::of::<T>()).unwrap();
+        let boxed = self.components.get(&TypeId::of::<T>())
+            .expect("Tried to perform an operation on type that was not registered");
         boxed.downcast_ref().unwrap()
     }
-    /// Lock a component for reading.
+    /// Lock a component's storage for reading.
     pub fn read<'a, T: Component>(&'a self) -> RwLockReadGuard<'a, T::Storage> {
         self.lock::<T>().read().unwrap()
     }
-    /// Lock a component for writing.
+    /// Lock a component's storage for writing.
     pub fn write<'a, T: Component>(&'a self) -> RwLockWriteGuard<'a, T::Storage> {
         self.lock::<T>().write().unwrap()
     }
