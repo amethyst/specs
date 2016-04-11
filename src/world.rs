@@ -64,9 +64,9 @@ fn find_next(gens: &[Generation], lowest_free_index: usize) -> Entity {
     }
 
     if lowest_free_index > gens.len() {
-        return Entity(lowest_free_index as Index, 1);
+        Entity(lowest_free_index as Index, 1)
     } else {
-        return Entity(gens.len() as Index, 1);
+        Entity(gens.len() as Index, 1)
     }
 }
 
@@ -104,7 +104,7 @@ impl<'a> Iterator for DynamicEntityIter<'a> {
     fn next(&mut self) -> Option<Entity> {
         let ent = self.guard.add_queue.get(self.index);
         self.index += 1;
-        ent.map(|e| *e)
+        ent.cloned()
     }
 }
 
@@ -166,15 +166,15 @@ impl World {
         boxed.downcast_ref().unwrap()
     }
     /// Lock a component's storage for reading.
-    pub fn read<'a, T: Component>(&'a self) -> RwLockReadGuard<'a, T::Storage> {
+    pub fn read<T: Component>(&self) -> RwLockReadGuard<T::Storage> {
         self.lock::<T>().read().unwrap()
     }
     /// Lock a component's storage for writing.
-    pub fn write<'a, T: Component>(&'a self) -> RwLockWriteGuard<'a, T::Storage> {
+    pub fn write<T: Component>(&self) -> RwLockWriteGuard<T::Storage> {
         self.lock::<T>().write().unwrap()
     }
     /// Return the entity iterator.
-    pub fn entities<'a>(&'a self) -> EntityIter<'a> {
+    pub fn entities(&self) -> EntityIter {
         EntityIter {
             guard: self.generations.read().unwrap(),
             index: 0,
@@ -182,7 +182,7 @@ impl World {
     }
     /// Return the dynamic entity iterator. It goes through entities that were
     /// dynamically created by systems but not yet merged.
-    pub fn dynamic_entities<'a>(&'a self) -> DynamicEntityIter<'a> {
+    pub fn dynamic_entities(&self) -> DynamicEntityIter {
         DynamicEntityIter {
             guard: self.appendix.read().unwrap(),
             index: 0,
@@ -190,14 +190,14 @@ impl World {
     }
     /// Return the entity creation iterator. Can be used to create many
     /// empty entities at once without paying the locking overhead.
-    pub fn create_iter<'a>(&'a self) -> CreateEntityIter<'a> {
+    pub fn create_iter(&self) -> CreateEntityIter {
         CreateEntityIter {
             gens: self.generations.write().unwrap(),
             app: self.appendix.write().unwrap(),
         }
     }
     /// Create a new entity instantly, with locking the generations data.
-    pub fn create_now<'a>(&'a self) -> EntityBuilder<'a> {
+    pub fn create_now(&self) -> EntityBuilder {
         let mut app = self.appendix.write().unwrap();
         let ent = app.next;
         assert!(ent.get_gen() > 0);

@@ -78,7 +78,7 @@ impl RunArg {
         self.world.delete_later(entity)
     }
     /// Iterate dynamically added entities.
-    pub fn new_entities<'a>(&'a self) -> DynamicEntityIter<'a> {
+    pub fn new_entities(&self) -> DynamicEntityIter {
         self.world.dynamic_entities()
     }
 }
