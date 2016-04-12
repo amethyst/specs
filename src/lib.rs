@@ -1,6 +1,6 @@
 #![deny(missing_docs)]
 
-//! Parallel Systems for Entity Components
+//! SPECS Parallel ECS
 //! This library provides an ECS variant designed for parallel execution
 //! and convenient usage. It is highly flexible when it comes to actual
 //! component data and the way it's stored and accessed.
@@ -84,19 +84,19 @@ impl RunArg {
 }
 
 
-/// System execution scheduler. Allows running systems via closures,
+/// System execution planner. Allows running systems via closures,
 /// distributes the load in parallel using a thread pool.
-pub struct Scheduler {
+pub struct Planner {
     /// Shared World.
     pub world: Arc<World>,
     threads: ThreadPool,
     pending: Vec<Signal>
 }
 
-impl Scheduler {
-    /// Create a new scheduler, given the world and the thread count.
-    pub fn new(world: World, num_threads: usize) -> Scheduler {
-        Scheduler {
+impl Planner {
+    /// Create a new planner, given the world and the thread count.
+    pub fn new(world: World, num_threads: usize) -> Planner {
+        Planner {
             world: Arc::new(world),
             threads: ThreadPool::new(num_threads),
             pending: vec![]
@@ -136,7 +136,7 @@ impl Scheduler {
 }
 
 macro_rules! impl_run {
-    ($name:ident [$( $write:ident ),*] [$( $read:ident ),*]) => (impl Scheduler {
+    ($name:ident [$( $write:ident ),*] [$( $read:ident ),*]) => (impl Planner {
         #[allow(missing_docs, non_snake_case, unused_mut)]
         pub fn $name<
             $($write:Component,)* $($read:Component,)*
