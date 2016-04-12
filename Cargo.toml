@@ -1,12 +1,12 @@
 [package]
-name = "parsec"
-version = "0.3.1"
-description = "Parallel Systems for Entity Components"
-homepage = "https://github.com/kvark/parsec"
-repository = "https://github.com/kvark/parsec"
+name = "specs"
+version = "0.4.0"
+description = "SPECS Parallel ECS"
+homepage = "https://github.com/slide-rs/specs"
+repository = "https://github.com/slide-rs/specs"
 keywords = ["gamedev"]
 license = "Apache-2.0"
-authors = ["Dzmitry Malyshau", "Colin Sherratt"]
+authors = ["slide-rs hackers"]
 
 [dependencies]
 mopa = "0.2"

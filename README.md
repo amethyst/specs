@@ -1,10 +1,16 @@
-# parsec
-[![Build Status](https://travis-ci.org/kvark/parsec.svg)](https://travis-ci.org/kvark/parsec)
-[![Crates.io](https://img.shields.io/crates/v/parsec.svg?maxAge=2592000)](https://crates.io/crates/parsec)
-[![Gitter](https://badges.gitter.im/kvark/parsec.svg)](https://gitter.im/kvark/parsec?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+# specs
+[![Build Status](https://travis-ci.org/slide-rs/specs.svg)](https://travis-ci.org/slide-rs/specs)
+[![Crates.io](https://img.shields.io/crates/v/specs.svg?maxAge=2592000)](https://crates.io/crates/specs)
+[![Gitter](https://badges.gitter.im/slide-rs/specs.svg)](https://gitter.im/slide-rs/specs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
+Specs is an Entity-Component System written in Rust. It aims for parallel systems execution with high ergonomics and flexibility. The name can be interpret in a number of ways:
+- "SPECS Parallel ECS"
+- "Super Powerful ECS"
+- "Special ECS"
+
 
 #### Classification
-According to [ECS Design Crossroads](https://github.com/amethyst/amethyst/wiki/ECS-Design-Crossroads), `parsec` fulfills all the requirements, has _In-place modification_ updates, and _Generational ID_ entities.
+According to [ECS Design Crossroads](https://github.com/amethyst/amethyst/wiki/ECS-Design-Crossroads), `specs` fulfills all the requirements, has _In-place modification_ updates, and _Generational ID_ entities.
 
 #### Features
 - Automatic execution of the systems in parallel. Follows Rust ownership rules, where each component storage behaves as a variable. Depends on the order, in which systems are started.
@@ -27,8 +33,8 @@ See [ecs_bench](https://github.com/lschmierer/ecs_bench) for single- and multi-t
 ## Examples
 Entity creation:
 ```rust
-let mut scheduler = {
-    let mut w = parsec::World::new();
+let mut planner = {
+    let mut w = specs::World::new();
     // All components types should be registered before working with them
     w.register::<Position>();
     w.register::<Speed>();
@@ -36,14 +42,14 @@ let mut scheduler = {
     w.create_now().with(Position(0)).with(Speed(2)).build();
     w.create_now().with(Position(-1)).with(Speed(100)).build();
     w.create_now().with(Position(127)).build();
-    // Scheduler is used to run systems on the specified world with a specified number of threads
-    parsec::Scheduler::new(w, 4)
+    // Planner is used to run systems on the specified world with a specified number of threads
+    specs::Planner::new(w, 4)
 };
 ```
 
 System run:
 ```rust
-schedule.run1w1r(|p: &mut Position, s: &Speed| {
+planner.run1w1r(|p: &mut Position, s: &Speed| {
     *p += *s;
 });
 ```
