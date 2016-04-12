@@ -2,9 +2,11 @@ language: rust
 rust:
 - nightly
 - stable
+
 script:
 - cargo build --verbose
 - cargo test --verbose
+
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&
   [ $TRAVIS_PULL_REQUEST = false ] &&
@@ -14,3 +16,11 @@ after_success: |
   sudo pip install ghp-import &&
   ghp-import -n target/doc &&
   git push -fq https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
+
+notifications:
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/cdff2f522a8c4588a82a
+    on_success: change
+    on_failure: always
+    on_start: never
