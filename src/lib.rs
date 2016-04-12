@@ -10,18 +10,23 @@ extern crate mopa;
 extern crate pulse;
 extern crate threadpool;
 extern crate fnv;
+extern crate tuple_utils;
 
 use std::cell::RefCell;
 use std::sync::Arc;
 use pulse::{Pulse, Signal, Barrier, Signals};
 use threadpool::ThreadPool;
 
-pub use storage::{Storage, StorageBase, VecStorage, HashMapStorage};
+pub use storage::{Storage, StorageBase, VecStorage, HashMapStorage, UnprotectedStorage};
 pub use world::{Component, World, FetchArg,
     EntityBuilder, EntityIter, CreateEntityIter, DynamicEntityIter};
+pub use bitset::{BitSetAnd, BitSet, BitSetLike};
+use join::Join;
 
 mod storage;
 mod world;
+mod bitset;
+mod join;
 
 /// Index generation. When a new entity is placed at the old index,
 /// it bumps the generation by 1. This allows to avoid using components
@@ -68,8 +73,10 @@ impl Entity {
     }
 
     /// Get the index of the entity.
+    #[inline]
     pub fn get_id(&self) -> usize { self.0 as usize }
     /// Get the generation of the entity.
+    #[inline]
     pub fn get_gen(&self) -> Generation { self.1 }
 }
 
@@ -161,29 +168,35 @@ impl Planner {
 macro_rules! impl_run {
     ($name:ident [$( $write:ident ),*] [$( $read:ident ),*]) => (impl Planner {
         #[allow(missing_docs, non_snake_case, unused_mut)]
-        pub fn $name<
-            $($write:Component,)* $($read:Component,)*
+        pub fn $name<'a,
+            $($write,)* $($read,)*
             F: 'static + Send + FnMut( $(&mut $write,)* $(&$read,)* )
-        >(&mut self, functor: F) {
+        >(&mut self, functor: F)
+            where $($write:Component,)*
+                  $($read:Component,)*
+        {
             self.run(|run| {
                 let mut fun = functor;
-                let ($(mut $write,)* $($read,)* entities) = run.fetch(|w|
+                let ($(mut $write,)* $($read,)*) = run.fetch(|w|
                     ($(w.write::<$write>(),)*
-                     $(w.read::<$read>(),)*
-                       w.entities())
+                     $(w.read::<$read>(),)*)
                 );
-                for ent in entities {
-                    if let ( $( Some($write), )* $( Some($read), )* ) =
-                        ( $( $write.get_mut(ent), )* $( $read.get(ent), )* ) {
-                        fun( $($write,)* $($read,)* );
-                    }
+
+                $(let mut $write = $write.entities_mut();)*
+                $(let $read = $read.entities();)*
+
+                let selector = ($($write.0,)* $($read.0,)*).join();
+
+                for ent in selector.iter() {
+                    let ($($write,)* $($read,)*) = unsafe {
+                        ($($write.1.get_mut(ent),)* $($read.1.get(ent),)*)
+                    };
+                    fun( $($write,)* $($read,)* );
                 }
-                for ent in run.new_entities() {
-                    if let ( $( Some($write), )* $( Some($read), )* ) =
-                        ( $( $write.get_mut(ent), )* $( $read.get(ent), )* ) {
-                        fun( $($write,)* $($read,)* );
-                    }
-                }
+
+                //for ( $($write,)* $($read,)* ) in ($(&mut *$write,)* $(&*$read,)*).join().iter() {
+                //    fun( $($write,)* $($read,)* );
+                //}
             });
         }
     })
