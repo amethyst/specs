@@ -1,12 +1,24 @@
 [package]
 name = "specs"
 version = "0.4.0"
-description = "SPECS Parallel ECS"
-homepage = "https://github.com/slide-rs/specs"
+description = """
+Parallel Entity-Component System.
+
+Specs is a parallel ECS in Rust. It combines the performance of the beast with the flexibility of a cat.
+
+Objectives:
+
+- Automatically parallelize workload, while following Rust ownership rules applied to the components.
+- Do not restrict the storage implementation for a particular component.
+- Place no constraints onto the component types themselves, allow defining them in user modules.
+- Have low overhead, high safety, and optimal ergonomics.
+"""
+documentation = "https://slide-rs.github.io/specs/"
 repository = "https://github.com/slide-rs/specs"
 keywords = ["gamedev"]
 license = "Apache-2.0"
 authors = ["slide-rs hackers"]
+exclude = ["doc", ".travis.yml"]
 
 [dependencies]
 mopa = "0.2"
