@@ -24,7 +24,7 @@ impl<'a> Iterator for EntityIter<'a> {
     fn next(&mut self) -> Option<Entity> {
         loop {
             match self.guard.get(self.index) {
-                Some(&gen) if gen > 0 => {
+                Some(&gen) if gen.is_alive() => {
                     let ent = Entity(self.index as Index, gen);
                     self.index += 1;
                     return Some(ent)
@@ -59,14 +59,14 @@ struct Appendix {
 }
 
 fn find_next(gens: &[Generation], lowest_free_index: usize) -> Entity {
-    if let Some((id, gen)) = gens.iter().enumerate().skip(lowest_free_index).find(|&(_, g)| *g <= 0) {
-        return Entity(id as Index, 1 - gen);
+    if let Some((id, gen)) = gens.iter().enumerate().skip(lowest_free_index).find(|&(_, g)| g.is_dead()) {
+        return Entity(id as Index, Generation(1 - gen.0));
     }
 
     if lowest_free_index > gens.len() {
-        Entity(lowest_free_index as Index, 1)
+        Entity(lowest_free_index as Index, Generation(1))
     } else {
-        Entity(gens.len() as Index, 1)
+        Entity(gens.len() as Index, Generation(1))
     }
 }
 
@@ -81,8 +81,8 @@ impl<'a> Iterator for CreateEntityIter<'a> {
     type Item = Entity;
     fn next(&mut self) -> Option<Entity> {
         let ent = self.app.next;
-        assert!(ent.get_gen() > 0);
-        if ent.get_gen() == 1 {
+        assert!(ent.get_gen().is_alive());
+        if ent.get_gen().0 == 1 {
             assert!(self.gens.len() == ent.get_id());
             self.gens.push(ent.get_gen());
             self.app.next.0 += 1;
@@ -140,7 +140,7 @@ impl World {
             generations: RwLock::new(Vec::new()),
             components: HashMap::new(),
             appendix: RwLock::new(Appendix {
-                next: Entity(0, 1),
+                next: Entity(0, Generation(1)),
                 add_queue: Vec::new(),
                 sub_queue: Vec::new(),
             }),
@@ -200,8 +200,8 @@ impl World {
     pub fn create_now(&self) -> EntityBuilder {
         let mut app = self.appendix.write().unwrap();
         let ent = app.next;
-        assert!(ent.get_gen() > 0);
-        if ent.get_gen() == 1 {
+        assert!(ent.get_gen().is_alive());
+        if ent.get_gen().0 == 1 {
             let mut gens = self.generations.write().unwrap();
             assert!(gens.len() == ent.get_id());
             gens.push(ent.get_gen());
@@ -219,12 +219,12 @@ impl World {
         }
         let mut gens = self.generations.write().unwrap();
         let mut gen = &mut gens[entity.get_id() as usize];
-        assert!(*gen > 0);
+        assert!(gen.is_alive());
         let mut app = self.appendix.write().unwrap();
         if entity.get_id() < app.next.get_id() {
-            app.next = Entity(entity.0, *gen+1);
+            app.next = Entity(entity.0, Generation(gen.0 + 1));
         }
-        *gen *= -1;
+        gen.0 *= -1;
     }
     /// Create a new entity dynamically.
     pub fn create_later(&self) -> Entity {
@@ -253,9 +253,9 @@ impl World {
             let mut app = self.appendix.write().unwrap();
             for ent in app.add_queue.drain(..) {
                 while gens.len() <= ent.get_id() {
-                    gens.push(0);
+                    gens.push(Generation(0));
                 }
-                assert_eq!(ent.get_gen(), 1 - gens[ent.get_id()]);
+                assert_eq!(ent.get_gen().0, 1 - gens[ent.get_id()].0);
                 gens[ent.get_id()] = ent.get_gen();
             }
             let mut next = app.next;
@@ -263,9 +263,9 @@ impl World {
                 assert_eq!(ent.get_gen(), gens[ent.get_id()]);
                 temp_list.push(ent);
                 if ent.get_id() < next.get_id() {
-                    next = Entity(ent.0, ent.1 + 1);
+                    next = Entity(ent.0, Generation(ent.get_gen().0 + 1));
                 }
-                gens[ent.get_id()] *= -1;
+                gens[ent.get_id()].0 *= -1;
             }
             app.next = next;
         }

@@ -23,13 +23,24 @@ pub use world::{Component, World, FetchArg,
 mod storage;
 mod world;
 
-
 /// Index generation. When a new entity is placed at the old index,
 /// it bumps the generation by 1. This allows to avoid using components
 /// from the entities that were deleted.
-/// G<=0 - the entity of generation G is dead
-/// G >0 - the entity of generation G is alive
-pub type Generation = i32;
+#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Generation(i32);
+
+impl Generation {
+    /// Returns `true` if entities of this generation are alive
+    pub fn is_alive(&self) -> bool {
+        self.0 > 0
+    }
+
+    /// Returns `true` if entities of this generation are dead
+    pub fn is_dead(&self) -> bool {
+        !self.is_alive()
+    }
+}
+
 /// Index type is arbitrary. It doesn't show up in any interfaces.
 /// Keeping it 32bit allows for a single 64bit word per entity.
 pub type Index = u32;
@@ -40,7 +51,7 @@ pub struct Entity(Index, Generation);
 impl Entity {
     #[cfg(test)]
     /// Create a new entity (externally from ECS)
-    pub fn new(index: u32, gen: i32) -> Entity {
+    pub fn new(index: Index, gen: Generation) -> Entity {
         Entity(index, gen)
     }
 
