@@ -221,7 +221,6 @@ impl World {
         }
         let mut gens = self.generations.write().unwrap();
         let mut gen = &mut gens[entity.get_id() as usize];
-        assert!(gen.is_alive());
         gen.die();
         let mut app = self.appendix.write().unwrap();
         if entity.get_id() < app.next.get_id() {
