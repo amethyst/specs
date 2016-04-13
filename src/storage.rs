@@ -105,70 +105,70 @@ impl<T> Storage<T> for HashMapStorage<T> {
 
 #[cfg(test)]
 mod test {
-    use Entity;
+    use {Entity, Generation};
     use super::*;
 
     fn test_add<S>() where S: Storage<u32> {
         let mut s = S::new();
         for i in 0..1_000 {
-            s.insert(Entity::new(i, 1), i + 2718);
+            s.insert(Entity::new(i, Generation(1)), i + 2718);
         }
 
         for i in 0..1_000 {
-            assert_eq!(*s.get(Entity::new(i, 1)).unwrap(), i + 2718);
+            assert_eq!(*s.get(Entity::new(i, Generation(1))).unwrap(), i + 2718);
         }
     }
 
     fn test_sub<S>() where S: Storage<u32> {
         let mut s = S::new();
         for i in 0..1_000 {
-            s.insert(Entity::new(i, 1), i + 2718);
+            s.insert(Entity::new(i, Generation(1)), i + 2718);
         }
 
         for i in 0..1_000 {
-            assert_eq!(s.remove(Entity::new(i, 1)).unwrap(), i + 2718);
-            assert!(s.remove(Entity::new(i, 1)).is_none());
+            assert_eq!(s.remove(Entity::new(i, Generation(1))).unwrap(), i + 2718);
+            assert!(s.remove(Entity::new(i, Generation(1))).is_none());
         }
     }
 
     fn test_get_mut<S>() where S: Storage<u32> {
         let mut s = S::new();
         for i in 0..1_000 {
-            s.insert(Entity::new(i, 1), i + 2718);
+            s.insert(Entity::new(i, Generation(1)), i + 2718);
         }
 
         for i in 0..1_000 {
-            *s.get_mut(Entity::new(i, 1)).unwrap() -= 718;
+            *s.get_mut(Entity::new(i, Generation(1))).unwrap() -= 718;
         }
 
         for i in 0..1_000 {
-            assert_eq!(*s.get(Entity::new(i, 1)).unwrap(), i + 2000);
+            assert_eq!(*s.get(Entity::new(i, Generation(1))).unwrap(), i + 2000);
         }
     }
 
     fn test_add_gen<S>() where S: Storage<u32> {
         let mut s = S::new();
         for i in 0..1_000 {
-            s.insert(Entity::new(i, 1), i + 2718);
-            s.insert(Entity::new(i, 2), i + 31415);
+            s.insert(Entity::new(i, Generation(1)), i + 2718);
+            s.insert(Entity::new(i, Generation(2)), i + 31415);
         }
 
         for i in 0..1_000 {
             // this is removed since vec and hashmap disagree
             // on how this behavior should work...
             //assert!(s.get(Entity::new(i, 1)).is_none());
-            assert_eq!(*s.get(Entity::new(i, 2)).unwrap(), i + 31415);
+            assert_eq!(*s.get(Entity::new(i, Generation(2))).unwrap(), i + 31415);
         }
     }
 
     fn test_sub_gen<S>() where S: Storage<u32> {
         let mut s = S::new();
         for i in 0..1_000 {
-            s.insert(Entity::new(i, 2), i + 2718);
+            s.insert(Entity::new(i, Generation(2)), i + 2718);
         }
 
         for i in 0..1_000 {
-            assert!(s.remove(Entity::new(i, 1)).is_none());
+            assert!(s.remove(Entity::new(i, Generation(1))).is_none());
         }
     }
 
