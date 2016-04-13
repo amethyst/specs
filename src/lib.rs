@@ -30,14 +30,26 @@ mod world;
 pub struct Generation(i32);
 
 impl Generation {
-    /// Returns `true` if entities of this generation are alive
+    /// Returns `true` if entities of this `Generation` are alive
     pub fn is_alive(&self) -> bool {
         self.0 > 0
     }
 
-    /// Returns `true` if entities of this generation are dead
-    pub fn is_dead(&self) -> bool {
-        !self.is_alive()
+    /// Kills this `Generation`
+    fn die(&mut self) {
+        debug_assert!(self.is_alive());
+        self.0 = -self.0;
+    }
+
+    /// Revive and increment a dead `Generation`
+    fn raised(self) -> Generation {
+        debug_assert!(!self.is_alive());
+        Generation(1 - self.0)
+    }
+
+    /// Returns `true` if this is a first generation, i.e. has value `1`
+    fn is_first(&self) -> bool {
+        self.0 == 1
     }
 }
 
