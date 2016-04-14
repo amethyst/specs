@@ -7,6 +7,11 @@ pub const LAYERS: usize = 4;
 pub const MAX: usize = BITS * LAYERS;
 pub const MAX_EID: usize = 2 << MAX - 1;
 
+pub const SHIFT0: usize = 0;
+pub const SHIFT1: usize = SHIFT0 + BITS;
+pub const SHIFT2: usize = SHIFT1 + BITS;
+pub const SHIFT3: usize = SHIFT2 + BITS;
+
 /// A BitSet is a simple set designed for tracking entity indexes
 /// are present or not. It does not track the `Generation` of the
 /// entities that it contains.
@@ -23,7 +28,7 @@ pub struct BitSet {
 
 #[inline]
 fn offsets(bit: Index) -> (usize, usize, usize) {
-    (bit.offset::<Shift1>(), bit.offset::<Shift2>(), bit.offset::<Shift3>())
+    (bit.offset(SHIFT1), bit.offset(SHIFT2), bit.offset(SHIFT3))
 }
 
 impl BitSet {
@@ -75,16 +80,16 @@ impl BitSet {
     /// when the lowest layer was set from 0
     fn add_slow(&mut self, id: Index) {
         let (_, p1, p2) = offsets(id);
-        self.layer1[p1] |= id.mask::<Shift1>();
-        self.layer2[p2] |= id.mask::<Shift2>();
-        self.layer3 |= id.mask::<Shift3>();
+        self.layer1[p1] |= id.mask(SHIFT1);
+        self.layer2[p2] |= id.mask(SHIFT2);
+        self.layer3 |= id.mask(SHIFT3);
     }
 
     /// Add `id` to the bitset. Returning if the value was
     /// already in the set before it was added
     #[inline]
     pub fn add(&mut self, id: Index) -> bool {
-        let (p0, mask) = (id.offset::<Shift1>(), id.mask::<Shift0>());
+        let (p0, mask) = (id.offset(SHIFT1), id.mask(SHIFT0));
 
         if p0 >= self.layer0.len() {
             self.extend(id);
@@ -117,7 +122,7 @@ impl BitSet {
             return false;
         }
 
-        if self.layer0[p0] & id.mask::<Shift0>() == 0 {
+        if self.layer0[p0] & id.mask(SHIFT0) == 0 {
             return false;
         }
 
@@ -125,22 +130,22 @@ impl BitSet {
         // its bit from layer0 to 3. the layers abover only
         // should be cleared if the bit cleared was the last bit
         // in its set
-        self.layer0[p0] &= !id.mask::<Shift0>();
+        self.layer0[p0] &= !id.mask(SHIFT0);
         if self.layer0[p0] != 0 {
             return true;
         }
 
-        self.layer1[p1] &= !id.mask::<Shift1>();
+        self.layer1[p1] &= !id.mask(SHIFT1);
         if self.layer1[p1] != 0 {
             return true;
         }
 
-        self.layer2[p2] &= !id.mask::<Shift2>();
+        self.layer2[p2] &= !id.mask(SHIFT2);
         if self.layer2[p2] != 0 {
             return true;
         }
 
-        self.layer3 &= !id.mask::<Shift3>();
+        self.layer3 &= !id.mask(SHIFT3);
         return true;
     }
 
@@ -148,102 +153,33 @@ impl BitSet {
     /// return true if it was, false otherwise
     #[inline]
     pub fn contains(&self, bit: u32) -> bool {
-        let p0 = bit.offset::<Shift1>();
+        let p0 = bit.offset(SHIFT1);
         if p0 >= self.layer0.len() {
             return false;
         }
-        (self.layer0[p0] & bit.mask::<Shift0>()) != 0
-    }
-}
-
-pub trait Shift {
-    fn shift() -> usize;
-    fn bits() -> usize;
-
-    #[inline]
-    fn mask() -> usize {
-        ((1 << Self::bits()) - 1) << Self::shift()
+        (self.layer0[p0] & bit.mask(SHIFT0)) != 0
     }
 }
 
 pub trait Row: Sized + Copy {
-    fn row<S>(self) -> usize where S: Shift;
-    fn offset<S>(self) -> usize where S: Shift;
+    fn row(self, shift: usize) -> usize;
+    fn offset(self, shift: usize) -> usize;
 
     #[inline(always)]
-    fn mask<S: Shift>(self) -> u32 {
-        1u32 << self.row::<S>()
+    fn mask(self, shift: usize) -> u32 {
+        1u32 << self.row(shift)
     }
 }
 
 impl Row for Index {
     #[inline(always)]
-    fn row<S>(self) -> usize
-        where S: Shift
-    {
-        let size = S::bits();
-        let shift = S::shift();
-
-        ((self >> shift) as usize) & ((1 << size) - 1)
+    fn row(self, shift: usize) -> usize {
+        ((self >> shift) as usize) & ((1 << BITS) - 1)
     }
 
     #[inline(always)]
-    fn offset<S>(self) -> usize
-        where S: Shift
-    {
-        self as usize / (1 << S::shift())
-    }
-}
-
-#[derive(Copy, Clone)]
-pub struct Shift0;
-impl Shift for Shift0 {
-    #[inline(always)]
-    fn shift() -> usize {
-        0
-    }
-    #[inline(always)]
-    fn bits() -> usize {
-        BITS
-    }
-}
-
-#[derive(Copy, Clone)]
-pub struct Shift1;
-impl Shift for Shift1 {
-    #[inline(always)]
-    fn shift() -> usize {
-        Shift0::bits()
-    }
-    #[inline(always)]
-    fn bits() -> usize {
-        BITS
-    }
-}
-
-#[derive(Copy, Clone)]
-pub struct Shift2;
-impl Shift for Shift2 {
-    #[inline(always)]
-    fn shift() -> usize {
-        Shift1::bits() + Shift1::shift()
-    }
-    #[inline(always)]
-    fn bits() -> usize {
-        BITS
-    }
-}
-
-#[derive(Copy, Clone)]
-pub struct Shift3;
-impl Shift for Shift3 {
-    #[inline(always)]
-    fn shift() -> usize {
-        Shift2::bits() + Shift2::shift()
-    }
-    #[inline(always)]
-    fn bits() -> usize {
-        BITS
+    fn offset(self, shift: usize) -> usize {
+        self as usize / (1 << shift)
     }
 }
 
