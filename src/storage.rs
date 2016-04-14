@@ -32,10 +32,10 @@ pub trait Storage<T>: StorageBase + Sized {
     fn remove(&mut self, Entity) -> Option<T>;
     /// splits the bitset from the storage for use
     /// by the join iterator.
-    fn entities(&self) -> (&BitSet, &Self::UnprotectedStorage);
+    fn open(&self) -> (&BitSet, &Self::UnprotectedStorage);
     /// splits the bitset from the storage for use
     /// by the join iterator.
-    fn entities_mut(&mut self) -> (&BitSet, &mut Self::UnprotectedStorage);
+    fn open_mut(&mut self) -> (&BitSet, &mut Self::UnprotectedStorage);
 }
 
 /// Used by the framework to quickly join componets
@@ -111,10 +111,10 @@ impl<T> Storage<T> for HashMapStorage<T> {
             None
         }
     }
-    fn entities(&self) -> (&BitSet, &Self::UnprotectedStorage) {
+    fn open(&self) -> (&BitSet, &Self::UnprotectedStorage) {
         (&self.set, &self.map)
     }
-    fn entities_mut(&mut self) -> (&BitSet, &mut Self::UnprotectedStorage) {
+    fn open_mut(&mut self) -> (&BitSet, &mut Self::UnprotectedStorage) {
         (&self.set, &mut self.map)
     }
 }
@@ -147,7 +147,8 @@ pub struct VecStorage<T> {
 impl<T> VecStorage<T> {
     fn extend(&mut self, id: usize) {
         unsafe {
-            self.values.0.reserve(id + 1);
+            let delta = (id + 1) - self.values.0.len();
+            self.values.0.reserve(delta);
             self.values.0.set_len(id + 1);
         }
     }
@@ -243,20 +244,20 @@ impl<T> super::Storage<T> for VecStorage<T> {
             None
         }
     }
-    fn entities(&self) -> (&BitSet, &InnerVec<T>) {
+    fn open(&self) -> (&BitSet, &InnerVec<T>) {
         (&self.set, &self.values)
     }
-    fn entities_mut(&mut self) -> (&BitSet, &mut InnerVec<T>) {
+    fn open_mut(&mut self) -> (&BitSet, &mut InnerVec<T>) {
         (&self.set, &mut self.values)
     }
 }
 
 impl<T> super::UnprotectedStorage<T> for InnerVec<T> {
     unsafe fn get(&self, e: u32) -> &T {
-        &self.0[e as usize].data
+        &self.0.get_unchecked(e as usize).data
     }
     unsafe fn get_mut(&mut self, e: u32) -> &mut T {
-        &mut self.0[e as usize].data
+        &mut self.0.get_unchecked_mut(e as usize).data
     }
 }
 

@@ -182,8 +182,8 @@ macro_rules! impl_run {
                      $(w.read::<$read>(),)*)
                 );
 
-                $(let mut $write = $write.entities_mut();)*
-                $(let $read = $read.entities();)*
+                $(let mut $write = $write.open_mut();)*
+                $(let $read = $read.open();)*
 
                 let selector = ($($write.0,)* $($read.0,)*).join();
 
@@ -193,10 +193,6 @@ macro_rules! impl_run {
                     };
                     fun( $($write,)* $($read,)* );
                 }
-
-                //for ( $($write,)* $($read,)* ) in ($(&mut *$write,)* $(&*$read,)*).join().iter() {
-                //    fun( $($write,)* $($read,)* );
-                //}
             });
         }
     })
