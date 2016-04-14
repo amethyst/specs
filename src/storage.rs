@@ -146,9 +146,10 @@ pub struct VecStorage<T> {
 
 impl<T> VecStorage<T> {
     fn extend(&mut self, id: usize) {
+        debug_assert!(id >= self.values.0.len());
+        let delta = (id + 1) - self.values.0.len();
+        self.values.0.reserve(delta);
         unsafe {
-            let delta = (id + 1) - self.values.0.len();
-            self.values.0.reserve(delta);
             self.values.0.set_len(id + 1);
         }
     }
