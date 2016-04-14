@@ -80,8 +80,8 @@ fn main() {
     if false {   // some debug output
         let w = &planner.world;
         //println!("Generations: {:?}", &*w.get_generations());
-        println!("{:?}", &*w.read::<CompInt>());
-        println!("{:?}", &*w.read::<CompBool>());
+        //println!("{:?}", &*w.read::<CompInt>());
+        //println!("{:?}", &*w.read::<CompBool>());
         for e in w.entities() {
             println!("{:?}", e);
         }

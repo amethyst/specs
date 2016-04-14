@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
+
 use fnv::FnvHasher;
 
-use {Entity, Generation};
+use {Entity, Index, Generation};
+use bitset::BitSet;
 
 
 /// Base trait for a component storage that is used as a trait object.
@@ -14,99 +16,335 @@ pub trait StorageBase {
 
 /// Typed component storage trait.
 pub trait Storage<T>: StorageBase + Sized {
+    /// Used during iterator
+    type UnprotectedStorage: UnprotectedStorage<T>;
+
     /// Create a new storage. This is called when you register a new
     /// component type within the world.
     fn new() -> Self;
+    /// Insert a new data for a given entity.
+    fn insert(&mut self, Entity, T);
     /// Try reading the data associated with an entity.
     fn get(&self, Entity) -> Option<&T>;
     /// Try mutating the data associated with an entity.
     fn get_mut(&mut self, Entity) -> Option<&mut T>;
-    /// Insert a new data for a given entity.
-    fn insert(&mut self, Entity, T);
     /// Remove the data associated with an entity.
     fn remove(&mut self, Entity) -> Option<T>;
+    /// splits the bitset from the storage for use
+    /// by the join iterator.
+    fn open(&self) -> (&BitSet, &Self::UnprotectedStorage);
+    /// splits the bitset from the storage for use
+    /// by the join iterator.
+    fn open_mut(&mut self) -> (&BitSet, &mut Self::UnprotectedStorage);
+}
+
+/// Used by the framework to quickly join componets
+pub trait UnprotectedStorage<T> {
+    /// Try reading the data associated with an entity.
+    /// this is unsafe because the external set used
+    /// to protect this storage is absent
+    unsafe fn get(&self, id: Index) -> &T;
+    /// Try mutating the data associated with an entity.
+    /// this is unsafe because the external set used
+    /// to protect this storage is absent
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T;
+}
+
+pub struct InnerHashMap<T>(HashMap<Index, GenerationData<T>, BuildHasherDefault<FnvHasher>>);
+
+/// HashMap-based storage. Best suited for rare components.
+pub struct HashMapStorage<T>{
+    set: BitSet,
+    map: InnerHashMap<T>
+}
+
+impl<T> StorageBase for HashMapStorage<T> {
+    fn del(&mut self, entity: Entity) {
+        if self.set.remove(entity.get_id() as u32) {
+            self.map.0.remove(&(entity.get_id() as u32));
+        }
+    }
+}
+
+impl<T> Storage<T> for HashMapStorage<T> {
+    type UnprotectedStorage = InnerHashMap<T>;
+
+    fn new() -> Self {
+        let fnv = BuildHasherDefault::<FnvHasher>::default();
+        HashMapStorage {
+            set: BitSet::new(),
+            map: InnerHashMap(HashMap::with_hasher(fnv))
+        }
+    }
+    fn get(&self, entity: Entity) -> Option<&T> {
+        self.map.0.get(&(entity.get_id() as u32))
+            .and_then(|x| if x.generation == entity.get_gen() { Some(&x.data) } else { None })
+
+
+    }
+    fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
+        self.map.0.get_mut(&(entity.get_id() as u32))
+            .and_then(|x| if x.generation == entity.get_gen() { Some(&mut x.data) } else { None })
+
+    }
+    fn insert(&mut self, entity: Entity, value: T) {
+        let value = GenerationData{
+            data: value,
+            generation: entity.get_gen()
+        };
+        if self.map.0.insert(entity.get_id() as u32, value).is_none() {
+            self.set.add(entity.get_id() as u32);
+        }
+    }
+    fn remove(&mut self, entity: Entity) -> Option<T> {
+        if self.set.remove(entity.get_id() as u32) {
+            let value = self.map.0.remove(&(entity.get_id() as u32)).unwrap();
+            if value.generation == entity.get_gen() {
+                Some(value.data)
+            } else {
+                // it should be unlikely that the generation mismatch was
+                // wrong, so this is a slow path to re-add the value back
+                self.insert(entity, value.data);
+                None
+            }
+        } else {
+            None
+        }
+    }
+    fn open(&self) -> (&BitSet, &Self::UnprotectedStorage) {
+        (&self.set, &self.map)
+    }
+    fn open_mut(&mut self) -> (&BitSet, &mut Self::UnprotectedStorage) {
+        (&self.set, &mut self.map)
+    }
+}
+
+impl<T> UnprotectedStorage<T> for InnerHashMap<T> {
+    unsafe fn get(&self, e: Index) -> &T {
+        &self.0.get(&e).unwrap().data
+    }
+    unsafe fn get_mut(&mut self, e: Index) -> &mut T {
+        &mut self.0.get_mut(&e).unwrap().data
+    }
+}
+
+pub struct InnerVec<T>(Vec<GenerationData<T>>);
+
+pub struct GenerationData<T> {
+    pub generation: Generation,
+    pub data: T
 }
 
 
 /// Vec-based storage, actually wraps data into options and stores the generations
 /// of the data in order to match with given entities. Supposed to have maximum
 /// performance for the components mostly present in entities.
-#[derive(Debug)]
-pub struct VecStorage<T>(pub Vec<Option<(Generation, T)>>);
-
-impl<T> StorageBase for VecStorage<T> {
-    fn del(&mut self, entity: Entity) {
-        self.0.get_mut(entity.get_id()).map(|x| *x = None);
-    }
+pub struct VecStorage<T> {
+    set: BitSet,
+    values: InnerVec<T>,
 }
-impl<T> Storage<T> for VecStorage<T> {
-    fn new() -> Self {
-        VecStorage(Vec::new())
-    }
-    fn get(&self, entity: Entity) -> Option<&T> {
-        self.0.get(entity.get_id()).and_then(|x| match x {
-            &Some((gen, ref value)) if gen == entity.get_gen() => Some(value),
-            _ => None
-        })
-    }
-    fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
-        self.0.get_mut(entity.get_id()).and_then(|x| match x {
-            &mut Some((gen, ref mut value)) if gen == entity.get_gen() => Some(value),
-            _ => None
-        })
-    }
-    fn insert(&mut self, entity: Entity, value: T) {
-        while self.0.len() <= entity.get_id() {
-            self.0.push(None);
+
+impl<T> VecStorage<T> {
+    fn extend(&mut self, id: usize) {
+        debug_assert!(id >= self.values.0.len());
+        let delta = (id + 1) - self.values.0.len();
+        self.values.0.reserve(delta);
+        unsafe {
+            self.values.0.set_len(id + 1);
         }
-        self.0[entity.get_id()] = Some((entity.get_gen(), value));
     }
-    fn remove(&mut self, entity: Entity) -> Option<T> {
-        self.0.get_mut(entity.get_id()).and_then(|x| {
-            if let &mut Some((gen, _)) = x {
-                // if the generation does not match avoid deleting
-                if gen != entity.get_gen() {
-                    return None;
-                }
+}
+
+impl<T> Drop for VecStorage<T> {
+    fn drop(&mut self) {
+        use std::mem;
+
+        for (i, v) in self.values.0.drain(..).enumerate() {
+            // if v was not in the set the data is invalid
+            // and we must forget it instead of dropping it
+            if !self.set.remove(i as u32) {
+                mem::forget(v);
             }
-            x.take().map(|(_, x)| x)
-        })
+        }
     }
 }
 
-/// HashMap-based storage. Best suited for rare components.
-#[derive(Debug)]
-pub struct HashMapStorage<T>(pub HashMap<Entity, T, BuildHasherDefault<FnvHasher>>);
-
-impl<T> StorageBase for HashMapStorage<T> {
-    fn del(&mut self, entity: Entity) {
-        self.0.remove(&entity);
+impl<T> super::StorageBase for VecStorage<T> {
+    fn del(&mut self, e: Entity) {
+        self.remove(e);
     }
 }
-impl<T> Storage<T> for HashMapStorage<T> {
+
+impl<T> super::Storage<T> for VecStorage<T> {
+    type UnprotectedStorage = InnerVec<T>;
+
     fn new() -> Self {
-        let fnv = BuildHasherDefault::<FnvHasher>::default();
-        HashMapStorage(HashMap::with_hasher(fnv))
+        VecStorage {
+            set: BitSet::new(),
+            values: InnerVec(Vec::new()),
+        }
     }
-    fn get(&self, entity: Entity) -> Option<&T> {
-        self.0.get(&entity)
+    fn get(&self, e: Entity) -> Option<&T> {
+        let id = e.get_id();
+        if self.set.contains(id as u32) {
+            let v = unsafe { self.values.0.get_unchecked(id) };
+            if v.generation == e.get_gen() {
+                return Some(&v.data);
+            }
+        }
+        None
+
     }
-    fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
-        self.0.get_mut(&entity)
+    fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
+        let id = e.get_id();
+        if self.set.contains(id as u32) {
+            let v = unsafe { self.values.0.get_unchecked_mut(id) };
+            if v.generation == e.get_gen() {
+                return Some(&mut v.data);
+            }
+        }
+        None
     }
-    fn insert(&mut self, entity: Entity, value: T) {
-        self.0.insert(entity, value);
+    fn insert(&mut self, e: Entity, mut v: T) {
+        use std::{ptr, mem};
+
+        let id = e.get_id();
+        if self.set.contains(id as u32) {
+            let mut data = &mut self.values.0[id];
+            data.generation = e.get_gen();
+            mem::swap(&mut data.data, &mut v);
+            Some(v)
+        } else {
+            self.set.add(id as u32);
+            if self.values.0.len() <= id {
+                self.extend(id);
+            }
+            unsafe {
+                ptr::write(
+                    &mut self.values.0[id],
+                    GenerationData{
+                        generation: e.get_gen(),
+                        data: v
+                    }
+                );
+            }
+            None
+        };
     }
-    fn remove(&mut self, entity: Entity) -> Option<T> {
-        self.0.remove(&entity)
+    fn remove(&mut self, e: Entity) -> Option<T> {
+        use std::ptr;
+
+        let (id, gen) = (e.get_id(), e.get_gen());
+        let gen_matches = self.values.0.get(id)
+            .map(|x| x.generation == gen).unwrap_or(false);
+
+        if gen_matches && self.set.remove(id as u32) {
+            let value = unsafe { ptr::read(&self.values.0[id]) };
+            Some(value.data)
+        } else {
+            None
+        }
+    }
+    fn open(&self) -> (&BitSet, &InnerVec<T>) {
+        (&self.set, &self.values)
+    }
+    fn open_mut(&mut self) -> (&BitSet, &mut InnerVec<T>) {
+        (&self.set, &mut self.values)
+    }
+}
+
+impl<T> super::UnprotectedStorage<T> for InnerVec<T> {
+    unsafe fn get(&self, e: u32) -> &T {
+        &self.0.get_unchecked(e as usize).data
+    }
+    unsafe fn get_mut(&mut self, e: u32) -> &mut T {
+        &mut self.0.get_unchecked_mut(e as usize).data
+    }
+}
+
+#[cfg(test)]
+mod map_test {
+    use {Storage, Entity, Generation};
+    use super::VecStorage;
+
+    #[test]
+    fn insert() {
+        let mut c = VecStorage::new();
+        for i in 0..1_000 {
+            c.insert(Entity::new(i, Generation(0)), i);
+        }
+
+        for i in 0..1_000 {
+            assert_eq!(c.get(Entity::new(i, Generation(0))).unwrap(), &i);
+        }
+    }
+
+    #[test]
+    fn insert_100k() {
+        let mut c = VecStorage::new();
+        for i in 0..100_000 {
+            c.insert(Entity::new(i, Generation(0)), i);
+        }
+
+        for i in 0..100_000 {
+            assert_eq!(c.get(Entity::new(i, Generation(0))).unwrap(), &i);
+        }
+    }
+
+    #[test]
+    fn remove() {
+        let mut c = VecStorage::new();
+        for i in 0..1_000 {
+            c.insert(Entity::new(i, Generation(0)), i);
+        }
+
+        for i in 0..1_000 {
+            assert_eq!(c.get(Entity::new(i, Generation(0))).unwrap(), &i);
+        }
+
+        for i in 0..1_000 {
+            c.remove(Entity::new(i, Generation(0)));
+        }
+
+        for i in 0..1_000 {
+            assert!(c.get(Entity::new(i, Generation(0))).is_none());
+        }
+    }
+
+    #[test]
+    fn test_gen() {
+        let mut c = VecStorage::new();
+        for i in 0..1_000i32 {
+            c.insert(Entity::new(i as u32, Generation(0)), i);
+            c.insert(Entity::new(i as u32, Generation(0)), -i);
+        }
+
+        for i in 0..1_000i32 {
+            assert_eq!(c.get(Entity::new(i as u32, Generation(0))).unwrap(), &-i);
+        }
+    }
+
+    #[test]
+    fn insert_same_key() {
+        let mut c = VecStorage::new();
+        for i in 0..10_000 {
+            c.insert(Entity::new(i as u32, Generation(0)), i);
+            assert_eq!(c.get(Entity::new(i as u32, Generation(0))).unwrap(), &i);
+        }
+    }
+
+    #[should_panic]
+    #[test]
+    fn wrap() {
+        let mut c = VecStorage::new();
+        c.insert(Entity::new(1 << 21, Generation(0)), 7);
     }
 }
 
 
 #[cfg(test)]
 mod test {
-    use {Entity, Generation};
-    use super::*;
+    use {Entity, Generation, Storage, VecStorage, HashMapStorage};
 
     fn test_add<S>() where S: Storage<u32> {
         let mut s = S::new();
