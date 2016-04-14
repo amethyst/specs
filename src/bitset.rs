@@ -154,15 +154,6 @@ impl BitSet {
         }
         (self.layer0[p0] & bit.mask::<Shift0>()) != 0
     }
-
-    /// Create an iterator over the the keyspace
-    pub fn iter<'a>(&'a self) -> Iter<'a, Self> {
-        Iter{
-            prefix: [0; 3],
-            masks: [0, 0, 0, self.layer3],
-            set: self
-        }
-    }
 }
 
 pub trait Shift {
