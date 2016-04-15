@@ -8,9 +8,9 @@ use bitset::BitSet;
 
 
 /// Base trait for a component storage that is used as a trait object.
-/// Doesn't depent on the actual component type.
+/// Doesn't depend on the actual component type.
 pub trait StorageBase {
-    /// Delete a particular entity from the storage.
+    /// Deletes a particular `Entity` from the storage.
     fn del(&mut self, Entity);
 }
 
@@ -19,34 +19,34 @@ pub trait Storage<T>: StorageBase + Sized {
     /// Used during iterator
     type UnprotectedStorage: UnprotectedStorage<T>;
 
-    /// Create a new storage. This is called when you register a new
+    /// Creates a new `Storage<T>`. This is called when you register a new
     /// component type within the world.
     fn new() -> Self;
-    /// Insert a new data for a given entity.
+    /// Inserts new data for a given `Entity`.
     fn insert(&mut self, Entity, T);
-    /// Try reading the data associated with an entity.
+    /// Tries to read the data associated with an `Entity`.
     fn get(&self, Entity) -> Option<&T>;
-    /// Try mutating the data associated with an entity.
+    /// Tries to mutate the data associated with an `Entity`.
     fn get_mut(&mut self, Entity) -> Option<&mut T>;
-    /// Remove the data associated with an entity.
+    /// Removes the data associated with an `Entity`.
     fn remove(&mut self, Entity) -> Option<T>;
-    /// splits the bitset from the storage for use
-    /// by the join iterator.
+    /// Splits the `BitSet` from the storage for use
+    /// by the `Join` iterator.
     fn open(&self) -> (&BitSet, &Self::UnprotectedStorage);
-    /// splits the bitset from the storage for use
-    /// by the join iterator.
+    /// Splits the `BitSet` mutably from the storage for use
+    /// by the `Join` iterator.
     fn open_mut(&mut self) -> (&BitSet, &mut Self::UnprotectedStorage);
 }
 
 /// Used by the framework to quickly join componets
 pub trait UnprotectedStorage<T> {
-    /// Try reading the data associated with an entity.
-    /// this is unsafe because the external set used
-    /// to protect this storage is absent
+    /// Tries reading the data associated with an `Entity`.
+    /// This is unsafe because the external set used
+    /// to protect this storage is absent.
     unsafe fn get(&self, id: Index) -> &T;
-    /// Try mutating the data associated with an entity.
-    /// this is unsafe because the external set used
-    /// to protect this storage is absent
+    /// Tries mutating the data associated with an `Entity`.
+    /// This is unsafe because the external set used
+    /// to protect this storage is absent.
     unsafe fn get_mut(&mut self, id: Index) -> &mut T;
 }
 
@@ -136,8 +136,8 @@ pub struct GenerationData<T> {
 }
 
 
-/// Vec-based storage, actually wraps data into options and stores the generations
-/// of the data in order to match with given entities. Supposed to have maximum
+/// Vec-based storage, stores the generations of the data in
+/// order to match with given entities. Supposed to have maximum
 /// performance for the components mostly present in entities.
 pub struct VecStorage<T> {
     set: BitSet,
