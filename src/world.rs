@@ -203,13 +203,14 @@ impl World {
         let mut app = self.appendix.write().unwrap();
         let ent = app.next;
         assert!(ent.get_gen().is_alive());
+        let mut gens = self.generations.write().unwrap();
         if ent.get_gen().is_first() {
-            let mut gens = self.generations.write().unwrap();
             assert!(gens.len() == ent.get_id());
             gens.push(ent.get_gen());
             app.next.0 += 1;
         } else {
-            let gens = self.generations.read().unwrap();
+            assert!(!gens[ent.get_id()].is_alive());
+            gens[ent.get_id()] = ent.get_gen();
             app.next = find_next(&gens, ent.get_id() + 1);
         }
         EntityBuilder(ent, self)
@@ -220,7 +221,7 @@ impl World {
             comp.del_slice(&[entity]);
         }
         let mut gens = self.generations.write().unwrap();
-        let mut gen = &mut gens[entity.get_id() as usize];
+        let mut gen = &mut gens[entity.get_id()];
         gen.die();
         let mut app = self.appendix.write().unwrap();
         if entity.get_id() < app.next.get_id() {
@@ -239,6 +240,12 @@ impl World {
     pub fn delete_later(&self, entity: Entity) {
         let mut app = self.appendix.write().unwrap();
         app.sub_queue.push(entity);
+    }
+    /// Checks whether the given `Entity` is alive.
+    pub fn is_alive(&self, entity: Entity) -> bool {
+        debug_assert!(entity.get_gen().is_alive());
+        let gens = self.generations.read().unwrap();
+        entity.get_gen() == gens[entity.get_id()]
     }
     /// Merge in the appendix, recording all the dynamically created
     /// and deleted entities into the persistent generations vector.
