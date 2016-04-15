@@ -12,12 +12,12 @@ pub const SHIFT1: usize = SHIFT0 + BITS;
 pub const SHIFT2: usize = SHIFT1 + BITS;
 pub const SHIFT3: usize = SHIFT2 + BITS;
 
-/// A BitSet is a simple set designed for tracking entity indexes
-/// are present or not. It does not track the `Generation` of the
+/// A `BitSet` is a simple set designed to track entity indices for which
+/// a certain component exists. It does not track the `Generation` of the
 /// entities that it contains.
 ///
-/// Note, the BitSet is limited by design to only 1,048,576 indexs
-/// adding beyond this will cause the BitSet to panic.
+/// Note, a `BitSet` is limited by design to only 1,048,576 indices.
+/// Adding beyond this limit will cause the `BitSet` to panic.
 #[derive(Clone)]
 pub struct BitSet {
     layer3: u32,
@@ -32,7 +32,7 @@ fn offsets(bit: Index) -> (usize, usize, usize) {
 }
 
 impl BitSet {
-    /// Create an empty BitSet
+    /// Creates an empty `BitSet`.
     pub fn new() -> BitSet {
         BitSet {
             layer3: 0,
@@ -49,7 +49,7 @@ impl BitSet {
         }
     }
 
-    /// Create an empty BitSet with up to max Index
+    /// Creates an empty `BitSet`, preallocated for up to `max` indices.
     pub fn with_capacity(max: Index) -> BitSet {
         Self::valid_range(max);
         let mut value = BitSet::new();
@@ -85,8 +85,8 @@ impl BitSet {
         self.layer3 |= id.mask(SHIFT3);
     }
 
-    /// Add `id` to the bitset. Returning if the value was
-    /// already in the set before it was added
+    /// Adds `id` to the `BitSet`. Returns `true` if the value was
+    /// already in the set.
     #[inline]
     pub fn add(&mut self, id: Index) -> bool {
         let (p0, mask) = (id.offset(SHIFT1), id.mask(SHIFT0));
@@ -111,9 +111,9 @@ impl BitSet {
         false
     }
 
-    /// Remove `id` from the set, returns true if the value
-    /// was removed, returns false if the value was not set
-    /// to begin with
+    /// Removes `id` from the set, returns `true` if the value
+    /// was removed, and `false` if the value was not set
+    /// to begin with.
     #[inline]
     pub fn remove(&mut self, id: Index) -> bool {
         let (p0, p1, p2) = offsets(id);
@@ -149,15 +149,14 @@ impl BitSet {
         return true;
     }
 
-    /// Check to see if `id` was included in the set
-    /// return true if it was, false otherwise
+    /// Returns `true` if `id` is in the set.
     #[inline]
-    pub fn contains(&self, bit: u32) -> bool {
-        let p0 = bit.offset(SHIFT1);
+    pub fn contains(&self, id: u32) -> bool {
+        let p0 = id.offset(SHIFT1);
         if p0 >= self.layer0.len() {
             return false;
         }
-        (self.layer0[p0] & bit.mask(SHIFT0)) != 0
+        (self.layer0[p0] & id.mask(SHIFT0)) != 0
     }
 }
 
@@ -183,19 +182,20 @@ impl Row for Index {
     }
 }
 
-/// A generic interface for BitSet like type
-/// A bitset in `specs` is hierarchal meaning that there
-/// are multiple levels that branch out in a tree like structure
+/// A generic interface for `BitSet`-like types.
 ///
-/// Layer0 has each bit representing one Index of the set
-/// Layer1 each bit represents one u32 of Layer0, and will be
-/// set only if the word below it is none zero.
-/// Layer2 has the same arrangement but with Layer1, and Layer4 with Layer4
+/// Every `BitSetLike` in `specs` is hierarchical, meaning that there
+/// are multiple levels that branch out in a tree like structure.
 ///
-/// This arrangement allows for rapid jumps across the key-space
+/// Layer0 each bit represents one Index of the set
+/// Layer1 each bit represents one `u32` of Layer0, and will be
+/// set only if the word below it is not zero.
+/// Layer2 has the same arrangement but with Layer1, and Layer3 with Layer2.
+///
+/// This arrangement allows for rapid jumps across the key-space.
 pub trait BitSetLike {
     /// Return a u32 where each bit represents if any word in layer2
-    /// has been set. 
+    /// has been set.
     fn layer3(&self) -> u32;
     /// Return the u32 from the array of u32s that indicates if any
     /// bit has been set in layer1
@@ -234,7 +234,7 @@ impl BitSetLike for BitSet {
     #[inline] fn layer0(&self, i: usize) -> u32 { self.layer0[i] }
 }
 
-/// BitSet and takes two BitSetLike items and merges the masks
+/// `BitSet` and takes two BitSetLike items and merges the masks
 /// returning a new virtual set.
 pub struct BitSetAnd<A: BitSetLike, B: BitSetLike>(pub A, pub B);
 
