@@ -141,3 +141,20 @@ fn dynamic_create_and_delete() {
         swap(&mut ent1, &mut ent0)
     }
 }
+
+#[test]
+fn is_alive() {
+    let w = specs::World::new();
+
+    let e = w.create_now().build();
+    assert!(w.is_alive(e));
+    w.delete_now(e);
+    assert!(!w.is_alive(e));
+
+    let e2 = w.create_now().build();
+    assert!(w.is_alive(e2));
+    w.delete_later(e2);
+    assert!(w.is_alive(e2));
+    w.merge();
+    assert!(!w.is_alive(e2));
+}
