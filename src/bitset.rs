@@ -234,8 +234,9 @@ impl BitSetLike for BitSet {
     #[inline] fn layer0(&self, i: usize) -> u32 { self.layer0[i] }
 }
 
-/// `BitSet` and takes two BitSetLike items and merges the masks
-/// returning a new virtual set.
+/// `BitSetAnd` takes two `BitSetLike` items, and merges the masks
+/// returning a new virtual set, which represents an intersection of the
+/// two original sets.
 pub struct BitSetAnd<A: BitSetLike, B: BitSetLike>(pub A, pub B);
 
 impl<A: BitSetLike, B: BitSetLike> BitSetLike for BitSetAnd<A, B> {
