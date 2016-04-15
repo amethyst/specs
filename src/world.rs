@@ -40,12 +40,12 @@ impl<'a> Iterator for EntityIter<'a> {
 pub struct EntityBuilder<'a>(Entity, &'a World);
 
 impl<'a> EntityBuilder<'a> {
-    /// Add a component value to the new entity.
+    /// Adds a `Component` value to the new `Entity`.
     pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
         self.1.write::<T>().insert(self.0, value);
         self
     }
-    /// Finish entity construction.
+    /// Finishes entity construction.
     pub fn build(self) -> Entity {
         self.0
     }
@@ -127,8 +127,8 @@ impl<S: StorageBase + Any + Send + Sync> StorageLock for RwLock<S> {
 }
 
 
-/// The world struct contains all the data, which is entities and their components.
-/// The methods are supposed to be valid for any context they are available in.
+/// The `World` struct contains all the data, which is entities and their components.
+/// All methods are supposed to be valid for any context they are available in.
 pub struct World {
     generations: RwLock<Vec<Generation>>,
     components: HashMap<TypeId, Box<StorageLock>>,
@@ -136,7 +136,7 @@ pub struct World {
 }
 
 impl World {
-    /// Create a new empty world.
+    /// Creates a new empty `World`.
     pub fn new() -> World {
         World {
             generations: RwLock::new(Vec::new()),
@@ -148,12 +148,12 @@ impl World {
             }),
         }
     }
-    /// Register a new component type.
+    /// Registers a new component type.
     pub fn register<T: Component>(&mut self) {
         let any = RwLock::new(T::Storage::new());
         self.components.insert(TypeId::of::<T>(), Box::new(any));
     }
-    /// Unregister a component type.
+    /// Unregisters a component type.
     pub fn unregister<T: Component>(&mut self) -> Option<T::Storage> {
         self.components.remove(&TypeId::of::<T>()).map(|boxed|
             match boxed.downcast::<RwLock<T::Storage>>() {
@@ -167,22 +167,22 @@ impl World {
             .expect("Tried to perform an operation on type that was not registered");
         boxed.downcast_ref().unwrap()
     }
-    /// Lock a component's storage for reading.
+    /// Locks a component's storage for reading.
     pub fn read<T: Component>(&self) -> RwLockReadGuard<T::Storage> {
         self.lock::<T>().read().unwrap()
     }
-    /// Lock a component's storage for writing.
+    /// Locks a component's storage for writing.
     pub fn write<T: Component>(&self) -> RwLockWriteGuard<T::Storage> {
         self.lock::<T>().write().unwrap()
     }
-    /// Return the entity iterator.
+    /// Returns the entity iterator.
     pub fn entities(&self) -> EntityIter {
         EntityIter {
             guard: self.generations.read().unwrap(),
             index: 0,
         }
     }
-    /// Return the dynamic entity iterator. It goes through entities that were
+    /// Returns the dynamic entity iterator. It iterates over entities that were
     /// dynamically created by systems but not yet merged.
     pub fn dynamic_entities(&self) -> DynamicEntityIter {
         DynamicEntityIter {
@@ -190,7 +190,7 @@ impl World {
             index: 0,
         }
     }
-    /// Return the entity creation iterator. Can be used to create many
+    /// Returns the entity creation iterator. Can be used to create many
     /// empty entities at once without paying the locking overhead.
     pub fn create_iter(&self) -> CreateEntityIter {
         CreateEntityIter {
@@ -198,7 +198,7 @@ impl World {
             app: self.appendix.write().unwrap(),
         }
     }
-    /// Create a new entity instantly, with locking the generations data.
+    /// Creates a new entity instantly, locking the generations data.
     pub fn create_now(&self) -> EntityBuilder {
         let mut app = self.appendix.write().unwrap();
         let ent = app.next;
@@ -215,7 +215,7 @@ impl World {
         }
         EntityBuilder(ent, self)
     }
-    /// Delete a new entity instantly, with locking the generations data.
+    /// Deletes a new entity instantly, locking the generations data.
     pub fn delete_now(&self, entity: Entity) {
         for comp in self.components.values() {
             comp.del_slice(&[entity]);
@@ -228,7 +228,7 @@ impl World {
             app.next = Entity(entity.0, gen.raised());
         }
     }
-    /// Create a new entity dynamically.
+    /// Creates a new entity dynamically.
     pub fn create_later(&self) -> Entity {
         let mut app = self.appendix.write().unwrap();
         let ent = app.next;
@@ -236,18 +236,18 @@ impl World {
         app.next = find_next(&*self.generations.read().unwrap(), ent.get_id() + 1);
         ent
     }
-    /// Delete an entity dynamically.
+    /// Deletes an entity dynamically.
     pub fn delete_later(&self, entity: Entity) {
         let mut app = self.appendix.write().unwrap();
         app.sub_queue.push(entity);
     }
-    /// Checks whether the given `Entity` is alive.
+    /// Returns `true` if the given `Entity` is alive.
     pub fn is_alive(&self, entity: Entity) -> bool {
         debug_assert!(entity.get_gen().is_alive());
         let gens = self.generations.read().unwrap();
         entity.get_gen() == gens[entity.get_id()]
     }
-    /// Merge in the appendix, recording all the dynamically created
+    /// Merges in the appendix, recording all the dynamically created
     /// and deleted entities into the persistent generations vector.
     /// Also removes all the abandoned components.
     pub fn merge(&self) {
@@ -285,24 +285,24 @@ impl World {
 }
 
 /// System fetch-time argument. The fetch is executed at the start of the run.
-/// It contains a subset of World methods that make sense during initialization.
+/// It contains a subset of `World` methods that make sense during initialization.
 pub struct FetchArg<'a>(&'a World);
 
 impl<'a> FetchArg<'a> {
-    /// Construct the new arg, not supposed to be used.
+    /// Constructs a new `FetchArg`, not supposed to be used.
     #[doc(hidden)]
     pub fn new(w: &'a World) -> FetchArg<'a> {
         FetchArg(w)
     }
-    /// Lock a component for reading.
+    /// Locks a `Component` for reading.
     pub fn read<T: Component>(&self) -> RwLockReadGuard<'a, T::Storage> {
         self.0.read::<T>()
     }
-    /// Lock a component for writing.
+    /// Locks a `Component` for writing.
     pub fn write<T: Component>(&self) -> RwLockWriteGuard<'a, T::Storage> {
         self.0.write::<T>()
     }
-    /// Return the entity iterator.
+    /// Returns the entity iterator.
     pub fn entities(self) -> EntityIter<'a> {
         self.0.entities()
     }
