@@ -40,12 +40,12 @@ impl<'a> Iterator for EntityIter<'a> {
 pub struct EntityBuilder<'a>(Entity, &'a World);
 
 impl<'a> EntityBuilder<'a> {
-    /// Add a component value to the new entity.
+    /// Adds a `Component` value to the new `Entity`.
     pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
         self.1.write::<T>().insert(self.0, value);
         self
     }
-    /// Finish entity construction.
+    /// Finishes entity construction.
     pub fn build(self) -> Entity {
         self.0
     }
@@ -285,7 +285,7 @@ impl World {
 }
 
 /// System fetch-time argument. The fetch is executed at the start of the run.
-/// It contains a subset of World methods that make sense during initialization.
+/// It contains a subset of `World` methods that make sense during initialization.
 pub struct FetchArg<'a>(&'a World);
 
 impl<'a> FetchArg<'a> {
@@ -294,11 +294,11 @@ impl<'a> FetchArg<'a> {
     pub fn new(w: &'a World) -> FetchArg<'a> {
         FetchArg(w)
     }
-    /// Locks a component for reading.
+    /// Locks a `Component` for reading.
     pub fn read<T: Component>(&self) -> RwLockReadGuard<'a, T::Storage> {
         self.0.read::<T>()
     }
-    /// Locks a component for writing.
+    /// Locks a `Component` for writing.
     pub fn write<T: Component>(&self) -> RwLockWriteGuard<'a, T::Storage> {
         self.0.write::<T>()
     }

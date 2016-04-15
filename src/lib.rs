@@ -1,9 +1,10 @@
 #![deny(missing_docs)]
 
-//! SPECS Parallel ECS
+//! # SPECS Parallel ECS
+//!
 //! This library provides an ECS variant designed for parallel execution
 //! and convenient usage. It is highly flexible when it comes to actual
-//! component data and the way it's stored and accessed.
+//! component data and the way it is stored and accessed.
 
 #[macro_use]
 extern crate mopa;
@@ -28,54 +29,54 @@ mod world;
 mod bitset;
 mod join;
 
-/// Index generation. When a new entity is placed at the old index,
-/// it bumps the generation by 1. This allows to avoid using components
+/// Index generation. When a new entity is placed at an old index,
+/// it bumps the `Generation` by 1. This allows to avoid using components
 /// from the entities that were deleted.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Generation(i32);
 
 impl Generation {
-    /// Returns `true` if entities of this `Generation` are alive
+    /// Returns `true` if entities of this `Generation` are alive.
     pub fn is_alive(&self) -> bool {
         self.0 > 0
     }
 
-    /// Kills this `Generation`
+    /// Kills this `Generation`.
     fn die(&mut self) {
         debug_assert!(self.is_alive());
         self.0 = -self.0;
     }
 
-    /// Revive and increment a dead `Generation`
+    /// Revives and increments a dead `Generation`.
     fn raised(self) -> Generation {
         debug_assert!(!self.is_alive());
         Generation(1 - self.0)
     }
 
-    /// Returns `true` if this is a first generation, i.e. has value `1`
+    /// Returns `true` if this is a first generation, i.e. has value `1`.
     fn is_first(&self) -> bool {
         self.0 == 1
     }
 }
 
-/// Index type is arbitrary. It doesn't show up in any interfaces.
+/// `Index` type is arbitrary. It doesn't show up in any interfaces.
 /// Keeping it 32bit allows for a single 64bit word per entity.
 pub type Index = u32;
-/// Entity type, as seen by the user.
+/// `Entity` type, as seen by the user.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Entity(Index, Generation);
 
 impl Entity {
     #[cfg(test)]
-    /// Create a new entity (externally from ECS)
+    /// Creates a new entity (externally from ECS).
     pub fn new(index: Index, gen: Generation) -> Entity {
         Entity(index, gen)
     }
 
-    /// Get the index of the entity.
+    /// Returns the index of the `Entity`.
     #[inline]
     pub fn get_id(&self) -> usize { self.0 as usize }
-    /// Get the generation of the entity.
+    /// Returns the `Generation` of the `Entity`.
     #[inline]
     pub fn get_gen(&self) -> Generation { self.1 }
 }
@@ -88,8 +89,8 @@ pub struct RunArg {
 }
 
 impl RunArg {
-    /// Borrows the world, allowing the system lock some components and get the entity
-    /// iterator. Has to be called only once. Fires a pulse at the end.
+    /// Borrows the world, allowing the system to lock some components and get the entity
+    /// iterator. Must be called only once.
     pub fn fetch<'a, U, F>(&'a self, f: F) -> U
         where F: FnOnce(FetchArg<'a>) -> U
     {
@@ -99,15 +100,15 @@ impl RunArg {
         pulse.pulse();
         u
     }
-    /// Create a new entity dynamically.
+    /// Creates a new entity dynamically.
     pub fn create(&self) -> Entity {
         self.world.create_later()
     }
-    /// Delete an entity dynamically.
+    /// Deletes an entity dynamically.
     pub fn delete(&self, entity: Entity) {
         self.world.delete_later(entity)
     }
-    /// Iterate dynamically added entities.
+    /// Returns an iterator over dynamically added entities.
     pub fn new_entities(&self) -> DynamicEntityIter {
         self.world.dynamic_entities()
     }
@@ -117,14 +118,14 @@ impl RunArg {
 /// System execution planner. Allows running systems via closures,
 /// distributes the load in parallel using a thread pool.
 pub struct Planner {
-    /// Shared World.
+    /// Shared `World`.
     pub world: Arc<World>,
     threads: ThreadPool,
     pending: Vec<Signal>
 }
 
 impl Planner {
-    /// Create a new planner, given the world and the thread count.
+    /// Creates a new planner, given the world and the thread count.
     pub fn new(world: World, num_threads: usize) -> Planner {
         Planner {
             world: Arc::new(world),
@@ -132,7 +133,7 @@ impl Planner {
             pending: vec![]
         }
     }
-    /// Run a custom system.
+    /// Runs a custom system.
     pub fn run<F>(&mut self, functor: F) where
         F: 'static + Send + FnOnce(RunArg)
     {
@@ -151,7 +152,8 @@ impl Planner {
         }
         self.pending.push(signal_done);
     }
-    /// Wait for all the currently executed systems to finish.
+    /// Waits for all currently executing systems to finish, and then
+    /// merges all queued changes.
     pub fn wait(&mut self) {
         Barrier::new(&self.pending[..]).wait().unwrap();
         for signal in self.pending.drain(..) {
