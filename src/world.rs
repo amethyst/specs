@@ -85,7 +85,7 @@ impl<'a> Iterator for CreateEntityIter<'a> {
         let ent = self.app.next;
         assert!(ent.get_gen().is_alive());
         if ent.get_gen().is_first() {
-            assert!(self.gens.len() == ent.get_id());
+            assert_eq!(self.gens.len(), ent.get_id());
             self.gens.push(ent.get_gen());
             self.app.next.0 += 1;
         } else {
@@ -205,7 +205,7 @@ impl World {
         let ent = app.next;
         assert!(ent.get_gen().is_alive());
         if ent.get_gen().is_first() {
-            assert!(gens.len() == ent.get_id());
+            assert_eq!(gens.len(), ent.get_id());
             gens.push(ent.get_gen());
             app.next.0 += 1;
         } else {
