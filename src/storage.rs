@@ -15,21 +15,23 @@ pub trait StorageBase {
 }
 
 /// Typed component storage trait.
-pub trait Storage<T>: StorageBase + Sized {
+pub trait Storage: StorageBase + Sized {
+    /// The Component to get or set
+    type Component;
     /// Used during iterator
-    type UnprotectedStorage: UnprotectedStorage<T>;
+    type UnprotectedStorage: UnprotectedStorage<Component=Self::Component>;
 
     /// Creates a new `Storage<T>`. This is called when you register a new
     /// component type within the world.
     fn new() -> Self;
     /// Inserts new data for a given `Entity`.
-    fn insert(&mut self, Entity, T);
+    fn insert(&mut self, Entity, Self::Component);
     /// Tries to read the data associated with an `Entity`.
-    fn get(&self, Entity) -> Option<&T>;
+    fn get(&self, Entity) -> Option<&Self::Component>;
     /// Tries to mutate the data associated with an `Entity`.
-    fn get_mut(&mut self, Entity) -> Option<&mut T>;
+    fn get_mut(&mut self, Entity) -> Option<&mut Self::Component>;
     /// Removes the data associated with an `Entity`.
-    fn remove(&mut self, Entity) -> Option<T>;
+    fn remove(&mut self, Entity) -> Option<Self::Component>;
     /// Splits the `BitSet` from the storage for use
     /// by the `Join` iterator.
     fn open(&self) -> (&BitSet, &Self::UnprotectedStorage);
@@ -39,15 +41,17 @@ pub trait Storage<T>: StorageBase + Sized {
 }
 
 /// Used by the framework to quickly join componets
-pub trait UnprotectedStorage<T> {
+pub trait UnprotectedStorage {
+    /// The component to get
+    type Component;
     /// Tries reading the data associated with an `Entity`.
     /// This is unsafe because the external set used
     /// to protect this storage is absent.
-    unsafe fn get(&self, id: Index) -> &T;
+    unsafe fn get(&self, id: Index) -> &Self::Component;
     /// Tries mutating the data associated with an `Entity`.
     /// This is unsafe because the external set used
     /// to protect this storage is absent.
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T;
+    unsafe fn get_mut(&mut self, id: Index) -> &mut Self::Component;
 }
 
 pub struct InnerHashMap<T>(HashMap<Index, GenerationData<T>, BuildHasherDefault<FnvHasher>>);
@@ -66,7 +70,8 @@ impl<T> StorageBase for HashMapStorage<T> {
     }
 }
 
-impl<T> Storage<T> for HashMapStorage<T> {
+impl<T> Storage for HashMapStorage<T> {
+    type Component = T;
     type UnprotectedStorage = InnerHashMap<T>;
 
     fn new() -> Self {
@@ -119,7 +124,8 @@ impl<T> Storage<T> for HashMapStorage<T> {
     }
 }
 
-impl<T> UnprotectedStorage<T> for InnerHashMap<T> {
+impl<T> UnprotectedStorage for InnerHashMap<T> {
+    type Component = T;
     unsafe fn get(&self, e: Index) -> &T {
         &self.0.get(&e).unwrap().data
     }
@@ -175,7 +181,8 @@ impl<T> super::StorageBase for VecStorage<T> {
     }
 }
 
-impl<T> super::Storage<T> for VecStorage<T> {
+impl<T> super::Storage for VecStorage<T> {
+    type Component = T;
     type UnprotectedStorage = InnerVec<T>;
 
     fn new() -> Self {
@@ -253,7 +260,8 @@ impl<T> super::Storage<T> for VecStorage<T> {
     }
 }
 
-impl<T> super::UnprotectedStorage<T> for InnerVec<T> {
+impl<T> super::UnprotectedStorage for InnerVec<T> {
+    type Component = T;
     unsafe fn get(&self, e: u32) -> &T {
         &self.0.get_unchecked(e as usize).data
     }
@@ -346,7 +354,7 @@ mod map_test {
 mod test {
     use {Entity, Generation, Storage, VecStorage, HashMapStorage};
 
-    fn test_add<S>() where S: Storage<u32> {
+    fn test_add<S>() where S: Storage<Component=u32> {
         let mut s = S::new();
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), i + 2718);
@@ -357,7 +365,7 @@ mod test {
         }
     }
 
-    fn test_sub<S>() where S: Storage<u32> {
+    fn test_sub<S>() where S: Storage<Component=u32> {
         let mut s = S::new();
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), i + 2718);
@@ -369,7 +377,7 @@ mod test {
         }
     }
 
-    fn test_get_mut<S>() where S: Storage<u32> {
+    fn test_get_mut<S>() where S: Storage<Component=u32> {
         let mut s = S::new();
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), i + 2718);
@@ -384,7 +392,7 @@ mod test {
         }
     }
 
-    fn test_add_gen<S>() where S: Storage<u32> {
+    fn test_add_gen<S>() where S: Storage<Component=u32> {
         let mut s = S::new();
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), i + 2718);
@@ -399,7 +407,7 @@ mod test {
         }
     }
 
-    fn test_sub_gen<S>() where S: Storage<u32> {
+    fn test_sub_gen<S>() where S: Storage<Component=u32> {
         let mut s = S::new();
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(2)), i + 2718);

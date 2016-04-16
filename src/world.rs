@@ -8,7 +8,7 @@ use {Index, Generation, Entity, StorageBase, Storage};
 /// Abstract component type. Doesn't have to be Copy or even Clone.
 pub trait Component: Any + Sized {
     /// Associated storage type for this component.
-    type Storage: Storage<Self> + Any + Send + Sync;
+    type Storage: Storage<Component=Self> + Any + Send + Sync;
 }
 
 
