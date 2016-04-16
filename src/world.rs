@@ -269,12 +269,18 @@ impl World {
             }
             let mut next = app.next;
             for ent in app.sub_queue.drain(..) {
-                assert_eq!(ent.get_gen(), gens[ent.get_id()]);
                 let gen = &mut gens[ent.get_id()];
-                gen.die();
-                temp_list.push(ent);
-                if ent.get_id() < next.get_id() {
-                    next = Entity(ent.0, gen.raised());
+                if gen.is_alive() {
+                    assert_eq!(ent.get_gen(), *gen);
+                    gen.die();
+                    temp_list.push(ent);
+                    if ent.get_id() < next.get_id() {
+                        next = Entity(ent.0, gen.raised());
+                    }
+                } else {
+                    let mut g = ent.get_gen();
+                    g.die();
+                    debug_assert_eq!(g, *gen);
                 }
             }
             app.next = next;

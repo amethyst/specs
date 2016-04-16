@@ -107,6 +107,7 @@ fn dynamic_deletion() {
             arg.fetch(|_| ());
             let e = arg.create();
             arg.delete(e);
+            arg.delete(e); // double free
         });
         planner.wait();
     }
