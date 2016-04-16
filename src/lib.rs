@@ -162,7 +162,6 @@ impl Planner {
             }
         }
         self.pending.clear();
-
         self.world.merge();
     }
 }

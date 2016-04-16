@@ -200,10 +200,10 @@ impl World {
     }
     /// Creates a new entity instantly, locking the generations data.
     pub fn create_now(&self) -> EntityBuilder {
+        let mut gens = self.generations.write().unwrap();
         let mut app = self.appendix.write().unwrap();
         let ent = app.next;
         assert!(ent.get_gen().is_alive());
-        let mut gens = self.generations.write().unwrap();
         if ent.get_gen().is_first() {
             assert!(gens.len() == ent.get_id());
             gens.push(ent.get_gen());
@@ -230,10 +230,11 @@ impl World {
     }
     /// Creates a new entity dynamically.
     pub fn create_later(&self) -> Entity {
+        let gens = self.generations.read().unwrap();
         let mut app = self.appendix.write().unwrap();
         let ent = app.next;
         app.add_queue.push(ent);
-        app.next = find_next(&*self.generations.read().unwrap(), ent.get_id() + 1);
+        app.next = find_next(&gens, ent.get_id() + 1);
         ent
     }
     /// Deletes an entity dynamically.
