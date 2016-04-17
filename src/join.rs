@@ -67,7 +67,7 @@ pub trait Open {
 impl<'a, T> Open for &'a T
     where T: Storage
 {
-    type Value = GetRef<'a, <T as Storage>::UnprotectedStorage>;
+    type Value = GetRef<'a, T::UnprotectedStorage>;
     type Mask = &'a BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
         let (l, r) = self.open();
@@ -78,7 +78,7 @@ impl<'a, T> Open for &'a T
 impl<'a, T> Open for &'a mut T
     where T: Storage
 {
-    type Value = GetMut<'a, <T as Storage>::UnprotectedStorage>;
+    type Value = GetMut<'a, T::UnprotectedStorage>;
     type Mask = &'a BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
         let (l, r) = self.open_mut();
@@ -98,7 +98,7 @@ pub struct GetRef<'a, T: 'a>(&'a T);
 impl<'a, T> Get for GetRef<'a, T>
     where T: UnprotectedStorage
 {
-    type Value = &'a <T as UnprotectedStorage>::Component;
+    type Value = &'a T::Component;
     unsafe fn get(&self, idx: Index) -> Self::Value {
         self.0.get(idx)
     }
@@ -108,14 +108,21 @@ pub struct GetMut<'a, T: 'a>(&'a mut T);
 impl<'a, T> Get for GetMut<'a, T>
     where T: UnprotectedStorage
 {
-    type Value = &'a mut <T as UnprotectedStorage>::Component;
+    type Value = &'a mut T::Component;
     #[allow(mutable_transmutes)]
     unsafe fn get(&self, idx: Index) -> Self::Value {
+        // This is obviously unsafe and is one of the reasons this
+        // trait is marked as unsafe to being with. It is safe
+        // an an external api point of view because the bitmask
+        // iterator never visits the same index twice, otherwise
+        // this would provide multiple aliased mutable pointers which
+        // is illegal in rust.
         let x: &mut Self = std::mem::transmute(self);
         x.0.get_mut(idx)
     }
 }
 
+/// Joined is an Iterator over a group of `Storages`
 pub struct Joined<K, V> {
     keys: bitset::Iter<K>,
     values: V,
@@ -136,7 +143,7 @@ impl<K, V> std::iter::Iterator for Joined<K, V>
     where K: BitSetLike,
           V: Get
 {
-    type Item = <V as Get>::Value;
+    type Item = V::Value;
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(idx) = self.keys.next() {
             unsafe { Some(self.values.get(idx)) }
@@ -166,8 +173,8 @@ macro_rules! define_open {
             where $($from: Open),*,
                   ($(<$from as Open>::Mask,)*): BitAnd,
         {
-            type Value = ($(<$from as Open>::Value),*,);
-            type Mask = <($(<$from as Open>::Mask,)*) as BitAnd>::Value;
+            type Value = ($($from::Value),*,);
+            type Mask = <($($from::Mask,)*) as BitAnd>::Value;
             #[allow(non_snake_case)]
             fn open(self) -> (Self::Mask, Self::Value) {
                 let ($($from,)*) = self;
@@ -182,7 +189,7 @@ macro_rules! define_open {
         impl<'a, $($from,)*> Get for ($($from),*,)
             where $($from: Get),*,
         {
-            type Value = ($(<$from as Get>::Value),*,);
+            type Value = ($($from::Value),*,);
             #[allow(non_snake_case)]
             unsafe fn get(&self, idx: Index) -> Self::Value {
                 let &($(ref $from,)*) = self;
@@ -194,8 +201,8 @@ macro_rules! define_open {
             where $($from: Open),*,
                   ($(<$from as Open>::Mask),*,): BitAnd,
         {
-            type Mask = <($(<$from as Open>::Mask),*,) as BitAnd>::Value;
-            type Values = ($(<$from as Open>::Value),*,);
+            type Mask = <($($from::Mask),*,) as BitAnd>::Value;
+            type Values = ($($from::Value),*,);
 
             fn join(self) -> Joined<Self::Mask, Self::Values> {
                 let (mask, value) = self.open();
