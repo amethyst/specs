@@ -208,7 +208,7 @@ pub trait BitSetLike {
     fn layer0(&self, i: usize) -> u32;
 
     /// Create an iterator that will scan over the keyspace
-    fn iter<'a>(&'a self) -> Iter<'a, Self>
+    fn iter(self) -> Iter<Self>
         where Self: Sized
     {
         Iter{
@@ -246,14 +246,14 @@ impl<A: BitSetLike, B: BitSetLike> BitSetLike for BitSetAnd<A, B> {
     #[inline] fn layer0(&self, i: usize) -> u32 { self.0.layer0(i) & self.1.layer0(i) }
 }
 
-pub struct Iter<'a, T:'a> {
-    set: &'a T,
+pub struct Iter<T> {
+    set: T,
     masks: [u32; 4],
     prefix: [u32; 3]
 }
 
-impl<'a, T> Iterator for Iter<'a, T>
-    where T: BitSetLike+'a
+impl<T> Iterator for Iter<T>
+    where T: BitSetLike
 {
     type Item = Index;
 
@@ -367,8 +367,8 @@ mod set_test {
             }
         }
 
-        assert_eq!(odd.iter().count(), 50_000);
-        assert_eq!(even.iter().count(), 50_000);
+        assert_eq!((&odd).iter().count(), 50_000);
+        assert_eq!((&even).iter().count(), 50_000);
         assert_eq!(BitSetAnd(&odd, &even).iter().count(), 0);
     }
 }

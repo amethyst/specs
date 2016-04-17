@@ -22,7 +22,7 @@ pub use storage::{Storage, StorageBase, VecStorage, HashMapStorage, UnprotectedS
 pub use world::{Component, World, FetchArg,
     EntityBuilder, EntityIter, CreateEntityIter, DynamicEntityIter};
 pub use bitset::{BitSetAnd, BitSet, BitSetLike};
-use join::Join;
+pub use join::Join;
 
 mod storage;
 mod world;
@@ -169,8 +169,7 @@ impl Planner {
 macro_rules! impl_run {
     ($name:ident [$( $write:ident ),*] [$( $read:ident ),*]) => (impl Planner {
         #[allow(missing_docs, non_snake_case, unused_mut)]
-        pub fn $name<'a,
-            $($write,)* $($read,)*
+        pub fn $name<$($write,)* $($read,)*
             F: 'static + Send + FnMut( $(&mut $write,)* $(&$read,)* )
         >(&mut self, functor: F)
             where $($write:Component,)*
@@ -183,15 +182,7 @@ macro_rules! impl_run {
                      $(w.read::<$read>(),)*)
                 );
 
-                $(let mut $write = $write.open_mut();)*
-                $(let $read = $read.open();)*
-
-                let selector = ($($write.0,)* $($read.0,)*).join();
-
-                for ent in selector.iter() {
-                    let ($($write,)* $($read,)*) = unsafe {
-                        ($($write.1.get_mut(ent),)* $($read.1.get(ent),)*)
-                    };
+                for ($($write,)* $($read,)*) in ($(&mut *$write,)* $(&*$read,)*).join() {
                     fun( $($write,)* $($read,)* );
                 }
             });
@@ -201,6 +192,8 @@ macro_rules! impl_run {
 
 impl_run!( run0w1r [] [R0] );
 impl_run!( run0w2r [] [R0, R1] );
+impl_run!( run0w3r [] [R0, R1, R2] );
+impl_run!( run0w4r [] [R0, R1, R2, R3] );
 impl_run!( run1w0r [W0] [] );
 impl_run!( run1w1r [W0] [R0] );
 impl_run!( run1w2r [W0] [R0, R1] );
