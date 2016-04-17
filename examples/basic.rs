@@ -49,7 +49,7 @@ fn main() {
 
     // Instead of using macros you can use run() to build a system precisely
     planner.run(|arg| {
-        use specs::Storage;
+        use specs::{Storage, Join};
         // fetch() borrows a world, so a system could lock neccessary storages
         // Can be called only once
         let (mut sa, sb, entities) = arg.fetch(|w| {
@@ -61,11 +61,18 @@ fn main() {
         for ent in entities {
             // Will only run for entities with both components present
             if let (Some(a), Some(b)) = (sa.get_mut(ent), sb.get(ent)) {
-                a.0 = if b.0 {2} else {0};
+                a.0 = if b.0 {1} else {0};
             }
         }
 
-        // Dynamically creating and deleting entites
+        // Instead of using the `entities` array you can
+        // use the `Join` trait that is an optimized way of
+        // doing the `get/get_mut` across entities.
+        for (a, b) in (&mut *sa, &*sb).join() {
+            a.0 += if b.0 {1} else {0};
+        }
+
+        // Dynamically creating and deleting entities
         let e0 = arg.create();
         sa.insert(e0, CompInt(-4));
         let e1 = arg.create();
