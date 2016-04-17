@@ -182,7 +182,7 @@ macro_rules! impl_run {
                      $(w.read::<$read>(),)*)
                 );
 
-                for ($($write,)* $($read,)*) in ($(&mut *$write,)* $(&*$read,)*).join() {
+                for ($($write,)* $($read,)*) in ($(&mut $write,)* $(&$read,)*).join() {
                     fun( $($write,)* $($read,)* );
                 }
             });

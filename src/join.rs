@@ -86,6 +86,30 @@ impl<'a, T> Open for &'a mut T
     }
 }
 
+impl<'a, T> Open for &'a std::sync::RwLockReadGuard<'a, T>
+    where T: Storage
+{
+    type Value = GetRef<'a, T::UnprotectedStorage>;
+    type Mask = &'a BitSet;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        let (l, r) = (**self).open();
+        (l, GetRef(r))
+    }
+}
+
+impl<'b, 'a:'b, T> Open for &'b mut std::sync::RwLockWriteGuard<'a, T>
+    where T: Storage
+{
+    type Value = GetMut<'b, T::UnprotectedStorage>;
+    type Mask = &'b BitSet;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        let (l, r) = (**self).open_mut();
+        (l, GetMut(r))
+    }
+}
+
+
+
 /// Get like `Open` provides the same feature of providing
 /// mutable vs immutable preserving around the UnprotectedStorage
 /// trait

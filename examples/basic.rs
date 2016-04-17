@@ -68,7 +68,7 @@ fn main() {
         // Instead of using the `entities` array you can
         // use the `Join` trait that is an optimized way of
         // doing the `get/get_mut` across entities.
-        for (a, b) in (&mut *sa, &*sb).join() {
+        for (a, b) in (&mut sa, &sb).join() {
             a.0 += if b.0 {1} else {0};
         }
 
