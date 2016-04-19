@@ -16,7 +16,7 @@ According to [ECS Design Crossroads](https://github.com/amethyst/amethyst/wiki/E
 - Automatic execution of the systems in parallel. Follows Rust ownership rules, where each component storage behaves as a variable. Depends on the order, in which systems are started.
 - Component storage is abstract behind the trait. One can use vectors, hashmaps, trees, or whatever else.
 - New components can be registered at any point from user modules. They don't have to be POD.
-- No unsafe code! No virtual calls, low overhead.
+- No virtual calls, low overhead.
 
 #### Why is it fast
 - Do you know many other natively parallel ECS in Rust?
