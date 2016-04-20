@@ -3,15 +3,14 @@ use std::collections::HashMap;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use mopa::Any;
-use {Index, Generation, Entity, StorageBase, Storage};
+use {Index, Generation, Entity, StorageBase, UnprotectedStorage};
 use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr, MAX_EID};
 use join::{Open, Get};
-
 
 /// Abstract component type. Doesn't have to be Copy or even Clone.
 pub trait Component: Any + Sized {
     /// Associated storage type for this component.
-    type Storage: Storage<Component=Self> + Any + Send + Sync;
+    type Storage: UnprotectedStorage<Self> + Any + Send + Sync;
 }
 
 
@@ -173,6 +172,7 @@ impl<'a> Iterator for CreateEntities<'a> {
         Some(self.allocate.allocate())
     }
 }
+
 
 trait StorageLock: Any + Send + Sync {
     fn del_slice(&self, &[Entity]);

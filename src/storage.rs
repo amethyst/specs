@@ -14,13 +14,83 @@ pub trait StorageBase {
     fn del(&mut self, Entity);
 }
 
+pub struct Storage<T, U> where
+    U: UnprotectedStorage<T>
+{
+    mask: BitSet,
+    inner: U,
+}
+
+impl<T, U> Storage<T, U> where
+    T: Component<Storage=U>,
+    U: UnprotectedStorage<T>,
+{
+    /// Creates a new `Storage`. This is called when you register a new
+    /// component type within the world.
+    pub fn new() -> Storage<T, U> {
+        Storage {
+            mask: BitSet::new(),
+            data: UnprotectedStorage::new(),
+        }
+    }
+    /// Tries to read the data associated with an `Entity`.
+    pub fn get(&self, Entity) -> Option<&T> {
+        let id = e.get_id();
+        if self.mask.contains(id as u32) {
+            let v = unsafe { self.data.get(id) };
+            if v.generation == e.get_gen() {
+                return Some(&v.data);
+            }
+        }
+        None
+    }
+    /// Tries to mutate the data associated with an `Entity`.
+    fn get_mut(&mut self, Entity) -> Option<&mut T> {
+        let id = e.get_id();
+        if self.mask.contains(id as u32) {
+            let v = unsafe { self.data.get_mut(id) };
+            if v.generation == e.get_gen() {
+                return Some(&mut v.data);
+            }
+        }
+        None
+    }
+    /// Inserts new data for a given `Entity`.
+    fn insert(&mut self, Entity, T) {
+        let id = e.get_id();
+        if self.mask.contains(id as u32) {
+            let mut data = &mut self.values.0[id];
+            data.generation = e.get_gen();
+            mem::swap(&mut data.data, &mut v);
+            Some(v)
+        } else {
+            self.set.add(id as u32);
+            if self.values.0.len() <= id {
+                self.extend(id);
+            }
+            unsafe {
+                ptr::write(
+                    &mut self.values.0[id],
+                    GenerationData{
+                        generation: e.get_gen(),
+                        data: v
+                    }
+                );
+            }
+            None
+        };
+    }
+    /// Removes the data associated with an `Entity`.
+    fn remove(&mut self, Entity) -> Option<T> {
+
+    }
+}
 /// Typed component storage trait.
 pub trait Storage: StorageBase + Sized {
     /// The Component to get or set
     type Component;
     /// Used during iterator
     type UnprotectedStorage: UnprotectedStorage<Component=Self::Component>;
-
     /// Creates a new `Storage<T>`. This is called when you register a new
     /// component type within the world.
     fn new() -> Self;
@@ -32,26 +102,25 @@ pub trait Storage: StorageBase + Sized {
     fn get_mut(&mut self, Entity) -> Option<&mut Self::Component>;
     /// Removes the data associated with an `Entity`.
     fn remove(&mut self, Entity) -> Option<Self::Component>;
-    /// Splits the `BitSet` from the storage for use
-    /// by the `Join` iterator.
-    fn open(&self) -> (&BitSet, &Self::UnprotectedStorage);
-    /// Splits the `BitSet` mutably from the storage for use
-    /// by the `Join` iterator.
-    fn open_mut(&mut self) -> (&BitSet, &mut Self::UnprotectedStorage);
 }
 
 /// Used by the framework to quickly join componets
-pub trait UnprotectedStorage {
-    /// The component to get
-    type Component;
+pub trait UnprotectedStorage<T>: Sized {
+    /// Creates a new `Storage<T>`. This is called when you register a new
+    /// component type within the world.
+    fn new() -> Self;
     /// Tries reading the data associated with an `Entity`.
     /// This is unsafe because the external set used
     /// to protect this storage is absent.
-    unsafe fn get(&self, id: Index) -> &Self::Component;
+    unsafe fn get(&self, id: Index) -> &T;
     /// Tries mutating the data associated with an `Entity`.
     /// This is unsafe because the external set used
     /// to protect this storage is absent.
-    unsafe fn get_mut(&mut self, id: Index) -> &mut Self::Component;
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T;
+    /// Inserts new data for a given `Entity`.
+    unsafe fn insert(&mut self, Index, T);
+    /// Removes the data associated with an `Entity`.
+    unsafe fn remove(&mut self, Index) -> Option<T>;
 }
 
 pub struct InnerHashMap<T>(HashMap<Index, GenerationData<T>, BuildHasherDefault<FnvHasher>>);
