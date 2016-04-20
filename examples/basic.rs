@@ -14,6 +14,7 @@ impl specs::Component for CompBool {
     type Storage = specs::HashMapStorage<CompBool>;
 }
 
+
 fn main() {
     let (e, mut planner) = {
         let mut w = specs::World::new();
@@ -28,7 +29,7 @@ fn main() {
         w.create_now().with(CompInt(127)).build();
         w.create_now().with(CompBool(false)).build();
         // Planner is used to run systems on the specified world with a specified number of threads
-        (e, specs::Planner::new(w, 4))
+        (e, specs::Planner::<()>::new(w, 4))
     };
 
     // Planner only runs closure on entites with specified components, for example:
@@ -47,8 +48,8 @@ fn main() {
     // Deletes an entity instantly
     planner.world.delete_now(e);
 
-    // Instead of using macros you can use run() to build a system precisely
-    planner.run(|arg| {
+    // Instead of using macros you can use run_custom() to build a system precisely
+    planner.run_custom(|arg| {
         use specs::{Storage, Join};
         // fetch() borrows a world, so a system could lock neccessary storages
         // Can be called only once
