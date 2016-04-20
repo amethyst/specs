@@ -138,6 +138,22 @@ pub struct SystemInfo<C> {
     pub object: Box<System<C>>,
 }
 
+struct SystemGuard<C> {
+    info: Option<SystemInfo<C>>,
+    chan: mpsc::Sender<SystemInfo<C>>,
+}
+
+impl<C> Drop for SystemGuard<C> {
+    fn drop(&mut self) {
+        let info = self.info.take().unwrap_or_else(|| SystemInfo {
+            name: String::new(),
+            priority: 0,
+            object: Box::new(()),
+        });
+        let _ = self.chan.send(info);
+    }
+}
+
 
 /// System execution planner. Allows running systems via closures,
 /// distributes the load in parallel using a thread pool.
@@ -169,20 +185,18 @@ impl<C: 'static> Planner<C> {
     pub fn run_custom<F>(&mut self, functor: F) where
         F: 'static + Send + FnOnce(RunArg)
     {
-        let dummy = SystemInfo {
-            name: String::new(),
-            priority: 0,
-            object: Box::new(()),
-        };
         let (signal, pulse) = Signal::new();
+        let guard = SystemGuard {
+            info: None,
+            chan: self.chan_out.clone(),
+        };
         let arg = RunArg {
             world: self.world.clone(),
             pulse: RefCell::new(Some(pulse)),
         };
-        let out = self.chan_out.clone();
         self.threader.execute(move || {
+            let _ = guard; //for drop()
             functor(arg);
-            out.send(dummy).unwrap();
         });
         self.wait_count += 1;
         signal.wait().expect("task panicked before args were captured.");
@@ -205,18 +219,22 @@ impl<C: Clone + Send + 'static> Planner<C> {
     /// Dispatch all systems according to their associated priorities.
     pub fn dispatch(&mut self, context: C) {
         self.wait();
-        //TODO: sort
-        for mut sinfo in self.systems.drain(..) {
+        self.systems.sort_by_key(|sinfo| -sinfo.priority);
+        for sinfo in self.systems.drain(..) {
+            assert!(!sinfo.name.is_empty());
             let ctx = context.clone();
-            let out = self.chan_out.clone();
             let (signal, pulse) = Signal::new();
+            let guard = SystemGuard {
+                info: Some(sinfo),
+                chan: self.chan_out.clone(),
+            };
             let arg = RunArg {
                 world: self.world.clone(),
                 pulse: RefCell::new(Some(pulse)),
             };
             self.threader.execute(move || {
-                sinfo.object.run(arg, ctx);
-                out.send(sinfo).unwrap();
+                let mut g = guard;
+                g.info.as_mut().unwrap().object.run(arg, ctx);
             });
             self.wait_count += 1;
             signal.wait().expect("task panicked before args were captured.");

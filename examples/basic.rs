@@ -14,6 +14,7 @@ impl specs::Component for CompBool {
     type Storage = specs::HashMapStorage<CompBool>;
 }
 
+
 fn main() {
     let (e, mut planner) = {
         let mut w = specs::World::new();
