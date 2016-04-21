@@ -4,7 +4,7 @@ use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use mopa::Any;
 use {Index, Generation, Entity, StorageBase, Storage};
-use bitset::{AtomicBitSet, BitSet, BitSetLike};
+use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr};
 use join::{Open, Get};
 
 
@@ -26,8 +26,10 @@ pub struct Entities<'a> {
 
 impl<'a> Open for &'a Entities<'a> {
     type Value = Self;
-    type Mask = &'a BitSet;
-    fn open(self) -> (Self::Mask, Self::Value) { (&self.guard.alive, self) }
+    type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        (BitSetOr(&self.guard.alive, &self.guard.raised), self)
+    }
 }
 
 impl<'a> Get for &'a Entities<'a> {
@@ -303,6 +305,7 @@ impl World {
 
 /// System fetch-time argument. The fetch is executed at the start of the run.
 /// It contains a subset of `World` methods that make sense during initialization.
+#[derive(Copy, Clone)]
 pub struct FetchArg<'a>(&'a World);
 
 impl<'a> FetchArg<'a> {
@@ -312,11 +315,11 @@ impl<'a> FetchArg<'a> {
         FetchArg(w)
     }
     /// Locks a `Component` for reading.
-    pub fn read<T: Component>(&self) -> RwLockReadGuard<'a, T::Storage> {
+    pub fn read<T: Component>(self) -> RwLockReadGuard<'a, T::Storage> {
         self.0.read::<T>()
     }
     /// Locks a `Component` for writing.
-    pub fn write<T: Component>(&self) -> RwLockWriteGuard<'a, T::Storage> {
+    pub fn write<T: Component>(self) -> RwLockWriteGuard<'a, T::Storage> {
         self.0.write::<T>()
     }
     /// Returns the entity iterator.

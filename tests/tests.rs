@@ -1,6 +1,6 @@
 extern crate specs;
 
-use specs::Storage;
+use specs::{Storage, Join};
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -158,4 +158,48 @@ fn is_alive() {
     assert!(w.is_alive(e2));
     w.merge();
     assert!(!w.is_alive(e2));
+}
+
+
+#[test]
+fn entities_iter() {
+    let mut w = create_world();
+    w.run_custom(|arg| {
+        let e = arg.fetch(|w| w.entities());
+        for _ in 0..10 {
+            arg.create();
+        }
+        assert!((&e,).join().count() >= 10);
+    });
+    w.run_custom(|arg| {
+        let e = arg.fetch(|w| w.entities());
+        for _ in 0..10 {
+            arg.create();
+        }
+        assert!((&e,).join().count() >= 20);
+    });
+    w.run_custom(|arg| {
+        let (e, mut bools) = arg.fetch(|w| (w.entities(), w.write::<CompBool>()));
+        for _ in 0..100 {
+            let e = arg.create();
+            bools.insert(e, CompBool(true));
+        }
+        assert!((&e,).join().count() >= 100);
+    });
+    w.run_custom(|arg| {
+        let (e, bools) = arg.fetch(|w| (w.entities(), w.read::<CompBool>()));
+        assert_eq!((&e, &bools).join().count(), 100);
+    });
+    w.run_custom(|arg| {
+        let (e, bools) = arg.fetch(|w| (w.entities(), w.read::<CompBool>()));
+        for (e, _) in (&e, &bools).join() {
+            arg.delete(e);
+        }
+    });
+    w.wait();
+    w.run_custom(|arg| {
+        let (e, bools) = arg.fetch(|w| (w.entities(), w.read::<CompBool>()));
+        assert_eq!((&e, &bools).join().count(), 0);
+        assert_eq!((&e,).join().count(), 20);
+    });
 }

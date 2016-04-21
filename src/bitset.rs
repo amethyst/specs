@@ -233,9 +233,9 @@ impl<'a, T> BitSetLike for &'a T where T: BitSetLike
 
 impl BitSetLike for BitSet {
     #[inline] fn layer3(&self) -> usize { self.layer3 }
-    #[inline] fn layer2(&self, i: usize) -> usize { self.layer2[i] }
-    #[inline] fn layer1(&self, i: usize) -> usize { self.layer1[i] }
-    #[inline] fn layer0(&self, i: usize) -> usize { self.layer0[i] }
+    #[inline] fn layer2(&self, i: usize) -> usize { self.layer2.get(i).map(|&x| x).unwrap_or(0) }
+    #[inline] fn layer1(&self, i: usize) -> usize { self.layer1.get(i).map(|&x| x).unwrap_or(0) }
+    #[inline] fn layer0(&self, i: usize) -> usize { self.layer0.get(i).map(|&x| x).unwrap_or(0) }
 }
 
 /// `BitSetAnd` takes two `BitSetLike` items, and merges the masks
@@ -249,6 +249,19 @@ impl<A: BitSetLike, B: BitSetLike> BitSetLike for BitSetAnd<A, B> {
     #[inline] fn layer1(&self, i: usize) -> usize { self.0.layer1(i) & self.1.layer1(i) }
     #[inline] fn layer0(&self, i: usize) -> usize { self.0.layer0(i) & self.1.layer0(i) }
 }
+
+/// `BitSetOr` takes two `BitSetLike` items, and merges the masks
+/// returning a new virtual set, which represents an merged of the
+/// two original sets
+pub struct BitSetOr<A: BitSetLike, B: BitSetLike>(pub A, pub B);
+
+impl<A: BitSetLike, B: BitSetLike> BitSetLike for BitSetOr<A, B> {
+    #[inline] fn layer3(&self) -> usize { self.0.layer3() | self.1.layer3() }
+    #[inline] fn layer2(&self, i: usize) -> usize { self.0.layer2(i) | self.1.layer2(i) }
+    #[inline] fn layer1(&self, i: usize) -> usize { self.0.layer1(i) | self.1.layer1(i) }
+    #[inline] fn layer0(&self, i: usize) -> usize { self.0.layer0(i) | self.1.layer0(i) }
+}
+
 
 pub struct Iter<T> {
     set: T,
