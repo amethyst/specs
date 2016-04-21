@@ -21,7 +21,7 @@ use threadpool::ThreadPool;
 pub use storage::{Storage, StorageBase, VecStorage, HashMapStorage, UnprotectedStorage};
 pub use world::{Component, World, FetchArg,
     EntityBuilder, Entities, CreateEntities};
-pub use bitset::{BitSetAnd, BitSet, BitSetLike};
+pub use bitset::{BitSetAnd, BitSet, BitSetLike, AtomicBitSet};
 pub use join::Join;
 
 mod storage;
