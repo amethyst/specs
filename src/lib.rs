@@ -20,7 +20,7 @@ use threadpool::ThreadPool;
 
 pub use storage::{Storage, StorageBase, VecStorage, HashMapStorage, UnprotectedStorage};
 pub use world::{Component, World, FetchArg,
-    EntityBuilder, EntityIter, CreateEntityIter};
+    EntityBuilder, Entities, CreateEntities};
 pub use bitset::{BitSetAnd, BitSet, BitSetLike};
 pub use join::Join;
 

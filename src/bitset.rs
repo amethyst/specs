@@ -295,6 +295,16 @@ impl<T> Iterator for Iter<T>
     }
 }
 
+/// Returns all bit as set
+pub struct BitSetAll;
+
+impl BitSetLike for BitSetAll {
+    #[inline] fn layer3(&self) -> u32 { !0 }
+    #[inline] fn layer2(&self, _: usize) -> u32 { !0 }
+    #[inline] fn layer1(&self, _: usize) -> u32 { !0 }
+    #[inline] fn layer0(&self, _: usize) -> u32 { !0 }
+}
+
 #[cfg(test)]
 mod set_test {
     use super::{BitSet, BitSetAnd, BitSetLike};

@@ -7,6 +7,7 @@ impl specs::Component for CompInt {
     // VecStorage is meant to be used for components that are in almost every entity
     type Storage = specs::VecStorage<CompInt>;
 }
+
 #[derive(Clone, Debug)]
 struct CompBool(bool);
 impl specs::Component for CompBool {
@@ -14,6 +15,12 @@ impl specs::Component for CompBool {
     type Storage = specs::HashMapStorage<CompBool>;
 }
 
+#[derive(Clone, Debug)]
+struct CompFloat(f32);
+impl specs::Component for CompFloat {
+    // HashMapStorage is better for componets that are met rarely
+    type Storage = specs::VecStorage<CompFloat>;
+}
 
 fn main() {
     let (e, mut planner) = {
@@ -21,6 +28,7 @@ fn main() {
         // All components types should be registered before working with them
         w.register::<CompInt>();
         w.register::<CompBool>();
+        w.register::<CompFloat>();
         // create_now() of World provides with an EntityBuilder to add components to an Entity
         w.create_now().with(CompInt(4)).with(CompBool(false)).build();
         // build() returns an entity, we will use it later to perform a deletion
@@ -53,24 +61,15 @@ fn main() {
         use specs::{Storage, Join};
         // fetch() borrows a world, so a system could lock neccessary storages
         // Can be called only once
-        let (mut sa, sb, entities) = arg.fetch(|w| {
-            (w.write::<CompInt>(),
-             w.read::<CompBool>(),
-             w.entities())
+        let (mut sa, sb) = arg.fetch(|w| {
+            (w.write::<CompInt>(), w.read::<CompBool>())
         });
-
-        for ent in entities {
-            // Will only run for entities with both components present
-            if let (Some(a), Some(b)) = (sa.get_mut(ent), sb.get(ent)) {
-                a.0 = if b.0 {1} else {0};
-            }
-        }
 
         // Instead of using the `entities` array you can
         // use the `Join` trait that is an optimized way of
         // doing the `get/get_mut` across entities.
         for (a, b) in (&mut sa, &sb).join() {
-            a.0 += if b.0 {1} else {0};
+            a.0 += if b.0 {2} else {0};
         }
 
         // Dynamically creating and deleting entities
@@ -84,14 +83,22 @@ fn main() {
     planner.run0w2r(|a: &CompInt, b: &CompBool| {
         println!("Entity {} {}", a.0, b.0);
     });
-    planner.wait();
-    if false {   // some debug output
-        let w = &planner.world;
-        //println!("Generations: {:?}", &*w.get_generations());
-        //println!("{:?}", &*w.read::<CompInt>());
-        //println!("{:?}", &*w.read::<CompBool>());
-        for e in w.entities() {
-            println!("{:?}", e);
+    planner.run_custom(|arg| {
+        use specs::{Storage, Join};
+        let (mut sa, sb, entities) = arg.fetch(|w| {
+            (w.write::<CompFloat>(), w.read::<CompInt>(), w.entities())
+        });
+
+        // Insert a component for each entity in sb
+        for (eid, sb) in (&entities, &sb).join() {
+            sa.insert(eid, CompFloat(sb.0 as f32));
         }
-    }
+
+        for (eid, sa, sb) in (&entities, &mut sa, &sb).join() {
+            assert_eq!(sa.0 as u32, sb.0 as u32);
+            println!("eid[{:?}] = {:?} {:?}", eid, sa, sb);
+        }
+    });
+
+    planner.wait();
 }

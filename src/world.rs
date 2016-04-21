@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use mopa::Any;
 use {Index, Generation, Entity, StorageBase, Storage};
+use bitset::BitSetAll;
+use join::{Open, Get};
 
 
 /// Abstract component type. Doesn't have to be Copy or even Clone.
@@ -12,26 +14,32 @@ pub trait Component: Any + Sized {
 }
 
 
-/// A custom entity iterator. Needed because the world doesn't really store
-/// entities directly, but rather has just a vector of Index -> Generation.
-pub struct EntityIter<'a> {
+/// A custom entity guard used to hide the the fact that Generations
+/// is lazily created and updated. For this to be useful it _must_
+/// be joined with a component. This is because the Generation table
+/// includes every possible Generation of Entities even if they
+/// have never been
+pub struct Entities<'a> {
     guard: RwLockReadGuard<'a, Vec<Generation>>,
-    index: usize,
 }
 
-impl<'a> Iterator for EntityIter<'a> {
-    type Item = Entity;
-    fn next(&mut self) -> Option<Entity> {
-        loop {
-            match self.guard.get(self.index) {
-                Some(&gen) if gen.is_alive() => {
-                    let ent = Entity(self.index as Index, gen);
-                    self.index += 1;
-                    return Some(ent)
-                },
-                Some(_) => self.index += 1, // continue
-                None => return None,
+impl<'a> Open for &'a Entities<'a> {
+    type Value = Self;
+    type Mask = BitSetAll;
+    fn open(self) -> (Self::Mask, Self::Value) { (BitSetAll, self) }
+}
+
+impl<'a> Get for &'a Entities<'a> {
+    type Value = Entity;
+    unsafe fn get(&self, idx: Index) -> Self::Value {
+        if let Some(&gen) = self.guard.get(idx as usize) {
+            if gen.is_alive() {
+                Entity(idx, gen)
+            } else {
+                Entity(idx, gen.raised())
             }
+        } else {
+            Entity(idx, Generation(1))
         }
     }
 }
@@ -74,12 +82,12 @@ fn find_next(gens: &[Generation], lowest_free_index: usize) -> Entity {
 
 /// Entity creation iterator. Will yield new empty entities infinitely.
 /// Useful for bulk entity construction, since the locks are only happening once.
-pub struct CreateEntityIter<'a> {
+pub struct CreateEntities<'a> {
     gens: RwLockWriteGuard<'a, Vec<Generation>>,
     app: RwLockWriteGuard<'a, Appendix>,
 }
 
-impl<'a> Iterator for CreateEntityIter<'a> {
+impl<'a> Iterator for CreateEntities<'a> {
     type Item = Entity;
     fn next(&mut self) -> Option<Entity> {
         let ent = self.app.next;
@@ -160,16 +168,15 @@ impl World {
         self.lock::<T>().write().unwrap()
     }
     /// Returns the entity iterator.
-    pub fn entities(&self) -> EntityIter {
-        EntityIter {
+    pub fn entities(&self) -> Entities {
+        Entities {
             guard: self.generations.read().unwrap(),
-            index: 0,
         }
     }
     /// Returns the entity creation iterator. Can be used to create many
     /// empty entities at once without paying the locking overhead.
-    pub fn create_iter(&self) -> CreateEntityIter {
-        CreateEntityIter {
+    pub fn create_iter(&self) -> CreateEntities {
+        CreateEntities {
             gens: self.generations.write().unwrap(),
             app: self.appendix.write().unwrap(),
         }
@@ -286,7 +293,7 @@ impl<'a> FetchArg<'a> {
         self.0.write::<T>()
     }
     /// Returns the entity iterator.
-    pub fn entities(self) -> EntityIter<'a> {
+    pub fn entities(self) -> Entities<'a> {
         self.0.entities()
     }
 }
