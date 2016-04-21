@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
+use std::marker::PhantomData;
 use std::ops::Deref;
 
 use fnv::FnvHasher;
 
 use {Entity, Index, Generation};
+use world::Component;
 use bitset::BitSet;
 
 
@@ -15,52 +17,45 @@ pub trait StorageBase {
     unsafe fn del(&mut self, Index);
 }
 
-pub struct MaskedStorage<T, U> where
-    U: UnprotectedStorage<T>,
-{
+pub struct MaskedStorage<T: Component> {
     mask: BitSet,
-    inner: U,
+    inner: T::Storage,
 }
 
-impl<T, U> MaskedStorage<T, U> where
-    U: UnprotectedStorage<T>,
-{
+impl<T: Component> MaskedStorage<T> {
     /// Creates a new `MaskedStorage`. This is called when you register
     /// a new component type within the world.
-    pub fn new() -> MaskedStorage<T, U> {
-        Storage {
+    pub fn new() -> MaskedStorage<T> {
+        MaskedStorage {
             mask: BitSet::new(),
-            data: UnprotectedStorage::new(),
+            inner: UnprotectedStorage::new(),
         }
     }
 }
 
-impl<T, U> StorageBase for MaskedStorage<T, U> where
-    U: UnprotectedStorage<T>,
-{
+impl<T: Component> StorageBase for MaskedStorage<T> {
     unsafe fn del(&mut self, index: Index) {
         self.inner.remove(index);
     }
 }
 
 
-pub struct Storage<'a T, U, G> where
-    U: UnprotectedStorage<T>,
-{
+pub struct Storage<'a, T: Component, G> {
     mask: BitSet,
-    inner: U,
+    inner: T::Storage,
     gens: G,
+    phantom: PhantomData<&'a T>,
 }
 
-impl<T, U, G> Storage<T, U, G> where
-    T: Component<Storage=U>,
-    U: UnprotectedStorage<T>,
+impl<'a, T, G> Storage<'a, T, G> where
+    T: Component,
     G: Deref<Target=&'a [Generation]>,
 {
     /// Check if an entity has component `T`.
     fn has(&self, e: Entity) -> bool {
+        let g1 = Generation(1);
         self.mask.contains(e.get_id() as u32) &&
-        e.get_gen() == self.gens.get(e.get_id()).unwrap_or(1)
+        e.get_gen() == *self.gens.get(e.get_id() as usize).unwrap_or(&g1)
     }
     /// Tries to read the data associated with an `Entity`.
     pub fn get(&self, e: Entity) -> Option<&T> {
@@ -86,8 +81,9 @@ impl<T, U, G> Storage<T, U, G> where
     }
     /// Removes the data associated with an `Entity`.
     fn remove(&mut self, e: Entity) -> Option<T> {
+        let g1 = Generation(1);
         let id = e.get_id();
-        if e.get_gen() == self.gens.get(e.get_id()).unwrap_or(1) && self.mask.remove(id as u32) {
+        if e.get_gen() == *self.gens.get(e.get_id() as usize).unwrap_or(&g1) && self.mask.remove(id as u32) {
             Some(self.inner.remove(id))
         }else { None }
     }
@@ -141,7 +137,7 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
         self.0.get_mut(&id).unwrap()
     }
     unsafe fn insert(&mut self, id: Index, v: T) {
-        self.0.insert(id, v)
+        self.0.insert(id, v);
     }
     unsafe fn remove(&mut self, id: Index) -> T {
         self.0.remove(&id).unwrap()
@@ -159,8 +155,8 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
     }
     unsafe fn clean<F>(&mut self, has: F) where F: Fn(Index) -> bool {
         use std::mem;
-        for (i, v) in self.0.drain().enumerate() {
-            if !has(i) {
+        for (i, v) in self.0.drain(..).enumerate() {
+            if !has(i as Index) {
                 // if v was not in the set the data is invalid
                 // and we must forget it instead of dropping it
                 mem::forget(v);
@@ -168,13 +164,13 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         }
     }
     unsafe fn get(&self, id: Index) -> &T {
-        self.0.get_unchecked(id)
+        self.0.get_unchecked(id as usize)
     }
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
-        self.0.get_unchecked_mut(id)
+        self.0.get_unchecked_mut(id as usize)
     }
     unsafe fn insert(&mut self, id: Index, v: T) {
-        let id = e.get_id();
+        let id = id as usize;
         if self.0.len() <= id {
             let delta = id + 1 - self.0.len();
             self.0.reserve(delta);

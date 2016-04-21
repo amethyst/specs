@@ -3,9 +3,11 @@ use std::collections::HashMap;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use mopa::Any;
-use {Index, Generation, Entity, StorageBase, UnprotectedStorage};
+use storage::{StorageBase, MaskedStorage, UnprotectedStorage};
+use {Index, Generation, Entity};
 use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr, MAX_EID};
 use join::{Open, Get};
+
 
 /// Abstract component type. Doesn't have to be Copy or even Clone.
 pub trait Component: Any + Sized {
@@ -90,9 +92,17 @@ impl Allocator {
                 return;
             }
 
-            if start_from == self.start_from.compare_and_swap(current, start_from, Ordering::Relaxed) {
-                return;
-            }
+impl<'a> Iterator for CreateEntityIter<'a> {
+    type Item = Entity;
+    fn next(&mut self) -> Option<Entity> {
+        let ent = self.app.next;
+        assert!(ent.get_gen().is_alive());
+        if ent.get_gen().is_first() {
+            assert_eq!(self.gens.len(), ent.get_id());
+            self.gens.push(ent.get_gen());
+            self.app.next.0 += 1;
+        } else {
+            self.app.next = find_next(&self.gens, ent.get_id() + 1);
         }
     }
 
@@ -207,29 +217,29 @@ impl World {
     }
     /// Registers a new component type.
     pub fn register<T: Component>(&mut self) {
-        let any = RwLock::new(T::Storage::new());
+        let any = RwLock::new(MaskedStorage::<T>::new());
         self.components.insert(TypeId::of::<T>(), Box::new(any));
     }
     /// Unregisters a component type.
     pub fn unregister<T: Component>(&mut self) -> Option<T::Storage> {
         self.components.remove(&TypeId::of::<T>()).map(|boxed|
-            match boxed.downcast::<RwLock<T::Storage>>() {
+            match boxed.downcast::<RwLock<MaskedStorage<T>>>() {
                 Ok(b) => (*b).into_inner().unwrap(),
                 Err(_) => panic!("Unable to downcast the storage type"),
             }
         )
     }
-    fn lock<T: Component>(&self) -> &RwLock<T::Storage> {
+    fn lock<T: Component>(&self) -> &RwLock<MaskedStorage<T>> {
         let boxed = self.components.get(&TypeId::of::<T>())
             .expect("Tried to perform an operation on type that was not registered");
         boxed.downcast_ref().unwrap()
     }
     /// Locks a component's storage for reading.
-    pub fn read<T: Component>(&self) -> RwLockReadGuard<T::Storage> {
+    pub fn read<T: Component>(&self) -> RwLockReadGuard<MaskedStorage<T>> {
         self.lock::<T>().read().unwrap()
     }
     /// Locks a component's storage for writing.
-    pub fn write<T: Component>(&self) -> RwLockWriteGuard<T::Storage> {
+    pub fn write<T: Component>(&self) -> RwLockWriteGuard<MaskedStorage<T>> {
         self.lock::<T>().write().unwrap()
     }
     /// Returns the entity iterator.
@@ -282,7 +292,7 @@ impl World {
     /// Merges in the appendix, recording all the dynamically created
     /// and deleted entities into the persistent generations vector.
     /// Also removes all the abandoned components.
-    pub fn merge(&self) {
+    pub fn maintain(&self) {
         let mut allocator = self.allocator.write().unwrap();
 
         let temp_list = allocator.merge();
