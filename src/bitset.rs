@@ -299,16 +299,6 @@ impl<T> Iterator for Iter<T>
     }
 }
 
-/// Returns all bit as set
-pub struct BitSetAll;
-
-impl BitSetLike for BitSetAll {
-    #[inline] fn layer3(&self) -> usize { !0 }
-    #[inline] fn layer2(&self, _: usize) -> usize { !0 }
-    #[inline] fn layer1(&self, _: usize) -> usize { !0 }
-    #[inline] fn layer0(&self, _: usize) -> usize { !0 }
-}
-
 /// This is similar to a `BitSet` but allows setting of value
 /// without unique ownership of the structure
 pub struct AtomicBitSet {
@@ -440,6 +430,21 @@ impl AtomicBitSet {
         }
         (self.layer0[p0].load(Ordering::Relaxed) & id.mask(SHIFT0)) != 0
     }
+
+    /// Clear all bits in the set
+    pub fn clear(&mut self) {
+        for l in &self.layer0[..] {
+            l.store(0, Ordering::Relaxed);
+        }
+        for l in &self.layer1[..] {
+            l.store(0, Ordering::Relaxed);
+        }
+        for l in &self.layer2[..] {
+            l.store(0, Ordering::Relaxed);
+        }
+        self.layer3.store(0, Ordering::Relaxed);
+    }
+
 }
 
 impl BitSetLike for AtomicBitSet {

@@ -52,11 +52,6 @@ impl Generation {
         debug_assert!(!self.is_alive());
         Generation(1 - self.0)
     }
-
-    /// Returns `true` if this is a first generation, i.e. has value `1`.
-    fn is_first(&self) -> bool {
-        self.0 == 1
-    }
 }
 
 /// `Index` type is arbitrary. It doesn't show up in any interfaces.
