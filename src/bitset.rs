@@ -2,6 +2,9 @@ use std::iter::repeat;
 
 use Index;
 
+#[cfg(target_pointer_width= "64")]
+pub const BITS: usize = 6;
+#[cfg(target_pointer_width= "32")]
 pub const BITS: usize = 5;
 pub const LAYERS: usize = 4;
 pub const MAX: usize = BITS * LAYERS;
@@ -20,10 +23,10 @@ pub const SHIFT3: usize = SHIFT2 + BITS;
 /// Adding beyond this limit will cause the `BitSet` to panic.
 #[derive(Clone)]
 pub struct BitSet {
-    layer3: u32,
-    layer2: Vec<u32>,
-    layer1: Vec<u32>,
-    layer0: Vec<u32>,
+    layer3: usize,
+    layer2: Vec<usize>,
+    layer1: Vec<usize>,
+    layer0: Vec<usize>,
 }
 
 #[inline]
@@ -165,8 +168,8 @@ pub trait Row: Sized + Copy {
     fn offset(self, shift: usize) -> usize;
 
     #[inline(always)]
-    fn mask(self, shift: usize) -> u32 {
-        1u32 << self.row(shift)
+    fn mask(self, shift: usize) -> usize {
+        1usize << self.row(shift)
     }
 }
 
@@ -188,24 +191,24 @@ impl Row for Index {
 /// are multiple levels that branch out in a tree like structure.
 ///
 /// Layer0 each bit represents one Index of the set
-/// Layer1 each bit represents one `u32` of Layer0, and will be
+/// Layer1 each bit represents one `usize` of Layer0, and will be
 /// set only if the word below it is not zero.
 /// Layer2 has the same arrangement but with Layer1, and Layer3 with Layer2.
 ///
 /// This arrangement allows for rapid jumps across the key-space.
 pub trait BitSetLike {
-    /// Return a u32 where each bit represents if any word in layer2
+    /// Return a usize where each bit represents if any word in layer2
     /// has been set.
-    fn layer3(&self) -> u32;
-    /// Return the u32 from the array of u32s that indicates if any
+    fn layer3(&self) -> usize;
+    /// Return the usize from the array of usizes that indicates if any
     /// bit has been set in layer1
-    fn layer2(&self, i: usize) -> u32;
-    /// Return the u32 from the array of u32s that indicates if any
+    fn layer2(&self, i: usize) -> usize;
+    /// Return the usize from the array of usizes that indicates if any
     /// bit has been set in layer0
-    fn layer1(&self, i: usize) -> u32;
-    /// Return a u32 that maps to the direct 1:1 association with
+    fn layer1(&self, i: usize) -> usize;
+    /// Return a usize that maps to the direct 1:1 association with
     /// each index of the set
-    fn layer0(&self, i: usize) -> u32;
+    fn layer0(&self, i: usize) -> usize;
 
     /// Create an iterator that will scan over the keyspace
     fn iter(self) -> Iter<Self>
@@ -221,17 +224,17 @@ pub trait BitSetLike {
 
 impl<'a, T> BitSetLike for &'a T where T: BitSetLike
 {
-    #[inline] fn layer3(&self) -> u32 { (*self).layer3() }
-    #[inline] fn layer2(&self, i: usize) -> u32 { (*self).layer2(i) }
-    #[inline] fn layer1(&self, i: usize) -> u32 { (*self).layer1(i) }
-    #[inline] fn layer0(&self, i: usize) -> u32 { (*self).layer0(i) }
+    #[inline] fn layer3(&self) -> usize { (*self).layer3() }
+    #[inline] fn layer2(&self, i: usize) -> usize { (*self).layer2(i) }
+    #[inline] fn layer1(&self, i: usize) -> usize { (*self).layer1(i) }
+    #[inline] fn layer0(&self, i: usize) -> usize { (*self).layer0(i) }
 }
 
 impl BitSetLike for BitSet {
-    #[inline] fn layer3(&self) -> u32 { self.layer3 }
-    #[inline] fn layer2(&self, i: usize) -> u32 { self.layer2[i] }
-    #[inline] fn layer1(&self, i: usize) -> u32 { self.layer1[i] }
-    #[inline] fn layer0(&self, i: usize) -> u32 { self.layer0[i] }
+    #[inline] fn layer3(&self) -> usize { self.layer3 }
+    #[inline] fn layer2(&self, i: usize) -> usize { self.layer2[i] }
+    #[inline] fn layer1(&self, i: usize) -> usize { self.layer1[i] }
+    #[inline] fn layer0(&self, i: usize) -> usize { self.layer0[i] }
 }
 
 /// `BitSetAnd` takes two `BitSetLike` items, and merges the masks
@@ -240,15 +243,15 @@ impl BitSetLike for BitSet {
 pub struct BitSetAnd<A: BitSetLike, B: BitSetLike>(pub A, pub B);
 
 impl<A: BitSetLike, B: BitSetLike> BitSetLike for BitSetAnd<A, B> {
-    #[inline] fn layer3(&self) -> u32 { self.0.layer3() & self.1.layer3() }
-    #[inline] fn layer2(&self, i: usize) -> u32 { self.0.layer2(i) & self.1.layer2(i) }
-    #[inline] fn layer1(&self, i: usize) -> u32 { self.0.layer1(i) & self.1.layer1(i) }
-    #[inline] fn layer0(&self, i: usize) -> u32 { self.0.layer0(i) & self.1.layer0(i) }
+    #[inline] fn layer3(&self) -> usize { self.0.layer3() & self.1.layer3() }
+    #[inline] fn layer2(&self, i: usize) -> usize { self.0.layer2(i) & self.1.layer2(i) }
+    #[inline] fn layer1(&self, i: usize) -> usize { self.0.layer1(i) & self.1.layer1(i) }
+    #[inline] fn layer0(&self, i: usize) -> usize { self.0.layer0(i) & self.1.layer0(i) }
 }
 
 pub struct Iter<T> {
     set: T,
-    masks: [u32; 4],
+    masks: [usize; 4],
     prefix: [u32; 3]
 }
 
@@ -299,10 +302,10 @@ impl<T> Iterator for Iter<T>
 pub struct BitSetAll;
 
 impl BitSetLike for BitSetAll {
-    #[inline] fn layer3(&self) -> u32 { !0 }
-    #[inline] fn layer2(&self, _: usize) -> u32 { !0 }
-    #[inline] fn layer1(&self, _: usize) -> u32 { !0 }
-    #[inline] fn layer0(&self, _: usize) -> u32 { !0 }
+    #[inline] fn layer3(&self) -> usize { !0 }
+    #[inline] fn layer2(&self, _: usize) -> usize { !0 }
+    #[inline] fn layer1(&self, _: usize) -> usize { !0 }
+    #[inline] fn layer0(&self, _: usize) -> usize { !0 }
 }
 
 #[cfg(test)]

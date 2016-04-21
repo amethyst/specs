@@ -345,7 +345,7 @@ mod map_test {
     #[test]
     fn wrap() {
         let mut c = VecStorage::new();
-        c.insert(Entity::new(1 << 21, Generation(0)), 7);
+        c.insert(Entity::new(1 << 25, Generation(0)), 7);
     }
 }
 
