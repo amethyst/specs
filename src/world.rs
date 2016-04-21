@@ -95,22 +95,6 @@ impl<'a> Iterator for CreateEntityIter<'a> {
     }
 }
 
-/// A custom entity iterator for dynamically added entities.
-pub struct DynamicEntityIter<'a> {
-    guard: RwLockReadGuard<'a, Appendix>,
-    index: usize,
-}
-
-impl<'a> Iterator for DynamicEntityIter<'a> {
-    type Item = Entity;
-    fn next(&mut self) -> Option<Entity> {
-        let ent = self.guard.add_queue.get(self.index);
-        self.index += 1;
-        ent.cloned()
-    }
-}
-
-
 trait StorageLock: Any + Send + Sync {
     fn del_slice(&self, &[Entity]);
 }
@@ -179,14 +163,6 @@ impl World {
     pub fn entities(&self) -> EntityIter {
         EntityIter {
             guard: self.generations.read().unwrap(),
-            index: 0,
-        }
-    }
-    /// Returns the dynamic entity iterator. It iterates over entities that were
-    /// dynamically created by systems but not yet merged.
-    pub fn dynamic_entities(&self) -> DynamicEntityIter {
-        DynamicEntityIter {
-            guard: self.appendix.read().unwrap(),
             index: 0,
         }
     }

@@ -20,7 +20,7 @@ use threadpool::ThreadPool;
 
 pub use storage::{Storage, StorageBase, VecStorage, HashMapStorage, UnprotectedStorage};
 pub use world::{Component, World, FetchArg,
-    EntityBuilder, EntityIter, CreateEntityIter, DynamicEntityIter};
+    EntityBuilder, EntityIter, CreateEntityIter};
 pub use bitset::{BitSetAnd, BitSet, BitSetLike};
 pub use join::Join;
 
@@ -107,10 +107,6 @@ impl RunArg {
     /// Deletes an entity dynamically.
     pub fn delete(&self, entity: Entity) {
         self.world.delete_later(entity)
-    }
-    /// Returns an iterator over dynamically added entities.
-    pub fn new_entities(&self) -> DynamicEntityIter {
-        self.world.dynamic_entities()
     }
 }
 
