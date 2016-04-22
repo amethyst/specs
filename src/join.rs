@@ -108,8 +108,6 @@ impl<'b, 'a:'b, T> Open for &'b mut std::sync::RwLockWriteGuard<'a, T>
     }
 }
 
-
-
 /// Get like `Open` provides the same feature of providing
 /// mutable vs immutable preserving around the UnprotectedStorage
 /// trait

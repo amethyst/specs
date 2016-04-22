@@ -1,6 +1,6 @@
 extern crate specs;
 
-use specs::Storage;
+use specs::{Storage, Join, Entity};
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -144,6 +144,43 @@ fn dynamic_create_and_delete() {
 }
 
 #[test]
+fn mixed_create_merge() {
+    use std::collections::HashSet;
+    let mut planner = create_world();
+    let mut set = HashSet::new();
+
+    let add = |set: &mut HashSet<Entity>, e: Entity| {
+        assert!(!set.contains(&e));
+        set.insert(e);
+    };
+
+    let insert = |planner: &mut specs::Planner<()>, set: &mut HashSet<Entity>, cnt: usize| {
+        // Check to make sure there is no conflict between create_now
+        // and create_later
+        for _ in 0..10 {
+            for _ in 0..cnt {
+                add(set, planner.world.create_now().build());
+                add(set, planner.world.create_later());
+                //  swap order
+                add(set, planner.world.create_later());
+                add(set, planner.world.create_now().build());
+            }
+            planner.wait();
+        }
+    };
+
+    insert(&mut planner, &mut set, 10);
+    for e in set.drain() {
+        planner.world.delete_later(e);
+    }
+    insert(&mut planner, &mut set, 20);
+    for e in set.drain() {
+        planner.world.delete_now(e);
+    }
+    insert(&mut planner, &mut set, 40);
+}
+
+#[test]
 fn is_alive() {
     let w = specs::World::new();
 
@@ -158,4 +195,48 @@ fn is_alive() {
     assert!(w.is_alive(e2));
     w.merge();
     assert!(!w.is_alive(e2));
+}
+
+
+#[test]
+fn entities_iter() {
+    let mut w = create_world();
+    w.run_custom(|arg| {
+        let e = arg.fetch(|w| w.entities());
+        for _ in 0..10 {
+            arg.create();
+        }
+        assert!((&e,).join().count() >= 10);
+    });
+    w.run_custom(|arg| {
+        let e = arg.fetch(|w| w.entities());
+        for _ in 0..10 {
+            arg.create();
+        }
+        assert!((&e,).join().count() >= 20);
+    });
+    w.run_custom(|arg| {
+        let (e, mut bools) = arg.fetch(|w| (w.entities(), w.write::<CompBool>()));
+        for _ in 0..100 {
+            let e = arg.create();
+            bools.insert(e, CompBool(true));
+        }
+        assert!((&e,).join().count() >= 100);
+    });
+    w.run_custom(|arg| {
+        let (e, bools) = arg.fetch(|w| (w.entities(), w.read::<CompBool>()));
+        assert_eq!((&e, &bools).join().count(), 100);
+    });
+    w.run_custom(|arg| {
+        let (e, bools) = arg.fetch(|w| (w.entities(), w.read::<CompBool>()));
+        for (e, _) in (&e, &bools).join() {
+            arg.delete(e);
+        }
+    });
+    w.wait();
+    w.run_custom(|arg| {
+        let (e, bools) = arg.fetch(|w| (w.entities(), w.read::<CompBool>()));
+        assert_eq!((&e, &bools).join().count(), 0);
+        assert_eq!((&e,).join().count(), 20);
+    });
 }

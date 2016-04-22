@@ -1,8 +1,11 @@
 use std::any::TypeId;
 use std::collections::HashMap;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use mopa::Any;
 use {Index, Generation, Entity, StorageBase, Storage};
+use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr, MAX_EID};
+use join::{Open, Get};
 
 
 /// Abstract component type. Doesn't have to be Copy or even Clone.
@@ -12,27 +15,30 @@ pub trait Component: Any + Sized {
 }
 
 
-/// A custom entity iterator. Needed because the world doesn't really store
-/// entities directly, but rather has just a vector of Index -> Generation.
-pub struct EntityIter<'a> {
-    guard: RwLockReadGuard<'a, Vec<Generation>>,
-    index: usize,
+/// A custom entity guard used to hide the the fact that Generations
+/// is lazily created and updated. For this to be useful it _must_
+/// be joined with a component. This is because the Generation table
+/// includes every possible Generation of Entities even if they
+/// have never been
+pub struct Entities<'a> {
+    guard: RwLockReadGuard<'a, Allocator>,
 }
 
-impl<'a> Iterator for EntityIter<'a> {
-    type Item = Entity;
-    fn next(&mut self) -> Option<Entity> {
-        loop {
-            match self.guard.get(self.index) {
-                Some(&gen) if gen.is_alive() => {
-                    let ent = Entity(self.index as Index, gen);
-                    self.index += 1;
-                    return Some(ent)
-                },
-                Some(_) => self.index += 1, // continue
-                None => return None,
-            }
-        }
+impl<'a> Open for &'a Entities<'a> {
+    type Value = Self;
+    type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        (BitSetOr(&self.guard.alive, &self.guard.raised), self)
+    }
+}
+
+impl<'a> Get for &'a Entities<'a> {
+    type Value = Entity;
+    unsafe fn get(&self, idx: Index) -> Self::Value {
+        let gen = self.guard.generations.get(idx as usize)
+            .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
+            .unwrap_or(Generation(1));
+        Entity(idx, gen)
     }
 }
 
@@ -52,64 +58,121 @@ impl<'a> EntityBuilder<'a> {
 }
 
 
-struct Appendix {
-    next: Entity,
-    add_queue: Vec<Entity>,
-    sub_queue: Vec<Entity>,
+struct Allocator {
+    generations: Vec<Generation>,
+    alive: BitSet,
+    raised: AtomicBitSet,
+    killed: AtomicBitSet,
+    start_from: AtomicUsize
 }
 
-fn find_next(gens: &[Generation], lowest_free_index: usize) -> Entity {
-    if let Some((id, gen)) = gens.iter().enumerate().skip(lowest_free_index).find(|&(_, g)| !g.is_alive()) {
-        return Entity(id as Index, gen.raised());
+impl Allocator {
+    fn new() -> Allocator {
+        Allocator {
+            generations: vec![],
+            alive: BitSet::new(),
+            raised: AtomicBitSet::with_capacity(MAX_EID as u32),
+            killed: AtomicBitSet::with_capacity(MAX_EID as u32),
+            start_from: AtomicUsize::new(0)
+        }
     }
 
-    let new_index = if lowest_free_index > gens.len() {
-        lowest_free_index as Index
-    } else {
-        gens.len() as Index
-    };
+    fn kill(&self, idx: Index) {
+        self.killed.add_atomic(idx);
+    }
 
-    Entity(new_index, Generation(1))
+    /// Attempt to move the `start_from` value
+    fn update_start_from(&self, start_from: usize) {
+        loop {
+            let current = self.start_from.load(Ordering::Relaxed);
+
+            // if the current value is bigger then ours, we bail
+            if current >= start_from {
+                return;
+            }
+
+            if start_from == self.start_from.compare_and_swap(current, start_from, Ordering::Relaxed) {
+                return;
+            }
+        }
+    }
+
+    /// Allocate a new entity
+    fn allocate_atomic(&self) -> Entity {
+        let idx = self.start_from.load(Ordering::Relaxed);
+        for i in idx.. {
+            if !self.alive.contains(i as Index) && !self.raised.add_atomic(i as Index) {
+                self.update_start_from(i+1);
+
+                let gen = self.generations.get(idx as usize)
+                    .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
+                    .unwrap_or(Generation(1));
+
+                return Entity(i as Index, gen);
+            }
+        }
+        panic!("No entities left to allocate")
+    }
+
+    /// Allocate a new entity
+    fn allocate(&mut self) -> Entity {
+        let idx = self.start_from.load(Ordering::Relaxed);
+        for i in idx.. {
+            if !self.raised.contains(i as Index) && !self.alive.add(i as Index) {
+                self.update_start_from(i+1);
+
+                while self.generations.len() <= i as usize {
+                    self.generations.push(Generation(0));
+                }
+                self.generations[i as usize] = self.generations[i as usize].raised();
+
+                return Entity(i as Index, self.generations[i as usize]);
+            }
+        }
+        panic!("No entities left to allocate")
+    }
+
+    fn merge(&mut self) -> Vec<Entity> {
+        let mut deleted = vec![];
+
+        for i in (&self.raised).iter() {
+            while self.generations.len() <= i as usize {
+                self.generations.push(Generation(0));
+            }
+            self.generations[i as usize] = self.generations[i as usize].raised();
+            self.alive.add(i);
+        }
+        self.raised.clear();
+
+        if let Some(lowest) = (&self.killed).iter().next() {
+            if lowest < self.start_from.load(Ordering::Relaxed) as Index {
+                self.start_from.store(lowest as usize, Ordering::Relaxed);
+            }
+        }
+
+        for i in (&self.killed).iter() {
+            self.alive.remove(i);
+            self.generations[i as usize].die();
+            deleted.push(Entity(i, self.generations[i as usize]))
+        }
+        self.killed.clear();
+
+        deleted
+    }
 }
 
 /// Entity creation iterator. Will yield new empty entities infinitely.
 /// Useful for bulk entity construction, since the locks are only happening once.
-pub struct CreateEntityIter<'a> {
-    gens: RwLockWriteGuard<'a, Vec<Generation>>,
-    app: RwLockWriteGuard<'a, Appendix>,
+pub struct CreateEntities<'a> {
+    allocate: RwLockWriteGuard<'a, Allocator>,
 }
 
-impl<'a> Iterator for CreateEntityIter<'a> {
+impl<'a> Iterator for CreateEntities<'a> {
     type Item = Entity;
     fn next(&mut self) -> Option<Entity> {
-        let ent = self.app.next;
-        assert!(ent.get_gen().is_alive());
-        if ent.get_gen().is_first() {
-            assert_eq!(self.gens.len(), ent.get_id());
-            self.gens.push(ent.get_gen());
-            self.app.next.0 += 1;
-        } else {
-            self.app.next = find_next(&self.gens, ent.get_id() + 1);
-        }
-        Some(ent)
+        Some(self.allocate.allocate())
     }
 }
-
-/// A custom entity iterator for dynamically added entities.
-pub struct DynamicEntityIter<'a> {
-    guard: RwLockReadGuard<'a, Appendix>,
-    index: usize,
-}
-
-impl<'a> Iterator for DynamicEntityIter<'a> {
-    type Item = Entity;
-    fn next(&mut self) -> Option<Entity> {
-        let ent = self.guard.add_queue.get(self.index);
-        self.index += 1;
-        ent.cloned()
-    }
-}
-
 
 trait StorageLock: Any + Send + Sync {
     fn del_slice(&self, &[Entity]);
@@ -130,22 +193,16 @@ impl<S: StorageBase + Any + Send + Sync> StorageLock for RwLock<S> {
 /// The `World` struct contains all the data, which is entities and their components.
 /// All methods are supposed to be valid for any context they are available in.
 pub struct World {
-    generations: RwLock<Vec<Generation>>,
+    allocator: RwLock<Allocator>,
     components: HashMap<TypeId, Box<StorageLock>>,
-    appendix: RwLock<Appendix>,
 }
 
 impl World {
     /// Creates a new empty `World`.
     pub fn new() -> World {
         World {
-            generations: RwLock::new(Vec::new()),
             components: HashMap::new(),
-            appendix: RwLock::new(Appendix {
-                next: Entity(0, Generation(1)),
-                add_queue: Vec::new(),
-                sub_queue: Vec::new(),
-            }),
+            allocator: RwLock::new(Allocator::new())
         }
     }
     /// Registers a new component type.
@@ -176,115 +233,59 @@ impl World {
         self.lock::<T>().write().unwrap()
     }
     /// Returns the entity iterator.
-    pub fn entities(&self) -> EntityIter {
-        EntityIter {
-            guard: self.generations.read().unwrap(),
-            index: 0,
-        }
-    }
-    /// Returns the dynamic entity iterator. It iterates over entities that were
-    /// dynamically created by systems but not yet merged.
-    pub fn dynamic_entities(&self) -> DynamicEntityIter {
-        DynamicEntityIter {
-            guard: self.appendix.read().unwrap(),
-            index: 0,
+    pub fn entities(&self) -> Entities {
+        Entities {
+            guard: self.allocator.read().unwrap(),
         }
     }
     /// Returns the entity creation iterator. Can be used to create many
     /// empty entities at once without paying the locking overhead.
-    pub fn create_iter(&self) -> CreateEntityIter {
-        CreateEntityIter {
-            gens: self.generations.write().unwrap(),
-            app: self.appendix.write().unwrap(),
+    pub fn create_iter(&self) -> CreateEntities {
+        CreateEntities {
+            allocate: self.allocator.write().unwrap(),
         }
     }
     /// Creates a new entity instantly, locking the generations data.
     pub fn create_now(&self) -> EntityBuilder {
-        let mut gens = self.generations.write().unwrap();
-        let mut app = self.appendix.write().unwrap();
-        let ent = app.next;
-        assert!(ent.get_gen().is_alive());
-        if ent.get_gen().is_first() {
-            assert_eq!(gens.len(), ent.get_id());
-            gens.push(ent.get_gen());
-            app.next.0 += 1;
-        } else {
-            assert!(!gens[ent.get_id()].is_alive());
-            gens[ent.get_id()] = ent.get_gen();
-            app.next = find_next(&gens, ent.get_id() + 1);
-        }
-        EntityBuilder(ent, self)
+        let id = self.allocator.write().unwrap().allocate();
+        EntityBuilder(id, self)
     }
     /// Deletes a new entity instantly, locking the generations data.
     pub fn delete_now(&self, entity: Entity) {
         for comp in self.components.values() {
             comp.del_slice(&[entity]);
         }
-        let mut gens = self.generations.write().unwrap();
-        let mut gen = &mut gens[entity.get_id()];
-        gen.die();
-        let mut app = self.appendix.write().unwrap();
-        if entity.get_id() < app.next.get_id() {
-            app.next = Entity(entity.0, gen.raised());
+        let mut gens = self.allocator.write().unwrap();
+        gens.generations[entity.get_id()].die();
+        gens.alive.remove(entity.get_id() as Index);
+        gens.raised.remove(entity.get_id() as Index);
+        if entity.get_id() < gens.start_from.load(Ordering::Relaxed) {
+            gens.start_from.store(entity.get_id(), Ordering::Relaxed);
         }
     }
     /// Creates a new entity dynamically.
     pub fn create_later(&self) -> Entity {
-        let gens = self.generations.read().unwrap();
-        let mut app = self.appendix.write().unwrap();
-        let ent = app.next;
-        app.add_queue.push(ent);
-        app.next = find_next(&gens, ent.get_id() + 1);
-        ent
+        let allocator = self.allocator.read().unwrap();
+        allocator.allocate_atomic()
     }
     /// Deletes an entity dynamically.
     pub fn delete_later(&self, entity: Entity) {
-        let mut app = self.appendix.write().unwrap();
-        app.sub_queue.push(entity);
+        let allocator = self.allocator.read().unwrap();
+        allocator.kill(entity.get_id() as Index);
     }
     /// Returns `true` if the given `Entity` is alive.
     pub fn is_alive(&self, entity: Entity) -> bool {
         debug_assert!(entity.get_gen().is_alive());
-        let gens = self.generations.read().unwrap();
-        entity.get_gen() == gens[entity.get_id()]
+        let gens = self.allocator.read().unwrap();
+        gens.generations.get(entity.get_id()).map(|&x| x == entity.get_gen()).unwrap_or(false)
     }
     /// Merges in the appendix, recording all the dynamically created
     /// and deleted entities into the persistent generations vector.
     /// Also removes all the abandoned components.
     pub fn merge(&self) {
-        // We can't lock Appendix and components at the same time,
-        // or otherwise we deadlock with a system that tries to process
-        // newly added entities.
-        // So we copy dead components out first, and then process them separately.
-        let mut temp_list = Vec::new(); //TODO: avoid allocation
-        {
-            let mut gens = self.generations.write().unwrap();
-            let mut app = self.appendix.write().unwrap();
-            for ent in app.add_queue.drain(..) {
-                while gens.len() <= ent.get_id() {
-                    gens.push(Generation(0));
-                }
-                assert_eq!(ent.get_gen(), gens[ent.get_id()].raised());
-                gens[ent.get_id()] = ent.get_gen();
-            }
-            let mut next = app.next;
-            for ent in app.sub_queue.drain(..) {
-                let gen = &mut gens[ent.get_id()];
-                if gen.is_alive() {
-                    assert_eq!(ent.get_gen(), *gen);
-                    gen.die();
-                    temp_list.push(ent);
-                    if ent.get_id() < next.get_id() {
-                        next = Entity(ent.0, gen.raised());
-                    }
-                } else {
-                    let mut g = ent.get_gen();
-                    g.die();
-                    debug_assert_eq!(g, *gen);
-                }
-            }
-            app.next = next;
-        }
+        let mut allocator = self.allocator.write().unwrap();
+
+        let temp_list = allocator.merge();
         for comp in self.components.values() {
             comp.del_slice(&temp_list);
         }
@@ -293,6 +294,7 @@ impl World {
 
 /// System fetch-time argument. The fetch is executed at the start of the run.
 /// It contains a subset of `World` methods that make sense during initialization.
+#[derive(Copy, Clone)]
 pub struct FetchArg<'a>(&'a World);
 
 impl<'a> FetchArg<'a> {
@@ -302,15 +304,15 @@ impl<'a> FetchArg<'a> {
         FetchArg(w)
     }
     /// Locks a `Component` for reading.
-    pub fn read<T: Component>(&self) -> RwLockReadGuard<'a, T::Storage> {
+    pub fn read<T: Component>(self) -> RwLockReadGuard<'a, T::Storage> {
         self.0.read::<T>()
     }
     /// Locks a `Component` for writing.
-    pub fn write<T: Component>(&self) -> RwLockWriteGuard<'a, T::Storage> {
+    pub fn write<T: Component>(self) -> RwLockWriteGuard<'a, T::Storage> {
         self.0.write::<T>()
     }
     /// Returns the entity iterator.
-    pub fn entities(self) -> EntityIter<'a> {
+    pub fn entities(self) -> Entities<'a> {
         self.0.entities()
     }
 }

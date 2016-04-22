@@ -20,8 +20,8 @@ use threadpool::ThreadPool;
 
 pub use storage::{Storage, StorageBase, VecStorage, HashMapStorage, UnprotectedStorage};
 pub use world::{Component, World, FetchArg,
-    EntityBuilder, EntityIter, CreateEntityIter, DynamicEntityIter};
-pub use bitset::{BitSetAnd, BitSet, BitSetLike};
+    EntityBuilder, Entities, CreateEntities};
+pub use bitset::{BitSetAnd, BitSet, BitSetLike, AtomicBitSet};
 pub use join::Join;
 
 mod storage;
@@ -51,11 +51,6 @@ impl Generation {
     fn raised(self) -> Generation {
         debug_assert!(!self.is_alive());
         Generation(1 - self.0)
-    }
-
-    /// Returns `true` if this is a first generation, i.e. has value `1`.
-    fn is_first(&self) -> bool {
-        self.0 == 1
     }
 }
 
@@ -107,10 +102,6 @@ impl RunArg {
     /// Deletes an entity dynamically.
     pub fn delete(&self, entity: Entity) {
         self.world.delete_later(entity)
-    }
-    /// Returns an iterator over dynamically added entities.
-    pub fn new_entities(&self) -> DynamicEntityIter {
-        self.world.dynamic_entities()
     }
 }
 
