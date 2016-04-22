@@ -18,7 +18,6 @@ impl specs::Component for CompBool {
 #[derive(Clone, Debug)]
 struct CompFloat(f32);
 impl specs::Component for CompFloat {
-    // HashMapStorage is better for componets that are met rarely
     type Storage = specs::VecStorage<CompFloat>;
 }
 

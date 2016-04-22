@@ -157,10 +157,7 @@ impl BitSet {
     #[inline]
     pub fn contains(&self, id: u32) -> bool {
         let p0 = id.offset(SHIFT1);
-        if p0 >= self.layer0.len() {
-            return false;
-        }
-        (self.layer0[p0] & id.mask(SHIFT0)) != 0
+        p0 < self.layer0.len() && (self.layer0[p0] & id.mask(SHIFT0)) != 0
     }
 }
 
@@ -314,6 +311,20 @@ impl<T> Iterator for Iter<T>
 
 /// This is similar to a `BitSet` but allows setting of value
 /// without unique ownership of the structure
+///
+/// An AtomicBitSet has the ability to add an item to the set
+/// without unique ownership (given that the set is big enough).
+/// Removing elements does require unique ownership as an effect
+/// of the hierarchy it holds. Worst case multiple writers set the
+/// same bit twice (but only is told they set it).
+///
+/// It is possible to atomically remove from the set, but not at the
+/// same time as atomically adding. This is because there is no way
+/// to know if layer 1-3 would be left in a consistent state if they are
+/// being cleared and set at the same time.
+///
+/// `AtromicBitSet` resolves this race by disallowing atomic
+/// clearing of bits.
 pub struct AtomicBitSet {
     layer3: AtomicUsize,
     layer2: Vec<AtomicUsize>,
@@ -374,15 +385,17 @@ impl AtomicBitSet {
     #[inline]
     pub fn add_atomic(&self, id: Index) -> bool {
         let (p0, p1, p2) = offsets(id);
-        let old = self.layer0[p0].fetch_or(id.mask(SHIFT0), Ordering::Relaxed);
-        if old & id.mask(SHIFT0) != 0 {
-            return true;
-        }
 
+        // While it is tempting to check of the bit was set and exit here if it
+        // was, this can result in a data race. If this thread and another
+        // thread both set the same bit it is possible for the second thread
+        // to exit before l3 was set. Resulting in the iterator to be in an
+        // incorrect state. The window is small, but it exists.
+        let old = self.layer0[p0].fetch_or(id.mask(SHIFT0), Ordering::Relaxed);
         self.layer1[p1].fetch_or(id.mask(SHIFT1), Ordering::Relaxed);
         self.layer2[p2].fetch_or(id.mask(SHIFT2), Ordering::Relaxed);
         self.layer3.fetch_or(id.mask(SHIFT3), Ordering::Relaxed);
-        false
+        old & id.mask(SHIFT0) != 0
     }
 
     /// Adds `id` to the `BitSet`. Returns `true` if the value was
@@ -438,10 +451,8 @@ impl AtomicBitSet {
     #[inline]
     pub fn contains(&self, id: u32) -> bool {
         let p0 = id.offset(SHIFT1);
-        if p0 >= self.layer0.len() {
-            return false;
-        }
-        (self.layer0[p0].load(Ordering::Relaxed) & id.mask(SHIFT0)) != 0
+        p0 < self.layer0.len() &&
+            (self.layer0[p0].load(Ordering::Relaxed) & id.mask(SHIFT0)) != 0
     }
 
     /// Clear all bits in the set

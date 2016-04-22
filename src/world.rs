@@ -35,15 +35,10 @@ impl<'a> Open for &'a Entities<'a> {
 impl<'a> Get for &'a Entities<'a> {
     type Value = Entity;
     unsafe fn get(&self, idx: Index) -> Self::Value {
-        if let Some(&gen) = self.guard.generations.get(idx as usize) {
-            if gen.is_alive() {
-                Entity(idx, gen)
-            } else {
-                Entity(idx, gen.raised())
-            }
-        } else {
-            Entity(idx, Generation(1))
-        }
+        let gen = self.guard.generations.get(idx as usize)
+            .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
+            .unwrap_or(Generation(1));
+        Entity(idx, gen)
     }
 }
 
