@@ -5,10 +5,18 @@ use std::ops::{Deref, DerefMut};
 
 use fnv::FnvHasher;
 
-use {Entity, Index, Generation};
-use world::Component;
 use bitset::BitSet;
+use join::Open;
+use world::Component;
+use {Entity, Index, Generation};
 
+
+#[doc(hidden)]
+pub trait PrivateStorage<U> {
+    fn get_mask(&self) -> &BitSet;
+    fn get_inner(&self) -> &U;
+    fn get_inner_mut(&mut self) -> &mut U;
+}
 
 pub struct MaskedStorage<T: Component> {
     mask: BitSet,
@@ -28,15 +36,24 @@ impl<T: Component> MaskedStorage<T> {
 
 impl<T: Component> Drop for MaskedStorage<T> {
     fn drop(&mut self) {
-        self.inner.clean(|i| self.mask.contains(i as u32));
+        let mask = &self.mask;
+        unsafe {
+            self.inner.clean(|i| mask.contains(i as u32));
+        }
     }
+}
+
+impl<T: Component> PrivateStorage<T::Storage> for MaskedStorage<T> {
+    fn get_mask(&self) -> &BitSet { &self.mask }
+    fn get_inner(&self) -> &T::Storage { &self.inner }
+    fn get_inner_mut(&mut self) -> &mut T::Storage { &mut self.inner }
 }
 
 
 pub struct Storage<T, D, G> {
     phantom: PhantomData<T>,
-    data: D,
     gens: G,
+    data: D,
 }
 
 impl<T, D, G> Storage<T, D, G> where
@@ -46,8 +63,8 @@ impl<T, D, G> Storage<T, D, G> where
     pub fn new(data: D, gens: G) -> Storage<T, D, G>{
         Storage {
             phantom: PhantomData,
-            data: data,
             gens: gens,
+            data: data,
         }
     }
     fn has_gen(&self, e: Entity) -> bool {
@@ -66,10 +83,6 @@ impl<T, D, G> Storage<T, D, G> where
         if self.data.mask.contains(e.get_id() as u32) && self.has_gen(e) {
             Some(unsafe { self.data.inner.get(e.get_id()) })
         }else {None}
-    }
-    /// Access the inner `UnprotectedStorage`.
-    pub fn as_inner(&self) -> &T::Storage {
-        &self.data.inner
     }
 }
 
@@ -100,12 +113,40 @@ impl<T, D, G> Storage<T, D, G> where
         let g1 = Generation(1);
         let id = e.get_id();
         if self.has_gen(e) && self.data.mask.remove(id as u32) {
-            Some(self.data.inner.remove(id))
+            Some(unsafe{ self.data.inner.remove(id) })
         }else { None }
     }
-    /// Access the inner `UnprotectedStorage` mutably.
-    pub fn as_inner_mut(&mut self) -> &mut T::Storage {
-        &mut self.data.inner
+}
+
+impl<'a, T, D, G> Open for &'a Storage<T, D, G> where
+    T: Component,
+    D: Deref<Target = MaskedStorage<T>>,
+    G: Deref<Target = Vec<Generation>>,
+{
+    type Type = &'a T;
+    type Value = &'a T::Storage;
+    type Mask = &'a BitSet;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        (&self.data.mask, &self.data.inner)
+    }
+    unsafe fn get(v: Self::Value, i: Index) -> &'a T {
+        v.get(i)
+    }
+}
+
+impl<'a, T, D, G> Open for &'a mut Storage<T, D, G> where
+    T: Component,
+    D: DerefMut<Target = MaskedStorage<T>>,
+    G: Deref<Target = Vec<Generation>>,
+{
+    type Type = &'a mut T;
+    type Value = &'a mut T::Storage;
+    type Mask = &'a BitSet;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        (&self.data.mask, &mut self.data.inner)
+    }
+    unsafe fn get(v: Self::Value, i: Index) -> &'a mut T {
+        v.get_mut(i)
     }
 }
 

@@ -1,8 +1,10 @@
 use std;
+use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 use tuple_utils::Split;
-use bitset;
-use Index;
-use {BitSet, BitSetAnd, BitSetLike, Storage, UnprotectedStorage};
+use bitset::{BitIter, BitSet, BitSetAnd, BitSetLike};
+use storage::{Storage, MaskedStorage, UnprotectedStorage};
+use {Index, Generation, Component};
+
 
 /// BitAnd is a helper method to & bitsets togather resulting in a tree
 pub trait BitAnd {
@@ -59,34 +61,14 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 /// This way the fact that the type is immutable or mutable
 /// is not lost when it is used later.
 pub trait Open {
+    type Type;
     type Value;
     type Mask: BitSetLike;
     fn open(self) -> (Self::Mask, Self::Value);
+    unsafe fn get(Self::Value, Index) -> Self::Type;
 }
 
-impl<'a, T> Open for &'a T
-    where T: Storage
-{
-    type Value = GetRef<'a, T::UnprotectedStorage>;
-    type Mask = &'a BitSet;
-    fn open(self) -> (Self::Mask, Self::Value) {
-        let (l, r) = self.open();
-        (l, GetRef(r))
-    }
-}
-
-impl<'a, T> Open for &'a mut T
-    where T: Storage
-{
-    type Value = GetMut<'a, T::UnprotectedStorage>;
-    type Mask = &'a BitSet;
-    fn open(self) -> (Self::Mask, Self::Value) {
-        let (l, r) = self.open_mut();
-        (l, GetMut(r))
-    }
-}
-
-impl<'a, T> Open for &'a std::sync::RwLockReadGuard<'a, T>
+/*impl<'a, T> Open for &'a std::sync::RwLockReadGuard<'a, T>
     where T: Storage
 {
     type Value = GetRef<'a, T::UnprotectedStorage>;
@@ -106,31 +88,19 @@ impl<'b, 'a:'b, T> Open for &'b mut std::sync::RwLockWriteGuard<'a, T>
         let (l, r) = (**self).open_mut();
         (l, GetMut(r))
     }
-}
+}*/
 
-/// Get like `Open` provides the same feature of providing
-/// mutable vs immutable preserving around the UnprotectedStorage
-/// trait
-pub trait Get {
-    type Value;
-    unsafe fn get(&self, idx: Index) -> Self::Value;
-}
-
-pub struct GetRef<'a, T: 'a>(&'a T);
-impl<'a, T> Get for GetRef<'a, T>
-    where T: UnprotectedStorage
-{
-    type Value = &'a T::Component;
+/*pub struct GetRef<'a, T: 'a>(&'a T);
+impl<'a, T: Component> Get for GetRef<'a, T::Storage> {
+    type Value = &'a T;
     unsafe fn get(&self, idx: Index) -> Self::Value {
         self.0.get(idx)
     }
 }
 
 pub struct GetMut<'a, T: 'a>(&'a mut T);
-impl<'a, T> Get for GetMut<'a, T>
-    where T: UnprotectedStorage
-{
-    type Value = &'a mut T::Component;
+impl<'a, T: Component> Get for GetMut<'a, T::Storage> {
+    type Value = &'a mut T;
     #[allow(mutable_transmutes)]
     unsafe fn get(&self, idx: Index) -> Self::Value {
         // This is obviously unsafe and is one of the reasons this
@@ -142,51 +112,33 @@ impl<'a, T> Get for GetMut<'a, T>
         let x: &mut Self = std::mem::transmute(self);
         x.0.get_mut(idx)
     }
-}
+}*/
 
 /// Joined is an Iterator over a group of `Storages`
-pub struct Joined<K, V> {
-    keys: bitset::Iter<K>,
-    values: V,
+pub struct Joined<O: Open> {
+    keys: BitIter<O::Mask>,
+    values: O::Value,
 }
 
-impl<K, V> Joined<K, V>
-    where K: BitSetLike
-{
-    fn new(k: K, v: V) -> Joined<K, V> {
+impl<O: Open> From<O> for Joined<O> {
+    fn from(o: O) -> Self {
+        let (keys, values) = o.open();
         Joined {
-            keys: k.iter(),
-            values: v,
+            keys: keys.iter(),
+            values: values,
         }
     }
 }
 
-impl<K, V> std::iter::Iterator for Joined<K, V>
-    where K: BitSetLike,
-          V: Get
-{
-    type Item = V::Value;
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(idx) = self.keys.next() {
-            unsafe { Some(self.values.get(idx)) }
-        } else {
-            None
-        }
+impl<O: Open> std::iter::Iterator for Joined<O> {
+    type Item = O::Type;
+    fn next(&mut self) -> Option<O::Type> {
+        self.keys.next().map(|idx| unsafe {
+            O::get(self.values, idx)
+        })
     }
 }
 
-/// Join one or more `Storage` components together
-/// this will return an iterator that will return
-/// the components of an entity
-pub trait Join {
-    /// The Mask selects which elements are found
-    /// in the  Values collection
-    type Mask;
-    /// The Values is a tuple of `UnprotectedStorage`
-    type Values;
-    /// Join the `Storages` togather
-    fn join(self) -> Joined<Self::Mask, Self::Values>;
-}
 
 macro_rules! define_open {
     // use variables to indicate the arity of the tuple
@@ -195,6 +147,7 @@ macro_rules! define_open {
             where $($from: Open),*,
                   ($(<$from as Open>::Mask,)*): BitAnd,
         {
+            type Type = ($($from::Type),*,);
             type Value = ($($from::Value),*,);
             type Mask = <($($from::Mask,)*) as BitAnd>::Value;
             #[allow(non_snake_case)]
@@ -206,32 +159,35 @@ macro_rules! define_open {
                     ($($from.1),*,)
                 )
             }
-        }
-
-        impl<'a, $($from,)*> Get for ($($from),*,)
-            where $($from: Get),*,
-        {
-            type Value = ($($from::Value),*,);
-            #[allow(non_snake_case)]
-            unsafe fn get(&self, idx: Index) -> Self::Value {
-                let &($(ref $from,)*) = self;
-                ($($from.get(idx)),*,)
+            unsafe fn get(v: Self::Value, i: Index) -> Self::Type {
+                let ($($from,)*) = v;
+                ($($from::get($from, i),)*)
             }
         }
 
-        impl<'a, $($from,)*> Join for ($($from),*,)
+        /*impl<'a, $($value,)*, $($from,)*> Get<($($value),*,)> for ($($from),*,)
+            where $($from: Get<$value>),*,
+        {
+            #[allow(non_snake_case)]
+            unsafe fn get(&self, idx: Index) -> ($($value),*,) {
+                let &($(ref $from,)*) = self;
+                ($($from.get(idx)),*,)
+            }
+        }*/
+
+        /*impl<'a, $($from,)*> Join for ($($from),*,)
             where $($from: Open),*,
                   ($(<$from as Open>::Mask),*,): BitAnd,
         {
             type Mask = <($($from::Mask),*,) as BitAnd>::Value;
+            type Types = ($($from::Type),*,);
             type Values = ($($from::Value),*,);
 
-            fn join(self) -> Joined<Self::Mask, Self::Values> {
+            fn join(self) -> Joined<Self::Mask, Self::Types, Self::Values> {
                 let (mask, value) = self.open();
                 Joined::new(mask, value)
             }
-        }
-
+        }*/
     }
 }
 

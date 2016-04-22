@@ -209,10 +209,10 @@ pub trait BitSetLike {
     fn layer0(&self, i: usize) -> usize;
 
     /// Create an iterator that will scan over the keyspace
-    fn iter(self) -> Iter<Self>
+    fn iter(self) -> BitIter<Self>
         where Self: Sized
     {
-        Iter{
+        BitIter {
             prefix: [0; 3],
             masks: [0, 0, 0, self.layer3()],
             set: self
@@ -260,13 +260,13 @@ impl<A: BitSetLike, B: BitSetLike> BitSetLike for BitSetOr<A, B> {
 }
 
 
-pub struct Iter<T> {
+pub struct BitIter<T> {
     set: T,
     masks: [usize; 4],
     prefix: [u32; 3]
 }
 
-impl<T> Iterator for Iter<T>
+impl<T> Iterator for BitIter<T>
     where T: BitSetLike
 {
     type Item = Index;

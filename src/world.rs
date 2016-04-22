@@ -192,6 +192,7 @@ mopafy!(StorageLock);
 
 impl<S: StorageBase + Any + Send + Sync> StorageLock for RwLock<S> {
     fn del_slice(&self, entities: &[Entity]) {
+        use storage::PrivateStorage;
         let mut guard = self.write().unwrap();
         for &e in entities.iter() {
             guard.del(e);
@@ -221,10 +222,10 @@ impl World {
         self.components.insert(TypeId::of::<T>(), Box::new(any));
     }
     /// Unregisters a component type.
-    pub fn unregister<T: Component>(&mut self) -> Option<T::Storage> {
+    pub fn unregister<T: Component>(&mut self) -> Option<MaskedStorage<T>> {
         self.components.remove(&TypeId::of::<T>()).map(|boxed|
             match boxed.downcast::<RwLock<MaskedStorage<T>>>() {
-                Ok(b) => (*b).into_inner().unwrap().inner,
+                Ok(b) => (*b).into_inner().unwrap(),
                 Err(_) => panic!("Unable to downcast the storage type"),
             }
         )
@@ -316,11 +317,11 @@ impl<'a> FetchArg<'a> {
         FetchArg(w)
     }
     /// Locks a `Component` for reading.
-    pub fn read<T: Component>(self) -> Storage<T, RwLockReadGuard<MaskedStorage<T>>, RwLockReadGuard<Vec<Generation>>> {
+    pub fn read<T: Component>(self) -> Storage<T, RwLockReadGuard<'a, MaskedStorage<T>>, RwLockReadGuard<'a, Vec<Generation>>> {
         self.0.read::<T>()
     }
     /// Locks a `Component` for writing.
-    pub fn write<T: Component>(self) -> Storage<T, RwLockWriteGuard<MaskedStorage<T>>, RwLockReadGuard<Vec<Generation>>> {
+    pub fn write<T: Component>(self) -> Storage<T, RwLockWriteGuard<'a, MaskedStorage<T>>, RwLockReadGuard<'a, Vec<Generation>>> {
         self.0.write::<T>()
     }
     /// Returns the entity iterator.

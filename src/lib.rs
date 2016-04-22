@@ -22,12 +22,13 @@ pub use storage::{Storage, VecStorage, HashMapStorage, UnprotectedStorage};
 pub use world::{Component, World, FetchArg,
     EntityBuilder, Entities, CreateEntities};
 pub use bitset::{BitSetAnd, BitSet, BitSetLike, AtomicBitSet};
-//pub use join::Join; //TEMP
+pub use join::Joined;
 
 mod storage;
 mod world;
 mod bitset;
-//mod join; TEMP
+mod join;
+
 
 /// Index generation. When a new entity is placed at an old index,
 /// it bumps the `Generation` by 1. This allows to avoid using components
@@ -249,7 +250,7 @@ macro_rules! impl_run {
                      $(w.read::<$read>(),)*)
                 );
 
-                for ($($write,)* $($read,)*) in ($(&mut $write,)* $(&$read,)*).join() {
+                for ($($write,)* $($read,)*) in Joined::from(($(&mut $write,)* $(&$read,)*)) {
                     fun( $($write,)* $($read,)* );
                 }
             });
