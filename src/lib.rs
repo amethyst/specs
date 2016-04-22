@@ -202,7 +202,7 @@ impl<C: 'static> Planner<C> {
             }
             self.wait_count -= 1;
         }
-        self.world.merge();
+        self.world.maintain();
     }
 }
 

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::marker::PhantomData;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 use fnv::FnvHasher;
 
@@ -9,13 +9,6 @@ use {Entity, Index, Generation};
 use world::Component;
 use bitset::BitSet;
 
-
-/// Base trait for a component storage that is used as a trait object.
-/// Doesn't depend on the actual component type.
-pub trait StorageBase {
-    /// Deletes a particular `Index` from the storage.
-    unsafe fn del(&mut self, Index);
-}
 
 pub struct MaskedStorage<T: Component> {
     mask: BitSet,
@@ -33,59 +26,86 @@ impl<T: Component> MaskedStorage<T> {
     }
 }
 
-impl<T: Component> StorageBase for MaskedStorage<T> {
-    unsafe fn del(&mut self, index: Index) {
-        self.inner.remove(index);
+impl<T: Component> Drop for MaskedStorage<T> {
+    fn drop(&mut self) {
+        self.inner.clean(|i| self.mask.contains(i as u32));
     }
 }
 
 
-pub struct Storage<'a, T: Component, G> {
-    mask: BitSet,
-    inner: T::Storage,
+pub struct Storage<T, D, G> {
+    phantom: PhantomData<T>,
+    data: D,
     gens: G,
-    phantom: PhantomData<&'a T>,
 }
 
-impl<'a, T, G> Storage<'a, T, G> where
-    T: Component,
-    G: Deref<Target=&'a [Generation]>,
+impl<T, D, G> Storage<T, D, G> where
+    G: Deref<Target = Vec<Generation>>,
 {
-    /// Check if an entity has component `T`.
-    fn has(&self, e: Entity) -> bool {
+    /// Create a new `Storage`
+    pub fn new(data: D, gens: G) -> Storage<T, D, G>{
+        Storage {
+            phantom: PhantomData,
+            data: data,
+            gens: gens,
+        }
+    }
+    fn has_gen(&self, e: Entity) -> bool {
         let g1 = Generation(1);
-        self.mask.contains(e.get_id() as u32) &&
         e.get_gen() == *self.gens.get(e.get_id() as usize).unwrap_or(&g1)
     }
+}
+
+impl<T, D, G> Storage<T, D, G> where
+    T: Component,
+    D: Deref<Target = MaskedStorage<T>>,
+    G: Deref<Target = Vec<Generation>>,
+{
     /// Tries to read the data associated with an `Entity`.
     pub fn get(&self, e: Entity) -> Option<&T> {
-        if self.has(e) {
-            Some(unsafe { self.inner.get(e.get_id()) })
+        if self.data.mask.contains(e.get_id() as u32) && self.has_gen(e) {
+            Some(unsafe { self.data.inner.get(e.get_id()) })
         }else {None}
     }
+    /// Access the inner `UnprotectedStorage`.
+    pub fn as_inner(&self) -> &T::Storage {
+        &self.data.inner
+    }
+}
+
+impl<T, D, G> Storage<T, D, G> where
+    T: Component,
+    D: DerefMut<Target = MaskedStorage<T>>,
+    G: Deref<Target = Vec<Generation>>,
+{
     /// Tries to mutate the data associated with an `Entity`.
-    fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
-        if self.has(e) {
-            Some(unsafe { self.inner.get_mut(e.get_id()) })
+    pub fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
+        if self.data.mask.contains(e.get_id() as u32) && self.has_gen(e) {
+            Some(unsafe { self.data.inner.get_mut(e.get_id()) })
         }else {None}
     }
     /// Inserts new data for a given `Entity`.
-    fn insert(&mut self, e: Entity, v: T) {
+    pub fn insert(&mut self, e: Entity, v: T) {
         let id = e.get_id();
-        if self.mask.contains(id as u32) {
-            *unsafe{ self.inner.get_mut(id) } = v;
+        assert!(self.has_gen(e));
+        if self.data.mask.contains(id as u32) {
+            *unsafe{ self.data.inner.get_mut(id) } = v;
         } else {
-            self.mask.add(id as u32);
-            unsafe{ self.inner.insert(id, v) };
+            self.data.mask.add(id as u32);
+            unsafe{ self.data.inner.insert(id, v) };
         }
     }
     /// Removes the data associated with an `Entity`.
-    fn remove(&mut self, e: Entity) -> Option<T> {
+    pub fn remove(&mut self, e: Entity) -> Option<T> {
         let g1 = Generation(1);
         let id = e.get_id();
-        if e.get_gen() == *self.gens.get(e.get_id() as usize).unwrap_or(&g1) && self.mask.remove(id as u32) {
-            Some(self.inner.remove(id))
+        if self.has_gen(e) && self.data.mask.remove(id as u32) {
+            Some(self.data.inner.remove(id))
         }else { None }
+    }
+    /// Access the inner `UnprotectedStorage` mutably.
+    pub fn as_inner_mut(&mut self) -> &mut T::Storage {
+        &mut self.data.inner
     }
 }
 
@@ -120,15 +140,8 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
         let fnv = BuildHasherDefault::<FnvHasher>::default();
         HashMapStorage(HashMap::with_hasher(fnv))
     }
-    unsafe fn clean<F>(&mut self, has: F) where F: Fn(Index) -> bool {
-        use std::mem;
-        for (i, v) in self.0.drain() {
-            if !has(i) {
-                // if v was not in the set the data is invalid
-                // and we must forget it instead of dropping it
-                mem::forget(v);
-            }
-        }
+    unsafe fn clean<F>(&mut self, _: F) where F: Fn(Index) -> bool {
+        //nothing to do
     }
     unsafe fn get(&self, id: Index) -> &T {
         self.0.get(&id).unwrap()

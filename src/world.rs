@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use mopa::Any;
-use storage::{StorageBase, MaskedStorage, UnprotectedStorage};
+use storage::{Storage, MaskedStorage, UnprotectedStorage};
 use {Index, Generation, Entity};
 use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr, MAX_EID};
 use join::{Open, Get};
@@ -224,7 +224,7 @@ impl World {
     pub fn unregister<T: Component>(&mut self) -> Option<T::Storage> {
         self.components.remove(&TypeId::of::<T>()).map(|boxed|
             match boxed.downcast::<RwLock<MaskedStorage<T>>>() {
-                Ok(b) => (*b).into_inner().unwrap(),
+                Ok(b) => (*b).into_inner().unwrap().inner,
                 Err(_) => panic!("Unable to downcast the storage type"),
             }
         )
@@ -235,12 +235,14 @@ impl World {
         boxed.downcast_ref().unwrap()
     }
     /// Locks a component's storage for reading.
-    pub fn read<T: Component>(&self) -> RwLockReadGuard<MaskedStorage<T>> {
-        self.lock::<T>().read().unwrap()
+    pub fn read<T: Component>(&self) -> Storage<T, RwLockReadGuard<MaskedStorage<T>>, RwLockReadGuard<Vec<Generation>>> {
+        let data = self.lock::<T>().read().unwrap();
+        Storage::new(data, self.generations.read().unwrap())
     }
     /// Locks a component's storage for writing.
-    pub fn write<T: Component>(&self) -> RwLockWriteGuard<MaskedStorage<T>> {
-        self.lock::<T>().write().unwrap()
+    pub fn write<T: Component>(&self) -> Storage<T, RwLockWriteGuard<MaskedStorage<T>>, RwLockReadGuard<Vec<Generation>>> {
+        let data = self.lock::<T>().write().unwrap();
+        Storage::new(data, self.generations.read().unwrap())
     }
     /// Returns the entity iterator.
     pub fn entities(&self) -> Entities {
@@ -314,11 +316,11 @@ impl<'a> FetchArg<'a> {
         FetchArg(w)
     }
     /// Locks a `Component` for reading.
-    pub fn read<T: Component>(self) -> RwLockReadGuard<'a, T::Storage> {
+    pub fn read<T: Component>(self) -> Storage<T, RwLockReadGuard<MaskedStorage<T>>, RwLockReadGuard<Vec<Generation>>> {
         self.0.read::<T>()
     }
     /// Locks a `Component` for writing.
-    pub fn write<T: Component>(self) -> RwLockWriteGuard<'a, T::Storage> {
+    pub fn write<T: Component>(self) -> Storage<T, RwLockWriteGuard<MaskedStorage<T>>, RwLockReadGuard<Vec<Generation>>> {
         self.0.write::<T>()
     }
     /// Returns the entity iterator.
