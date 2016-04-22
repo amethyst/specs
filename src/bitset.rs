@@ -446,16 +446,43 @@ impl AtomicBitSet {
 
     /// Clear all bits in the set
     pub fn clear(&mut self) {
-        for l in &self.layer0[..] {
-            l.store(0, Ordering::Relaxed);
+        use std::cmp::min;
+
+        // This is the same hierarchical-striding used in the iterators.
+        // Using this technique we can avoid clearing segments of the bitset
+        // that are already clear. In the best case when the set is already cleared,
+        // this will only touch the highest layer.
+
+        let (mut m3, mut m2) = (self.layer3.swap(0, Ordering::Relaxed), 0usize);
+        let mut offset = 0;
+
+        loop {
+            if m2 != 0 {
+                let bit = m2.trailing_zeros() as usize;
+                m2 &= !(1 << bit);
+
+                // layer 1 & 0 are cleared unconditionally. it's only 32-64 words
+                // and the extra logic to select the correct works is slower
+                // then just clearing them all.
+                self.layer1[offset + bit].store(0, Ordering::Relaxed);
+
+                let start = (offset + bit) << BITS;
+                let end = min(start + (1 << BITS), self.layer0.len());
+                for l0 in &mut self.layer0[start..end] {
+                    l0.store(0, Ordering::Relaxed);
+                }
+                continue;
+            }
+
+            if m3 != 0 {
+                let bit = m3.trailing_zeros() as usize;
+                m3 &= !(1 << bit);
+                offset = bit << BITS;
+                m2 = self.layer2[bit].swap(0, Ordering::Relaxed);
+                continue;
+            }
+            break;
         }
-        for l in &self.layer1[..] {
-            l.store(0, Ordering::Relaxed);
-        }
-        for l in &self.layer2[..] {
-            l.store(0, Ordering::Relaxed);
-        }
-        self.layer3.store(0, Ordering::Relaxed);
     }
 
 }
@@ -621,4 +648,49 @@ mod atomic_set_test {
         assert_eq!((&even).iter().count(), 50_000);
         assert_eq!(BitSetAnd(&odd, &even).iter().count(), 0);
     }
+
+    #[test]
+    fn clear() {
+        let mut set = AtomicBitSet::new();
+        for i in 0..1_000 {
+            set.add(i);
+        }
+
+        assert_eq!((&set).iter().count(), 1_000);
+        set.clear();
+        assert_eq!((&set).iter().count(), 0);
+
+        for i in 0..1_000 {
+            set.add(i * 64);
+        }
+
+        assert_eq!((&set).iter().count(), 1_000);
+        set.clear();
+        assert_eq!((&set).iter().count(), 0);
+
+        for i in 0..1_000 {
+            set.add(i * 1_000);
+        }
+
+        assert_eq!((&set).iter().count(), 1_000);
+        set.clear();
+        assert_eq!((&set).iter().count(), 0);
+
+        for i in 0..100 {
+            set.add(i * 10_000);
+        }
+
+        assert_eq!((&set).iter().count(), 100);
+        set.clear();
+        assert_eq!((&set).iter().count(), 0);
+
+        for i in 0..10 {
+            set.add(i * 10_000);
+        }
+
+        assert_eq!((&set).iter().count(), 10);
+        set.clear();
+        assert_eq!((&set).iter().count(), 0);
+    }
+
 }
