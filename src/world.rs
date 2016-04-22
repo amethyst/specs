@@ -4,7 +4,7 @@ use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use mopa::Any;
 use {Index, Generation, Entity, StorageBase, Storage};
-use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr};
+use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr, MAX_EID};
 use join::{Open, Get};
 
 
@@ -71,8 +71,8 @@ impl Allocator {
         Allocator {
             generations: vec![],
             alive: BitSet::new(),
-            raised: AtomicBitSet::with_capacity(1_000_000),
-            killed: AtomicBitSet::with_capacity(1_000_000),
+            raised: AtomicBitSet::with_capacity(MAX_EID as u32),
+            killed: AtomicBitSet::with_capacity(MAX_EID as u32),
             start_from: AtomicUsize::new(0)
         }
     }
