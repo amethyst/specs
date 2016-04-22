@@ -100,42 +100,36 @@ impl Allocator {
     /// Allocate a new entity
     fn allocate_atomic(&self) -> Entity {
         let idx = self.start_from.load(Ordering::Relaxed);
-        if idx < self.generations.len() {
-            for (off, g) in self.generations[idx..].iter().enumerate() {
-                // if g is dead and we set it in the alive array
-                // we know we won the race and allocated the object
-                if !g.is_alive() && !self.raised.add_atomic((idx+off) as Index) {
-                    self.update_start_from(idx+off+1);
-                    return Entity((idx+off) as Index, g.raised());
-                }
+        for i in idx.. {
+            if !self.alive.contains(i as Index) && !self.raised.add_atomic(i as Index) {
+                self.update_start_from(i+1);
+
+                let gen = self.generations.get(idx as usize)
+                    .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
+                    .unwrap_or(Generation(1));
+
+                return Entity(i as Index, gen);
             }
         }
-
-        // There are no spaces left over from the last generation
-        // the start_from index gets bumped and we take the index
-        let idx = self.start_from.fetch_add(1, Ordering::Relaxed);
-        self.raised.add_atomic(idx as Index);
-        Entity(idx as Index, Generation(1))
+        panic!("No entities left to allocate")
     }
 
     /// Allocate a new entity
     fn allocate(&mut self) -> Entity {
         let idx = self.start_from.load(Ordering::Relaxed);
-        if idx < self.generations.len() {
-            for (off, g) in self.generations[idx..].iter_mut().enumerate() {
-                if !g.is_alive() {
-                    *g = g.raised();
-                    self.start_from.store(idx + off + 1, Ordering::Relaxed);
-                    debug_assert!(!self.alive.add((idx+off) as Index));
-                    return Entity((idx+off) as Index, *g);
+        for i in idx.. {
+            if !self.raised.contains(i as Index) && !self.alive.add(i as Index) {
+                self.update_start_from(i+1);
+
+                while self.generations.len() <= i as usize {
+                    self.generations.push(Generation(0));
                 }
+                self.generations[i as usize] = self.generations[i as usize].raised();
+
+                return Entity(i as Index, self.generations[i as usize]);
             }
         }
-        let idx = self.generations.len();
-        self.generations.push(Generation(1));
-        self.start_from.store(idx+1, Ordering::Relaxed);
-        debug_assert!(!self.alive.add(idx as Index));
-        Entity(idx as Index, Generation(1))
+        panic!("No entities left to allocate")
     }
 
     fn merge(&mut self) -> Vec<Entity> {

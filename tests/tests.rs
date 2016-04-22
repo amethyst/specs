@@ -1,6 +1,6 @@
 extern crate specs;
 
-use specs::{Storage, Join};
+use specs::{Storage, Join, Entity};
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -141,6 +141,43 @@ fn dynamic_create_and_delete() {
         planner.wait();
         swap(&mut ent1, &mut ent0)
     }
+}
+
+#[test]
+fn mixed_create_merge() {
+    use std::collections::HashSet;
+    let mut planner = create_world();
+    let mut set = HashSet::new();
+
+    let add = |set: &mut HashSet<Entity>, e: Entity| {
+        assert!(!set.contains(&e));
+        set.insert(e);
+    };
+
+    let insert = |planner: &mut specs::Planner<()>, set: &mut HashSet<Entity>, cnt: usize| {
+        // Check to make sure there is no conflict between create_now
+        // and create_later
+        for _ in 0..10 {
+            for _ in 0..cnt {
+                add(set, planner.world.create_now().build());
+                add(set, planner.world.create_later());
+                //  swap order
+                add(set, planner.world.create_later());
+                add(set, planner.world.create_now().build());
+            }
+            planner.wait();
+        }
+    };
+
+    insert(&mut planner, &mut set, 10);
+    for e in set.drain() {
+        planner.world.delete_later(e);
+    }
+    insert(&mut planner, &mut set, 20);
+    for e in set.drain() {
+        planner.world.delete_now(e);
+    }
+    insert(&mut planner, &mut set, 40);
 }
 
 #[test]
