@@ -1,9 +1,7 @@
 use std;
-use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 use tuple_utils::Split;
-use bitset::{BitIter, BitSet, BitSetAnd, BitSetLike};
-use storage::{Storage, MaskedStorage, UnprotectedStorage};
-use {Index, Generation, Component};
+use bitset::{BitIter, BitSetAnd, BitSetLike};
+use Index;
 
 
 /// BitAnd is a helper method to & bitsets togather resulting in a tree
@@ -114,27 +112,34 @@ impl<'a, T: Component> Get for GetMut<'a, T::Storage> {
     }
 }*/
 
-/// Joined is an Iterator over a group of `Storages`
-pub struct Joined<O: Open> {
+/// Join is an Iterator over a group of `Storages`
+pub struct Join<O: Open> {
     keys: BitIter<O::Mask>,
     values: O::Value,
 }
 
-impl<O: Open> From<O> for Joined<O> {
+impl<O: Open> From<O> for Join<O> {
     fn from(o: O) -> Self {
         let (keys, values) = o.open();
-        Joined {
+        Join {
             keys: keys.iter(),
             values: values,
         }
     }
 }
 
-impl<O: Open> std::iter::Iterator for Joined<O> {
+impl<O: Open> std::iter::Iterator for Join<O> {
     type Item = O::Type;
     fn next(&mut self) -> Option<O::Type> {
         self.keys.next().map(|idx| unsafe {
-            O::get(self.values, idx)
+            // This is obviously unsafe and is one of the reasons this
+            // trait is marked as unsafe to being with. It is safe
+            // an an external api point of view because the bitmask
+            // iterator never visits the same index twice, otherwise
+            // this would provide multiple aliased mutable pointers which
+            // is illegal in rust.
+            let values: O::Value = std::mem::transmute_copy(&self.values);
+            O::get(values, idx)
         })
     }
 }
@@ -159,6 +164,7 @@ macro_rules! define_open {
                     ($($from.1),*,)
                 )
             }
+            #[allow(non_snake_case)]
             unsafe fn get(v: Self::Value, i: Index) -> Self::Type {
                 let ($($from,)*) = v;
                 ($($from::get($from, i),)*)

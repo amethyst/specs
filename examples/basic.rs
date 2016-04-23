@@ -57,7 +57,6 @@ fn main() {
 
     // Instead of using macros you can use run_custom() to build a system precisely
     planner.run_custom(|arg| {
-        use specs::{Storage, Join};
         // fetch() borrows a world, so a system could lock neccessary storages
         // Can be called only once
         let (mut sa, sb) = arg.fetch(|w| {
@@ -67,7 +66,7 @@ fn main() {
         // Instead of using the `entities` array you can
         // use the `Join` trait that is an optimized way of
         // doing the `get/get_mut` across entities.
-        for (a, b) in (&mut sa, &sb).join() {
+        for (a, b) in specs::Join::from((&mut sa, &sb)) {
             a.0 += if b.0 {2} else {0};
         }
 

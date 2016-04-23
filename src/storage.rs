@@ -18,6 +18,8 @@ pub trait PrivateStorage<U> {
     fn get_inner_mut(&mut self) -> &mut U;
 }
 
+/// The `UnprotectedStorage` together with the `BitSet` that knows
+/// about which elements are stored, and which are not.
 pub struct MaskedStorage<T: Component> {
     mask: BitSet,
     inner: T::Storage,
@@ -31,6 +33,9 @@ impl<T: Component> MaskedStorage<T> {
             mask: BitSet::new(),
             inner: UnprotectedStorage::new(),
         }
+    }
+    fn open(&mut self) -> (&BitSet, &mut T::Storage) {
+        (&self.mask, &mut self.inner)
     }
 }
 
@@ -50,6 +55,9 @@ impl<T: Component> PrivateStorage<T::Storage> for MaskedStorage<T> {
 }
 
 
+/// A wrapper around the masked storage and the generations vector.
+/// Can be used for safe lookup of components, insertions and removes.
+/// This is what `World::read/write` locks for the user.
 pub struct Storage<T, D, G> {
     phantom: PhantomData<T>,
     gens: G,
@@ -110,7 +118,6 @@ impl<T, D, G> Storage<T, D, G> where
     }
     /// Removes the data associated with an `Entity`.
     pub fn remove(&mut self, e: Entity) -> Option<T> {
-        let g1 = Generation(1);
         let id = e.get_id();
         if self.has_gen(e) && self.data.mask.remove(id as u32) {
             Some(unsafe{ self.data.inner.remove(id) })
@@ -143,7 +150,7 @@ impl<'a, T, D, G> Open for &'a mut Storage<T, D, G> where
     type Value = &'a mut T::Storage;
     type Mask = &'a BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
-        (&self.data.mask, &mut self.data.inner)
+        self.data.open()
     }
     unsafe fn get(v: Self::Value, i: Index) -> &'a mut T {
         v.get_mut(i)
@@ -241,145 +248,215 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
 
 #[cfg(test)]
 mod map_test {
-    use {Storage, Entity, Generation};
-    use super::VecStorage;
+    use mopa::Any;
+    use super::{Storage, MaskedStorage, UnprotectedStorage, VecStorage};
+    use {Component, Entity, Index, Generation};
+
+    struct Comp<T>(T);
+    impl<T: Any + Send + Sync> Component for Comp<T> {
+        type Storage = VecStorage<Comp<T>>;
+    }
+
+    fn ent(i: Index) -> Entity {
+        Entity::new(i, Generation(0))
+    }
 
     #[test]
     fn insert() {
-        let mut c = VecStorage::new();
+        let mut ms = MaskedStorage::new();
+        let mut gen = Vec::new();
+        let mut c = Storage::new(&mut ms, &mut gen);
+
         for i in 0..1_000 {
-            c.insert(Entity::new(i, Generation(0)), i);
+            c.insert(ent(i), Comp(i));
         }
 
         for i in 0..1_000 {
-            assert_eq!(c.get(Entity::new(i, Generation(0))).unwrap(), &i);
+            assert_eq!(c.get(ent(i)).unwrap().0, i);
         }
     }
 
     #[test]
     fn insert_100k() {
-        let mut c = VecStorage::new();
+        let mut ms = MaskedStorage::new();
+        let mut gen = Vec::new();
+        let mut c = Storage::new(&mut ms, &mut gen);
+
         for i in 0..100_000 {
-            c.insert(Entity::new(i, Generation(0)), i);
+            c.insert(ent(i), Comp(i));
         }
 
         for i in 0..100_000 {
-            assert_eq!(c.get(Entity::new(i, Generation(0))).unwrap(), &i);
+            assert_eq!(c.get(ent(i)).unwrap().0, i);
         }
     }
 
     #[test]
     fn remove() {
-        let mut c = VecStorage::new();
+        let mut ms = MaskedStorage::new();
+        let mut gen = Vec::new();
+        let mut c = Storage::new(&mut ms, &mut gen);
+
         for i in 0..1_000 {
-            c.insert(Entity::new(i, Generation(0)), i);
+            c.insert(ent(i), Comp(i));
         }
 
         for i in 0..1_000 {
-            assert_eq!(c.get(Entity::new(i, Generation(0))).unwrap(), &i);
+            assert_eq!(c.get(ent(i)).unwrap().0, i);
         }
 
         for i in 0..1_000 {
-            c.remove(Entity::new(i, Generation(0)));
+            c.remove(ent(i));
         }
 
         for i in 0..1_000 {
-            assert!(c.get(Entity::new(i, Generation(0))).is_none());
+            assert!(c.get(ent(i)).is_none());
         }
     }
 
     #[test]
     fn test_gen() {
-        let mut c = VecStorage::new();
+        let mut ms = MaskedStorage::new();
+        let mut gen = Vec::new();
+        let mut c = Storage::new(&mut ms, &mut gen);
+
         for i in 0..1_000i32 {
-            c.insert(Entity::new(i as u32, Generation(0)), i);
-            c.insert(Entity::new(i as u32, Generation(0)), -i);
+            c.insert(Entity::new(i as u32, Generation(0)), Comp(i));
+            c.insert(Entity::new(i as u32, Generation(0)), Comp(-i));
         }
 
         for i in 0..1_000i32 {
-            assert_eq!(c.get(Entity::new(i as u32, Generation(0))).unwrap(), &-i);
+            assert_eq!(c.get(Entity::new(i as u32, Generation(0))).unwrap().0, -i);
         }
     }
 
     #[test]
     fn insert_same_key() {
-        let mut c = VecStorage::new();
+        let mut ms = MaskedStorage::new();
+        let mut gen = Vec::new();
+        let mut c = Storage::new(&mut ms, &mut gen);
+
         for i in 0..10_000 {
-            c.insert(Entity::new(i as u32, Generation(0)), i);
-            assert_eq!(c.get(Entity::new(i as u32, Generation(0))).unwrap(), &i);
+            c.insert(Entity::new(i as u32, Generation(0)), Comp(i));
+            assert_eq!(c.get(Entity::new(i as u32, Generation(0))).unwrap().0, i);
         }
     }
 
     #[should_panic]
     #[test]
     fn wrap() {
-        let mut c = VecStorage::new();
-        c.insert(Entity::new(1 << 25, Generation(0)), 7);
+        let mut ms = MaskedStorage::new();
+        let mut gen = Vec::new();
+        let mut c = Storage::new(&mut ms, &mut gen);
+
+        c.insert(Entity::new(1 << 25, Generation(0)), Comp(7));
     }
 }
 
 
 #[cfg(test)]
 mod test {
-    use {Entity, Generation, Storage, VecStorage, HashMapStorage};
+    use std::convert::AsMut;
+    use std::fmt::Debug;
+    use super::{Storage, MaskedStorage, VecStorage, HashMapStorage};
+    use {Component, Entity, Generation};
 
-    fn test_add<S>() where S: Storage<Component=u32> {
-        let mut s = S::new();
+    #[derive(PartialEq, Eq, Debug)]
+    struct Cvec(u32);
+    impl From<u32> for Cvec {
+        fn from(v: u32) -> Cvec { Cvec(v) }
+    }
+    impl AsMut<u32> for Cvec {
+        fn as_mut(&mut self) -> &mut u32 { &mut self.0 }
+    }
+    impl Component for Cvec {
+        type Storage = VecStorage<Cvec>;
+    }
+
+    #[derive(PartialEq, Eq, Debug)]
+    struct Cmap(u32);
+    impl From<u32> for Cmap {
+        fn from(v: u32) -> Cmap { Cmap(v) }
+    }
+    impl AsMut<u32> for Cmap {
+        fn as_mut(&mut self) -> &mut u32 { &mut self.0 }
+    }
+    impl Component for Cmap {
+        type Storage = HashMapStorage<Cmap>;
+    }
+
+    fn test_add<T: Component + From<u32> + Debug + Eq>() {
+        let mut ms = MaskedStorage::<T>::new();
+        let mut gen = Vec::new();
+        let mut s = Storage::new(&mut ms, &mut gen);
+
         for i in 0..1_000 {
-            s.insert(Entity::new(i, Generation(1)), i + 2718);
+            s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
         }
 
         for i in 0..1_000 {
-            assert_eq!(*s.get(Entity::new(i, Generation(1))).unwrap(), i + 2718);
+            assert_eq!(s.get(Entity::new(i, Generation(1))).unwrap(), &(i + 2718).into());
         }
     }
 
-    fn test_sub<S>() where S: Storage<Component=u32> {
-        let mut s = S::new();
+    fn test_sub<T: Component + From<u32> + Debug + Eq>() {
+        let mut ms = MaskedStorage::<T>::new();
+        let mut gen = Vec::new();
+        let mut s = Storage::new(&mut ms, &mut gen);
+
         for i in 0..1_000 {
-            s.insert(Entity::new(i, Generation(1)), i + 2718);
+            s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
         }
 
         for i in 0..1_000 {
-            assert_eq!(s.remove(Entity::new(i, Generation(1))).unwrap(), i + 2718);
+            assert_eq!(s.remove(Entity::new(i, Generation(1))).unwrap(), (i + 2718).into());
             assert!(s.remove(Entity::new(i, Generation(1))).is_none());
         }
     }
 
-    fn test_get_mut<S>() where S: Storage<Component=u32> {
-        let mut s = S::new();
+    fn test_get_mut<T: Component + From<u32> + AsMut<u32> + Debug + Eq>() {
+        let mut ms = MaskedStorage::<T>::new();
+        let mut gen = Vec::new();
+        let mut s = Storage::new(&mut ms, &mut gen);
+
         for i in 0..1_000 {
-            s.insert(Entity::new(i, Generation(1)), i + 2718);
+            s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
         }
 
         for i in 0..1_000 {
-            *s.get_mut(Entity::new(i, Generation(1))).unwrap() -= 718;
+            *s.get_mut(Entity::new(i, Generation(1))).unwrap().as_mut() -= 718;
         }
 
         for i in 0..1_000 {
-            assert_eq!(*s.get(Entity::new(i, Generation(1))).unwrap(), i + 2000);
+            assert_eq!(s.get(Entity::new(i, Generation(1))).unwrap(), &(i + 2000).into());
         }
     }
 
-    fn test_add_gen<S>() where S: Storage<Component=u32> {
-        let mut s = S::new();
+    fn test_add_gen<T: Component + From<u32> + Debug + Eq>() {
+        let mut ms = MaskedStorage::<T>::new();
+        let mut gen = Vec::new();
+        let mut s = Storage::new(&mut ms, &mut gen);
+
         for i in 0..1_000 {
-            s.insert(Entity::new(i, Generation(1)), i + 2718);
-            s.insert(Entity::new(i, Generation(2)), i + 31415);
+            s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
+            s.insert(Entity::new(i, Generation(2)), (i + 31415).into());
         }
 
         for i in 0..1_000 {
             // this is removed since vec and hashmap disagree
             // on how this behavior should work...
             //assert!(s.get(Entity::new(i, 1)).is_none());
-            assert_eq!(*s.get(Entity::new(i, Generation(2))).unwrap(), i + 31415);
+            assert_eq!(s.get(Entity::new(i, Generation(2))).unwrap(), &(i + 31415).into());
         }
     }
 
-    fn test_sub_gen<S>() where S: Storage<Component=u32> {
-        let mut s = S::new();
+    fn test_sub_gen<T: Component + From<u32> + Debug + Eq>() {
+        let mut ms = MaskedStorage::<T>::new();
+        let mut gen = Vec::new();
+        let mut s = Storage::new(&mut ms, &mut gen);
+
         for i in 0..1_000 {
-            s.insert(Entity::new(i, Generation(2)), i + 2718);
+            s.insert(Entity::new(i, Generation(2)), (i + 2718).into());
         }
 
         for i in 0..1_000 {
@@ -387,16 +464,17 @@ mod test {
         }
     }
 
-    #[test] fn vec_test_add() { test_add::<VecStorage<u32>>(); }
-    #[test] fn vec_test_sub() { test_sub::<VecStorage<u32>>(); }
-    #[test] fn vec_test_get_mut() { test_get_mut::<VecStorage<u32>>(); }
-    #[test] fn vec_test_add_gen() { test_add_gen::<VecStorage<u32>>(); }
-    #[test] fn vec_test_sub_gen() { test_sub_gen::<VecStorage<u32>>(); }
 
-    #[test] fn hash_test_add() { test_add::<HashMapStorage<u32>>(); }
-    #[test] fn hash_test_sub() { test_sub::<HashMapStorage<u32>>(); }
-    #[test] fn hash_test_get_mut() { test_get_mut::<HashMapStorage<u32>>(); }
-    #[test] fn hash_test_add_gen() { test_add_gen::<HashMapStorage<u32>>(); }
-    #[test] fn hash_test_sub_gen() { test_sub_gen::<HashMapStorage<u32>>(); }
+    #[test] fn vec_test_add() { test_add::<Cvec>(); }
+    #[test] fn vec_test_sub() { test_sub::<Cvec>(); }
+    #[test] fn vec_test_get_mut() { test_get_mut::<Cvec>(); }
+    #[test] fn vec_test_add_gen() { test_add_gen::<Cvec>(); }
+    #[test] fn vec_test_sub_gen() { test_sub_gen::<Cvec>(); }
+
+    #[test] fn hash_test_add() { test_add::<Cmap>(); }
+    #[test] fn hash_test_sub() { test_sub::<Cmap>(); }
+    #[test] fn hash_test_get_mut() { test_get_mut::<Cmap>(); }
+    #[test] fn hash_test_add_gen() { test_add_gen::<Cmap>(); }
+    #[test] fn hash_test_sub_gen() { test_sub_gen::<Cmap>(); }
 }
 
