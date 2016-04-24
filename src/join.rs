@@ -72,7 +72,7 @@ pub trait Join {
     /// Open this join by returning the mask and the storages.
     fn open(self) -> (Self::Mask, Self::Value);
     /// Get a joined component value by a gien index.
-    unsafe fn get(Self::Value, Index) -> Self::Type;
+    unsafe fn get(&mut Self::Value, Index) -> Self::Type;
 }
 
 
@@ -97,10 +97,7 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
     type Item = J::Type;
     fn next(&mut self) -> Option<J::Type> {
         self.keys.next().map(|idx| unsafe {
-            // We only transmute and copy during iteration, which is safe and serves
-            // as a poor man's replacement for the missing re-borrowing semantic.
-            let values: J::Value = std::mem::transmute_copy(&self.values);
-            J::get(values, idx)
+            J::get(&mut self.values, idx)
         })
     }
 }
@@ -126,8 +123,8 @@ macro_rules! define_open {
                 )
             }
             #[allow(non_snake_case)]
-            unsafe fn get(v: Self::Value, i: Index) -> Self::Type {
-                let ($($from,)*) = v;
+            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
+                let &mut ($(ref mut $from,)*) = v;
                 ($($from::get($from, i),)*)
             }
         }

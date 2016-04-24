@@ -136,7 +136,7 @@ impl<'a, T, D, G> Join for &'a Storage<T, D, G> where
     fn open(self) -> (Self::Mask, Self::Value) {
         (&self.data.mask, &self.data.inner)
     }
-    unsafe fn get(v: Self::Value, i: Index) -> &'a T {
+    unsafe fn get(v: &mut Self::Value, i: Index) -> &'a T {
         v.get(i)
     }
 }
@@ -152,8 +152,13 @@ impl<'a, T, D, G> Join for &'a mut Storage<T, D, G> where
     fn open(self) -> (Self::Mask, Self::Value) {
         self.data.open()
     }
-    unsafe fn get(v: Self::Value, i: Index) -> &'a mut T {
-        v.get_mut(i)
+    unsafe fn get(v: &mut Self::Value, i: Index) -> &'a mut T {
+        use std::mem;
+        // This is horribly unsafe. Unfortunately, Rust doesn't provide a way
+        // to abstract mutable/immutable state at the moment, so we have to hack
+        // our way through it.
+        let value: &'a mut Self::Value = mem::transmute(v);
+        value.get_mut(i)
     }
 }
 
