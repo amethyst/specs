@@ -155,7 +155,7 @@ impl BitSet {
 
     /// Returns `true` if `id` is in the set.
     #[inline]
-    pub fn contains(&self, id: u32) -> bool {
+    pub fn contains(&self, id: Index) -> bool {
         let p0 = id.offset(SHIFT1);
         p0 < self.layer0.len() && (self.layer0[p0] & id.mask(SHIFT0)) != 0
     }

@@ -7,7 +7,7 @@ use fnv::FnvHasher;
 
 use bitset::BitSet;
 use join::Join;
-use world::Component;
+use world::{Component, Allocator};
 use {Entity, Index, Generation};
 
 
@@ -58,33 +58,33 @@ impl<T: Component> PrivateStorage<T::Storage> for MaskedStorage<T> {
 /// A wrapper around the masked storage and the generations vector.
 /// Can be used for safe lookup of components, insertions and removes.
 /// This is what `World::read/write` locks for the user.
-pub struct Storage<T, D, G> {
+pub struct Storage<T, A, D> {
     phantom: PhantomData<T>,
-    gens: G,
+    alloc: A,
     data: D,
 }
 
-impl<T, D, G> Storage<T, D, G> where
-    G: Deref<Target = Vec<Generation>>,
+impl<T, A, D> Storage<T, A, D> where
+    A: Deref<Target = Allocator>,
 {
     /// Create a new `Storage`
-    pub fn new(data: D, gens: G) -> Storage<T, D, G>{
+    pub fn new(alloc: A, data: D) -> Storage<T, A, D>{
         Storage {
             phantom: PhantomData,
-            gens: gens,
+            alloc: alloc,
             data: data,
         }
     }
     fn has_gen(&self, e: Entity) -> bool {
         let g1 = Generation(1);
-        e.get_gen() == *self.gens.get(e.get_id() as usize).unwrap_or(&g1)
+        e.get_gen() == *self.alloc.generations.get(e.get_id() as usize).unwrap_or(&g1)
     }
 }
 
-impl<T, D, G> Storage<T, D, G> where
+impl<T, A, D> Storage<T, A, D> where
     T: Component,
+    A: Deref<Target = Allocator>,
     D: Deref<Target = MaskedStorage<T>>,
-    G: Deref<Target = Vec<Generation>>,
 {
     /// Tries to read the data associated with an `Entity`.
     pub fn get(&self, e: Entity) -> Option<&T> {
@@ -94,10 +94,10 @@ impl<T, D, G> Storage<T, D, G> where
     }
 }
 
-impl<T, D, G> Storage<T, D, G> where
+impl<T, A, D> Storage<T, A, D> where
     T: Component,
+    A: Deref<Target = Allocator>,
     D: DerefMut<Target = MaskedStorage<T>>,
-    G: Deref<Target = Vec<Generation>>,
 {
     /// Tries to mutate the data associated with an `Entity`.
     pub fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
@@ -130,10 +130,10 @@ impl<T, D, G> Storage<T, D, G> where
     }
 }
 
-impl<'a, T, D, G> Join for &'a Storage<T, D, G> where
+impl<'a, T, A, D> Join for &'a Storage<T, A, D> where
     T: Component,
+    A: Deref<Target = Allocator>,
     D: Deref<Target = MaskedStorage<T>>,
-    G: Deref<Target = Vec<Generation>>,
 {
     type Type = &'a T;
     type Value = &'a T::Storage;
@@ -146,10 +146,10 @@ impl<'a, T, D, G> Join for &'a Storage<T, D, G> where
     }
 }
 
-impl<'a, T, D, G> Join for &'a mut Storage<T, D, G> where
+impl<'a, T, A, D> Join for &'a mut Storage<T, A, D> where
     T: Component,
+    A: Deref<Target = Allocator>,
     D: DerefMut<Target = MaskedStorage<T>>,
-    G: Deref<Target = Vec<Generation>>,
 {
     type Type = &'a mut T;
     type Value = &'a mut T::Storage;
@@ -265,6 +265,7 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
 mod map_test {
     use mopa::Any;
     use super::{Storage, MaskedStorage, UnprotectedStorage, VecStorage};
+    use world::Allocator;
     use {Component, Entity, Index, Generation};
 
     struct Comp<T>(T);
@@ -278,7 +279,7 @@ mod map_test {
 
     #[test]
     fn insert() {
-        let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
+        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
 
         for i in 0..1_000 {
             c.insert(ent(i), Comp(i));
@@ -291,7 +292,7 @@ mod map_test {
 
     #[test]
     fn insert_100k() {
-        let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
+        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
 
         for i in 0..100_000 {
             c.insert(ent(i), Comp(i));
@@ -304,7 +305,7 @@ mod map_test {
 
     #[test]
     fn remove() {
-        let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
+        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
 
         for i in 0..1_000 {
             c.insert(ent(i), Comp(i));
@@ -325,7 +326,7 @@ mod map_test {
 
     #[test]
     fn test_gen() {
-        let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
+        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
 
         for i in 0..1_000i32 {
             c.insert(ent(i as u32), Comp(i));
@@ -339,7 +340,7 @@ mod map_test {
 
     #[test]
     fn insert_same_key() {
-        let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
+        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
 
         for i in 0..10_000 {
             c.insert(ent(i), Comp(i));
@@ -350,7 +351,7 @@ mod map_test {
     #[should_panic]
     #[test]
     fn wrap() {
-        let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
+        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
 
         c.insert(ent(1 << 25), Comp(7));
     }
@@ -362,6 +363,7 @@ mod test {
     use std::convert::AsMut;
     use std::fmt::Debug;
     use super::{Storage, MaskedStorage, VecStorage, HashMapStorage};
+    use world::Allocator;
     use {Component, Entity, Generation};
 
     #[derive(PartialEq, Eq, Debug)]
@@ -389,7 +391,7 @@ mod test {
     }
 
     fn test_add<T: Component + From<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(MaskedStorage::<T>::new()), Box::new(Vec::new()));
+        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -401,7 +403,7 @@ mod test {
     }
 
     fn test_sub<T: Component + From<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(MaskedStorage::<T>::new()), Box::new(Vec::new()));
+        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -414,7 +416,7 @@ mod test {
     }
 
     fn test_get_mut<T: Component + From<u32> + AsMut<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(MaskedStorage::<T>::new()), Box::new(Vec::new()));
+        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -430,7 +432,7 @@ mod test {
     }
 
     fn test_add_gen<T: Component + From<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(MaskedStorage::<T>::new()), Box::new(Vec::new()));
+        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -444,7 +446,7 @@ mod test {
     }
 
     fn test_sub_gen<T: Component + From<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(MaskedStorage::<T>::new()), Box::new(Vec::new()));
+        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(2)), (i + 2718).into());

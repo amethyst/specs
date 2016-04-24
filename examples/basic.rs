@@ -83,17 +83,16 @@ fn main() {
         println!("Entity {} {}", a.0, b.0);
     });
     planner.run_custom(|arg| {
-        use specs::{Storage, Join};
         let (mut sa, sb, entities) = arg.fetch(|w| {
             (w.write::<CompFloat>(), w.read::<CompInt>(), w.entities())
         });
 
         // Insert a component for each entity in sb
-        for (eid, sb) in (&entities, &sb).join() {
+        for (eid, sb) in (&entities, &sb).iter() {
             sa.insert(eid, CompFloat(sb.0 as f32));
         }
 
-        for (eid, sa, sb) in (&entities, &mut sa, &sb).join() {
+        for (eid, sa, sb) in (&entities, &mut sa, &sb).iter() {
             assert_eq!(sa.0 as u32, sb.0 as u32);
             println!("eid[{:?}] = {:?} {:?}", eid, sa, sb);
         }

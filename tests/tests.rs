@@ -1,6 +1,6 @@
 extern crate specs;
 
-use specs::{Join, Entity};
+use specs::{Entity};
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 
