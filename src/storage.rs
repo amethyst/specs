@@ -263,9 +263,7 @@ mod map_test {
 
     #[test]
     fn insert() {
-        let mut ms = MaskedStorage::new();
-        let mut gen = Vec::new();
-        let mut c = Storage::new(&mut ms, &mut gen);
+        let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
 
         for i in 0..1_000 {
             c.insert(ent(i), Comp(i));
@@ -278,9 +276,7 @@ mod map_test {
 
     #[test]
     fn insert_100k() {
-        let mut ms = MaskedStorage::new();
-        let mut gen = Vec::new();
-        let mut c = Storage::new(&mut ms, &mut gen);
+        let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
 
         for i in 0..100_000 {
             c.insert(ent(i), Comp(i));
@@ -293,9 +289,7 @@ mod map_test {
 
     #[test]
     fn remove() {
-        let mut ms = MaskedStorage::new();
-        let mut gen = Vec::new();
-        let mut c = Storage::new(&mut ms, &mut gen);
+        let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
 
         for i in 0..1_000 {
             c.insert(ent(i), Comp(i));
@@ -316,9 +310,7 @@ mod map_test {
 
     #[test]
     fn test_gen() {
-        let mut ms = MaskedStorage::new();
-        let mut gen = Vec::new();
-        let mut c = Storage::new(&mut ms, &mut gen);
+        let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
 
         for i in 0..1_000i32 {
             c.insert(Entity::new(i as u32, Generation(0)), Comp(i));
@@ -332,9 +324,7 @@ mod map_test {
 
     #[test]
     fn insert_same_key() {
-        let mut ms = MaskedStorage::new();
-        let mut gen = Vec::new();
-        let mut c = Storage::new(&mut ms, &mut gen);
+        let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
 
         for i in 0..10_000 {
             c.insert(Entity::new(i as u32, Generation(0)), Comp(i));
@@ -345,9 +335,7 @@ mod map_test {
     #[should_panic]
     #[test]
     fn wrap() {
-        let mut ms = MaskedStorage::new();
-        let mut gen = Vec::new();
-        let mut c = Storage::new(&mut ms, &mut gen);
+        let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
 
         c.insert(Entity::new(1 << 25, Generation(0)), Comp(7));
     }
@@ -386,9 +374,7 @@ mod test {
     }
 
     fn test_add<T: Component + From<u32> + Debug + Eq>() {
-        let mut ms = MaskedStorage::<T>::new();
-        let mut gen = Vec::new();
-        let mut s = Storage::new(&mut ms, &mut gen);
+        let mut s = Storage::new(Box::new(MaskedStorage::<T>::new()), Box::new(Vec::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -400,9 +386,7 @@ mod test {
     }
 
     fn test_sub<T: Component + From<u32> + Debug + Eq>() {
-        let mut ms = MaskedStorage::<T>::new();
-        let mut gen = Vec::new();
-        let mut s = Storage::new(&mut ms, &mut gen);
+        let mut s = Storage::new(Box::new(MaskedStorage::<T>::new()), Box::new(Vec::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -415,9 +399,7 @@ mod test {
     }
 
     fn test_get_mut<T: Component + From<u32> + AsMut<u32> + Debug + Eq>() {
-        let mut ms = MaskedStorage::<T>::new();
-        let mut gen = Vec::new();
-        let mut s = Storage::new(&mut ms, &mut gen);
+        let mut s = Storage::new(Box::new(MaskedStorage::<T>::new()), Box::new(Vec::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -433,9 +415,7 @@ mod test {
     }
 
     fn test_add_gen<T: Component + From<u32> + Debug + Eq>() {
-        let mut ms = MaskedStorage::<T>::new();
-        let mut gen = Vec::new();
-        let mut s = Storage::new(&mut ms, &mut gen);
+        let mut s = Storage::new(Box::new(MaskedStorage::<T>::new()), Box::new(Vec::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -451,9 +431,7 @@ mod test {
     }
 
     fn test_sub_gen<T: Component + From<u32> + Debug + Eq>() {
-        let mut ms = MaskedStorage::<T>::new();
-        let mut gen = Vec::new();
-        let mut s = Storage::new(&mut ms, &mut gen);
+        let mut s = Storage::new(Box::new(MaskedStorage::<T>::new()), Box::new(Vec::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(2)), (i + 2718).into());
