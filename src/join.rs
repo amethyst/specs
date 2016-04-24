@@ -77,6 +77,7 @@ pub trait Join {
 
 
 /// `JoinIter` is an Iterator over a group of `Storages`.
+#[must_use]
 pub struct JoinIter<J: Join> {
     keys: BitIter<J::Mask>,
     values: J::Value,

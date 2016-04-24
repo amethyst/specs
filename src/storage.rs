@@ -106,14 +106,19 @@ impl<T, D, G> Storage<T, D, G> where
         }else {None}
     }
     /// Inserts new data for a given `Entity`.
-    pub fn insert(&mut self, e: Entity, v: T) {
-        let id = e.get_id();
-        assert!(self.has_gen(e));
-        if self.data.mask.contains(id as u32) {
-            *unsafe{ self.data.inner.get_mut(id) } = v;
-        } else {
-            self.data.mask.add(id as u32);
-            unsafe{ self.data.inner.insert(id, v) };
+    /// Returns false if the entity is dead, and insertion is not possible.
+    pub fn insert(&mut self, e: Entity, v: T) -> bool {
+        if self.has_gen(e) {
+            let id = e.get_id();
+            if self.data.mask.contains(id as u32) {
+                *unsafe{ self.data.inner.get_mut(id) } = v;
+            } else {
+                self.data.mask.add(id as u32);
+                unsafe{ self.data.inner.insert(id, v) };
+            }
+            true
+        }else {
+            false
         }
     }
     /// Removes the data associated with an `Entity`.
@@ -263,7 +268,7 @@ mod map_test {
     }
 
     fn ent(i: Index) -> Entity {
-        Entity::new(i, Generation(0))
+        Entity::new(i, Generation(1))
     }
 
     #[test]
@@ -318,12 +323,12 @@ mod map_test {
         let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
 
         for i in 0..1_000i32 {
-            c.insert(Entity::new(i as u32, Generation(0)), Comp(i));
-            c.insert(Entity::new(i as u32, Generation(0)), Comp(-i));
+            c.insert(ent(i as u32), Comp(i));
+            c.insert(ent(i as u32), Comp(-i));
         }
 
         for i in 0..1_000i32 {
-            assert_eq!(c.get(Entity::new(i as u32, Generation(0))).unwrap().0, -i);
+            assert_eq!(c.get(ent(i as u32)).unwrap().0, -i);
         }
     }
 
@@ -332,8 +337,8 @@ mod map_test {
         let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
 
         for i in 0..10_000 {
-            c.insert(Entity::new(i as u32, Generation(0)), Comp(i));
-            assert_eq!(c.get(Entity::new(i as u32, Generation(0))).unwrap().0, i);
+            c.insert(ent(i), Comp(i));
+            assert_eq!(c.get(ent(i)).unwrap().0, i);
         }
     }
 
@@ -342,7 +347,7 @@ mod map_test {
     fn wrap() {
         let mut c = Storage::new(Box::new(MaskedStorage::new()), Box::new(Vec::new()));
 
-        c.insert(Entity::new(1 << 25, Generation(0)), Comp(7));
+        c.insert(ent(1 << 25), Comp(7));
     }
 }
 
@@ -428,10 +433,8 @@ mod test {
         }
 
         for i in 0..1_000 {
-            // this is removed since vec and hashmap disagree
-            // on how this behavior should work...
-            //assert!(s.get(Entity::new(i, 1)).is_none());
-            assert_eq!(s.get(Entity::new(i, Generation(2))).unwrap(), &(i + 31415).into());
+            assert!(s.get(Entity::new(i, Generation(2))).is_none());
+            assert_eq!(s.get(Entity::new(i, Generation(1))).unwrap(), &(i + 2718).into());
         }
     }
 
