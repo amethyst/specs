@@ -11,13 +11,6 @@ use world::{Component, Allocator};
 use {Entity, Index, Generation};
 
 
-#[doc(hidden)]
-pub trait PrivateStorage<U> {
-    fn get_mask(&self) -> &BitSet;
-    fn get_inner(&self) -> &U;
-    fn get_inner_mut(&mut self) -> &mut U;
-}
-
 /// The `UnprotectedStorage` together with the `BitSet` that knows
 /// about which elements are stored, and which are not.
 pub struct MaskedStorage<T: Component> {
@@ -34,8 +27,16 @@ impl<T: Component> MaskedStorage<T> {
             inner: UnprotectedStorage::new(),
         }
     }
-    fn open(&mut self) -> (&BitSet, &mut T::Storage) {
+    fn open_mut(&mut self) -> (&BitSet, &mut T::Storage) {
         (&self.mask, &mut self.inner)
+    }
+    /// Remove an element by a given index.
+    pub fn remove(&mut self, id: Index) -> Option<T> {
+        if self.mask.remove(id) {
+            Some(unsafe { self.inner.remove(id) })
+        }else {
+            None
+        }
     }
 }
 
@@ -43,15 +44,9 @@ impl<T: Component> Drop for MaskedStorage<T> {
     fn drop(&mut self) {
         let mask = &self.mask;
         unsafe {
-            self.inner.clean(|i| mask.contains(i as u32));
+            self.inner.clean(|i| mask.contains(i));
         }
     }
-}
-
-impl<T: Component> PrivateStorage<T::Storage> for MaskedStorage<T> {
-    fn get_mask(&self) -> &BitSet { &self.mask }
-    fn get_inner(&self) -> &T::Storage { &self.inner }
-    fn get_inner_mut(&mut self) -> &mut T::Storage { &mut self.inner }
 }
 
 
@@ -88,7 +83,7 @@ impl<T, A, D> Storage<T, A, D> where
 {
     /// Tries to read the data associated with an `Entity`.
     pub fn get(&self, e: Entity) -> Option<&T> {
-        if self.data.mask.contains(e.get_id() as u32) && self.has_gen(e) {
+        if self.data.mask.contains(e.get_id()) && self.has_gen(e) {
             Some(unsafe { self.data.inner.get(e.get_id()) })
         }else {None}
     }
@@ -101,7 +96,7 @@ impl<T, A, D> Storage<T, A, D> where
 {
     /// Tries to mutate the data associated with an `Entity`.
     pub fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
-        if self.data.mask.contains(e.get_id() as u32) && self.has_gen(e) {
+        if self.data.mask.contains(e.get_id()) && self.has_gen(e) {
             Some(unsafe { self.data.inner.get_mut(e.get_id()) })
         }else {None}
     }
@@ -110,10 +105,10 @@ impl<T, A, D> Storage<T, A, D> where
     pub fn insert(&mut self, e: Entity, v: T) -> bool {
         if self.has_gen(e) {
             let id = e.get_id();
-            if self.data.mask.contains(id as u32) {
+            if self.data.mask.contains(id) {
                 *unsafe{ self.data.inner.get_mut(id) } = v;
             } else {
-                self.data.mask.add(id as u32);
+                self.data.mask.add(id);
                 unsafe{ self.data.inner.insert(id, v) };
             }
             true
@@ -123,9 +118,8 @@ impl<T, A, D> Storage<T, A, D> where
     }
     /// Removes the data associated with an `Entity`.
     pub fn remove(&mut self, e: Entity) -> Option<T> {
-        let id = e.get_id();
-        if self.has_gen(e) && self.data.mask.remove(id as u32) {
-            Some(unsafe{ self.data.inner.remove(id) })
+        if self.has_gen(e) {
+            self.data.remove(e.get_id())
         }else { None }
     }
 }
@@ -155,7 +149,7 @@ impl<'a, T, A, D> Join for &'a mut Storage<T, A, D> where
     type Value = &'a mut T::Storage;
     type Mask = &'a BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
-        self.data.open()
+        self.data.open_mut()
     }
     unsafe fn get(v: &mut Self::Value, i: Index) -> &'a mut T {
         use std::mem;

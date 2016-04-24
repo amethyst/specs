@@ -183,12 +183,9 @@ mopafy!(StorageLock);
 
 impl<T: Component> StorageLock for RwLock<MaskedStorage<T>> {
     fn del_slice(&self, entities: &[Entity]) {
-        use storage::PrivateStorage;
         let mut guard = self.write().unwrap();
         for &e in entities.iter() {
-            if guard.get_mask().contains(e.get_id()) {
-                unsafe{ guard.get_inner_mut().remove(e.get_id()) };
-            }
+            guard.remove(e.get_id());
         }
     }
 }
