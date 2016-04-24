@@ -240,14 +240,19 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
         self.0.get_unchecked_mut(id as usize)
     }
-    unsafe fn insert(&mut self, id: Index, v: T) {
+    unsafe fn insert(&mut self, id: Index, mut v: T) {
+        use std::mem;
         let id = id as usize;
         if self.0.len() <= id {
             let delta = id + 1 - self.0.len();
             self.0.reserve(delta);
             self.0.set_len(id + 1);
         }
-        self.0[id] = v;
+        // Can't just do `self.0[id] = v` since it would
+        // drop the existing element in there, which
+        // is undefined at this point.
+        mem::swap(self.0.get_unchecked_mut(id), &mut v);
+        mem::forget(v);
     }
     unsafe fn remove(&mut self, id: Index) -> T {
         use std::ptr;
