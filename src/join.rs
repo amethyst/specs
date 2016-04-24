@@ -31,8 +31,8 @@ macro_rules! bitset_and {
                 <<Self as Split>::Right as BitAnd>::Value
             >;
             fn and(self) -> Self::Value {
-              let (l, r) = self.split();
-              BitSetAnd(l.and(), r.and())
+                let (l, r) = self.split();
+                BitSetAnd(l.and(), r.and())
             }
         }
     }
@@ -55,43 +55,52 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O}
 bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 
 
-/// The only purpose of the `Open` trait is to provide a way
-/// to access the `open` or `open_mut` trait in a generic way
-/// This way the fact that the type is immutable or mutable
-/// is not lost when it is used later.
-pub trait Open {
+/// The purpose of the `Join` trait is to provide a way
+/// to access multiple storages at the same time with
+/// the merged bit set.
+pub trait Join {
+    /// Type of joined components.
     type Type;
+    /// Type of joined storages.
     type Value;
+    /// Type of joined bit mask.
     type Mask: BitSetLike;
+    /// Create a joined iterator over the contents.
+    fn iter(self) -> JoinIter<Self> where Self: Sized {
+        JoinIter::new(self)
+    }
+    /// Open this join by returning the mask and the storages.
     fn open(self) -> (Self::Mask, Self::Value);
+    /// Get a joined component value by a gien index.
     unsafe fn get(Self::Value, Index) -> Self::Type;
 }
 
 
-/// Join is an Iterator over a group of `Storages`
-pub struct Join<O: Open> {
-    keys: BitIter<O::Mask>,
-    values: O::Value,
+/// `JoinIter` is an Iterator over a group of `Storages`.
+pub struct JoinIter<J: Join> {
+    keys: BitIter<J::Mask>,
+    values: J::Value,
 }
 
-impl<O: Open> From<O> for Join<O> {
-    fn from(o: O) -> Self {
-        let (keys, values) = o.open();
-        Join {
+impl<J: Join> JoinIter<J> {
+    /// Create a new join iterator.
+    pub fn new(j: J) -> Self {
+        let (keys, values) = j.open();
+        JoinIter {
             keys: keys.iter(),
             values: values,
         }
     }
 }
 
-impl<O: Open> std::iter::Iterator for Join<O> {
-    type Item = O::Type;
-    fn next(&mut self) -> Option<O::Type> {
+impl<J: Join> std::iter::Iterator for JoinIter<J> {
+    type Item = J::Type;
+    fn next(&mut self) -> Option<J::Type> {
         self.keys.next().map(|idx| unsafe {
             // We only transmute and copy during iteration, which is safe and serves
             // as a poor man's replacement for the missing re-borrowing semantic.
-            let values: O::Value = std::mem::transmute_copy(&self.values);
-            O::get(values, idx)
+            let values: J::Value = std::mem::transmute_copy(&self.values);
+            J::get(values, idx)
         })
     }
 }
@@ -100,9 +109,9 @@ impl<O: Open> std::iter::Iterator for Join<O> {
 macro_rules! define_open {
     // use variables to indicate the arity of the tuple
     ($($from:ident),*) => {
-        impl<'a, $($from,)*> Open for ($($from),*,)
-            where $($from: Open),*,
-                  ($(<$from as Open>::Mask,)*): BitAnd,
+        impl<'a, $($from,)*> Join for ($($from),*,)
+            where $($from: Join),*,
+                  ($(<$from as Join>::Mask,)*): BitAnd,
         {
             type Type = ($($from::Type),*,);
             type Value = ($($from::Value),*,);

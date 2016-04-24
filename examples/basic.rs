@@ -1,4 +1,5 @@
 extern crate specs;
+use specs::Join;
 
 #[derive(Clone, Debug)]
 struct CompInt(i8);
@@ -66,7 +67,7 @@ fn main() {
         // Instead of using the `entities` array you can
         // use the `Join` trait that is an optimized way of
         // doing the `get/get_mut` across entities.
-        for (a, b) in specs::Join::from((&mut sa, &sb)) {
+        for (a, b) in (&mut sa, &sb).iter() {
             a.0 += if b.0 {2} else {0};
         }
 

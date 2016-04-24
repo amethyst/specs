@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use fnv::FnvHasher;
 
 use bitset::BitSet;
-use join::Open;
+use join::Join;
 use world::Component;
 use {Entity, Index, Generation};
 
@@ -125,7 +125,7 @@ impl<T, D, G> Storage<T, D, G> where
     }
 }
 
-impl<'a, T, D, G> Open for &'a Storage<T, D, G> where
+impl<'a, T, D, G> Join for &'a Storage<T, D, G> where
     T: Component,
     D: Deref<Target = MaskedStorage<T>>,
     G: Deref<Target = Vec<Generation>>,
@@ -141,7 +141,7 @@ impl<'a, T, D, G> Open for &'a Storage<T, D, G> where
     }
 }
 
-impl<'a, T, D, G> Open for &'a mut Storage<T, D, G> where
+impl<'a, T, D, G> Join for &'a mut Storage<T, D, G> where
     T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,
     G: Deref<Target = Vec<Generation>>,

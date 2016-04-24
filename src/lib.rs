@@ -22,7 +22,7 @@ pub use storage::{Storage, VecStorage, HashMapStorage, UnprotectedStorage};
 pub use world::{Component, World, FetchArg,
     EntityBuilder, Entities, CreateEntities};
 pub use bitset::{BitSetAnd, BitSet, BitSetLike, AtomicBitSet};
-pub use join::Join;
+pub use join::{Join, JoinIter};
 
 mod storage;
 mod world;
@@ -250,7 +250,7 @@ macro_rules! impl_run {
                      $(w.read::<$read>(),)*)
                 );
 
-                for ($($write,)* $($read,)*) in Join::from(($(&mut $write,)* $(&$read,)*)) {
+                for ($($write,)* $($read,)*) in JoinIter::new(($(&mut $write,)* $(&$read,)*)) {
                     fun( $($write,)* $($read,)* );
                 }
             });
