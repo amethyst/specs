@@ -1,4 +1,5 @@
 extern crate specs;
+use specs::Join;
 
 #[derive(Clone, Debug)]
 struct CompInt(i8);
@@ -57,7 +58,6 @@ fn main() {
 
     // Instead of using macros you can use run_custom() to build a system precisely
     planner.run_custom(|arg| {
-        use specs::{Storage, Join};
         // fetch() borrows a world, so a system could lock neccessary storages
         // Can be called only once
         let (mut sa, sb) = arg.fetch(|w| {
@@ -67,7 +67,7 @@ fn main() {
         // Instead of using the `entities` array you can
         // use the `Join` trait that is an optimized way of
         // doing the `get/get_mut` across entities.
-        for (a, b) in (&mut sa, &sb).join() {
+        for (a, b) in (&mut sa, &sb).iter() {
             a.0 += if b.0 {2} else {0};
         }
 
@@ -83,17 +83,16 @@ fn main() {
         println!("Entity {} {}", a.0, b.0);
     });
     planner.run_custom(|arg| {
-        use specs::{Storage, Join};
         let (mut sa, sb, entities) = arg.fetch(|w| {
             (w.write::<CompFloat>(), w.read::<CompInt>(), w.entities())
         });
 
         // Insert a component for each entity in sb
-        for (eid, sb) in (&entities, &sb).join() {
+        for (eid, sb) in (&entities, &sb).iter() {
             sa.insert(eid, CompFloat(sb.0 as f32));
         }
 
-        for (eid, sa, sb) in (&entities, &mut sa, &sb).join() {
+        for (eid, sa, sb) in (&entities, &mut sa, &sb).iter() {
             assert_eq!(sa.0 as u32, sb.0 as u32);
             println!("eid[{:?}] = {:?} {:?}", eid, sa, sb);
         }

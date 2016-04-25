@@ -18,16 +18,17 @@ use std::sync::{mpsc, Arc};
 use pulse::{Pulse, Signal, Signals};
 use threadpool::ThreadPool;
 
-pub use storage::{Storage, StorageBase, VecStorage, HashMapStorage, UnprotectedStorage};
+pub use storage::{Storage, VecStorage, HashMapStorage, UnprotectedStorage};
 pub use world::{Component, World, FetchArg,
     EntityBuilder, Entities, CreateEntities};
 pub use bitset::{BitSetAnd, BitSet, BitSetLike, AtomicBitSet};
-pub use join::Join;
+pub use join::{Join, JoinIter};
 
 mod storage;
 mod world;
 mod bitset;
 mod join;
+
 
 /// Index generation. When a new entity is placed at an old index,
 /// it bumps the `Generation` by 1. This allows to avoid using components
@@ -70,7 +71,7 @@ impl Entity {
 
     /// Returns the index of the `Entity`.
     #[inline]
-    pub fn get_id(&self) -> usize { self.0 as usize }
+    pub fn get_id(&self) -> Index { self.0 }
     /// Returns the `Generation` of the `Entity`.
     #[inline]
     pub fn get_gen(&self) -> Generation { self.1 }
@@ -202,7 +203,7 @@ impl<C: 'static> Planner<C> {
             }
             self.wait_count -= 1;
         }
-        self.world.merge();
+        self.world.maintain();
     }
 }
 
@@ -249,7 +250,7 @@ macro_rules! impl_run {
                      $(w.read::<$read>(),)*)
                 );
 
-                for ($($write,)* $($read,)*) in ($(&mut $write,)* $(&$read,)*).join() {
+                for ($($write,)* $($read,)*) in JoinIter::new(($(&mut $write,)* $(&$read,)*)) {
                     fun( $($write,)* $($read,)* );
                 }
             });

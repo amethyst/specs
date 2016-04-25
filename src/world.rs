@@ -3,15 +3,16 @@ use std::collections::HashMap;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use mopa::Any;
-use {Index, Generation, Entity, StorageBase, Storage};
 use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr, MAX_EID};
-use join::{Open, Get};
+use join::Join;
+use storage::{Storage, MaskedStorage, UnprotectedStorage};
+use {Index, Generation, Entity};
 
 
 /// Abstract component type. Doesn't have to be Copy or even Clone.
 pub trait Component: Any + Sized {
     /// Associated storage type for this component.
-    type Storage: Storage<Component=Self> + Any + Send + Sync;
+    type Storage: UnprotectedStorage<Self> + Any + Send + Sync;
 }
 
 
@@ -24,18 +25,15 @@ pub struct Entities<'a> {
     guard: RwLockReadGuard<'a, Allocator>,
 }
 
-impl<'a> Open for &'a Entities<'a> {
+impl<'a> Join for &'a Entities<'a> {
+    type Type = Entity;
     type Value = Self;
     type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
-    fn open(self) -> (Self::Mask, Self::Value) {
+    fn open(self) -> (Self::Mask, Self) {
         (BitSetOr(&self.guard.alive, &self.guard.raised), self)
     }
-}
-
-impl<'a> Get for &'a Entities<'a> {
-    type Value = Entity;
-    unsafe fn get(&self, idx: Index) -> Self::Value {
-        let gen = self.guard.generations.get(idx as usize)
+    unsafe fn get(v: &mut Self, idx: Index) -> Entity {
+        let gen = v.guard.generations.get(idx as usize)
             .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
             .unwrap_or(Generation(1));
         Entity(idx, gen)
@@ -58,8 +56,10 @@ impl<'a> EntityBuilder<'a> {
 }
 
 
-struct Allocator {
-    generations: Vec<Generation>,
+/// Internally used structure for `Entity` allocation.
+#[doc(hidden)]
+pub struct Allocator {
+    pub generations: Vec<Generation>,
     alive: BitSet,
     raised: AtomicBitSet,
     killed: AtomicBitSet,
@@ -67,7 +67,7 @@ struct Allocator {
 }
 
 impl Allocator {
-    fn new() -> Allocator {
+    pub fn new() -> Allocator {
         Allocator {
             generations: vec![],
             alive: BitSet::new(),
@@ -174,17 +174,18 @@ impl<'a> Iterator for CreateEntities<'a> {
     }
 }
 
+
 trait StorageLock: Any + Send + Sync {
     fn del_slice(&self, &[Entity]);
 }
 
 mopafy!(StorageLock);
 
-impl<S: StorageBase + Any + Send + Sync> StorageLock for RwLock<S> {
+impl<T: Component> StorageLock for RwLock<MaskedStorage<T>> {
     fn del_slice(&self, entities: &[Entity]) {
         let mut guard = self.write().unwrap();
         for &e in entities.iter() {
-            guard.del(e);
+            guard.remove(e.get_id());
         }
     }
 }
@@ -207,30 +208,32 @@ impl World {
     }
     /// Registers a new component type.
     pub fn register<T: Component>(&mut self) {
-        let any = RwLock::new(T::Storage::new());
+        let any = RwLock::new(MaskedStorage::<T>::new());
         self.components.insert(TypeId::of::<T>(), Box::new(any));
     }
     /// Unregisters a component type.
-    pub fn unregister<T: Component>(&mut self) -> Option<T::Storage> {
+    pub fn unregister<T: Component>(&mut self) -> Option<MaskedStorage<T>> {
         self.components.remove(&TypeId::of::<T>()).map(|boxed|
-            match boxed.downcast::<RwLock<T::Storage>>() {
+            match boxed.downcast::<RwLock<MaskedStorage<T>>>() {
                 Ok(b) => (*b).into_inner().unwrap(),
                 Err(_) => panic!("Unable to downcast the storage type"),
             }
         )
     }
-    fn lock<T: Component>(&self) -> &RwLock<T::Storage> {
+    fn lock<T: Component>(&self) -> &RwLock<MaskedStorage<T>> {
         let boxed = self.components.get(&TypeId::of::<T>())
             .expect("Tried to perform an operation on type that was not registered");
         boxed.downcast_ref().unwrap()
     }
     /// Locks a component's storage for reading.
-    pub fn read<T: Component>(&self) -> RwLockReadGuard<T::Storage> {
-        self.lock::<T>().read().unwrap()
+    pub fn read<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, RwLockReadGuard<MaskedStorage<T>>> {
+        let data = self.lock::<T>().read().unwrap();
+        Storage::new(self.allocator.read().unwrap(), data)
     }
     /// Locks a component's storage for writing.
-    pub fn write<T: Component>(&self) -> RwLockWriteGuard<T::Storage> {
-        self.lock::<T>().write().unwrap()
+    pub fn write<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, RwLockWriteGuard<MaskedStorage<T>>> {
+        let data = self.lock::<T>().write().unwrap();
+        Storage::new(self.allocator.read().unwrap(), data)
     }
     /// Returns the entity iterator.
     pub fn entities(&self) -> Entities {
@@ -256,11 +259,12 @@ impl World {
             comp.del_slice(&[entity]);
         }
         let mut gens = self.allocator.write().unwrap();
-        gens.generations[entity.get_id()].die();
-        gens.alive.remove(entity.get_id() as Index);
-        gens.raised.remove(entity.get_id() as Index);
-        if entity.get_id() < gens.start_from.load(Ordering::Relaxed) {
-            gens.start_from.store(entity.get_id(), Ordering::Relaxed);
+        gens.alive.remove(entity.get_id());
+        gens.raised.remove(entity.get_id());
+        let id = entity.get_id() as usize;
+        gens.generations[id].die();
+        if id < gens.start_from.load(Ordering::Relaxed) {
+            gens.start_from.store(id, Ordering::Relaxed);
         }
     }
     /// Creates a new entity dynamically.
@@ -277,12 +281,12 @@ impl World {
     pub fn is_alive(&self, entity: Entity) -> bool {
         debug_assert!(entity.get_gen().is_alive());
         let gens = self.allocator.read().unwrap();
-        gens.generations.get(entity.get_id()).map(|&x| x == entity.get_gen()).unwrap_or(false)
+        gens.generations.get(entity.get_id() as usize).map(|&x| x == entity.get_gen()).unwrap_or(false)
     }
     /// Merges in the appendix, recording all the dynamically created
     /// and deleted entities into the persistent generations vector.
     /// Also removes all the abandoned components.
-    pub fn merge(&self) {
+    pub fn maintain(&self) {
         let mut allocator = self.allocator.write().unwrap();
 
         let temp_list = allocator.merge();
@@ -304,11 +308,11 @@ impl<'a> FetchArg<'a> {
         FetchArg(w)
     }
     /// Locks a `Component` for reading.
-    pub fn read<T: Component>(self) -> RwLockReadGuard<'a, T::Storage> {
+    pub fn read<T: Component>(self) -> Storage<T, RwLockReadGuard<'a, Allocator>, RwLockReadGuard<'a, MaskedStorage<T>>> {
         self.0.read::<T>()
     }
     /// Locks a `Component` for writing.
-    pub fn write<T: Component>(self) -> RwLockWriteGuard<'a, T::Storage> {
+    pub fn write<T: Component>(self) -> Storage<T, RwLockReadGuard<'a, Allocator>, RwLockWriteGuard<'a, MaskedStorage<T>>> {
         self.0.write::<T>()
     }
     /// Returns the entity iterator.
