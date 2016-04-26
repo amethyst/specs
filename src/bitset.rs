@@ -84,6 +84,7 @@ impl BitSet {
 
     /// this is used to set the levels in the hierarchy
     /// when the lowest layer was set from 0
+    #[inline(never)]
     fn add_slow(&mut self, id: Index) {
         let (_, p1, p2) = offsets(id);
         self.layer1[p1] |= id.mask(SHIFT1);

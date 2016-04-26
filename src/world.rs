@@ -118,7 +118,8 @@ impl Allocator {
         let idx = self.start_from.load(Ordering::Relaxed);
         for i in idx.. {
             if !self.raised.contains(i as Index) && !self.alive.add(i as Index) {
-                self.update_start_from(i+1);
+                // this is safe since we have mutable access to everything!
+                self.start_from.store(i+1, Ordering::Relaxed);
 
                 while self.generations.len() <= i as usize {
                     self.generations.push(Generation(0));
