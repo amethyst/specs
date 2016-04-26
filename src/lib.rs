@@ -12,6 +12,7 @@ extern crate pulse;
 extern crate threadpool;
 extern crate fnv;
 extern crate tuple_utils;
+extern crate atom;
 
 use std::cell::RefCell;
 use std::sync::{mpsc, Arc};

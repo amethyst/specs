@@ -3,11 +3,10 @@ use std::collections::HashMap;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use mopa::Any;
-use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr, MAX_EID};
+use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr};
 use join::Join;
 use storage::{Storage, MaskedStorage, UnprotectedStorage};
 use {Index, Generation, Entity};
-
 
 /// Abstract component type. Doesn't have to be Copy or even Clone.
 pub trait Component: Any + Sized {
@@ -71,8 +70,8 @@ impl Allocator {
         Allocator {
             generations: vec![],
             alive: BitSet::new(),
-            raised: AtomicBitSet::with_capacity(MAX_EID as u32),
-            killed: AtomicBitSet::with_capacity(MAX_EID as u32),
+            raised: AtomicBitSet::new(),
+            killed: AtomicBitSet::new(),
             start_from: AtomicUsize::new(0)
         }
     }
@@ -119,7 +118,8 @@ impl Allocator {
         let idx = self.start_from.load(Ordering::Relaxed);
         for i in idx.. {
             if !self.raised.contains(i as Index) && !self.alive.add(i as Index) {
-                self.update_start_from(i+1);
+                // this is safe since we have mutable access to everything!
+                self.start_from.store(i+1, Ordering::Relaxed);
 
                 while self.generations.len() <= i as usize {
                     self.generations.push(Generation(0));
