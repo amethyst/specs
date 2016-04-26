@@ -402,11 +402,23 @@ impl AtomicBitSet {
     /// already in the set.
     #[inline]
     pub fn add(&mut self, id: Index) -> bool {
+        use std::sync::atomic::Ordering::Relaxed;
         if id.offset(SHIFT1) >= self.layer0.len() {
             self.extend(id);
         }
 
-        self.add_atomic(id)
+        let (p0, p1, p2) = offsets(id);
+        let old = self.layer0[p0].load(Relaxed);
+        self.layer0[p0].store(old | id.mask(SHIFT0), Relaxed);
+        // early exit if the hierarchy is already set
+        if old != 0 {
+            return old & id.mask(SHIFT0) != 0;
+        }
+
+        self.layer1[p1].store(self.layer1[p1].load(Relaxed) | id.mask(SHIFT1), Relaxed);
+        self.layer2[p2].store(self.layer2[p2].load(Relaxed) | id.mask(SHIFT2), Relaxed);
+        self.layer3.store(self.layer3.load(Relaxed) | id.mask(SHIFT3), Relaxed);
+        true
     }
 
     /// Removes `id` from the set, returns `true` if the value
@@ -414,36 +426,44 @@ impl AtomicBitSet {
     /// to begin with.
     #[inline]
     pub fn remove(&mut self, id: Index) -> bool {
+        use std::sync::atomic::Ordering::Relaxed;
         let (p0, p1, p2) = offsets(id);
 
         if p0 >= self.layer0.len() {
             return false;
         }
 
-        if self.layer0[p0].load(Ordering::Relaxed) & id.mask(SHIFT0) == 0 {
+        if self.layer0[p0].load(Relaxed) & id.mask(SHIFT0) == 0 {
             return false;
         }
 
         // if the bitmask was set we need to clear
-        // its bit from layer0 to 3. the layers abover only
+        // its bit from layer0 to 3. the layers above only
         // should be cleared if the bit cleared was the last bit
         // in its set
-        self.layer0[p0].fetch_and(!id.mask(SHIFT0), Ordering::Relaxed);
-        if self.layer0[p0].load(Ordering::Relaxed) != 0 {
+        //
+        // These are used over a `fetch_and` because we have a mutable
+        // access to the AtomicBitSet so this is sound (and faster)
+        let v = self.layer0[p0].load(Relaxed) & !id.mask(SHIFT0);
+        self.layer0[p0].store(v, Relaxed);
+        if v != 0 {
             return true;
         }
 
-        self.layer1[p1].fetch_and(!id.mask(SHIFT1), Ordering::Relaxed);
-        if self.layer1[p1].load(Ordering::Relaxed) != 0 {
+        let v = self.layer1[p1].load(Relaxed) & !id.mask(SHIFT1);
+        self.layer1[p1].store(v, Relaxed);
+        if v != 0 {
             return true;
         }
 
-        self.layer2[p2].fetch_and(!id.mask(SHIFT2), Ordering::Relaxed);
-        if self.layer2[p2].load(Ordering::Relaxed) != 0 {
+        let v = self.layer2[p2].load(Relaxed) & !id.mask(SHIFT2);
+        self.layer2[p2].store(v, Relaxed);
+        if v != 0 {
             return true;
         }
 
-        self.layer3.fetch_and(!id.mask(SHIFT3), Ordering::Relaxed);
+        let v = self.layer3.load(Relaxed) & !id.mask(SHIFT3);
+        self.layer3.store(v, Relaxed);
         return true;
     }
 
