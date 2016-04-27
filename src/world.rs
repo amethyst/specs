@@ -295,28 +295,3 @@ impl World {
         }
     }
 }
-
-/// System fetch-time argument. The fetch is executed at the start of the run.
-/// It contains a subset of `World` methods that make sense during initialization.
-#[derive(Copy, Clone)]
-pub struct FetchArg<'a>(&'a World);
-
-impl<'a> FetchArg<'a> {
-    /// Constructs a new `FetchArg`, not supposed to be used.
-    #[doc(hidden)]
-    pub fn new(w: &'a World) -> FetchArg<'a> {
-        FetchArg(w)
-    }
-    /// Locks a `Component` for reading.
-    pub fn read<T: Component>(self) -> Storage<T, RwLockReadGuard<'a, Allocator>, RwLockReadGuard<'a, MaskedStorage<T>>> {
-        self.0.read::<T>()
-    }
-    /// Locks a `Component` for writing.
-    pub fn write<T: Component>(self) -> Storage<T, RwLockReadGuard<'a, Allocator>, RwLockWriteGuard<'a, MaskedStorage<T>>> {
-        self.0.write::<T>()
-    }
-    /// Returns the entity iterator.
-    pub fn entities(self) -> Entities<'a> {
-        self.0.entities()
-    }
-}
