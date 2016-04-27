@@ -119,14 +119,17 @@ impl<C> System<C> for () {
     fn run(&mut self, _: RunArg, _: C) {}
 }
 
+/// System scheduling priority. Higehr priority systems are started
+/// earlier than lower-priority ones.
+pub type Priority = i32;
+
 /// System information package, where the system itself is accompanied
 /// by its name and priority.
 pub struct SystemInfo<C> {
     /// Name of the system. Can be used for lookups or debug output.
     pub name: String,
-    /// Priority of the system. The higher priority systems are started
-    /// before lower priority ones.
-    pub priority: i32,
+    /// Priority of the system.
+    pub priority: Priority,
     /// System trait object itself.
     pub object: Box<System<C>>,
 }
@@ -173,6 +176,16 @@ impl<C: 'static> Planner<C> {
             chan_in: sin,
             threader: ThreadPool::new(num_threads),
         }
+    }
+    /// Add a system to the dispatched list.
+    pub fn add_system<S>(&mut self, sys: S, name: &str, priority: Priority) where
+        S: 'static + System<C>
+    {
+        self.systems.push(SystemInfo {
+            name: name.to_owned(),
+            priority: priority,
+            object: Box::new(sys),
+        });
     }
     /// Runs a custom system.
     pub fn run_custom<F>(&mut self, functor: F) where
