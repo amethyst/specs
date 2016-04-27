@@ -20,8 +20,7 @@ use pulse::{Pulse, Signal, Signals};
 use threadpool::ThreadPool;
 
 pub use storage::{Storage, VecStorage, HashMapStorage, UnprotectedStorage};
-pub use world::{Component, World, FetchArg,
-    EntityBuilder, Entities, CreateEntities};
+pub use world::{Component, World, EntityBuilder, Entities, CreateEntities};
 pub use bitset::{BitSetAnd, BitSet, BitSetLike, AtomicBitSet};
 pub use join::{Join, JoinIter};
 
@@ -89,11 +88,11 @@ impl RunArg {
     /// Borrows the world, allowing the system to lock some components and get the entity
     /// iterator. Must be called only once.
     pub fn fetch<'a, U, F>(&'a self, f: F) -> U
-        where F: FnOnce(FetchArg<'a>) -> U
+        where F: FnOnce(&'a World) -> U
     {
         let pulse = self.pulse.borrow_mut().take()
                         .expect("fetch may only be called once.");
-        let u = f(FetchArg::new(&self.world));
+        let u = f(&self.world);
         pulse.pulse();
         u
     }
