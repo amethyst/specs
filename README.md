@@ -53,3 +53,14 @@ planner.run1w1r(|p: &mut Position, s: &Speed| {
     *p += *s;
 });
 ```
+Custom system:
+```rust
+impl System<u32> for MySystem {
+    fn run(&mut self, arg: RunArg, context: u32) {
+        let mut numbers = arg.fetch(|w| w.write::<u32>());
+        for n in (&numbers).iter() {
+            *n += context;
+        }
+    }
+}
+```
