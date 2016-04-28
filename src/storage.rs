@@ -254,6 +254,21 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
     }
 }
 
+/// A dummy storage type, used for cases where the component
+/// doesn't contain any data and instead works as a simple flag.
+pub struct DummyStorage<T>(T);
+
+impl<T: Clone + Default> UnprotectedStorage<T> for DummyStorage<T> {
+    fn new() -> Self {
+        DummyStorage(Default::default())
+    }
+    unsafe fn clean<F>(&mut self, _: F) where F: Fn(Index) -> bool {}
+    unsafe fn get(&self, _: Index) -> &T { &self.0 }
+    unsafe fn get_mut(&mut self, _: Index) -> &mut T { &mut self.0 }
+    unsafe fn insert(&mut self, _: Index, _: T) {}
+    unsafe fn remove(&mut self, _: Index) -> T { self.0.clone() }
+}
+
 
 #[cfg(test)]
 mod map_test {
