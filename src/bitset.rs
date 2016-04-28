@@ -162,6 +162,14 @@ impl BitSet {
         let p0 = id.offset(SHIFT1);
         p0 < self.layer0.len() && (self.layer0[p0] & id.mask(SHIFT0)) != 0
     }
+
+    /// Completely wipes out the bit set.
+    pub fn clear(&mut self) {
+        self.layer0.clear();
+        self.layer1.clear();
+        self.layer2.clear();
+        self.layer3 = 0;
+    }
 }
 
 pub trait Row: Sized + Copy {
