@@ -263,17 +263,17 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
     }
 }
 
-/// A dummy storage type, used for cases where the component
+/// A null storage type, used for cases where the component
 /// doesn't contain any data and instead works as a simple flag.
-pub struct DummyStorage<T>(T);
+pub struct NullStorage<T>(T);
 
-impl<T: Clone + Default> UnprotectedStorage<T> for DummyStorage<T> {
+impl<T: Clone + Default> UnprotectedStorage<T> for NullStorage<T> {
     fn new() -> Self {
-        DummyStorage(Default::default())
+        NullStorage(Default::default())
     }
     unsafe fn clean<F>(&mut self, _: F) where F: Fn(Index) -> bool {}
     unsafe fn get(&self, _: Index) -> &T { &self.0 }
-    unsafe fn get_mut(&mut self, _: Index) -> &mut T { &mut self.0 }
+    unsafe fn get_mut(&mut self, _: Index) -> &mut T { panic!("One does not simply modify a NullStorage") }
     unsafe fn insert(&mut self, _: Index, _: T) {}
     unsafe fn remove(&mut self, _: Index) -> T { self.0.clone() }
 }
@@ -380,7 +380,7 @@ mod map_test {
 mod test {
     use std::convert::AsMut;
     use std::fmt::Debug;
-    use super::{Storage, MaskedStorage, VecStorage, HashMapStorage, DummyStorage};
+    use super::{Storage, MaskedStorage, VecStorage, HashMapStorage, NullStorage};
     use world::Allocator;
     use {Component, Entity, Generation};
 
@@ -409,15 +409,15 @@ mod test {
     }
 
     #[derive(Clone)]
-    struct Cdummy(u32);
-    impl Default for Cdummy {
-        fn default() -> Cdummy { Cdummy(0) }
+    struct Cnull(u32);
+    impl Default for Cnull {
+        fn default() -> Cnull { Cnull(0) }
     }
-    impl From<u32> for Cdummy {
-        fn from(v: u32) -> Cdummy { Cdummy(v) }
+    impl From<u32> for Cnull {
+        fn from(v: u32) -> Cnull { Cnull(v) }
     }
-    impl Component for Cdummy {
-        type Storage = DummyStorage<Cdummy>;
+    impl Component for Cnull {
+        type Storage = NullStorage<Cnull>;
     }
 
     fn test_add<T: Component + From<u32> + Debug + Eq>() {
@@ -516,6 +516,6 @@ mod test {
     #[test] fn hash_test_sub_gen() { test_sub_gen::<Cmap>(); }
     #[test] fn hash_test_clear() { test_clear::<Cmap>(); }
 
-    #[test] fn dummy_test_clear() { test_clear::<Cdummy>(); }
+    #[test] fn dummy_test_clear() { test_clear::<Cnull>(); }
 }
 
