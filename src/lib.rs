@@ -19,7 +19,7 @@ use std::sync::{mpsc, Arc};
 use pulse::{Pulse, Signal, Signals};
 use threadpool::ThreadPool;
 
-pub use storage::{Storage, VecStorage, HashMapStorage, UnprotectedStorage};
+pub use storage::{Storage, UnprotectedStorage, VecStorage, HashMapStorage, NullStorage};
 pub use world::{Component, World, EntityBuilder, Entities, CreateEntities};
 pub use bitset::{BitSetAnd, BitSet, BitSetLike, AtomicBitSet};
 pub use join::{Join, JoinIter};

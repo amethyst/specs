@@ -30,6 +30,14 @@ impl<T: Component> MaskedStorage<T> {
     fn open_mut(&mut self) -> (&BitSet, &mut T::Storage) {
         (&self.mask, &mut self.inner)
     }
+    /// Clear the contents of this storage.
+    pub fn clear(&mut self) {
+        let mask = &mut self.mask;
+        unsafe {
+            self.inner.clean(|i| mask.contains(i));
+        }
+        mask.clear();
+    }
     /// Remove an element by a given index.
     pub fn remove(&mut self, id: Index) -> Option<T> {
         if self.mask.remove(id) {
@@ -42,10 +50,7 @@ impl<T: Component> MaskedStorage<T> {
 
 impl<T: Component> Drop for MaskedStorage<T> {
     fn drop(&mut self) {
-        let mask = &self.mask;
-        unsafe {
-            self.inner.clean(|i| mask.contains(i));
-        }
+        self.clear();
     }
 }
 
@@ -121,6 +126,10 @@ impl<T, A, D> Storage<T, A, D> where
         if self.has_gen(e) {
             self.data.remove(e.get_id())
         }else { None }
+    }
+    /// Clears the contents of the storage.
+    pub fn clear(&mut self) {
+        self.data.clear();
     }
 }
 
@@ -254,6 +263,21 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
     }
 }
 
+/// A null storage type, used for cases where the component
+/// doesn't contain any data and instead works as a simple flag.
+pub struct NullStorage<T>(T);
+
+impl<T: Clone + Default> UnprotectedStorage<T> for NullStorage<T> {
+    fn new() -> Self {
+        NullStorage(Default::default())
+    }
+    unsafe fn clean<F>(&mut self, _: F) where F: Fn(Index) -> bool {}
+    unsafe fn get(&self, _: Index) -> &T { &self.0 }
+    unsafe fn get_mut(&mut self, _: Index) -> &mut T { panic!("One does not simply modify a NullStorage") }
+    unsafe fn insert(&mut self, _: Index, _: T) {}
+    unsafe fn remove(&mut self, _: Index) -> T { self.0.clone() }
+}
+
 
 #[cfg(test)]
 mod map_test {
@@ -356,7 +380,7 @@ mod map_test {
 mod test {
     use std::convert::AsMut;
     use std::fmt::Debug;
-    use super::{Storage, MaskedStorage, VecStorage, HashMapStorage};
+    use super::{Storage, MaskedStorage, VecStorage, HashMapStorage, NullStorage};
     use world::Allocator;
     use {Component, Entity, Generation};
 
@@ -382,6 +406,18 @@ mod test {
     }
     impl Component for Cmap {
         type Storage = HashMapStorage<Cmap>;
+    }
+
+    #[derive(Clone)]
+    struct Cnull(u32);
+    impl Default for Cnull {
+        fn default() -> Cnull { Cnull(0) }
+    }
+    impl From<u32> for Cnull {
+        fn from(v: u32) -> Cnull { Cnull(v) }
+    }
+    impl Component for Cnull {
+        type Storage = NullStorage<Cnull>;
     }
 
     fn test_add<T: Component + From<u32> + Debug + Eq>() {
@@ -451,17 +487,35 @@ mod test {
         }
     }
 
+    fn test_clear<T: Component + From<u32>>() {
+        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+
+        for i in 0..10 {
+            s.insert(Entity::new(i, Generation(1)), (i + 10).into());
+        }
+
+        s.clear();
+
+        for i in 0..10 {
+            assert!(s.get(Entity::new(i, Generation(1))).is_none());
+        }
+    }
+
 
     #[test] fn vec_test_add() { test_add::<Cvec>(); }
     #[test] fn vec_test_sub() { test_sub::<Cvec>(); }
     #[test] fn vec_test_get_mut() { test_get_mut::<Cvec>(); }
     #[test] fn vec_test_add_gen() { test_add_gen::<Cvec>(); }
     #[test] fn vec_test_sub_gen() { test_sub_gen::<Cvec>(); }
+    #[test] fn vec_test_clear() { test_clear::<Cvec>(); }
 
     #[test] fn hash_test_add() { test_add::<Cmap>(); }
     #[test] fn hash_test_sub() { test_sub::<Cmap>(); }
     #[test] fn hash_test_get_mut() { test_get_mut::<Cmap>(); }
     #[test] fn hash_test_add_gen() { test_add_gen::<Cmap>(); }
     #[test] fn hash_test_sub_gen() { test_sub_gen::<Cmap>(); }
+    #[test] fn hash_test_clear() { test_clear::<Cmap>(); }
+
+    #[test] fn dummy_test_clear() { test_clear::<Cnull>(); }
 }
 
