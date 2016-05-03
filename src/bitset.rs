@@ -270,6 +270,17 @@ impl<A: BitSetLike, B: BitSetLike> BitSetLike for BitSetOr<A, B> {
     #[inline] fn layer0(&self, i: usize) -> usize { self.0.layer0(i) | self.1.layer0(i) }
 }
 
+/// `BitSetNot` takes a `BitSetLike` item, and produced an inverted virtual set.
+/// Note: the implementation is sub-optimal because layers 1-3 are not active.
+pub struct BitSetNot<A: BitSetLike>(pub A);
+
+impl<A: BitSetLike> BitSetLike for BitSetNot<A> {
+    #[inline] fn layer3(&self) -> usize { !0 }
+    #[inline] fn layer2(&self, _: usize) -> usize { !0 }
+    #[inline] fn layer1(&self, _: usize) -> usize { !0 }
+    #[inline] fn layer0(&self, i: usize) -> usize { !self.0.layer0(i) }
+}
+
 
 pub struct BitIter<T> {
     set: T,
@@ -528,7 +539,7 @@ impl BitSetLike for AtomicBitSet {
 
 #[cfg(test)]
 mod set_test {
-    use super::{BitSet, BitSetAnd, BitSetLike};
+    use super::{BitSet, BitSetAnd, BitSetNot, BitSetLike};
 
     #[test]
     fn insert() {
@@ -600,6 +611,20 @@ mod set_test {
         assert_eq!((&odd).iter().count(), 50_000);
         assert_eq!((&even).iter().count(), 50_000);
         assert_eq!(BitSetAnd(&odd, &even).iter().count(), 0);
+    }
+
+    #[test]
+    fn not() {
+        let mut c = BitSet::new();
+        for i in 0..10_000 {
+            if i % 2 == 1 {
+                c.add(i);
+            }
+        }
+        let d = BitSetNot(c);
+        for (idx, i) in d.iter().take(5_000).enumerate() {
+            assert_eq!(idx * 2, i as usize);
+        }
     }
 }
 

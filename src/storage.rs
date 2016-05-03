@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Not};
 
 use fnv::FnvHasher;
 
-use bitset::BitSet;
+use bitset::{BitSet, BitSetNot};
 use join::Join;
 use world::{Component, Allocator};
 use {Entity, Index, Generation};
@@ -54,6 +54,22 @@ impl<T: Component> Drop for MaskedStorage<T> {
     }
 }
 
+/// An inverted storage type, only useful to iterate entities
+/// that do not have a particular component type.
+pub struct AntiStorage<'a>(&'a BitSet);
+
+impl<'a> Join for AntiStorage<'a> {
+    type Type = ();
+    type Value = ();
+    type Mask = BitSetNot<&'a BitSet>;
+    fn open(self) -> (Self::Mask, ()) {
+        (BitSetNot(self.0), ())
+    }
+    unsafe fn get(_: &mut (), _: Index) -> () {
+        ()
+    }
+}
+
 
 /// A wrapper around the masked storage and the generations vector.
 /// Can be used for safe lookup of components, insertions and removes.
@@ -62,6 +78,16 @@ pub struct Storage<T, A, D> {
     phantom: PhantomData<T>,
     alloc: A,
     data: D,
+}
+
+impl<'a, T, A, D> Not for &'a Storage<T, A, D> where
+    T: Component,
+    D: Deref<Target = MaskedStorage<T>>,
+{
+    type Output = AntiStorage<'a>;
+    fn not(self) -> Self::Output {
+        AntiStorage(&self.data.mask)
+    }
 }
 
 impl<T, A, D> Storage<T, A, D> where
@@ -420,6 +446,10 @@ mod test {
         type Storage = NullStorage<Cnull>;
     }
 
+    fn create<T: Component>() -> Storage<T, Box<Allocator>, Box<MaskedStorage<T>>> {
+        Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()))
+    }
+
     fn test_add<T: Component + From<u32> + Debug + Eq>() {
         let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
 
@@ -501,6 +531,19 @@ mod test {
         }
     }
 
+    fn test_anti<T: Component + From<u32> + Debug + Eq>() {
+        use join::Join;
+        let mut s = create::<T>();
+
+        for i in 0..10 {
+            s.insert(Entity::new(i, Generation(1)), (i+10).into());
+        }
+
+        for (i, (a, _)) in (&s, !&s).iter().take(10).enumerate() {
+            assert_eq!(a, &(i as u32).into());
+        }
+    }
+
 
     #[test] fn vec_test_add() { test_add::<Cvec>(); }
     #[test] fn vec_test_sub() { test_sub::<Cvec>(); }
@@ -508,6 +551,7 @@ mod test {
     #[test] fn vec_test_add_gen() { test_add_gen::<Cvec>(); }
     #[test] fn vec_test_sub_gen() { test_sub_gen::<Cvec>(); }
     #[test] fn vec_test_clear() { test_clear::<Cvec>(); }
+    #[test] fn vec_test_anti() { test_anti::<Cvec>(); }
 
     #[test] fn hash_test_add() { test_add::<Cmap>(); }
     #[test] fn hash_test_sub() { test_sub::<Cmap>(); }
