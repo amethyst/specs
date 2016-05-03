@@ -271,6 +271,7 @@ impl<A: BitSetLike, B: BitSetLike> BitSetLike for BitSetOr<A, B> {
 }
 
 /// `BitSetNot` takes a `BitSetLike` item, and produced an inverted virtual set.
+/// Note: the implementation is sub-optimal because layers 1-3 are not active.
 pub struct BitSetNot<A: BitSetLike>(pub A);
 
 impl<A: BitSetLike> BitSetLike for BitSetNot<A> {

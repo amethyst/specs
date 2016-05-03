@@ -103,7 +103,6 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
     }
 }
 
-
 macro_rules! define_open {
     // use variables to indicate the arity of the tuple
     ($($from:ident),*) => {
