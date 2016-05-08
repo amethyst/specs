@@ -1,3 +1,4 @@
+use std;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::marker::PhantomData;
@@ -120,6 +121,19 @@ impl<T, A, D> Storage<T, A, D> where
     }
 }
 
+
+/// the status of an insert operation
+pub enum InsertResult<T> {
+    /// The value was inserted and there was no value before
+    Inserted,
+    /// The value was updated an already inserted value
+    /// the value returned is the old value
+    Updated(T),
+    /// The value failed to insert because the entity
+    /// was invalid
+    EntityIsDead(T),
+}
+
 impl<T, A, D> Storage<T, A, D> where
     T: Component,
     A: Deref<Target = Allocator>,
@@ -132,19 +146,20 @@ impl<T, A, D> Storage<T, A, D> where
         }else {None}
     }
     /// Inserts new data for a given `Entity`.
-    /// Returns false if the entity is dead, and insertion is not possible.
-    pub fn insert(&mut self, e: Entity, v: T) -> bool {
+    /// Returns the result of the operation as a `InsertResult<T>`
+    pub fn insert(&mut self, e: Entity, mut v: T) -> InsertResult<T> {
         if self.has_gen(e) {
             let id = e.get_id();
             if self.data.mask.contains(id) {
-                *unsafe{ self.data.inner.get_mut(id) } = v;
+                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id) });
+                InsertResult::Updated(v)
             } else {
                 self.data.mask.add(id);
-                unsafe{ self.data.inner.insert(id, v) };
+                unsafe { self.data.inner.insert(id, v) };
+                InsertResult::Inserted
             }
-            true
-        }else {
-            false
+        } else {
+            InsertResult::EntityIsDead(v)
         }
     }
     /// Removes the data associated with an `Entity`.

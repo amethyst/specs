@@ -20,7 +20,7 @@ use pulse::{Pulse, Signal, Signals};
 use threadpool::ThreadPool;
 
 pub use storage::{Storage, UnprotectedStorage, AntiStorage,
-                  VecStorage, HashMapStorage, NullStorage};
+                  VecStorage, HashMapStorage, NullStorage, InsertResult};
 pub use world::{Component, World, EntityBuilder, Entities, CreateEntities};
 pub use join::{Join, JoinIter};
 
