@@ -56,8 +56,8 @@ impl<'a> EntityBuilder<'a> {
 
 
 /// Internally used structure for `Entity` allocation.
-#[doc(hidden)]
 pub struct Allocator {
+    #[doc(hidden)]
     pub generations: Vec<Generation>,
     alive: BitSet,
     raised: AtomicBitSet,
@@ -66,6 +66,7 @@ pub struct Allocator {
 }
 
 impl Allocator {
+    #[doc(hidden)]
     pub fn new() -> Allocator {
         Allocator {
             generations: vec![],
