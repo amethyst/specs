@@ -192,11 +192,18 @@ impl<T: Component> StorageLock for RwLock<MaskedStorage<T>> {
 }
 
 
+trait ResourceLock: Any + Send + Sync {}
+
+mopafy!(ResourceLock);
+
+impl<T:Any+Send+Sync> ResourceLock for RwLock<T> {}
+
 /// The `World` struct contains all the data, which is entities and their components.
 /// All methods are supposed to be valid for any context they are available in.
 pub struct World {
     allocator: RwLock<Allocator>,
     components: HashMap<TypeId, Box<StorageLock>>,
+    resources: HashMap<TypeId, Box<ResourceLock>>,
 }
 
 impl World {
@@ -204,7 +211,8 @@ impl World {
     pub fn new() -> World {
         World {
             components: HashMap::new(),
-            allocator: RwLock::new(Allocator::new())
+            allocator: RwLock::new(Allocator::new()),
+            resources: HashMap::new()
         }
     }
     /// Registers a new component type.
@@ -294,5 +302,32 @@ impl World {
         for comp in self.components.values() {
             comp.del_slice(&temp_list);
         }
+    }
+    /// add a new resource to the world
+    pub fn add_resource<T: Any+Send+Sync>(&mut self, resource: T) {
+        let resource = Box::new(RwLock::new(resource));
+        self.resources.insert(TypeId::of::<T>(), resource);
+    }
+    /// check to see if a resource is present
+    pub fn has_resource<T: Any+Send+Sync>(&self) -> bool {
+        self.resources.get(&TypeId::of::<T>()).is_some()
+    }
+    /// get read-only access to an resource
+    pub fn read_resource<T: Any+Send+Sync>(&self) -> RwLockReadGuard<T> {
+        self.resources.get(&TypeId::of::<T>())
+            .expect("Resource was not registered")
+            .downcast_ref::<RwLock<T>>()
+            .unwrap()
+            .read()
+            .unwrap()
+    }
+    /// get read-write access to a resource
+    pub fn write_resource<T: Any+Send+Sync>(&self) -> RwLockWriteGuard<T> {
+        self.resources.get(&TypeId::of::<T>())
+            .expect("Resource was not registered")
+            .downcast_ref::<RwLock<T>>()
+            .unwrap()
+            .write()
+            .unwrap()
     }
 }
