@@ -22,6 +22,9 @@ impl specs::Component for CompFloat {
     type Storage = specs::VecStorage<CompFloat>;
 }
 
+#[derive(Clone, Debug)]
+struct Sum(usize);
+
 fn main() {
     let (e, mut planner) = {
         let mut w = specs::World::new();
@@ -36,6 +39,12 @@ fn main() {
         w.create_now().with(CompInt(-1)).with(CompBool(false)).build();
         w.create_now().with(CompInt(127)).build();
         w.create_now().with(CompBool(false)).build();
+
+        // resources can be installed, these are nothing fancy, but allow you
+        // to pass data to systems and follow the same sync strategy as the
+        // component storage does.
+        w.add_resource(Sum(0xdeadbeef));
+
         // Planner is used to run systems on the specified world with a specified number of threads
         (e, specs::Planner::<()>::new(w, 4))
     };
@@ -58,7 +67,7 @@ fn main() {
 
     // Instead of using macros you can use run_custom() to build a system precisely
     planner.run_custom(|arg| {
-        // fetch() borrows a world, so a system could lock neccessary storages
+        // fetch() borrows a world, so a system could lock necessary storages
         // Can be called only once
         let (mut sa, sb) = arg.fetch(|w| {
             (w.write::<CompInt>(), w.read::<CompBool>())
@@ -97,6 +106,17 @@ fn main() {
             println!("eid[{:?}] = {:?} {:?}", eid, sa, sb);
         }
     });
-
+    planner.run_custom(|arg| {
+        let (ints, mut count) = arg.fetch(|w| {
+            (w.read::<CompInt>(),
+             // resources are acquired in the same way as components
+             w.write_resource::<Sum>())
+        });
+        count.0 = (&ints,).iter().count();
+    });
+    planner.run_custom(|arg| {
+        let count = arg.fetch(|w| w.read_resource::<Sum>());
+        println!("count={:?}", count.0);
+    });
     planner.wait();
 }
