@@ -63,7 +63,7 @@ fn main() {
         b.0 = a.0 > 0;
     });
     // Deletes an entity instantly
-    planner.world.delete_now(e);
+    planner.mut_world().delete_now(e);
 
     // Instead of using macros you can use run_custom() to build a system precisely
     planner.run_custom(|arg| {

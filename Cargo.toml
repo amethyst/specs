@@ -1,6 +1,6 @@
 [package]
 name = "specs"
-version = "0.6.2"
+version = "0.7.0"
 description = """
 Parallel Entity-Component System.
 
@@ -23,7 +23,7 @@ exclude = ["doc", ".travis.yml"]
 [dependencies]
 mopa = "0.2"
 pulse = "0.5"
-threadpool = "1.0"
+threadpool = "1.3"
 fnv = "1.0"
 tuple_utils="0.2"
 atom = "0.3"
