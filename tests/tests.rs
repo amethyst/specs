@@ -30,7 +30,7 @@ fn wait() {
         let found_ent_0 = Arc::new(AtomicBool::new(false));
         let found_ent_1 = Arc::new(AtomicBool::new(false));
 
-        planner.world.create_now()
+        planner.mut_world().create_now()
             .with(CompInt(7))
             .with(CompBool(false))
             .build();
@@ -57,7 +57,7 @@ fn wait() {
 //#[test] //TODO
 fn _task_panics() {
     let mut planner = create_world();
-    planner.world.create_now()
+    planner.mut_world().create_now()
         .with(CompInt(7))
         .with(CompBool(false))
         .build();
@@ -74,7 +74,7 @@ fn _task_panics() {
 #[test]
 fn task_panics_args_captured() {
     let mut planner = create_world();
-    planner.world.create_now()
+    planner.mut_world().create_now()
         .with(CompInt(7))
         .with(CompBool(false))
         .build();
@@ -159,11 +159,11 @@ fn mixed_create_merge() {
         // and create_later
         for _ in 0..10 {
             for _ in 0..cnt {
-                add(set, planner.world.create_now().build());
+                add(set, planner.mut_world().create_now().build());
                 add(set, planner.world.create_later());
                 //  swap order
                 add(set, planner.world.create_later());
-                add(set, planner.world.create_now().build());
+                add(set, planner.mut_world().create_now().build());
             }
             planner.wait();
         }
@@ -175,14 +175,14 @@ fn mixed_create_merge() {
     }
     insert(&mut planner, &mut set, 20);
     for e in set.drain() {
-        planner.world.delete_now(e);
+        planner.mut_world().delete_now(e);
     }
     insert(&mut planner, &mut set, 40);
 }
 
 #[test]
 fn is_alive() {
-    let w = specs::World::new();
+    let mut w = specs::World::new();
 
     let e = w.create_now().build();
     assert!(w.is_alive(e));

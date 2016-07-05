@@ -252,18 +252,18 @@ impl World {
     }
     /// Returns the entity creation iterator. Can be used to create many
     /// empty entities at once without paying the locking overhead.
-    pub fn create_iter(&self) -> CreateEntities {
+    pub fn create_iter(&mut self) -> CreateEntities {
         CreateEntities {
             allocate: self.allocator.write().unwrap(),
         }
     }
     /// Creates a new entity instantly, locking the generations data.
-    pub fn create_now(&self) -> EntityBuilder {
+    pub fn create_now(&mut self) -> EntityBuilder {
         let id = self.allocator.write().unwrap().allocate();
         EntityBuilder(id, self)
     }
     /// Deletes a new entity instantly, locking the generations data.
-    pub fn delete_now(&self, entity: Entity) {
+    pub fn delete_now(&mut self, entity: Entity) {
         for comp in self.components.values() {
             comp.del_slice(&[entity]);
         }
@@ -295,7 +295,7 @@ impl World {
     /// Merges in the appendix, recording all the dynamically created
     /// and deleted entities into the persistent generations vector.
     /// Also removes all the abandoned components.
-    pub fn maintain(&self) {
+    pub fn maintain(&mut self) {
         let mut allocator = self.allocator.write().unwrap();
 
         let temp_list = allocator.merge();

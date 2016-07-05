@@ -98,6 +98,21 @@ impl RunArg {
         pulse.pulse();
         u
     }
+    /// Borrows the world, allowing the system to lock some components and get the entity
+    /// iterator. As an alternative to `fetch()`, it must be called only once.
+    /// It allows creating a number of entities instantly, returned in a vector.
+    #[allow(mutable_transmutes)]
+    pub fn fetch_new<'a, U, F>(&'a self, num_entities: usize, f: F) -> (Vec<Entity>, U)
+        where F: FnOnce(&'a World) -> U
+    {
+        use std::mem::transmute;
+        // The transmute is used to call `create_iter`, which is really safe for parallel use.
+        // It's only receiving `&mut self` to prevent deadlocks, and these are not possible in
+        // the pre-fetch phase we are in right now.
+        let entities = unsafe { transmute::<&World, &mut World>(&self.world) }
+            .create_iter().take(num_entities).collect();
+        (entities, self.fetch(f))
+    }
     /// Creates a new entity dynamically.
     pub fn create(&self) -> Entity {
         self.world.create_later()
@@ -208,9 +223,8 @@ impl<C: 'static> Planner<C> {
         self.wait_count += 1;
         signal.wait().expect("task panicked before args were captured.");
     }
-    /// Waits for all currently executing systems to finish, and then
-    /// merges all queued changes.
-    pub fn wait(&mut self) {
+
+    fn wait_internal(&mut self) {
         while self.wait_count > 0 {
             let sinfo = self.chan_in.recv().expect("one or more task as panicked.");
             if !sinfo.name.is_empty() {
@@ -218,7 +232,20 @@ impl<C: 'static> Planner<C> {
             }
             self.wait_count -= 1;
         }
-        self.world.maintain();
+    }
+
+    /// Waits for all currently executing systems to finish, and then
+    /// returns the mutable borrow of the world, allowing to create
+    /// entities instantly.
+    pub fn mut_world(&mut self) -> &mut World {
+        self.wait_internal();
+        Arc::get_mut(&mut self.world).unwrap()
+    }
+
+    /// Waits for all currently executing systems to finish, and then
+    /// merges all queued changes.
+    pub fn wait(&mut self) {
+        self.mut_world().maintain();
     }
 }
 
