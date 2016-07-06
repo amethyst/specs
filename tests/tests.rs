@@ -174,7 +174,7 @@ fn mixed_create_merge() {
 
     insert(&mut planner, &mut set, 10);
     for e in set.drain() {
-        planner.world.delete_later(e);
+        planner.mut_world().delete_later(e);
     }
     insert(&mut planner, &mut set, 20);
     for e in set.drain() {

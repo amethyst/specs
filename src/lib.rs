@@ -171,7 +171,7 @@ impl<C> Drop for SystemGuard<C> {
 /// distributes the load in parallel using a thread pool.
 pub struct Planner<C> {
     /// Shared `World`.
-    pub world: Arc<World>,
+    world: Arc<World>,
     /// Permanent systems in the planner.
     pub systems: Vec<SystemInfo<C>>,
     wait_count: usize,
