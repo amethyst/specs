@@ -103,8 +103,14 @@ impl<T, A, D> Storage<T, A, D> where
         }
     }
     fn has_gen(&self, e: Entity) -> bool {
-        let g1 = Generation(1);
-        e.get_gen() == *self.alloc.generations.get(e.get_id() as usize).unwrap_or(&g1)
+        let gen_opt = self.alloc.generations.get(e.get_id() as usize);
+        let expected = if self.alloc.is_killed(e.get_id()) {
+            gen_opt.unwrap().raised()
+        } else {
+            let g1 = Generation(1);
+            *gen_opt.unwrap_or(&g1)
+        };
+        e.get_gen() == expected
     }
 }
 

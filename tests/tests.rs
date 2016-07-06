@@ -159,11 +159,14 @@ fn mixed_create_merge() {
         // and create_later
         for _ in 0..10 {
             for _ in 0..cnt {
-                add(set, planner.mut_world().create_now().build());
-                add(set, planner.world.create_later());
+                let mut w = planner.mut_world();
+                add(set, w.create_now().build());
+                let e = w.create_now().build();
+                w.delete_now(e);
+                add(set, w.create_later());
                 //  swap order
-                add(set, planner.world.create_later());
-                add(set, planner.mut_world().create_now().build());
+                add(set, w.create_later());
+                add(set, w.create_now().build());
             }
             planner.wait();
         }
