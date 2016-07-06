@@ -81,6 +81,11 @@ impl Allocator {
         self.killed.add_atomic(idx);
     }
 
+    /// Return `true` if the index is scheduled to be removed
+    pub fn is_killed(&self, idx: Index) -> bool {
+        self.killed.contains(idx)
+    }
+
     /// Attempt to move the `start_from` value
     fn update_start_from(&self, start_from: usize) {
         loop {
@@ -285,6 +290,13 @@ impl World {
     pub fn delete_later(&self, entity: Entity) {
         let allocator = self.allocator.read().unwrap();
         allocator.kill(entity.get_id() as Index);
+    }
+    /// Returns `true` if the given `Entity` is scheduled for deletion
+    /// but not yet actually killed.
+    pub fn is_zombie(&self, entity: Entity) -> bool {
+        debug_assert!(entity.get_gen().is_alive());
+        let gens = self.allocator.read().unwrap();
+        gens.is_killed(entity.get_id())
     }
     /// Returns `true` if the given `Entity` is alive.
     pub fn is_alive(&self, entity: Entity) -> bool {
