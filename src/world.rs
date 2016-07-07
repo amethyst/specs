@@ -77,13 +77,17 @@ impl Allocator {
         }
     }
 
-    fn kill(&self, idx: Index) {
-        self.killed.add_atomic(idx);
+    fn kill(&self, e: Entity) {
+        self.killed.add_atomic(e.get_id());
     }
 
-    /// Return `true` if the index is scheduled to be removed
-    pub fn is_killed(&self, idx: Index) -> bool {
-        self.killed.contains(idx)
+    /// Return `true` if the entity is alive.
+    pub fn is_alive(&self, e: Entity) -> bool {
+        e.get_gen() ==  match self.generations.get(e.get_id() as usize) {
+            Some(g) if !g.is_alive() && self.raised.contains(e.get_id()) => g.raised(),
+            Some(g) => *g,
+            None => Generation(1),
+        }
     }
 
     /// Attempt to move the `start_from` value
@@ -289,14 +293,7 @@ impl World {
     /// Deletes an entity dynamically.
     pub fn delete_later(&self, entity: Entity) {
         let allocator = self.allocator.read().unwrap();
-        allocator.kill(entity.get_id() as Index);
-    }
-    /// Returns `true` if the given `Entity` is scheduled for deletion
-    /// but not yet actually killed.
-    pub fn is_zombie(&self, entity: Entity) -> bool {
-        debug_assert!(entity.get_gen().is_alive());
-        let gens = self.allocator.read().unwrap();
-        gens.is_killed(entity.get_id())
+        allocator.kill(entity);
     }
     /// Returns `true` if the given `Entity` is alive.
     pub fn is_alive(&self, entity: Entity) -> bool {
