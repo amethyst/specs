@@ -9,7 +9,7 @@ use fnv::FnvHasher;
 use bitset::{BitSet, BitSetNot};
 use join::Join;
 use world::{Component, Allocator};
-use {Entity, Index, Generation};
+use {Entity, Index};
 
 
 /// The `UnprotectedStorage` together with the `BitSet` that knows
@@ -91,9 +91,7 @@ impl<'a, T, A, D> Not for &'a Storage<T, A, D> where
     }
 }
 
-impl<T, A, D> Storage<T, A, D> where
-    A: Deref<Target = Allocator>,
-{
+impl<T, A, D> Storage<T, A, D> {
     /// Create a new `Storage`
     pub fn new(alloc: A, data: D) -> Storage<T, A, D>{
         Storage {
@@ -101,16 +99,6 @@ impl<T, A, D> Storage<T, A, D> where
             alloc: alloc,
             data: data,
         }
-    }
-    fn has_gen(&self, e: Entity) -> bool {
-        let gen_opt = self.alloc.generations.get(e.get_id() as usize);
-        let expected = if self.alloc.is_killed(e.get_id()) {
-            gen_opt.unwrap().raised()
-        } else {
-            let g1 = Generation(1);
-            *gen_opt.unwrap_or(&g1)
-        };
-        e.get_gen() == expected
     }
 }
 
@@ -121,7 +109,7 @@ impl<T, A, D> Storage<T, A, D> where
 {
     /// Tries to read the data associated with an `Entity`.
     pub fn get(&self, e: Entity) -> Option<&T> {
-        if self.data.mask.contains(e.get_id()) && self.has_gen(e) {
+        if self.data.mask.contains(e.get_id()) && self.alloc.is_alive(e) {
             Some(unsafe { self.data.inner.get(e.get_id()) })
         }else {None}
     }
@@ -147,14 +135,14 @@ impl<T, A, D> Storage<T, A, D> where
 {
     /// Tries to mutate the data associated with an `Entity`.
     pub fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
-        if self.data.mask.contains(e.get_id()) && self.has_gen(e) {
+        if self.data.mask.contains(e.get_id()) && self.alloc.is_alive(e) {
             Some(unsafe { self.data.inner.get_mut(e.get_id()) })
         }else {None}
     }
     /// Inserts new data for a given `Entity`.
     /// Returns the result of the operation as a `InsertResult<T>`
     pub fn insert(&mut self, e: Entity, mut v: T) -> InsertResult<T> {
-        if self.has_gen(e) {
+        if self.alloc.is_alive(e) {
             let id = e.get_id();
             if self.data.mask.contains(id) {
                 std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id) });
@@ -170,7 +158,7 @@ impl<T, A, D> Storage<T, A, D> where
     }
     /// Removes the data associated with an `Entity`.
     pub fn remove(&mut self, e: Entity) -> Option<T> {
-        if self.has_gen(e) {
+        if self.alloc.is_alive(e) {
             self.data.remove(e.get_id())
         }else { None }
     }
