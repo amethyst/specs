@@ -113,7 +113,7 @@ impl Allocator {
             if !self.alive.contains(i as Index) && !self.raised.add_atomic(i as Index) {
                 self.update_start_from(i+1);
 
-                let gen = self.generations.get(idx as usize)
+                let gen = self.generations.get(i as usize)
                     .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
                     .unwrap_or(Generation(1));
 
