@@ -48,7 +48,7 @@ impl<'a, C> EntityBuilder<'a, C>
     where C: 'a + PartialEq + Eq + Hash
 {
     /// Adds a `Component` value to the new `Entity`.
-    pub fn with_w_comp_id<T: Component>(self, value: T, comp_id: C) -> EntityBuilder<'a, C> {
+    pub fn with_w_comp_id<T: Component>(self, comp_id: C, value: T) -> EntityBuilder<'a, C> {
         self.1.write_w_comp_id::<T>(comp_id).insert(self.0, value);
         self
     }
@@ -372,31 +372,21 @@ impl World<()> {
 
     /// Registers a new component type.
     pub fn register<T: Component>(&mut self) {
-        let any = RwLock::new(MaskedStorage::<T>::new());
-        self.components.insert(((), TypeId::of::<T>()), Box::new(any));
+        self.register_w_comp_id::<T>(())
     }
     /// Unregisters a component type.
     pub fn unregister<T: Component>(&mut self) -> Option<MaskedStorage<T>> {
-        self.components.remove(&((), TypeId::of::<T>())).map(|boxed|
-            match boxed.downcast::<RwLock<MaskedStorage<T>>>() {
-                Ok(b) => (*b).into_inner().unwrap(),
-                Err(_) => panic!("Unable to downcast the storage type"),
-            }
-        )
+        self.unregister_w_comp_id::<T>(())
     }
-    fn lock<T: Component>(&self) -> &RwLock<MaskedStorage<T>> {
-        let boxed = self.components.get(&((), TypeId::of::<T>()))
-            .expect("Tried to perform an operation on type that was not registered");
-        boxed.downcast_ref().unwrap()
-    }
+    /*fn lock<T: Component>(&self) -> &RwLock<MaskedStorage<T>> {
+        self.lock_w_comp_id::<T>(())
+    }*/
     /// Locks a component's storage for reading.
     pub fn read<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, RwLockReadGuard<MaskedStorage<T>>> {
-        let data = self.lock::<T>().read().unwrap();
-        Storage::new(self.allocator.read().unwrap(), data)
+        self.read_w_comp_id::<T>(())
     }
     /// Locks a component's storage for writing.
     pub fn write<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, RwLockWriteGuard<MaskedStorage<T>>> {
-        let data = self.lock::<T>().write().unwrap();
-        Storage::new(self.allocator.read().unwrap(), data)
+        self.write_w_comp_id::<T>(())
     }
 }
