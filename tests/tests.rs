@@ -200,6 +200,77 @@ fn is_alive() {
     assert!(!w.is_alive(e2));
 }
 
+// Checks whether entities are considered dead immediately after creation
+#[test]
+fn stillborn_entities() {
+    struct LCG(u32);
+    const RANDMAX: u32 = 32767;
+    impl LCG {
+        fn new() -> Self { LCG(0xdeadbeef) }
+        fn geni(&mut self) -> i8 { ((self.gen() as i32) - 0x7f) as i8 }
+        fn gen(&mut self) -> u32 {
+            self.0 = self.0.wrapping_mul(214013).wrapping_add(2531011);
+            self.0 % RANDMAX
+        }
+    }
+
+    let mut rng = LCG::new();
+
+    // Construct a bunch of entities
+    let mut planner = specs::Planner::<()>::new({
+        let mut world = specs::World::new();
+        world.register::<CompInt>();
+
+        for _ in 0 .. 100 {
+            world.create_now().with(CompInt(rng.geni())).build();
+        }
+
+        world
+    }, 4);
+
+    for _ in 0 .. 100 {
+        let count = (rng.gen() % 25) as usize;
+        let mut values = vec![];
+        for _ in 0 .. count { values.push(rng.geni()); }
+
+        // Cull the same number of entities we expect to insert
+        planner.run_custom(move |arg| {
+            use specs::Join;
+
+            let (compint, eids) = arg.fetch(|w| {
+                (w.read::<CompInt>(), w.entities())
+            });
+
+            let mut lowest = vec![];
+            for (&CompInt(k), eid) in (&compint, &eids).iter() {
+                if lowest.iter().all(|&(n, _)| n >= k) {
+                    lowest.push((k, eid));
+                }
+            }
+
+            lowest.reverse();
+            lowest.truncate(count);
+            for (_, eid) in lowest.into_iter() { arg.delete(eid); }
+        });
+
+        planner.run_custom(move |arg| {
+            let mut compint = arg.fetch(|w| w.write::<CompInt>());
+
+            for &i in values.iter() {
+                use specs::InsertResult::EntityIsDead;
+
+                let result = compint.insert(arg.create(), CompInt(i));
+                if let EntityIsDead(_) = result {
+                    panic!("Couldn't insert {} into a stillborn entity", i);
+                }
+            }
+        });
+
+        planner.wait();
+    }
+}
+
+
 #[test]
 fn dynamic_component() {
     // a simple test for the dynamic component feature.
