@@ -302,7 +302,7 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
 /// doesn't contain any data and instead works as a simple flag.
 pub struct NullStorage<T>(T);
 
-impl<T: Clone + Default> UnprotectedStorage<T> for NullStorage<T> {
+impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
     fn new() -> Self {
         NullStorage(Default::default())
     }
@@ -310,7 +310,7 @@ impl<T: Clone + Default> UnprotectedStorage<T> for NullStorage<T> {
     unsafe fn get(&self, _: Index) -> &T { &self.0 }
     unsafe fn get_mut(&mut self, _: Index) -> &mut T { panic!("One does not simply modify a NullStorage") }
     unsafe fn insert(&mut self, _: Index, _: T) {}
-    unsafe fn remove(&mut self, _: Index) -> T { self.0.clone() }
+    unsafe fn remove(&mut self, _: Index) -> T { Default::default() }
 }
 
 
