@@ -14,6 +14,7 @@ extern crate fnv;
 extern crate tuple_utils;
 extern crate atom;
 
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::sync::{mpsc, Arc};
 use pulse::{Pulse, Signal, Signals};
@@ -143,7 +144,7 @@ pub type Priority = i32;
 /// by its name and priority.
 pub struct SystemInfo<C> {
     /// Name of the system. Can be used for lookups or debug output.
-    pub name: String,
+    pub name: Cow<'static, str>,
     /// Priority of the system.
     pub priority: Priority,
     /// System trait object itself.
@@ -158,7 +159,7 @@ struct SystemGuard<C> {
 impl<C> Drop for SystemGuard<C> {
     fn drop(&mut self) {
         let info = self.info.take().unwrap_or_else(|| SystemInfo {
-            name: String::new(),
+            name: Cow::Borrowed(&""),
             priority: 0,
             object: Box::new(()),
         });
@@ -194,11 +195,11 @@ impl<C: 'static> Planner<C> {
         }
     }
     /// Add a system to the dispatched list.
-    pub fn add_system<S>(&mut self, sys: S, name: &str, priority: Priority) where
+    pub fn add_system<S>(&mut self, sys: S, name: Cow<'static, str>, priority: Priority) where
         S: 'static + System<C>
     {
         self.systems.push(SystemInfo {
-            name: name.to_owned(),
+            name: name,
             priority: priority,
             object: Box::new(sys),
         });
