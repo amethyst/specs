@@ -1,5 +1,6 @@
 use std::any::TypeId;
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use mopa::Any;
@@ -40,17 +41,28 @@ impl<'a> Join for &'a Entities<'a> {
 }
 
 /// Helper builder for entities.
-pub struct EntityBuilder<'a>(Entity, &'a World);
+pub struct EntityBuilder<'a, C = ()>(Entity, &'a World<C>)
+    where C: 'a + PartialEq + Eq + Hash;
 
-impl<'a> EntityBuilder<'a> {
+impl<'a, C> EntityBuilder<'a, C>
+    where C: 'a + PartialEq + Eq + Hash
+{
     /// Adds a `Component` value to the new `Entity`.
-    pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
-        self.1.write::<T>().insert(self.0, value);
+    pub fn with_w_comp_id<T: Component>(self, comp_id: C, value: T) -> EntityBuilder<'a, C> {
+        self.1.write_w_comp_id::<T>(comp_id).insert(self.0, value);
         self
     }
     /// Finishes entity construction.
     pub fn build(self) -> Entity {
         self.0
+    }
+}
+
+impl <'a> EntityBuilder<'a, ()> {
+    /// Adds a `Component` value to the new `Entity`.
+    pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
+        self.1.write::<T>().insert(self.0, value);
+        self
     }
 }
 
@@ -209,48 +221,55 @@ impl<T:Any+Send+Sync> ResourceLock for RwLock<T> {}
 
 /// The `World` struct contains all the data, which is entities and their components.
 /// All methods are supposed to be valid for any context they are available in.
-pub struct World {
+/// The type parameter C is for component identification in addition of their types.
+pub struct World<C = ()>
+    where C: PartialEq + Eq + Hash
+{
     allocator: RwLock<Allocator>,
-    components: HashMap<TypeId, Box<StorageLock>>,
+    components: HashMap<(C, TypeId), Box<StorageLock>>,
     resources: HashMap<TypeId, Box<ResourceLock>>,
 }
 
-impl World {
-    /// Creates a new empty `World`.
-    pub fn new() -> World {
+impl<C> World<C>
+    where C: PartialEq + Eq + Hash
+{
+    /// Creates a new empty `World` with the associated component id.
+    pub fn new_w_comp_id() -> World<C> {
         World {
             components: HashMap::new(),
             allocator: RwLock::new(Allocator::new()),
             resources: HashMap::new()
         }
     }
-    /// Registers a new component type.
-    pub fn register<T: Component>(&mut self) {
+    /// Registers a new component type and id pair.
+    pub fn register_w_comp_id<T: Component>(&mut self, comp_id: C) {
         let any = RwLock::new(MaskedStorage::<T>::new());
-        self.components.insert(TypeId::of::<T>(), Box::new(any));
+        self.components.insert((comp_id, TypeId::of::<T>()), Box::new(any));
     }
-    /// Unregisters a component type.
-    pub fn unregister<T: Component>(&mut self) -> Option<MaskedStorage<T>> {
-        self.components.remove(&TypeId::of::<T>()).map(|boxed|
+    /// Unregisters a component type and id pair.
+    pub fn unregister_w_comp_id<T: Component>(&mut self, comp_id: C) -> Option<MaskedStorage<T>> {
+        self.components.remove(&(comp_id, TypeId::of::<T>())).map(|boxed|
             match boxed.downcast::<RwLock<MaskedStorage<T>>>() {
                 Ok(b) => (*b).into_inner().unwrap(),
                 Err(_) => panic!("Unable to downcast the storage type"),
             }
         )
     }
-    fn lock<T: Component>(&self) -> &RwLock<MaskedStorage<T>> {
-        let boxed = self.components.get(&TypeId::of::<T>())
-            .expect("Tried to perform an operation on type that was not registered");
+    fn lock_w_comp_id<T: Component>(&self, comp_id: C) -> &RwLock<MaskedStorage<T>> {
+        let boxed = self.components.get(&(comp_id, TypeId::of::<T>()))
+            .expect("Tried to perform an operation on component type that was not registered");
         boxed.downcast_ref().unwrap()
     }
     /// Locks a component's storage for reading.
-    pub fn read<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, RwLockReadGuard<MaskedStorage<T>>> {
-        let data = self.lock::<T>().read().unwrap();
+    pub fn read_w_comp_id<T: Component>(&self, comp_id: C) -> Storage<T, RwLockReadGuard<Allocator>, RwLockReadGuard<MaskedStorage<T>>> {
+        let data = self.lock_w_comp_id::<T>(comp_id).read().unwrap();
         Storage::new(self.allocator.read().unwrap(), data)
     }
     /// Locks a component's storage for writing.
-    pub fn write<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, RwLockWriteGuard<MaskedStorage<T>>> {
-        let data = self.lock::<T>().write().unwrap();
+    pub fn write_w_comp_id<T: Component>(&self, comp_id: C) ->
+        Storage<T, RwLockReadGuard<Allocator>, RwLockWriteGuard<MaskedStorage<T>>>
+    {
+        let data = self.lock_w_comp_id::<T>(comp_id).write().unwrap();
         Storage::new(self.allocator.read().unwrap(), data)
     }
     /// Returns the entity iterator.
@@ -267,7 +286,7 @@ impl World {
         }
     }
     /// Creates a new entity instantly, locking the generations data.
-    pub fn create_now(&mut self) -> EntityBuilder {
+    pub fn create_now(&mut self) -> EntityBuilder<C> {
         let id = self.allocator.write().unwrap().allocate();
         EntityBuilder(id, self)
     }
@@ -338,5 +357,36 @@ impl World {
             .unwrap()
             .write()
             .unwrap()
+    }
+}
+
+impl World<()> {
+    /// Creates a new empty `World`.
+    pub fn new() -> World<()> {
+        World {
+            components: HashMap::new(),
+            allocator: RwLock::new(Allocator::new()),
+            resources: HashMap::new()
+        }
+    }
+
+    /// Registers a new component type.
+    pub fn register<T: Component>(&mut self) {
+        self.register_w_comp_id::<T>(())
+    }
+    /// Unregisters a component type.
+    pub fn unregister<T: Component>(&mut self) -> Option<MaskedStorage<T>> {
+        self.unregister_w_comp_id::<T>(())
+    }
+    /*fn lock<T: Component>(&self) -> &RwLock<MaskedStorage<T>> {
+        self.lock_w_comp_id::<T>(())
+    }*/
+    /// Locks a component's storage for reading.
+    pub fn read<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, RwLockReadGuard<MaskedStorage<T>>> {
+        self.read_w_comp_id::<T>(())
+    }
+    /// Locks a component's storage for writing.
+    pub fn write<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, RwLockWriteGuard<MaskedStorage<T>>> {
+        self.write_w_comp_id::<T>(())
     }
 }
