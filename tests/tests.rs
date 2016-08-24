@@ -15,6 +15,7 @@ impl specs::Component for CompBool {
     type Storage = specs::HashMapStorage<CompBool>;
 }
 
+#[cfg(feature="parallel")]
 fn create_world() -> specs::Planner<()> {
     let mut w = specs::World::new();
     w.register::<CompInt>();
@@ -23,6 +24,7 @@ fn create_world() -> specs::Planner<()> {
 }
 
 #[test]
+#[cfg(feature="parallel")]
 fn wait() {
     let mut planner = create_world();
 
@@ -55,6 +57,7 @@ fn wait() {
 
 //#[should_panic]
 //#[test] //TODO
+#[cfg(feature="parallel")]
 fn _task_panics() {
     let mut planner = create_world();
     planner.mut_world().create_now()
@@ -72,6 +75,7 @@ fn _task_panics() {
 
 #[should_panic]
 #[test]
+#[cfg(feature="parallel")]
 fn task_panics_args_captured() {
     let mut planner = create_world();
     planner.mut_world().create_now()
@@ -86,6 +90,7 @@ fn task_panics_args_captured() {
 }
 
 #[test]
+#[cfg(feature="parallel")]
 fn dynamic_create() {
     let mut planner = create_world();
 
@@ -99,6 +104,7 @@ fn dynamic_create() {
 }
 
 #[test]
+#[cfg(feature="parallel")]
 fn dynamic_deletion() {
     let mut planner = create_world();
 
@@ -114,6 +120,7 @@ fn dynamic_deletion() {
 }
 
 #[test]
+#[cfg(feature="parallel")]
 fn dynamic_create_and_delete() {
     use std::mem::swap;
     let mut planner = create_world();
@@ -144,6 +151,7 @@ fn dynamic_create_and_delete() {
 }
 
 #[test]
+#[cfg(feature="parallel")]
 fn mixed_create_merge() {
     use std::collections::HashSet;
     let mut planner = create_world();
@@ -202,6 +210,7 @@ fn is_alive() {
 
 // Checks whether entities are considered dead immediately after creation
 #[test]
+#[cfg(feature="parallel")]
 fn stillborn_entities() {
     struct LCG(u32);
     const RANDMAX: u32 = 32767;
