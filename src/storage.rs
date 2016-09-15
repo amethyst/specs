@@ -233,8 +233,7 @@ pub struct HashMapStorage<T>(HashMap<Index, T, BuildHasherDefault<FnvHasher>>);
 
 impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     fn new() -> Self {
-        let fnv = BuildHasherDefault::<FnvHasher>::default();
-        HashMapStorage(HashMap::with_hasher(fnv))
+        HashMapStorage(Default::default())
     }
     unsafe fn clean<F>(&mut self, _: F) where F: Fn(Index) -> bool {
         //nothing to do
