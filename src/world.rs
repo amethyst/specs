@@ -1,9 +1,12 @@
 use std::any::TypeId;
 use std::collections::HashMap;
-use std::hash::Hash;
+use std::hash::{BuildHasherDefault, Hash};
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
+
+use fnv::FnvHasher;
 use mopa::Any;
+
 use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr};
 use join::Join;
 use storage::{Storage, MaskedStorage, UnprotectedStorage};
@@ -226,8 +229,8 @@ pub struct World<C = ()>
     where C: PartialEq + Eq + Hash
 {
     allocator: RwLock<Allocator>,
-    components: HashMap<(C, TypeId), Box<StorageLock>>,
-    resources: HashMap<TypeId, Box<ResourceLock>>,
+    components: HashMap<(C, TypeId), Box<StorageLock>, BuildHasherDefault<FnvHasher>>,
+    resources: HashMap<TypeId, Box<ResourceLock>, BuildHasherDefault<FnvHasher>>,
 }
 
 impl<C> World<C>
@@ -236,9 +239,9 @@ impl<C> World<C>
     /// Creates a new empty `World` with the associated component id.
     pub fn new_w_comp_id() -> World<C> {
         World {
-            components: HashMap::new(),
+            components: Default::default(),
             allocator: RwLock::new(Allocator::new()),
-            resources: HashMap::new()
+            resources: Default::default()
         }
     }
     /// Registers a new component type and id pair.
@@ -364,9 +367,9 @@ impl World<()> {
     /// Creates a new empty `World`.
     pub fn new() -> World<()> {
         World {
-            components: HashMap::new(),
+            components: Default::default(),
             allocator: RwLock::new(Allocator::new()),
-            resources: HashMap::new()
+            resources: Default::default()
         }
     }
 
