@@ -262,14 +262,13 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         VecStorage(Vec::new())
     }
     unsafe fn clean<F>(&mut self, has: F) where F: Fn(Index) -> bool {
-        use std::mem;
-        for (i, v) in self.0.drain(..).enumerate() {
-            if !has(i as Index) {
-                // if v was not in the set the data is invalid
-                // and we must forget it instead of dropping it
-                mem::forget(v);
+        use std::ptr;
+        for (i, v) in self.0.iter_mut().enumerate() {
+            if has(i as Index) {
+                ptr::drop_in_place(v);
             }
         }
+        self.0.set_len(0);
     }
     unsafe fn get(&self, id: Index) -> &T {
         self.0.get_unchecked(id as usize)
@@ -409,6 +408,21 @@ mod map_test {
     }
 }
 
+#[test]
+fn test_vec_arc() {
+    use std::sync::Arc;
+
+    struct A(Arc<()>);
+
+    let mut storage = VecStorage::<A>::new();
+
+    unsafe {
+        for i in (0..200).filter(|i| i%2 != 0) {
+            storage.insert(i, A(Arc::new(())));
+        }
+        storage.clean(|i| i%2 != 0);
+    }
+}
 
 #[cfg(test)]
 mod test {
