@@ -262,10 +262,10 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         VecStorage(Vec::new())
     }
     unsafe fn clean<F>(&mut self, has: F) where F: Fn(Index) -> bool {
-        use std::mem;
+        use std::ptr;
         for (i, v) in self.0.iter_mut().enumerate() {
             if has(i as Index) {
-                mem::swap(v, &mut mem::uninitialized());
+                ptr::drop_in_place(v);
             }
         }
         self.0.set_len(0);
