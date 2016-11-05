@@ -276,7 +276,7 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
         self.0.get_unchecked_mut(id as usize)
     }
-    unsafe fn insert(&mut self, id: Index, mut v: T) {
+    unsafe fn insert(&mut self, id: Index, v: T) {
         use std::ptr;
         let id = id as usize;
         if self.0.len() <= id {
