@@ -49,16 +49,39 @@ impl RunArg {
     }
 }
 
+/// Queue for sending messages to systems during `System::run`.
+/// Messages are processed in `System::handle_message`.
+#[derive(Clone, Debug)]
+pub struct MessageQueue<M> {
+    sender: mpsc::Sender<M>,
+}
+
+impl<M> MessageQueue<M> {
+    /// Create a new MessageQueue.
+    pub fn new() -> (MessageQueue<M>, mpsc::Receiver<M>) {
+        let (tx, rx) = mpsc::channel();
+        (MessageQueue { sender: tx }, rx)
+    }
+
+    /// Add a message to the queue.
+    pub fn send(&self, msg: M) {
+        self.sender.send(msg).unwrap();
+    }
+}
+
 /// Generic system that runs through the entities and do something
 /// with their components, with an ability to add new entities and
 /// delete existing ones.
-pub trait System<C>: Send {
+pub trait System<M, C>: Send {
     /// Run the system, given its context.
-    fn run(&mut self, RunArg, C);
+    fn run(&mut self, RunArg, MessageQueue<M>, C);
+    /// Handle a message passed to the MessageQueue by a system
+    /// during `dispatch`.
+    fn handle_message(&mut self, &M) {}
 }
 
-impl<C> System<C> for () {
-    fn run(&mut self, _: RunArg, _: C) {}
+impl<M, C> System<M,C> for () {
+    fn run(&mut self, _: RunArg, _: MessageQueue<M>, _: C) {}
 }
 
 /// System scheduling priority. Higehr priority systems are started
@@ -67,21 +90,21 @@ pub type Priority = i32;
 
 /// System information package, where the system itself is accompanied
 /// by its name and priority.
-pub struct SystemInfo<C> {
+pub struct SystemInfo<M,C> {
     /// Name of the system. Can be used for lookups or debug output.
     pub name: String,
     /// Priority of the system.
     pub priority: Priority,
     /// System trait object itself.
-    pub object: Box<System<C>>,
+    pub object: Box<System<M,C>>,
 }
 
-struct SystemGuard<C> {
-    info: Option<SystemInfo<C>>,
-    chan: mpsc::Sender<SystemInfo<C>>,
+struct SystemGuard<M, C> {
+    info: Option<SystemInfo<M, C>>,
+    chan: mpsc::Sender<SystemInfo<M, C>>,
 }
 
-impl<C> Drop for SystemGuard<C> {
+impl<M, C> Drop for SystemGuard<M, C> {
     fn drop(&mut self) {
         let info = self.info.take().unwrap_or_else(|| SystemInfo {
             name: String::new(),
@@ -94,33 +117,38 @@ impl<C> Drop for SystemGuard<C> {
 
 /// System execution planner. Allows running systems via closures,
 /// distributes the load in parallel using a thread pool.
-pub struct Planner<C> {
+pub struct Planner<M, C> {
     /// Shared `World`.
     world: Arc<World>,
     /// Permanent systems in the planner.
-    pub systems: Vec<SystemInfo<C>>,
+    pub systems: Vec<SystemInfo<M, C>>,
     wait_count: usize,
-    chan_out: mpsc::Sender<SystemInfo<C>>,
-    chan_in: mpsc::Receiver<SystemInfo<C>>,
+    chan_out: mpsc::Sender<SystemInfo<M, C>>,
+    chan_in: mpsc::Receiver<SystemInfo<M, C>>,
+    message_out: MessageQueue<M>,
+    message_in: mpsc::Receiver<M>,
     threader: ThreadPool,
 }
 
-impl<C: 'static> Planner<C> {
+impl<M: 'static, C: 'static> Planner<M, C> {
     /// Creates a new planner, given the world and the thread count.
-    pub fn new(world: World, num_threads: usize) -> Planner<C> {
+    pub fn new(world: World, num_threads: usize) -> Planner<M, C> {
         let (sout, sin) = mpsc::channel();
+        let (mout, min) = MessageQueue::new();
         Planner {
             world: Arc::new(world),
             systems: Vec::new(),
             wait_count: 0,
             chan_out: sout,
             chan_in: sin,
+            message_out: mout,
+            message_in: min,
             threader: ThreadPool::new(num_threads),
         }
     }
     /// Add a system to the dispatched list.
     pub fn add_system<S>(&mut self, sys: S, name: &str, priority: Priority) where
-        S: 'static + System<C>
+        S: 'static + System<M, C>
     {
         self.systems.push(SystemInfo {
             name: name.to_owned(),
@@ -174,7 +202,7 @@ impl<C: 'static> Planner<C> {
     }
 }
 
-impl<C: Clone + Send + 'static> Planner<C> {
+impl<M: Clone + Send + 'static, C: Clone + Send + 'static> Planner<M, C> {
     /// Dispatch all systems according to their associated priorities.
     pub fn dispatch(&mut self, context: C) {
         self.wait();
@@ -182,6 +210,7 @@ impl<C: Clone + Send + 'static> Planner<C> {
         for sinfo in self.systems.drain(..) {
             assert!(!sinfo.name.is_empty());
             let ctx = context.clone();
+            let mq = self.message_out.clone();
             let (signal, pulse) = Signal::new();
             let guard = SystemGuard {
                 info: Some(sinfo),
@@ -193,16 +222,28 @@ impl<C: Clone + Send + 'static> Planner<C> {
             };
             self.threader.execute(move || {
                 let mut g = guard;
-                g.info.as_mut().unwrap().object.run(arg, ctx);
+                g.info.as_mut().unwrap().object.run(arg, mq, ctx);
             });
             self.wait_count += 1;
             signal.wait().expect("task panicked before args were captured.");
         }
     }
+
+    /// Call `System::handle_message` on each system in `self.systems`
+    /// for every message sent to the channel passed into `System::run`.
+    pub fn handle_messages(&mut self) {
+        self.wait();
+        while let Ok(msg) = self.message_in.try_recv() {
+            // TODO: parallelize same as dispatch or perhaps with rayon
+            for sinfo in &mut self.systems {
+                sinfo.object.handle_message(&msg);
+            }
+        }
+    }
 }
 
 macro_rules! impl_run {
-    ($name:ident [$( $write:ident ),*] [$( $read:ident ),*]) => (impl<C: 'static> Planner<C> {
+    ($name:ident [$( $write:ident ),*] [$( $read:ident ),*]) => (impl<M: 'static, C: 'static> Planner<M, C> {
         #[allow(missing_docs, non_snake_case, unused_mut)]
         pub fn $name<$($write,)* $($read,)*
             F: 'static + Send + FnMut( $(&mut $write,)* $(&$read,)* )
