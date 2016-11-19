@@ -125,6 +125,7 @@ pub struct Planner<M, C> {
     wait_count: usize,
     chan_out: mpsc::Sender<SystemInfo<M, C>>,
     chan_in: mpsc::Receiver<SystemInfo<M, C>>,
+    /// Message queue for sending messages to systems in the planner.
     pub message_out: MessageQueue<M>,
     message_in: mpsc::Receiver<M>,
     threader: ThreadPool,
