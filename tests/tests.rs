@@ -1,6 +1,6 @@
 extern crate specs;
 
-use specs::{Entity, Join, MessageQueue, RunArg, System};
+use specs::{Entity, Join};
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -303,6 +303,8 @@ fn dynamic_component() {
 #[cfg(feature = "parallel")]
 #[test]
 fn handle_message_self() {
+    use specs::{MessageQueue, RunArg, System};
+
     #[derive(Clone, Debug)]
     struct Msg {
         pub x: i8,
@@ -350,6 +352,7 @@ fn handle_message_self() {
 #[cfg(feature = "parallel")]
 #[test]
 fn handle_message_two() {
+    use specs::{MessageQueue, RunArg, System};
 
     #[derive(Clone, Debug)]
     enum Msg {
