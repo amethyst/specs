@@ -77,7 +77,7 @@ pub trait System<M, C>: Send {
     fn run(&mut self, RunArg, MessageQueue<M>, C);
     /// Handle a message passed to the MessageQueue by a system
     /// during `dispatch`.
-    fn handle_message(&mut self, &M) {}
+    fn handle_message(&mut self, &mut World, &M) {}
 }
 
 impl<M, C> System<M,C> for () {
@@ -234,10 +234,11 @@ impl<M: Clone + Send + 'static, C: Clone + Send + 'static> Planner<M, C> {
     /// for every message sent to the channel passed into `System::run`.
     pub fn handle_messages(&mut self) {
         self.wait();
+        let world = Arc::get_mut(&mut self.world).unwrap();
         while let Ok(msg) = self.message_in.try_recv() {
             // TODO: parallelize same as dispatch or perhaps with rayon
             for sinfo in &mut self.systems {
-                sinfo.object.handle_message(&msg);
+                sinfo.object.handle_message(world, &msg);
             }
         }
     }

@@ -2,7 +2,7 @@ extern crate specs;
 
 #[cfg(feature="parallel")]
 mod msg_example {
-    use specs::{RunArg, System, MessageQueue};
+    use specs::{RunArg, System, MessageQueue, World};
 
     #[derive(Clone, Debug)]
     pub enum Message {
@@ -17,7 +17,7 @@ mod msg_example {
             msg.send(Message::Hello("hey".to_owned()));
         }
 
-        fn handle_message(&mut self, msg: &Message) {
+        fn handle_message(&mut self, _: &mut World, msg: &Message) {
             use self::Message::*;
             match *msg {
                 Hello(_) => println!("Got a hello!"),
@@ -33,7 +33,7 @@ mod msg_example {
             msg.send(Message::Goodbye("bye".to_owned()));
         }
 
-        fn handle_message(&mut self, msg: &Message) {
+        fn handle_message(&mut self, _: &mut World, msg: &Message) {
             use self::Message::*;
             match *msg {
                 Hello(_) => (),
@@ -54,7 +54,7 @@ mod msg_example {
             println!("I have seen {} goodbyes.", self.goodbye);
         }
 
-        fn handle_message(&mut self, msg: &Message) {
+        fn handle_message(&mut self, _: &mut World, msg: &Message) {
             use self::Message::*;
             match *msg {
                 Hello(_) => self.hello += 1,
