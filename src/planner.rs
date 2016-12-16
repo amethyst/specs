@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::sync::{mpsc, Arc};
 
-use pulse::{Pulse, Signal, Signals};
+use pulse::{Pulse, Signal};
 use threadpool::ThreadPool;
 
 use super::{Component, JoinIter, World, Entity};

@@ -313,7 +313,7 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
 #[cfg(test)]
 mod map_test {
     use mopa::Any;
-    use super::{Storage, MaskedStorage, UnprotectedStorage, VecStorage};
+    use super::{Storage, MaskedStorage, VecStorage};
     use world::Allocator;
     use {Component, Entity, Index, Generation};
 
