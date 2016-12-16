@@ -352,22 +352,28 @@ impl<C> World<C>
         self.resources.get(&TypeId::of::<T>()).is_some()
     }
     /// get read-only access to an resource
-    pub fn read_resource<T: Any+Send+Sync>(&self) -> RwLockReadGuard<T> {
-        self.resources.get(&TypeId::of::<T>())
-            .expect("Resource was not registered")
-            .downcast_ref::<RwLock<T>>()
-            .unwrap()
-            .read()
-            .unwrap()
+    pub fn read_resource<T: Any+Send+Sync>(&self) -> Option<RwLockReadGuard<T>> {
+        match self.resources.get(&TypeId::of::<T>()) {
+            Some(resource) => {
+                match resource.downcast_ref::<RwLock<T>>().unwrap().read() {
+                    Ok(lock) => Some(lock),
+                    Err(_) => None,
+                }
+            }
+            None => None,
+        }
     }
     /// get read-write access to a resource
-    pub fn write_resource<T: Any+Send+Sync>(&self) -> RwLockWriteGuard<T> {
-        self.resources.get(&TypeId::of::<T>())
-            .expect("Resource was not registered")
-            .downcast_ref::<RwLock<T>>()
-            .unwrap()
-            .write()
-            .unwrap()
+    pub fn write_resource<T: Any+Send+Sync>(&self) -> Option<RwLockWriteGuard<T>> {
+        match self.resources.get(&TypeId::of::<T>()) {
+            Some(resource) => {
+                match resource.downcast_ref::<RwLock<T>>().unwrap().write() {
+                    Ok(lock) => Some(lock),
+                    Err(_) => None,
+                }
+            }
+            None => None,
+        }
     }
 }
 
