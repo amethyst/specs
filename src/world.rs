@@ -50,6 +50,10 @@ pub struct EntityBuilder<'a, C = ()>(Entity, &'a World<C>)
 impl<'a, C> EntityBuilder<'a, C>
     where C: 'a + PartialEq + Eq + Hash
 {
+    /// Starts a new entity builder for a given `Entity`.
+    pub fn new(e: Entity, w: &'a World<C>) -> Self {
+        EntityBuilder(e, w)
+    }
     /// Adds a `Component` value to the new `Entity`.
     pub fn with_w_comp_id<T: Component>(self, comp_id: C, value: T) -> EntityBuilder<'a, C> {
         self.1.write_w_comp_id::<T>(comp_id).insert(self.0, value);
@@ -291,7 +295,7 @@ impl<C> World<C>
     /// Creates a new entity instantly, locking the generations data.
     pub fn create_now(&mut self) -> EntityBuilder<C> {
         let id = self.allocator.write().unwrap().allocate();
-        EntityBuilder(id, self)
+        EntityBuilder::new(id, self)
     }
     /// Deletes a new entity instantly, locking the generations data.
     pub fn delete_now(&mut self, entity: Entity) {
@@ -311,6 +315,10 @@ impl<C> World<C>
     pub fn create_later(&self) -> Entity {
         let allocator = self.allocator.read().unwrap();
         allocator.allocate_atomic()
+    }
+    /// Creates a new entity dynamically, and starts building it.
+    pub fn create_later_build(&self) -> EntityBuilder<C> {
+        EntityBuilder::new(self.create_later(), self)
     }
     /// Deletes an entity dynamically.
     pub fn delete_later(&self, entity: Entity) {
