@@ -1,6 +1,6 @@
 extern crate specs;
 
-use specs::{Entity};
+use specs::{Entity, Join};
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -16,7 +16,7 @@ impl specs::Component for CompBool {
 }
 
 #[cfg(feature="parallel")]
-fn create_world() -> specs::Planner<()> {
+fn create_world() -> specs::Planner<(), ()> {
     let mut w = specs::World::new();
     w.register::<CompInt>();
     w.register::<CompBool>();
@@ -162,7 +162,7 @@ fn mixed_create_merge() {
         set.insert(e);
     };
 
-    let insert = |planner: &mut specs::Planner<()>, set: &mut HashSet<Entity>, cnt: usize| {
+    let insert = |planner: &mut specs::Planner<(), ()>, set: &mut HashSet<Entity>, cnt: usize| {
         // Check to make sure there is no conflict between create_now
         // and create_later
         for _ in 0..10 {
@@ -226,7 +226,7 @@ fn stillborn_entities() {
     let mut rng = LCG::new();
 
     // Construct a bunch of entities
-    let mut planner = specs::Planner::<()>::new({
+    let mut planner = specs::Planner::<(), ()>::new({
         let mut world = specs::World::new();
         world.register::<CompInt>();
 
@@ -298,4 +298,129 @@ fn dynamic_component() {
 
     let c = w.read_w_comp_id::<CompBool>(2).get(e).unwrap().0;
     assert_eq!(c, true);
+}
+
+#[cfg(feature = "parallel")]
+#[test]
+fn handle_message_self() {
+    use specs::{MessageQueue, RunArg, System};
+
+    #[derive(Clone, Debug)]
+    struct Msg {
+        pub x: i8,
+    }
+
+    struct MsgSystem {
+        pub last_msg: i8,
+    }
+
+    impl System<Msg, ()> for MsgSystem {
+        fn run(&mut self, arg: RunArg, m: MessageQueue<Msg>, _: ()) {
+
+            let mut ints = arg.fetch(|w|{w.write::<CompInt>()});
+            for c in (&mut ints).iter() {
+                c.0 = self.last_msg;
+            }
+
+            m.send(Msg { x: self.last_msg+1 });
+        }
+        fn handle_message(&mut self, msg: &Msg) {
+            self.last_msg = msg.x;
+        }
+    }
+
+    let mut planner = {
+        let mut w = specs::World::new();
+        w.register::<CompInt>();
+        specs::Planner::new(w, 4)
+    };
+
+    let e = planner.mut_world().create_now()
+        .with(CompInt(0))
+        .build();
+
+    planner.add_system( MsgSystem {last_msg: 0}, "msgtest", 1 );
+
+    for _ in 0..3 {
+        planner.dispatch(());
+        planner.handle_messages();
+    }
+
+    assert_eq!(2, planner.mut_world().read::<CompInt>().get(e).unwrap().0);
+}
+
+#[cfg(feature = "parallel")]
+#[test]
+fn handle_message_two() {
+    use specs::{MessageQueue, RunArg, System};
+
+    #[derive(Clone, Debug)]
+    enum Msg {
+        Ping,
+        Pong
+    }
+
+    #[derive(Clone, Debug)]
+    struct PingData(u32);
+
+    #[derive(Clone, Debug)]
+    struct PongData(u32);
+
+    struct PingSystem {
+        pub pongs: u32,
+    }
+
+    impl System<Msg, ()> for PingSystem {
+        fn run(&mut self, arg: RunArg, m: MessageQueue<Msg>, _: ()) {
+            let mut p = arg.fetch(|w|{w.write_resource::<PongData>()});
+            p.0 = self.pongs;
+            m.send(Msg::Ping);
+        }
+        fn handle_message(&mut self, msg: &Msg) {
+            match *msg {
+                Msg::Ping => (),
+                Msg::Pong => self.pongs+=1,
+            }
+        }
+    }
+
+    struct PongSystem {
+        pub pings: u32,
+    }
+
+    impl System<Msg, ()> for PongSystem {
+        fn run(&mut self, arg: RunArg, m: MessageQueue<Msg>, _: ()) {
+            let mut p = arg.fetch(|w|{w.write_resource::<PingData>()});
+            p.0 = self.pings;
+            m.send(Msg::Pong);
+        }
+        fn handle_message(&mut self, msg: &Msg) {
+            match *msg {
+                Msg::Ping => self.pings+=1,
+                Msg::Pong => (),
+            }
+        }
+    }
+
+    let mut planner = {
+        let mut w = specs::World::new();
+        w.add_resource(PingData(0));
+        w.add_resource(PongData(0));
+        specs::Planner::new(w, 4)
+    };
+
+    let ping = PingSystem {pongs: 0};
+    let pong = PongSystem {pings: 0};
+    planner.add_system(ping, "ping", 1 );
+    planner.add_system(pong, "pong", 1 );
+
+    for _ in 0..3 {
+        planner.dispatch(());
+        planner.handle_messages();
+    }
+
+    // this is two because even though self.p{i,o}ngs is 3,
+    // it only updates the world resource in run(), in the next frame.
+    assert_eq!(planner.mut_world().read_resource::<PingData>().0, 2);
+    assert_eq!(planner.mut_world().read_resource::<PongData>().0, 2);
 }

@@ -51,7 +51,7 @@ fn main() {
         w.add_resource(Sum(0xdeadbeef));
 
         // Planner is used to run systems on the specified world with a specified number of threads
-        (e, specs::Planner::<()>::new(w, 4))
+        (e, specs::Planner::<(),()>::new(w, 4))
     };
 
     // Planner only runs closure on entites with specified components, for example:
