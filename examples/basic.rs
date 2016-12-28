@@ -123,5 +123,17 @@ fn main() {
         let count = arg.fetch(|w| w.read_resource::<Sum>());
         println!("count={:?}", count.0);
     });
+    planner.run_custom(|arg| {
+        let (entities, mut ci, cb) = arg.fetch(|w| { 
+            (w.entities(), w.write::<CompInt>(), w.read::<CompBool>())
+        });
+
+        // components that have a CompInt but no CompBool
+        for (entity, _, _) in (&entities, &ci.check(), !&cb).iter() {
+            let compint = ci.get_mut(entity); // This works because `.check()` isn't returning the component.
+            let compbool = cb.get(entity);
+            println!("{:?} {:?} {:?}", entity, compint, compbool);
+        }
+    });
     planner.wait();
 }

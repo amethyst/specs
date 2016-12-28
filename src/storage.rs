@@ -71,6 +71,22 @@ impl<'a> Join for AntiStorage<'a> {
     }
 }
 
+/// A storage type that iterates entities that have
+/// a particular component type, but does not return the 
+/// component.
+pub struct CheckStorage(BitSet);
+
+impl<'a> Join for &'a CheckStorage {
+    type Type = ();
+    type Value = ();
+    type Mask = &'a BitSet;
+    fn open(self) -> (Self::Mask, ()) {
+        (&self.0, ())
+    }
+    unsafe fn get(_: &mut (), _: Index) -> () {
+        ()
+    }
+}
 
 /// A wrapper around the masked storage and the generations vector.
 /// Can be used for safe lookup of components, insertions and removes.
@@ -112,6 +128,15 @@ impl<T, A, D> Storage<T, A, D> where
         if self.data.mask.contains(e.get_id()) && self.alloc.is_alive(e) {
             Some(unsafe { self.data.inner.get(e.get_id()) })
         }else {None}
+    }
+
+    /// Returns a struct that can iterate over the entities that have it
+    /// but does not return the contents of the storage.
+    ///
+    /// Useful if you want to check if an entity has a component
+    /// and then possibly get the component later on in the loop.
+    pub fn check(&self) -> CheckStorage {
+        CheckStorage(self.data.mask.clone())
     }
 }
 
