@@ -23,7 +23,7 @@ pub trait Component: Any + Sized {
 /// is lazily created and updated. For this to be useful it _must_
 /// be joined with a component. This is because the Generation table
 /// includes every possible Generation of Entities even if they
-/// have never been
+/// have never existed.
 pub struct Entities<'a> {
     guard: RwLockReadGuard<'a, Allocator>,
 }
@@ -342,16 +342,16 @@ impl<C> World<C>
             comp.del_slice(&temp_list);
         }
     }
-    /// add a new resource to the world
+    /// Add a new resource to the world.
     pub fn add_resource<T: Any+Send+Sync>(&mut self, resource: T) {
         let resource = Box::new(RwLock::new(resource));
         self.resources.insert(TypeId::of::<T>(), resource);
     }
-    /// check to see if a resource is present
+    /// Check to see if a resource is present.
     pub fn has_resource<T: Any+Send+Sync>(&self) -> bool {
         self.resources.get(&TypeId::of::<T>()).is_some()
     }
-    /// get read-only access to an resource
+    /// Get read-only access to an resource.
     pub fn read_resource<T: Any+Send+Sync>(&self) -> RwLockReadGuard<T> {
         self.resources.get(&TypeId::of::<T>())
             .expect("Resource was not registered")
@@ -360,7 +360,7 @@ impl<C> World<C>
             .read()
             .unwrap()
     }
-    /// get read-write access to a resource
+    /// Get read-write access to a resource.
     pub fn write_resource<T: Any+Send+Sync>(&self) -> RwLockWriteGuard<T> {
         self.resources.get(&TypeId::of::<T>())
             .expect("Resource was not registered")

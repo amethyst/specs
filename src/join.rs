@@ -4,7 +4,7 @@ use bitset::{BitIter, BitSetAnd, BitSetLike};
 use Index;
 
 
-/// BitAnd is a helper method to & bitsets togather resulting in a tree
+/// BitAnd is a helper method to & bitsets together resulting in a tree.
 pub trait BitAnd {
     type Value: BitSetLike;
     fn and(self) -> Self::Value;
@@ -71,7 +71,7 @@ pub trait Join {
     }
     /// Open this join by returning the mask and the storages.
     fn open(self) -> (Self::Mask, Self::Value);
-    /// Get a joined component value by a gien index.
+    /// Get a joined component value by a given index.
     unsafe fn get(&mut Self::Value, Index) -> Self::Type;
 }
 
