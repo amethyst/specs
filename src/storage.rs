@@ -348,7 +348,7 @@ mod map_test {
 
     #[test]
     fn insert() {
-        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
+        let mut c: Storage<Comp<u32>, _, _> = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
 
         for i in 0..1_000 {
             c.insert(ent(i), Comp(i));
@@ -361,7 +361,7 @@ mod map_test {
 
     #[test]
     fn insert_100k() {
-        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
+        let mut c: Storage<Comp<u32>, _, _> = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
 
         for i in 0..100_000 {
             c.insert(ent(i), Comp(i));
@@ -374,7 +374,7 @@ mod map_test {
 
     #[test]
     fn remove() {
-        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
+        let mut c: Storage<Comp<u32>, _, _>  = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
 
         for i in 0..1_000 {
             c.insert(ent(i), Comp(i));
@@ -395,7 +395,7 @@ mod map_test {
 
     #[test]
     fn test_gen() {
-        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
+        let mut c: Storage<Comp<i32>, _, _>  = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
 
         for i in 0..1_000i32 {
             c.insert(ent(i as u32), Comp(i));
@@ -409,7 +409,7 @@ mod map_test {
 
     #[test]
     fn insert_same_key() {
-        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
+        let mut c: Storage<Comp<u32>, _, _>  = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
 
         for i in 0..10_000 {
             c.insert(ent(i), Comp(i));
@@ -420,7 +420,7 @@ mod map_test {
     #[should_panic]
     #[test]
     fn wrap() {
-        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
+        let mut c: Storage<Comp<u32>, _, _>  = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
 
         c.insert(ent(1 << 25), Comp(7));
     }
@@ -491,7 +491,7 @@ mod test {
     }
 
     fn test_add<T: Component + From<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+        let mut s: Storage<T, _, _> = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -503,7 +503,7 @@ mod test {
     }
 
     fn test_sub<T: Component + From<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+        let mut s: Storage<T, _, _>  = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -516,7 +516,7 @@ mod test {
     }
 
     fn test_get_mut<T: Component + From<u32> + AsMut<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+        let mut s: Storage<T, _, _>  = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -532,7 +532,7 @@ mod test {
     }
 
     fn test_add_gen<T: Component + From<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+        let mut s: Storage<T, _, _>  = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -546,7 +546,7 @@ mod test {
     }
 
     fn test_sub_gen<T: Component + From<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+        let mut s: Storage<T, _, _>  = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(2)), (i + 2718).into());
@@ -558,7 +558,7 @@ mod test {
     }
 
     fn test_clear<T: Component + From<u32>>() {
-        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+        let mut s: Storage<T, _, _>  = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..10 {
             s.insert(Entity::new(i, Generation(1)), (i + 10).into());
