@@ -61,7 +61,7 @@ impl<C> System<C> for () {
     fn run(&mut self, _: RunArg, _: C) {}
 }
 
-/// System scheduling priority. Higehr priority systems are started
+/// System scheduling priority. Higher priority systems are started
 /// earlier than lower-priority ones.
 pub type Priority = i32;
 
@@ -159,7 +159,7 @@ impl<C: 'static> Planner<C> {
         }
     }
 
-    /// Waits for all currently executing systems to finish, and then
+    /// Waits for all currently executing systems to finish and then
     /// returns the mutable borrow of the world, allowing to create
     /// entities instantly.
     pub fn mut_world(&mut self) -> &mut World {
@@ -167,7 +167,7 @@ impl<C: 'static> Planner<C> {
         Arc::get_mut(&mut self.world).unwrap()
     }
 
-    /// Waits for all currently executing systems to finish, and then
+    /// Waits for all currently executing systems to finish and then
     /// merges all queued changes.
     pub fn wait(&mut self) {
         self.mut_world().maintain();
