@@ -136,9 +136,6 @@ impl<T, A, D> Storage<T, A, D> where
     }
 }
 
-
-
-
 /// the status of an insert operation
 pub enum InsertResult<T> {
     /// The value was inserted and there was no value before
