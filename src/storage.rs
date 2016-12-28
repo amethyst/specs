@@ -91,6 +91,27 @@ impl<'a, T, A, D> Not for &'a Storage<T, A, D> where
     }
 }
 
+impl<T, A, D> Deref for Storage<T, A, D> where
+    T: Component,
+    A: Deref<Target = Allocator>,
+    D: Deref<Target = MaskedStorage<T>>,
+{
+    type Target = T::Storage;
+    fn deref(&self) -> &T::Storage {
+        &self.data.inner
+    }
+}
+
+impl<T, A, D> DerefMut for Storage<T, A, D> where
+    T: Component,
+    A: Deref<Target = Allocator>,
+    D: DerefMut<Target = MaskedStorage<T>>,
+{
+    fn deref_mut(&mut self) -> &mut T::Storage {
+        &mut self.data.inner
+    }
+}
+
 impl<T, A, D> Storage<T, A, D> {
     /// Create a new `Storage`
     pub fn new(alloc: A, data: D) -> Storage<T, A, D>{
@@ -114,6 +135,8 @@ impl<T, A, D> Storage<T, A, D> where
         }else {None}
     }
 }
+
+
 
 
 /// the status of an insert operation
