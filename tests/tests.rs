@@ -299,3 +299,25 @@ fn dynamic_component() {
     let c = w.read_w_comp_id::<CompBool>(2).get(e).unwrap().0;
     assert_eq!(c, true);
 }
+
+#[test]
+fn register_maybe() {
+    // Test that using `register_maybe` correctly reports
+    // that a component type was already registered rather
+    // than trying to re-register it.
+    let mut w = specs::World::new();
+
+    assert_eq!(w.register_maybe::<CompInt>(), true);
+
+    let e = w.create_now()
+        .with::<CompInt>(CompInt(10))
+        .build();
+
+    // A call to `register` would blindly plough ahead
+    // and create duplicate storage, so...
+    assert_eq!(w.register_maybe::<CompInt>(), false);
+
+    // ...this would end up trying to unwrap a `None`.
+    let i = w.read::<CompInt>().get(e).unwrap().0;
+    assert_eq!(i, 10);
+}

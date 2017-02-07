@@ -1,5 +1,6 @@
 use std::any::TypeId;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::hash::{BuildHasherDefault, Hash};
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -253,6 +254,21 @@ impl<C> World<C>
         let any = RwLock::new(MaskedStorage::<T>::new());
         self.components.insert((comp_id, TypeId::of::<T>()), Box::new(any));
     }
+    /// Attempts to register a new component type and id pair.
+    //
+    /// Returns `false` if the component type and id pair was already registered,
+    /// or `true` otherwise.
+    pub fn register_w_comp_id_maybe<T: Component>(&mut self, comp_id: C) -> bool {
+        let entry = self.components.entry((comp_id, TypeId::of::<T>()));
+        match entry {
+            Entry::Occupied(_) => false,
+            Entry::Vacant(vacant_entry) => {
+                let any = RwLock::new(MaskedStorage::<T>::new());
+                vacant_entry.insert(Box::new(any));
+                true
+            },
+        }
+    }
     /// Unregisters a component type and id pair.
     pub fn unregister_w_comp_id<T: Component>(&mut self, comp_id: C) -> Option<MaskedStorage<T>> {
         self.components.remove(&(comp_id, TypeId::of::<T>())).map(|boxed|
@@ -388,6 +404,13 @@ impl World<()> {
     /// Unregisters a component type.
     pub fn unregister<T: Component>(&mut self) -> Option<MaskedStorage<T>> {
         self.unregister_w_comp_id::<T>(())
+    }
+    /// Attempts to register a new component type.
+    ///
+    /// Returns `false` if the component type was already registered,
+    /// or `true` otherwise.
+    pub fn register_maybe<T: Component>(&mut self) -> bool {
+        self.register_w_comp_id_maybe::<T>(())
     }
     /*fn lock<T: Component>(&self) -> &RwLock<MaskedStorage<T>> {
         self.lock_w_comp_id::<T>(())
