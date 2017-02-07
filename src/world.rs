@@ -249,9 +249,14 @@ impl<C> World<C>
         }
     }
     /// Registers a new component type and id pair.
+    ///
+    /// Does nothing if the type and id pair was already registered.
     pub fn register_w_comp_id<T: Component>(&mut self, comp_id: C) {
-        let any = RwLock::new(MaskedStorage::<T>::new());
-        self.components.insert((comp_id, TypeId::of::<T>()), Box::new(any));
+        self.components.entry((comp_id, TypeId::of::<T>()))
+            .or_insert_with(|| {
+                let any = RwLock::new(MaskedStorage::<T>::new());
+                Box::new(any)
+            });
     }
     /// Unregisters a component type and id pair.
     pub fn unregister_w_comp_id<T: Component>(&mut self, comp_id: C) -> Option<MaskedStorage<T>> {
@@ -382,6 +387,8 @@ impl World<()> {
     }
 
     /// Registers a new component type.
+    ///
+    /// Does nothing if the component type was already registered.
     pub fn register<T: Component>(&mut self) {
         self.register_w_comp_id::<T>(())
     }
