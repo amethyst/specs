@@ -202,7 +202,7 @@ impl<C: Clone + Send + 'static> Planner<C> {
 }
 
 macro_rules! impl_run {
-    ($name:ident [$( $write:ident ),*] [$( $read:ident ),*]) => (impl<C: 'static> Planner<C> {
+    ($name:ident [$( $write:ident ),*] [$( $read:ident ),*]) => (
         #[allow(missing_docs, non_snake_case, unused_mut)]
         pub fn $name<$($write,)* $($read,)*
             F: 'static + Send + FnMut( $(&mut $write,)* $(&$read,)* )
@@ -222,21 +222,23 @@ macro_rules! impl_run {
                 }
             });
         }
-    })
+    )
 }
 
-impl_run!( run0w1r [] [R0] );
-impl_run!( run0w2r [] [R0, R1] );
-impl_run!( run0w3r [] [R0, R1, R2] );
-impl_run!( run0w4r [] [R0, R1, R2, R3] );
-impl_run!( run1w0r [W0] [] );
-impl_run!( run1w1r [W0] [R0] );
-impl_run!( run1w2r [W0] [R0, R1] );
-impl_run!( run1w3r [W0] [R0, R1, R2] );
-impl_run!( run1w4r [W0] [R0, R1, R2, R3] );
-impl_run!( run1w5r [W0] [R0, R1, R2, R3, R4] );
-impl_run!( run1w6r [W0] [R0, R1, R2, R3, R4, R5] );
-impl_run!( run1w7r [W0] [R0, R1, R2, R3, R5, R6, R7] );
-impl_run!( run2w0r [W0, W1] [] );
-impl_run!( run2w1r [W0, W1] [R0] );
-impl_run!( run2w2r [W0, W1] [R0, R1] );
+impl<C: 'static> Planner<C> {
+    impl_run!( run0w1r [] [R0] );
+    impl_run!( run0w2r [] [R0, R1] );
+    impl_run!( run0w3r [] [R0, R1, R2] );
+    impl_run!( run0w4r [] [R0, R1, R2, R3] );
+    impl_run!( run1w0r [W0] [] );
+    impl_run!( run1w1r [W0] [R0] );
+    impl_run!( run1w2r [W0] [R0, R1] );
+    impl_run!( run1w3r [W0] [R0, R1, R2] );
+    impl_run!( run1w4r [W0] [R0, R1, R2, R3] );
+    impl_run!( run1w5r [W0] [R0, R1, R2, R3, R4] );
+    impl_run!( run1w6r [W0] [R0, R1, R2, R3, R4, R5] );
+    impl_run!( run1w7r [W0] [R0, R1, R2, R3, R5, R6, R7] );
+    impl_run!( run2w0r [W0, W1] [] );
+    impl_run!( run2w1r [W0, W1] [R0] );
+    impl_run!( run2w2r [W0, W1] [R0, R1] );
+}
