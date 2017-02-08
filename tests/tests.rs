@@ -299,3 +299,23 @@ fn dynamic_component() {
     let c = w.read_w_comp_id::<CompBool>(2).get(e).unwrap().0;
     assert_eq!(c, true);
 }
+
+#[test]
+fn register_idempotency() {
+    // Test that repeated calls to `register` do not silently
+    // stomp over the existing storage, but instead silently do nothing.
+    let mut w = specs::World::new();
+    w.register::<CompInt>();
+
+    let e = w.create_now()
+        .with::<CompInt>(CompInt(10))
+        .build();
+
+    // At the time this test was written, a call to `register`
+    // would blindly plough ahead and stomp the existing storage, so...
+    w.register::<CompInt>();
+
+    // ...this would end up trying to unwrap a `None`.
+    let i = w.read::<CompInt>().get(e).unwrap().0;
+    assert_eq!(i, 10);
+}
