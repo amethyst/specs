@@ -7,10 +7,61 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use fnv::FnvHasher;
 use mopa::Any;
 
+#[cfg(feature="ticket")]
+use std::sync::Mutex;
+#[cfg(feature="ticket")]
+use ticketed_lock::{TicketedLock, ReadLockGuard, ReadTicket, WriteLockGuard, WriteTicket};
+#[cfg(not(feature="ticket"))]
+use std::sync::{RwLock as Lock, RwLockReadGuard as ReadLockGuard, RwLockWriteGuard as WriteLockGuard};
+
 use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr};
 use join::Join;
 use storage::{Storage, MaskedStorage, UnprotectedStorage};
 use {Index, Generation, Entity};
+
+#[cfg(feature="ticket")]
+struct Lock<T> {
+    inner: Mutex<TicketedLock<T>>,
+}
+
+#[cfg(feature="ticket")]
+struct TimeGuard<G>(G);
+
+#[cfg(feature="ticket")]
+impl<T> TimeGuard<ReadTicket<T>> {
+    fn unwrap(self) -> ReadLockGuard<T> {
+        self.0.wait()
+    }
+}
+
+#[cfg(feature="ticket")]
+impl<T> TimeGuard<WriteTicket<T>> {
+    fn unwrap(self) -> WriteLockGuard<T> {
+        self.0.wait()
+    }
+}
+
+#[cfg(feature="ticket")]
+impl<T> Lock<T> {
+    fn new(data: T) -> Self {
+        Lock {
+            inner: Mutex::new(TicketedLock::new(data)),
+        }
+    }
+
+    fn read(&self) -> TimeGuard<ReadTicket<T>> {
+        TimeGuard(self.inner.lock().unwrap().read())
+    }
+
+    fn write(&self) -> TimeGuard<WriteTicket<T>> {
+        TimeGuard(self.inner.lock().unwrap().write())
+    }
+
+    fn into_inner(self) -> Option<T> {
+        self.inner.into_inner().ok().map(|lock| lock.unlock())
+    }
+}
+
 
 /// Abstract component type. Doesn't have to be Copy or even Clone.
 pub trait Component: Any + Sized {
@@ -210,7 +261,7 @@ trait StorageLock: Any + Send + Sync {
 
 mopafy!(StorageLock);
 
-impl<T: Component> StorageLock for RwLock<MaskedStorage<T>> {
+impl<T: Component> StorageLock for Lock<MaskedStorage<T>> {
     fn del_slice(&self, entities: &[Entity]) {
         let mut guard = self.write().unwrap();
         for &e in entities.iter() {
@@ -219,12 +270,11 @@ impl<T: Component> StorageLock for RwLock<MaskedStorage<T>> {
     }
 }
 
-
 trait ResourceLock: Any + Send + Sync {}
 
 mopafy!(ResourceLock);
 
-impl<T:Any+Send+Sync> ResourceLock for RwLock<T> {}
+impl<T:Any+Send+Sync> ResourceLock for Lock<T> {}
 
 /// The `World` struct contains all the data, which is entities and their components.
 /// All methods are supposed to be valid for any context they are available in.
@@ -254,32 +304,33 @@ impl<C> World<C>
     pub fn register_w_comp_id<T: Component>(&mut self, comp_id: C) {
         self.components.entry((comp_id, TypeId::of::<T>()))
             .or_insert_with(|| {
-                let any = RwLock::new(MaskedStorage::<T>::new());
+                let any = Lock::new(MaskedStorage::<T>::new());
                 Box::new(any)
             });
     }
     /// Unregisters a component type and id pair.
     pub fn unregister_w_comp_id<T: Component>(&mut self, comp_id: C) -> Option<MaskedStorage<T>> {
         self.components.remove(&(comp_id, TypeId::of::<T>())).map(|boxed|
-            match boxed.downcast::<RwLock<MaskedStorage<T>>>() {
+            match boxed.downcast::<Lock<MaskedStorage<T>>>() {
                 Ok(b) => (*b).into_inner().unwrap(),
                 Err(_) => panic!("Unable to downcast the storage type"),
             }
         )
     }
-    fn lock_w_comp_id<T: Component>(&self, comp_id: C) -> &RwLock<MaskedStorage<T>> {
+    fn lock_w_comp_id<T: Component>(&self, comp_id: C) -> &Lock<MaskedStorage<T>> {
         let boxed = self.components.get(&(comp_id, TypeId::of::<T>()))
             .expect("Tried to perform an operation on component type that was not registered");
         boxed.downcast_ref().unwrap()
     }
     /// Locks a component's storage for reading.
-    pub fn read_w_comp_id<T: Component>(&self, comp_id: C) -> Storage<T, RwLockReadGuard<Allocator>, RwLockReadGuard<MaskedStorage<T>>> {
+    pub fn read_w_comp_id<T: Component>(&self, comp_id: C) ->
+                          Storage<T, RwLockReadGuard<Allocator>, ReadLockGuard<MaskedStorage<T>>> {
         let data = self.lock_w_comp_id::<T>(comp_id).read().unwrap();
         Storage::new(self.allocator.read().unwrap(), data)
     }
     /// Locks a component's storage for writing.
     pub fn write_w_comp_id<T: Component>(&self, comp_id: C) ->
-        Storage<T, RwLockReadGuard<Allocator>, RwLockWriteGuard<MaskedStorage<T>>>
+                           Storage<T, RwLockReadGuard<Allocator>, WriteLockGuard<MaskedStorage<T>>>
     {
         let data = self.lock_w_comp_id::<T>(comp_id).write().unwrap();
         Storage::new(self.allocator.read().unwrap(), data)
@@ -349,7 +400,7 @@ impl<C> World<C>
     }
     /// Add a new resource to the world.
     pub fn add_resource<T: Any+Send+Sync>(&mut self, resource: T) {
-        let resource = Box::new(RwLock::new(resource));
+        let resource = Box::new(Lock::new(resource));
         self.resources.insert(TypeId::of::<T>(), resource);
     }
     /// Check to see if a resource is present.
@@ -357,19 +408,19 @@ impl<C> World<C>
         self.resources.get(&TypeId::of::<T>()).is_some()
     }
     /// Get read-only access to an resource.
-    pub fn read_resource<T: Any+Send+Sync>(&self) -> RwLockReadGuard<T> {
+    pub fn read_resource<T: Any+Send+Sync>(&self) -> ReadLockGuard<T> {
         self.resources.get(&TypeId::of::<T>())
             .expect("Resource was not registered")
-            .downcast_ref::<RwLock<T>>()
+            .downcast_ref::<Lock<T>>()
             .unwrap()
             .read()
             .unwrap()
     }
     /// Get read-write access to a resource.
-    pub fn write_resource<T: Any+Send+Sync>(&self) -> RwLockWriteGuard<T> {
+    pub fn write_resource<T: Any+Send+Sync>(&self) -> WriteLockGuard<T> {
         self.resources.get(&TypeId::of::<T>())
             .expect("Resource was not registered")
-            .downcast_ref::<RwLock<T>>()
+            .downcast_ref::<Lock<T>>()
             .unwrap()
             .write()
             .unwrap()
@@ -396,15 +447,15 @@ impl World<()> {
     pub fn unregister<T: Component>(&mut self) -> Option<MaskedStorage<T>> {
         self.unregister_w_comp_id::<T>(())
     }
-    /*fn lock<T: Component>(&self) -> &RwLock<MaskedStorage<T>> {
+    /*fn lock<T: Component>(&self) -> &Lock<MaskedStorage<T>> {
         self.lock_w_comp_id::<T>(())
     }*/
     /// Locks a component's storage for reading.
-    pub fn read<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, RwLockReadGuard<MaskedStorage<T>>> {
+    pub fn read<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, ReadLockGuard<MaskedStorage<T>>> {
         self.read_w_comp_id::<T>(())
     }
     /// Locks a component's storage for writing.
-    pub fn write<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, RwLockWriteGuard<MaskedStorage<T>>> {
+    pub fn write<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, WriteLockGuard<MaskedStorage<T>>> {
         self.write_w_comp_id::<T>(())
     }
 }

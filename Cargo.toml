@@ -28,7 +28,9 @@ num_cpus = { version = "1.0", optional = true }
 fnv = "1.0"
 tuple_utils="0.2"
 atom = "0.3"
+ticketed_lock = { version = "0.1", path = "../ticketed_lock", optional = true }
 
 [features]
-default = ["parallel"]
+default = ["parallel", "ticket"]
 parallel = ["threadpool", "pulse", "num_cpus"]
+ticket = ["ticketed_lock"]
