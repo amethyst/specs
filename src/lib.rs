@@ -14,6 +14,8 @@ extern crate pulse;
 extern crate threadpool;
 #[cfg(feature="parallel")]
 extern crate num_cpus;
+#[cfg(feature="ticket")]
+extern crate ticketed_lock;
 extern crate fnv;
 extern crate tuple_utils;
 extern crate atom;
