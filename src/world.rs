@@ -15,9 +15,13 @@ use ticketed_lock::{TicketedLock, ReadLockGuard, ReadTicket, WriteLockGuard, Wri
 use std::sync::{RwLock as Lock, RwLockReadGuard as ReadLockGuard, RwLockWriteGuard as WriteLockGuard};
 
 use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr};
+use gate::Gate;
 use join::Join;
 use storage::{Storage, MaskedStorage, UnprotectedStorage};
+#[cfg(feature="ticket")]
+use storage::GatedStorage;
 use {Index, Generation, Entity};
+
 
 #[cfg(feature="ticket")]
 struct Lock<T> {
@@ -25,19 +29,34 @@ struct Lock<T> {
 }
 
 #[cfg(feature="ticket")]
-struct TimeGuard<G>(G);
-
-#[cfg(feature="ticket")]
-impl<T> TimeGuard<ReadTicket<T>> {
-    fn unwrap(self) -> ReadLockGuard<T> {
-        self.0.wait()
+impl<T> Gate for ReadTicket<T> {
+    type Target = ReadLockGuard<T>;
+    fn pass(self) -> Self::Target {
+        self.wait()
     }
 }
 
 #[cfg(feature="ticket")]
-impl<T> TimeGuard<WriteTicket<T>> {
-    fn unwrap(self) -> WriteLockGuard<T> {
-        self.0.wait()
+impl<T> Gate for WriteTicket<T> {
+    type Target = WriteLockGuard<T>;
+    fn pass(self) -> Self::Target {
+        self.wait()
+    }
+}
+
+pub struct TimeGuard<G>(G);
+
+#[cfg(feature="ticket")]
+impl<G: Gate> TimeGuard<G> {
+    fn unwrap(self) -> G::Target {
+        self.0.pass()
+    }
+}
+#[cfg(not(feature="ticket"))]
+impl<G> Gate for TimeGuard<G> {
+    type Target = G;
+    fn pass(self) -> G {
+        self.0
     }
 }
 
@@ -94,6 +113,13 @@ impl<'a> Join for &'a Entities<'a> {
     }
 }
 
+impl<'a> Gate for Entities<'a> {
+    type Target = Self;
+    fn pass(self) -> Self {
+        self
+    }
+}
+
 /// Helper builder for entities.
 pub struct EntityBuilder<'a, C = ()>(Entity, &'a World<C>)
     where C: 'a + PartialEq + Eq + Hash;
@@ -119,7 +145,7 @@ impl<'a, C> EntityBuilder<'a, C>
 impl <'a> EntityBuilder<'a, ()> {
     /// Adds a `Component` value to the new `Entity`.
     pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
-        self.1.write::<T>().insert(self.0, value);
+        self.1.write::<T>().pass().insert(self.0, value);
         self
     }
 }
@@ -407,23 +433,19 @@ impl<C> World<C>
     pub fn has_resource<T: Any+Send+Sync>(&self) -> bool {
         self.resources.get(&TypeId::of::<T>()).is_some()
     }
-    /// Get read-only access to an resource.
-    pub fn read_resource<T: Any+Send+Sync>(&self) -> ReadLockGuard<T> {
+    fn get_resource<T: Any+Send+Sync>(&self) -> &Lock<T> {
         self.resources.get(&TypeId::of::<T>())
             .expect("Resource was not registered")
             .downcast_ref::<Lock<T>>()
-            .unwrap()
-            .read()
             .unwrap()
     }
+    /// Get read-only access to a resource.
+    pub fn read_resource_now<T: Any+Send+Sync>(&self) -> ReadLockGuard<T> {
+        self.get_resource::<T>().read().unwrap()
+    }
     /// Get read-write access to a resource.
-    pub fn write_resource<T: Any+Send+Sync>(&self) -> WriteLockGuard<T> {
-        self.resources.get(&TypeId::of::<T>())
-            .expect("Resource was not registered")
-            .downcast_ref::<Lock<T>>()
-            .unwrap()
-            .write()
-            .unwrap()
+    pub fn write_resource_now<T: Any+Send+Sync>(&self) -> WriteLockGuard<T> {
+        self.get_resource::<T>().write().unwrap()
     }
 }
 
@@ -450,6 +472,10 @@ impl World<()> {
     /*fn lock<T: Component>(&self) -> &Lock<MaskedStorage<T>> {
         self.lock_w_comp_id::<T>(())
     }*/
+}
+
+#[cfg(not(feature="ticket"))]
+impl World<()> {
     /// Locks a component's storage for reading.
     pub fn read<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, ReadLockGuard<MaskedStorage<T>>> {
         self.read_w_comp_id::<T>(())
@@ -457,5 +483,35 @@ impl World<()> {
     /// Locks a component's storage for writing.
     pub fn write<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, WriteLockGuard<MaskedStorage<T>>> {
         self.write_w_comp_id::<T>(())
+    }
+    /// Get read-only access to a resource.
+    pub fn read_resource<T: Any+Send+Sync>(&self) -> TimeGuard<ReadLockGuard<T>> {
+        TimeGuard(self.get_resource::<T>().read().unwrap())
+    }
+    /// Get read-write access to a resource.
+    pub fn write_resource<T: Any+Send+Sync>(&self) -> TimeGuard<WriteLockGuard<T>> {
+        TimeGuard(self.get_resource::<T>().write().unwrap())
+    }
+}
+
+#[cfg(feature="ticket")]
+impl World<()> {
+    /// Request a read ticket for a particular component storage.
+    pub fn read<T: Component>(&self) -> GatedStorage<T, RwLockReadGuard<Allocator>, ReadTicket<MaskedStorage<T>>> {
+        let ticket = self.lock_w_comp_id::<T>(()).read();
+        GatedStorage::new(self.allocator.read().unwrap(), ticket.0)
+    }
+    /// Request a write ticket for a particular component storage.
+    pub fn write<T: Component>(&self) -> GatedStorage<T, RwLockReadGuard<Allocator>, WriteTicket<MaskedStorage<T>>> {
+        let ticket = self.lock_w_comp_id::<T>(()).write();
+        GatedStorage::new(self.allocator.read().unwrap(), ticket.0)
+    }
+    /// Get read-only access to a resource.
+    pub fn read_resource<T: Any+Send+Sync>(&self) -> ReadTicket<T> {
+        self.get_resource::<T>().read().0
+    }
+    /// Get read-write access to a resource.
+    pub fn write_resource<T: Any+Send+Sync>(&self) -> WriteTicket<T> {
+        self.get_resource::<T>().write().0
     }
 }

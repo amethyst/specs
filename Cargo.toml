@@ -1,6 +1,6 @@
 [package]
 name = "specs"
-version = "0.7.1"
+version = "0.8.0"
 description = """
 Parallel Entity-Component System.
 
@@ -28,7 +28,7 @@ num_cpus = { version = "1.0", optional = true }
 fnv = "1.0"
 tuple_utils="0.2"
 atom = "0.3"
-ticketed_lock = { version = "0.1", path = "../ticketed_lock", optional = true }
+ticketed_lock = { version = "0.1", optional = true }
 
 [features]
 default = ["parallel", "ticket"]

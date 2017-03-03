@@ -7,6 +7,7 @@ use std::ops::{Deref, DerefMut, Not};
 use fnv::FnvHasher;
 
 use bitset::{BitSet, BitSetNot};
+use gate::Gate;
 use join::Join;
 use world::{Component, Allocator};
 use {Entity, Index};
@@ -140,6 +141,13 @@ impl<T, A, D> Storage<T, A, D> where
     }
 }
 
+impl<T, A, D> Gate for Storage<T, A , D> {
+    type Target = Self;
+    fn pass(self) -> Self {
+        self
+    }
+}
+
 
 /// the status of an insert operation
 pub enum InsertResult<T> {
@@ -227,6 +235,33 @@ impl<'a, T, A, D> Join for &'a mut Storage<T, A, D> where
         // our way through it.
         let value: &'a mut Self::Value = mem::transmute(v);
         value.get_mut(i)
+    }
+}
+
+
+#[cfg(feature="ticket")]
+pub struct GatedStorage<T, A, G> {
+    marker: PhantomData<T>,
+    alloc: A,
+    gate: G,
+}
+
+#[cfg(feature="ticket")]
+impl<T, A, G> GatedStorage<T, A, G> {
+    pub fn new(alloc: A, gate: G) -> Self {
+        GatedStorage {
+            marker: PhantomData,
+            alloc: alloc,
+            gate: gate,
+        }
+    }
+}
+
+#[cfg(feature="ticket")]
+impl<T, A, G: Gate> Gate for GatedStorage<T, A, G> {
+    type Target = Storage<T, A, G::Target>;
+    fn pass(self) -> Self::Target {
+        Storage::new(self.alloc, self.gate.pass())
     }
 }
 
