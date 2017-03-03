@@ -1,7 +1,7 @@
 extern crate specs;
 
 #[cfg(feature="parallel")]
-use specs::Entity;
+use specs::{Entity, Gate};
 #[cfg(feature="parallel")]
 use std::sync::{Arc, Mutex};
 #[cfg(feature="parallel")]

@@ -8,6 +8,7 @@ script:
 - cargo test --verbose
 - cargo build --verbose --no-default-features
 - cargo test --verbose --no-default-features
+- cargo test --verbose --no-default-features --features parallel
 
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&

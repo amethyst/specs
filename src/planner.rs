@@ -5,6 +5,7 @@ use pulse::{Pulse, Signal};
 use threadpool::ThreadPool;
 use num_cpus::get as get_num_cpus;
 
+use gate::Gate;
 use super::{Component, JoinIter, World, Entity};
 
 /// System closure run-time argument.
@@ -16,21 +17,21 @@ pub struct RunArg {
 impl RunArg {
     /// Borrows the world, allowing the system to lock some components and get the entity
     /// iterator. Must be called only once.
-    pub fn fetch<'a, U, F>(&'a self, f: F) -> U
-        where F: FnOnce(&'a World) -> U
+    pub fn fetch<'a, U, F>(&'a self, f: F) -> U::Target
+        where U: Gate, F: FnOnce(&'a World) -> U
     {
         let pulse = self.pulse.borrow_mut().take()
                         .expect("fetch may only be called once.");
         let u = f(&self.world);
         pulse.pulse();
-        u
+        u.pass()
     }
     /// Borrows the world, allowing the system to lock some components and get the entity
     /// iterator. As an alternative to `fetch()`, it must be called only once.
     /// It allows creating a number of entities instantly, returned in a vector.
     #[allow(mutable_transmutes)]
-    pub fn fetch_new<'a, U, F>(&'a self, num_entities: usize, f: F) -> (Vec<Entity>, U)
-        where F: FnOnce(&'a World) -> U
+    pub fn fetch_new<'a, U, F>(&'a self, num_entities: usize, f: F) -> (Vec<Entity>, U::Target)
+        where U: Gate, F: FnOnce(&'a World) -> U
     {
         use std::mem::transmute;
         // The transmute is used to call `create_iter`, which is really safe for parallel use.

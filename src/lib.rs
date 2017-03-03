@@ -26,12 +26,14 @@ pub use storage::{Storage, UnprotectedStorage, AntiStorage,
 pub use world::{Component, World, EntityBuilder, Entities, CreateEntities,
                 Allocator};
 pub use join::{Join, JoinIter};
+pub use gate::Gate;
 #[cfg(feature="parallel")]
 pub use planner::*; // * because planner contains many macro-generated public functions
 
 mod storage;
 mod world;
 mod bitset;
+mod gate;
 mod join;
 #[cfg(feature="parallel")]
 mod planner;
