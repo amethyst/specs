@@ -20,7 +20,7 @@ fn create_world() -> specs::Planner<()> {
     let mut w = specs::World::new();
     w.register::<CompInt>();
     w.register::<CompBool>();
-    specs::Planner::new(w, 4)
+    specs::Planner::new(w)
 }
 
 #[test]
@@ -235,7 +235,7 @@ fn stillborn_entities() {
         }
 
         world
-    }, 4);
+    });
 
     for _ in 0 .. 100 {
         let count = (rng.gen() % 25) as usize;
