@@ -215,6 +215,8 @@ pub struct Planner<C> {
 
 impl<C: 'static> Planner<C> {
     /// Creates a new planner, given the world and the thread count.
+    ///
+    /// For a more flexible creation, see the `PlannerBuilder`.
     pub fn new(world: World, num_threads: usize) -> Planner<C> {
         PlannerBuilder::new()
             .with_world(world)
