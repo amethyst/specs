@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::sync::{mpsc, Arc};
 
 use pulse::{Pulse, Signal};
-use threadpool::ThreadPool;
+use futures_cpupool::{CpuFuture, CpuPool};
 
 use super::{Component, JoinIter, World, Entity};
 
@@ -99,10 +99,10 @@ pub struct Planner<C> {
     world: Arc<World>,
     /// Permanent systems in the planner.
     pub systems: Vec<SystemInfo<C>>,
-    wait_count: usize,
+    waiting: Vec<CpuFuture<(), ()>>,
     chan_out: mpsc::Sender<SystemInfo<C>>,
     chan_in: mpsc::Receiver<SystemInfo<C>>,
-    threader: ThreadPool,
+    cpu_pool: CpuPool,
 }
 
 impl<C: 'static> Planner<C> {
@@ -112,10 +112,10 @@ impl<C: 'static> Planner<C> {
         Planner {
             world: Arc::new(world),
             systems: Vec::new(),
-            wait_count: 0,
+            waiting: Vec::new(),
             chan_out: sout,
             chan_in: sin,
-            threader: ThreadPool::new(num_threads),
+            cpu_pool: CpuPool::new(num_threads),
         }
     }
     /// Add a system to the dispatched list.
@@ -141,21 +141,24 @@ impl<C: 'static> Planner<C> {
             world: self.world.clone(),
             pulse: RefCell::new(Some(pulse)),
         };
-        self.threader.execute(move || {
+        let future = self.cpu_pool.spawn_fn(move || {
             let _ = guard; //for drop()
             functor(arg);
+            Ok(())
         });
-        self.wait_count += 1;
+        self.waiting.push(future);
         signal.wait().expect("task panicked before args were captured.");
     }
 
     fn wait_internal(&mut self) {
-        while self.wait_count > 0 {
+        use futures::Future;
+        
+        while let Some(x) = self.waiting.pop() {
+            x.wait().unwrap();
             let sinfo = self.chan_in.recv().expect("one or more task as panicked.");
             if !sinfo.name.is_empty() {
                 self.systems.push(sinfo);
             }
-            self.wait_count -= 1;
         }
     }
 
@@ -191,11 +194,12 @@ impl<C: Clone + Send + 'static> Planner<C> {
                 world: self.world.clone(),
                 pulse: RefCell::new(Some(pulse)),
             };
-            self.threader.execute(move || {
+            let future = self.cpu_pool.spawn_fn(move || {
                 let mut g = guard;
                 g.info.as_mut().unwrap().object.run(arg, ctx);
+                Ok(())
             });
-            self.wait_count += 1;
+            self.waiting.push(future);
             signal.wait().expect("task panicked before args were captured.");
         }
     }
