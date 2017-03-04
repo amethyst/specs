@@ -3,6 +3,7 @@ use std::sync::{mpsc, Arc};
 
 use pulse::{Pulse, Signal};
 use threadpool::ThreadPool;
+use num_cpus::get as get_num_cpus;
 
 use super::{Component, JoinIter, World, Entity};
 
@@ -92,6 +93,113 @@ impl<C> Drop for SystemGuard<C> {
     }
 }
 
+/// A builder for the `Planner` struct.
+/// All `with_*` methods return `self` to allow chained calls.
+/// 
+/// ## World
+///
+/// You have to specify a world, otherwise the
+/// `build` method will panic.
+///
+/// ## Number of threads
+///
+/// Specifying the number of threads to use
+/// for the thread pool is optional.
+/// 
+/// **Note:** Only specify this if you do not
+/// want to share the thread pool, because then
+/// the number of threads the pool is configured with
+/// will determince this property.
+///
+/// # The thread pool
+///
+/// Also optional, use this if you want to
+/// share the thread pool with other parts of
+/// your crate (you should do this if you use
+/// threads somwhere else).
+///
+/// If you didn't specify a thread pool nor a number of
+/// threads, a new thread pool with the number of virtual
+/// cpus will be created.
+pub struct PlannerBuilder {
+    world: Option<World>,
+    num_threads: Option<usize>,
+    thread_pool: Option<Arc<ThreadPool>>,
+}
+
+impl PlannerBuilder {
+    /// Creates a new `PlannerBuilder`.
+    pub fn new() -> Self {
+        PlannerBuilder { 
+            world: None, 
+            num_threads: None, 
+            thread_pool: None,
+        }
+    }
+
+    /// Use this to specify the world for the planner.
+    ///
+    /// Note that this is required for the creation of a `Planner`.
+    pub fn with_world(mut self, world: World) -> Self {
+        self.world = Some(world);
+
+        self
+    }
+
+    /// This is an optional property and should only be used
+    /// if you want to create a thread pool for this planner.
+    ///
+    /// Also see the documentation of the `PlannerBuilder` struct.
+    ///
+    /// # Panics
+    ///
+    /// * Panics if you already used `with_thread_pool`.
+    pub fn with_num_threads(mut self, num_threads: usize) -> Self {
+        assert!(self.thread_pool.is_none());
+
+        self.num_threads = Some(num_threads);
+
+        self
+    }
+
+    /// Share a thread pool with this planner. It is recommended to
+    /// use this over `with_num_threads` (if you use threads anywhere else).
+    ///
+    /// # Panics
+    ///
+    /// * Panics if you already used `with_num_threads`.
+    pub fn with_thread_pool(mut self, thread_pool: Arc<ThreadPool>) -> Self {
+        assert!(self.num_threads.is_none());
+
+        self.thread_pool = Some(thread_pool);
+        
+        self
+    }
+
+    /// Builds a planner from the specified properties.
+    ///
+    /// # Panics
+    ///
+    /// * Panics if no world was specified
+    pub fn build<C>(self) -> Planner<C> {
+        let PlannerBuilder { world, num_threads, thread_pool } = self;
+        let (sout, sin) = mpsc::channel();
+
+        let threader = thread_pool.unwrap_or_else(|| { 
+            Arc::new(ThreadPool::new(num_threads.unwrap_or(get_num_cpus())))
+        });
+
+        Planner {
+            world: Arc::new(world.expect("A world is required for planner creation")),
+            systems: Vec::new(),
+            wait_count: 0,
+            chan_out: sout,
+            chan_in: sin,
+            threader: threader,
+        }
+    }
+}
+
 /// System execution planner. Allows running systems via closures,
 /// distributes the load in parallel using a thread pool.
 pub struct Planner<C> {
@@ -102,21 +210,16 @@ pub struct Planner<C> {
     wait_count: usize,
     chan_out: mpsc::Sender<SystemInfo<C>>,
     chan_in: mpsc::Receiver<SystemInfo<C>>,
-    threader: ThreadPool,
+    threader: Arc<ThreadPool>,
 }
 
 impl<C: 'static> Planner<C> {
     /// Creates a new planner, given the world and the thread count.
     pub fn new(world: World, num_threads: usize) -> Planner<C> {
-        let (sout, sin) = mpsc::channel();
-        Planner {
-            world: Arc::new(world),
-            systems: Vec::new(),
-            wait_count: 0,
-            chan_out: sout,
-            chan_in: sin,
-            threader: ThreadPool::new(num_threads),
-        }
+        PlannerBuilder::new()
+            .with_world(world)
+            .with_num_threads(num_threads)
+            .build()
     }
     /// Add a system to the dispatched list.
     pub fn add_system<S>(&mut self, sys: S, name: &str, priority: Priority) where
