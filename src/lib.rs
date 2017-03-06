@@ -12,6 +12,8 @@ extern crate mopa;
 extern crate pulse;
 #[cfg(feature="parallel")]
 extern crate threadpool;
+#[cfg(feature="parallel")]
+extern crate num_cpus;
 extern crate fnv;
 extern crate tuple_utils;
 extern crate atom;

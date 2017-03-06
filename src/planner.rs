@@ -3,6 +3,7 @@ use std::sync::{mpsc, Arc};
 
 use pulse::{Pulse, Signal};
 use threadpool::ThreadPool;
+use num_cpus::get as get_num_cpus;
 
 use super::{Component, JoinIter, World, Entity};
 
@@ -92,6 +93,44 @@ impl<C> Drop for SystemGuard<C> {
     }
 }
 
+/// A trait which should be implemented
+/// for values which give you a pool size.
+///
+/// Implemented for `i32`, `usize` and
+/// `NumCpus`.
+pub trait PoolSize {
+    /// Returns how many threads the thread pool
+    /// should have.
+    fn size(self) -> usize;
+}
+
+impl PoolSize for usize {
+    fn size(self) -> usize {
+        self
+    }
+}
+
+impl PoolSize for i32 {
+    fn size(self) -> usize {
+        self as usize
+    }
+}
+
+/// This is an empty struct, which
+/// implements `Into<usize>` which
+/// returns the number of virtual
+/// threads.
+///
+/// Intended to be used with
+/// `Planner::new`.
+pub struct NumCpus;
+
+impl PoolSize for NumCpus {
+    fn size(self) -> usize {
+        get_num_cpus()
+    }
+}
+
 /// System execution planner. Allows running systems via closures,
 /// distributes the load in parallel using a thread pool.
 pub struct Planner<C> {
@@ -102,22 +141,56 @@ pub struct Planner<C> {
     wait_count: usize,
     chan_out: mpsc::Sender<SystemInfo<C>>,
     chan_in: mpsc::Receiver<SystemInfo<C>>,
-    threader: ThreadPool,
+    threader: Arc<ThreadPool>,
 }
 
 impl<C: 'static> Planner<C> {
     /// Creates a new planner, given the world and the thread count.
-    pub fn new(world: World, num_threads: usize) -> Planner<C> {
-        let (sout, sin) = mpsc::channel();
+    /// If you already have a `ThreadPool`, consider using `from_pool` instead.
+    ///
+    /// For the thread count, you can pass anything implementing `Into<usize>`.
+    /// 
+    /// # Examples
+    ///
+    /// You can just pass a world and a number
+    /// of threads to use for the threadpool.
+    ///
+    /// ```
+    /// use specs::{NumCpus, Planner, World};
+    ///
+    /// # let world = World::new_w_comp_id();
+    /// let planner: Planner<()> = Planner::new(world, 4);
+    /// ```
+    ///
+    /// But if you don't want to hardcode the number
+    /// of threads, you can pass `NumCpus`:
+    ///
+    /// ```
+    /// use specs::{NumCpus, Planner, World};
+    ///
+    /// # let world = World::new_w_comp_id();
+    /// let planner: Planner<()> = Planner::new(world, NumCpus);
+    /// ```
+    /// 
+    pub fn new<N: PoolSize>(world: World, num_threads: N) -> Planner<C> {
+        Self::from_pool(world, Arc::new(ThreadPool::new(num_threads.size())))
+    }
+
+    /// Creates a new `Planner` from a given
+    /// thread pool.
+    pub fn from_pool(world: World, pool: Arc<ThreadPool>) -> Planner<C> {
+        let (cout, cin) = mpsc::channel();
+
         Planner {
             world: Arc::new(world),
             systems: Vec::new(),
             wait_count: 0,
-            chan_out: sout,
-            chan_in: sin,
-            threader: ThreadPool::new(num_threads),
+            chan_out: cout,
+            chan_in: cin,
+            threader: pool,
         }
     }
+
     /// Add a system to the dispatched list.
     pub fn add_system<S>(&mut self, sys: S, name: &str, priority: Priority) where
         S: 'static + System<C>
