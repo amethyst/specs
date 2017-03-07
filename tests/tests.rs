@@ -1,7 +1,10 @@
 extern crate specs;
 
-use specs::{Entity};
+#[cfg(feature="parallel")]
+use specs::Entity;
+#[cfg(feature="parallel")]
 use std::sync::{Arc, Mutex};
+#[cfg(feature="parallel")]
 use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Clone, Debug)]
