@@ -3,6 +3,7 @@ use std::sync::{mpsc, Arc};
 
 use pulse::{Pulse, Signal};
 use threadpool::ThreadPool;
+use num_cpus::get as get_num_cpus;
 
 use super::{Component, JoinIter, World, Entity};
 
@@ -102,22 +103,41 @@ pub struct Planner<C> {
     wait_count: usize,
     chan_out: mpsc::Sender<SystemInfo<C>>,
     chan_in: mpsc::Receiver<SystemInfo<C>>,
-    threader: ThreadPool,
+    threader: Arc<ThreadPool>,
 }
 
 impl<C: 'static> Planner<C> {
-    /// Creates a new planner, given the world and the thread count.
-    pub fn new(world: World, num_threads: usize) -> Planner<C> {
-        let (sout, sin) = mpsc::channel();
+    /// Creates a new planner from a given world.
+    /// If you already have a `ThreadPool`, consider using `from_pool` instead.
+    /// If you want to specify the number of threads, use `with_num_threads`.
+    /// 
+    /// The number of threads will be equal to the number
+    /// of virtual cores.
+    pub fn new(world: World) -> Planner<C> {
+        Self::with_num_threads(world, get_num_cpus())
+    }
+
+    /// Creates a new planner with a thread pool that has
+    /// `num_threads` threads.
+    pub fn with_num_threads(world: World, num_threads: usize) -> Planner<C> {
+        Self::from_pool(world, Arc::new(ThreadPool::new(num_threads)))
+    }
+
+    /// Creates a new `Planner` from a given
+    /// thread pool.
+    pub fn from_pool(world: World, pool: Arc<ThreadPool>) -> Planner<C> {
+        let (cout, cin) = mpsc::channel();
+
         Planner {
             world: Arc::new(world),
             systems: Vec::new(),
             wait_count: 0,
-            chan_out: sout,
-            chan_in: sin,
-            threader: ThreadPool::new(num_threads),
+            chan_out: cout,
+            chan_in: cin,
+            threader: pool,
         }
     }
+
     /// Add a system to the dispatched list.
     pub fn add_system<S>(&mut self, sys: S, name: &str, priority: Priority) where
         S: 'static + System<C>
