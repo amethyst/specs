@@ -49,7 +49,7 @@ let mut planner = {
 ```
 
 #### System run
-In order to run a system, you can either use a convenience-function (`runXwYr`) or a custom one (see below in the section "Custom system" and the examples in the `/examples` directory). Convencience-functions are used to request a defined number of mutable and immutable components on an entity. X and Y stand for the number of parameters respectively. `run1w1r` will allow you to use one mutable and one immutable component requirement respectively, as you can see below. Run-functions always iterate over all entities of a world.
+In order to run a system, you can either use a convenience-function (`runXwYr`) or a custom one (see below in the section "Custom system" and the examples in the `/examples` directory). Convencience-functions are used to request a defined number of mutable and immutable components on an entity. X and Y stand for the number of parameters respectively. `run1w1r` will allow you to use one mutable and one immutable component requirement respectively, as you can see below. Run-functions always iterate over all entities of a world with the requested components.
 
 ```rust
 planner.run1w1r(|p: &mut Position, s: &Speed| {
