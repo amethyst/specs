@@ -43,8 +43,9 @@ let mut planner = {
     w.create_now().with(Position(0)).with(Speed(2)).build();
     w.create_now().with(Position(-1)).with(Speed(100)).build();
     w.create_now().with(Position(127)).build();
-    // Planner is used to run systems on the specified world with a specified number of threads
-    specs::Planner::new(w, 4)
+    // Planner is used to run systems on the specified world with as many
+    // threads as virtual cpus
+    specs::Planner::new(w)
 };
 ```
 
@@ -62,7 +63,7 @@ planner.run1w1r(|p: &mut Position, s: &Speed| {
 impl System<u32> for MySystem {
     fn run(&mut self, arg: RunArg, context: u32) {
         let mut numbers = arg.fetch(|w| w.write::<u32>());
-        for n in (&numbers).iter() {
+        for n in (&numbers).join() {
             *n += context;
         }
     }
