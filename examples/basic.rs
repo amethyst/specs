@@ -81,7 +81,7 @@ fn main() {
         // Instead of using the `entities` array you can
         // use the `Join` trait that is an optimized way of
         // doing the `get/get_mut` across entities.
-        for (a, b) in (&mut sa, &sb).iter() {
+        for (a, b) in (&mut sa, &sb).join() {
             a.0 += if b.0 {2} else {0};
         }
 
@@ -102,11 +102,11 @@ fn main() {
         });
 
         // Insert a component for each entity in sb
-        for (eid, sb) in (&entities, &sb).iter() {
+        for (eid, sb) in (&entities, &sb).join() {
             sa.insert(eid, CompFloat(sb.0 as f32));
         }
 
-        for (eid, sa, sb) in (&entities, &mut sa, &sb).iter() {
+        for (eid, sa, sb) in (&entities, &mut sa, &sb).join() {
             assert_eq!(sa.0 as u32, sb.0 as u32);
             println!("eid[{:?}] = {:?} {:?}", eid, sa, sb);
         }
@@ -117,7 +117,7 @@ fn main() {
              // resources are acquired in the same way as components
              w.write_resource::<Sum>())
         });
-        count.0 = (&ints,).iter().count();
+        count.0 = (&ints,).join().count();
     });
     planner.run_custom(|arg| {
         let count = arg.fetch(|w| w.read_resource::<Sum>());
@@ -129,7 +129,7 @@ fn main() {
         });
 
         // components that have a CompInt but no CompBool
-        for (entity, _, _) in (&entities, &ci.check(), !&cb).iter() {
+        for (entity, _, _) in (&entities, &ci.check(), !&cb).join() {
             let compint = ci.get_mut(entity); // This works because `.check()` isn't returning the component.
             let compbool = cb.get(entity);
             println!("{:?} {:?} {:?}", entity, compint, compbool);
