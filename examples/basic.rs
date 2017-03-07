@@ -86,9 +86,9 @@ fn main() {
         }
 
         // Dynamically creating and deleting entities
-        let e0 = arg.create();
+        let e0 = arg.create_pure();
         sa.insert(e0, CompInt(-4));
-        let e1 = arg.create();
+        let e1 = arg.create_pure();
         sa.insert(e1, CompInt(-5));
         arg.delete(e0);
     });

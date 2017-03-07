@@ -97,7 +97,7 @@ fn dynamic_create() {
     for _ in 0..1_000 {
         planner.run_custom(|arg| {
             arg.fetch(|_| ());
-            arg.create();
+            arg.create_pure();
         });
         planner.wait();
     }
@@ -111,7 +111,7 @@ fn dynamic_deletion() {
     for _ in 0..1_000 {
         planner.run_custom(|arg| {
             arg.fetch(|_| ());
-            let e = arg.create();
+            let e = arg.create_pure();
             arg.delete(e);
             arg.delete(e); // double free
         });
@@ -135,7 +135,7 @@ fn dynamic_create_and_delete() {
         planner.run_custom(move |arg| {
             arg.fetch(|_| ());
             let mut e = e.lock().unwrap();
-            *e = Some(arg.create());
+            *e = Some(arg.create_pure());
         });
         if i >= 1 {
             let e = ent1.clone();
@@ -164,16 +164,16 @@ fn mixed_create_merge() {
 
     let insert = |planner: &mut specs::Planner<()>, set: &mut HashSet<Entity>, cnt: usize| {
         // Check to make sure there is no conflict between create_now
-        // and create_later
+        // and create_pure
         for _ in 0..10 {
             for _ in 0..cnt {
                 let mut w = planner.mut_world();
                 add(set, w.create_now().build());
                 let e = w.create_now().build();
                 w.delete_now(e);
-                add(set, w.create_later());
+                add(set, w.create_pure());
                 //  swap order
-                add(set, w.create_later());
+                add(set, w.create_pure());
                 add(set, w.create_now().build());
             }
             planner.wait();
@@ -268,7 +268,7 @@ fn stillborn_entities() {
             for &i in values.iter() {
                 use specs::InsertResult::EntityIsDead;
 
-                let result = compint.insert(arg.create(), CompInt(i));
+                let result = compint.insert(arg.create_pure(), CompInt(i));
                 if let EntityIsDead(_) = result {
                     panic!("Couldn't insert {} into a stillborn entity", i);
                 }

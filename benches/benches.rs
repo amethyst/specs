@@ -42,9 +42,9 @@ mod world {
     }
 
     #[bench]
-    fn create_later(b: &mut test::Bencher) {
+    fn create_pure(b: &mut test::Bencher) {
         let w = specs::World::new();
-        b.iter(|| w.create_later());
+        b.iter(|| w.create_pure());
     }
 
     #[bench]
@@ -80,7 +80,7 @@ mod world {
     fn maintain_add_later(b: &mut test::Bencher) {
         let w = specs::World::new();
         b.iter(|| {
-            w.create_later();
+            w.create_pure();
             w.maintain();
         });
     }

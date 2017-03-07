@@ -41,8 +41,8 @@ impl RunArg {
         (entities, self.fetch(f))
     }
     /// Creates a new entity dynamically.
-    pub fn create(&self) -> Entity {
-        self.world.create_later()
+    pub fn create_pure(&self) -> Entity {
+        self.world.create_pure()
     }
     /// Deletes an entity dynamically.
     pub fn delete(&self, entity: Entity) {
