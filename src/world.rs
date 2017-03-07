@@ -317,13 +317,13 @@ impl<C> World<C>
         }
     }
     /// Creates a new entity dynamically.
-    pub fn create_later(&self) -> Entity {
+    pub fn create_pure(&self) -> Entity {
         let allocator = self.allocator.read().unwrap();
         allocator.allocate_atomic()
     }
     /// Creates a new entity dynamically, and starts building it.
-    pub fn create_later_build(&self) -> EntityBuilder<C> {
-        EntityBuilder::new(self.create_later(), self)
+    pub fn create(&self) -> EntityBuilder<C> {
+        EntityBuilder::new(self.create_pure(), self)
     }
     /// Deletes an entity dynamically.
     pub fn delete_later(&self, entity: Entity) {
