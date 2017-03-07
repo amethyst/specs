@@ -31,7 +31,8 @@ See [ecs_bench](https://github.com/lschmierer/ecs_bench) for single- and multi-t
 - Your component storages can be anything. Consider crazy stuff like a BSP tree, or a database over the network. Some storages can safely allow sharing their components between entities, some can not - but it's up to you to choose.
 
 ## Examples
-Entity creation:
+
+#### Entity creation
 ```rust
 let mut planner = {
     let mut w = specs::World::new();
@@ -47,13 +48,16 @@ let mut planner = {
 };
 ```
 
-System run:
+#### System run
+In order to run a system, you can either use a convenience-function (`runXwYr`) or a custom one (see below in the section "Custom system" and the examples in the `/examples` directory). Convencience-functions are used to request a defined number of mutable and immutable components on an entity. X and Y stand for the number of parameters respectively. `run1w1r` will allow you to use one mutable and one immutable component requirement respectively, as you can see below. Run-functions always iterate over all entities of a world with the requested components.
+
 ```rust
 planner.run1w1r(|p: &mut Position, s: &Speed| {
     *p += *s;
 });
 ```
-Custom system:
+
+#### Custom system
 ```rust
 impl System<u32> for MySystem {
     fn run(&mut self, arg: RunArg, context: u32) {
