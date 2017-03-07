@@ -1,4 +1,6 @@
 extern crate specs;
+
+#[cfg(feature="parallel")]
 use specs::Join;
 
 #[derive(Clone, Debug)]
