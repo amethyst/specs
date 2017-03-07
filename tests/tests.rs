@@ -164,16 +164,16 @@ fn mixed_create_merge() {
 
     let insert = |planner: &mut specs::Planner<()>, set: &mut HashSet<Entity>, cnt: usize| {
         // Check to make sure there is no conflict between create_now
-        // and create_later
+        // and create_pure
         for _ in 0..10 {
             for _ in 0..cnt {
                 let mut w = planner.mut_world();
                 add(set, w.create_now().build());
                 let e = w.create_now().build();
                 w.delete_now(e);
-                add(set, w.create_later());
+                add(set, w.create_pure());
                 //  swap order
-                add(set, w.create_later());
+                add(set, w.create_pure());
                 add(set, w.create_now().build());
             }
             planner.wait();
