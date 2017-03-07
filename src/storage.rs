@@ -584,7 +584,7 @@ mod test {
             s.insert(Entity::new(i, Generation(1)), (i+10).into());
         }
 
-        for (i, (a, _)) in (&s, !&s).iter().take(10).enumerate() {
+        for (i, (a, _)) in (&s, !&s).join().take(10).enumerate() {
             assert_eq!(a, &(i as u32).into());
         }
     }

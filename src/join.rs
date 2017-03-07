@@ -66,7 +66,7 @@ pub trait Join {
     /// Type of joined bit mask.
     type Mask: BitSetLike;
     /// Create a joined iterator over the contents.
-    fn iter(self) -> JoinIter<Self> where Self: Sized {
+    fn join(self) -> JoinIter<Self> where Self: Sized {
         JoinIter::new(self)
     }
     /// Open this join by returning the mask and the storages.
