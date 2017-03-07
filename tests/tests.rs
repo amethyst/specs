@@ -251,7 +251,7 @@ fn stillborn_entities() {
             });
 
             let mut lowest = vec![];
-            for (&CompInt(k), eid) in (&compint, &eids).iter() {
+            for (&CompInt(k), eid) in (&compint, &eids).join() {
                 if lowest.iter().all(|&(n, _)| n >= k) {
                     lowest.push((k, eid));
                 }
