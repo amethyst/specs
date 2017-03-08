@@ -1,7 +1,8 @@
 extern crate specs;
 
 #[cfg(feature="parallel")]
-use specs::{Entity, Gate};
+use specs::Entity;
+use specs::Gate;
 #[cfg(feature="parallel")]
 use std::sync::{Arc, Mutex};
 #[cfg(feature="parallel")]
@@ -296,10 +297,10 @@ fn dynamic_component() {
         .with_w_comp_id::<CompBool>(2, CompBool(true))
         .build();
 
-    let i = w.read_w_comp_id::<CompInt>(1).get(e).unwrap().0;
+    let i = w.read_w_comp_id::<CompInt>(1).pass().get(e).unwrap().0;
     assert_eq!(i, 10);
 
-    let c = w.read_w_comp_id::<CompBool>(2).get(e).unwrap().0;
+    let c = w.read_w_comp_id::<CompBool>(2).pass().get(e).unwrap().0;
     assert_eq!(c, true);
 }
 
@@ -319,6 +320,6 @@ fn register_idempotency() {
     w.register::<CompInt>();
 
     // ...this would end up trying to unwrap a `None`.
-    let i = w.read::<CompInt>().get(e).unwrap().0;
+    let i = w.read::<CompInt>().pass().get(e).unwrap().0;
     assert_eq!(i, 10);
 }
