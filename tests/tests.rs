@@ -59,8 +59,9 @@ fn wait() {
     }
 }
 
-//#[should_panic]
-//#[test] //TODO
+#[ignore] //TODO
+#[should_panic]
+#[test]
 #[cfg(feature="parallel")]
 fn _task_panics() {
     let mut planner = create_world();
@@ -322,4 +323,24 @@ fn register_idempotency() {
     // ...this would end up trying to unwrap a `None`.
     let i = w.read::<CompInt>().pass().get(e).unwrap().0;
     assert_eq!(i, 10);
+}
+
+#[should_panic(expected = "fetch should be called once.")]
+#[test]
+#[cfg(feature="parallel")]
+fn fetch_has_to_be_called_atleast_once() {
+    let mut planner = specs::Planner::<()>::new(specs::World::new());
+    planner.run_custom(|_| {});
+}
+
+#[ignore] //TODO
+#[should_panic(expected = "fetch may only be called once.")]
+#[test]
+#[cfg(feature="parallel")]
+fn fetch_has_to_be_called_atmost_once() {
+    let mut planner = specs::Planner::<()>::new(specs::World::new());
+    planner.run_custom(|args| {
+        args.fetch(|_| {});
+        args.fetch(|_| {});
+    });
 }
