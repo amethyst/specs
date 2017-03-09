@@ -240,6 +240,7 @@ impl<'a, T, A, D> Join for &'a mut Storage<T, A, D> where
 
 
 #[cfg(feature="ticket")]
+/// 
 pub struct GatedStorage<T, A, G> {
     marker: PhantomData<T>,
     alloc: A,
@@ -248,6 +249,7 @@ pub struct GatedStorage<T, A, G> {
 
 #[cfg(feature="ticket")]
 impl<T, A, G> GatedStorage<T, A, G> {
+    /// Creates a new `GatedStorage`.
     pub fn new(alloc: A, gate: G) -> Self {
         GatedStorage {
             marker: PhantomData,
