@@ -23,6 +23,8 @@ extern crate atom;
 pub use storage::{Storage, UnprotectedStorage, AntiStorage,
                   VecStorage, HashMapStorage, NullStorage, InsertResult,
                   MaskedStorage};
+#[cfg(feature="ticket")]
+pub use storage::{GatedStorage};
 pub use world::{Component, World, EntityBuilder, Entities, CreateEntities,
                 Allocator};
 pub use join::{Join, JoinIter};
