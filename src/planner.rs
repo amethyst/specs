@@ -111,7 +111,7 @@ impl<C: 'static> Planner<C> {
     /// Creates a new planner from a given world.
     /// If you already have a `ThreadPool`, consider using `from_pool` instead.
     /// If you want to specify the number of threads, use `with_num_threads`.
-    /// 
+    ///
     /// The number of threads will be equal to the number
     /// of virtual cores.
     pub fn new(world: World) -> Planner<C> {
@@ -167,12 +167,12 @@ impl<C: 'static> Planner<C> {
             functor(arg);
         });
         self.wait_count += 1;
-        signal.wait().expect("task panicked before args were captured.");
+        signal.wait().expect("fetch should be called once.");
     }
 
     fn wait_internal(&mut self) {
         while self.wait_count > 0 {
-            let sinfo = self.chan_in.recv().expect("one or more task as panicked.");
+            let sinfo = self.chan_in.recv().expect("one or more task has panicked.");
             if !sinfo.name.is_empty() {
                 self.systems.push(sinfo);
             }
@@ -217,7 +217,7 @@ impl<C: Clone + Send + 'static> Planner<C> {
                 g.info.as_mut().unwrap().object.run(arg, ctx);
             });
             self.wait_count += 1;
-            signal.wait().expect("task panicked before args were captured.");
+            signal.wait().expect("fetch should be called once.");
         }
     }
 }
