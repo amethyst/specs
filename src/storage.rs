@@ -174,12 +174,12 @@ impl<T, A, D> Storage<T, A, D> where
     }
     /// Inserts new data for a given `Entity`.
     /// Returns the result of the operation as a `InsertResult<T>`
-    pub fn insert(&mut self, e: Entity, mut v: T) -> InsertResult<T> {
+    pub fn insert(&mut self, e: Entity, v: T) -> InsertResult<T> {
         if self.alloc.is_alive(e) {
             let id = e.get_id();
             if self.data.mask.contains(id) {
-                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id) });
-                InsertResult::Updated(v)
+                let old = unsafe { self.data.inner.update(id, v) };
+                InsertResult::Updated(old)
             } else {
                 self.data.mask.add(id);
                 unsafe { self.data.inner.insert(id, v) };
@@ -286,6 +286,8 @@ pub trait UnprotectedStorage<T>: Sized {
     unsafe fn get_mut(&mut self, id: Index) -> &mut T;
     /// Inserts new data for a given `Index`.
     unsafe fn insert(&mut self, Index, T);
+    /// Update data for a given `Index`.
+    unsafe fn update(&mut self, Index, T) -> T;
     /// Removes the data associated with an `Index`.
     unsafe fn remove(&mut self, Index) -> T;
 }
@@ -308,6 +310,9 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     }
     unsafe fn insert(&mut self, id: Index, v: T) {
         self.0.insert(id, v);
+    }
+    unsafe fn update(&mut self, id: Index, v: T) -> T {
+        self.0.insert(id, v).unwrap()
     }
     unsafe fn remove(&mut self, id: Index) -> T {
         self.0.remove(&id).unwrap()
@@ -350,6 +355,10 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         // the (currently uninitialized) memory.
         ptr::write(self.0.get_unchecked_mut(id), v);
     }
+    unsafe fn update(&mut self, id: Index, mut v: T) -> T {
+        std::mem::swap(&mut v, self.get_mut(id));
+        v
+    }
     unsafe fn remove(&mut self, id: Index) -> T {
         use std::ptr;
         ptr::read(self.get(id))
@@ -368,6 +377,7 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
     unsafe fn get(&self, _: Index) -> &T { &self.0 }
     unsafe fn get_mut(&mut self, _: Index) -> &mut T { panic!("One does not simply modify a NullStorage") }
     unsafe fn insert(&mut self, _: Index, _: T) {}
+    unsafe fn update(&mut self, _: Index, _: T) -> T { Default::default() }
     unsafe fn remove(&mut self, _: Index) -> T { Default::default() }
 }
 
@@ -411,6 +421,23 @@ mod map_test {
 
         for i in 0..100_000 {
             assert_eq!(c.get(ent(i)).unwrap().0, i);
+        }
+    }
+
+    #[test]
+    fn update() {
+        let mut c = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::new()));
+
+        for i in 0..1_000 {
+            c.insert(ent(i), Comp(i));
+            match c.insert(ent(i), Comp(i + 1)) {
+                ::InsertResult::Updated(x) => assert_eq!(x.0, i),
+                _ => { },
+            }
+        }
+
+        for i in 0..1_000 {
+            assert_eq!(c.get(ent(i)).unwrap().0, i + 1);
         }
     }
 
