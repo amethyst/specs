@@ -34,7 +34,8 @@ pub use planner::*; // * because planner contains many macro-generated public fu
 
 mod storage;
 mod world;
-mod bitset;
+#[doc(hidden)]
+pub mod bitset;
 mod gate;
 mod join;
 #[cfg(feature="parallel")]
