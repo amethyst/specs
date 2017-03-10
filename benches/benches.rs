@@ -31,13 +31,13 @@ mod world {
 
     #[bench]
     fn create_now(b: &mut test::Bencher) {
-        let w = specs::World::new();
+        let mut w = specs::World::new();
         b.iter(|| w.create_now().build());
     }
 
     #[bench]
     fn create_now_with_storage(b: &mut test::Bencher) {
-        let w = create_world();
+        let mut w = create_world();
         b.iter(|| w.create_now().with(CompInt(0)).build());
     }
 
@@ -49,28 +49,28 @@ mod world {
 
     #[bench]
     fn delete_now(b: &mut test::Bencher) {
-        let w = specs::World::new();
+        let mut w = specs::World::new();
         let mut eids: Vec<_> = (0..1_000_000).map(|_| w.create_now().build()).collect();
         b.iter(|| w.delete_now(eids.pop().unwrap()));
     }
 
     #[bench]
     fn delete_now_with_storage(b: &mut test::Bencher) {
-        let w = create_world();
+        let mut w = create_world();
         let mut eids: Vec<_> = (0..1_000_000).map(|_| w.create_now().with(CompInt(1)).build()).collect();
         b.iter(|| w.delete_now(eids.pop().unwrap()));
     }
 
     #[bench]
     fn delete_later(b: &mut test::Bencher) {
-        let w = specs::World::new();
+        let mut w = specs::World::new();
         let mut eids: Vec<_> = (0..1_000_000).map(|_| w.create_now().build()).collect();
         b.iter(|| w.delete_later(eids.pop().unwrap()));
     }
 
     #[bench]
     fn maintain_noop(b: &mut test::Bencher) {
-        let w = specs::World::new();
+        let mut w = specs::World::new();
         b.iter(|| {
             w.maintain();
         });
@@ -78,7 +78,7 @@ mod world {
 
     #[bench]
     fn maintain_add_later(b: &mut test::Bencher) {
-        let w = specs::World::new();
+        let mut w = specs::World::new();
         b.iter(|| {
             w.create_pure();
             w.maintain();
@@ -87,7 +87,7 @@ mod world {
 
     #[bench]
     fn maintain_delete_later(b: &mut test::Bencher) {
-        let w = specs::World::new();
+        let mut w = specs::World::new();
         let mut eids: Vec<_> = (0..1_000_000).map(|_| w.create_now().build()).collect();
         b.iter(|| {
             w.delete_later(eids.pop().unwrap());
@@ -98,7 +98,7 @@ mod world {
 
 mod bitset {
     use test;
-    use specs::BitSet;
+    use specs::bitset::BitSet;
 
     #[bench]
     fn add(b: &mut test::Bencher) {
@@ -139,7 +139,7 @@ mod bitset {
 
 mod atomic_bitset {
     use test;
-    use specs::AtomicBitSet;
+    use specs::bitset::AtomicBitSet;
 
     #[bench]
     fn add(b: &mut test::Bencher) {
