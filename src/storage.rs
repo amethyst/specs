@@ -1,5 +1,6 @@
 use std;
 use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::hash::BuildHasherDefault;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
@@ -314,6 +315,30 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     }
 }
 
+/// BTreeMap-based storage.
+pub struct BTreeStorage<T>(BTreeMap<Index, T>);
+
+impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
+    fn new() -> Self {
+        BTreeStorage(Default::default())
+    }
+    unsafe fn clean<F>(&mut self, _: F) where F: Fn(Index) -> bool {
+        // nothing to do
+    }
+    unsafe fn get(&self, id: Index) -> &T {
+        self.0.get(&id).unwrap()
+    }
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
+        self.0.get_mut(&id).unwrap()
+    }
+    unsafe fn insert(&mut self, id: Index, v: T) {
+        self.0.insert(id, v);
+    }
+    unsafe fn remove(&mut self, id: Index) -> T {
+        self.0.remove(&id).unwrap()
+    }
+}
+
 /// Vec-based storage, stores the generations of the data in
 /// order to match with given entities. Supposed to have maximum
 /// performance for the components mostly present in entities.
@@ -488,7 +513,7 @@ fn test_vec_arc() {
 mod test {
     use std::convert::AsMut;
     use std::fmt::Debug;
-    use super::{Storage, MaskedStorage, VecStorage, HashMapStorage, NullStorage};
+    use super::{Storage, MaskedStorage, VecStorage, HashMapStorage, BTreeStorage, NullStorage};
     use world::Allocator;
     use {Component, Entity, Generation};
 
@@ -514,6 +539,18 @@ mod test {
     }
     impl Component for Cmap {
         type Storage = HashMapStorage<Cmap>;
+    }
+
+    #[derive(PartialEq, Eq, Debug)]
+    struct CBtree(u32);
+    impl From<u32> for CBtree {
+        fn from(v: u32) -> CBtree { CBtree(v) }
+    }
+    impl AsMut<u32> for CBtree {
+        fn as_mut(&mut self) -> &mut u32 { &mut self.0 }
+    }
+    impl Component for CBtree {
+        type Storage = BTreeStorage<CBtree>;
     }
 
     #[derive(Clone)]
@@ -641,6 +678,13 @@ mod test {
     #[test] fn hash_test_add_gen() { test_add_gen::<Cmap>(); }
     #[test] fn hash_test_sub_gen() { test_sub_gen::<Cmap>(); }
     #[test] fn hash_test_clear() { test_clear::<Cmap>(); }
+
+    #[test] fn btree_test_add() { test_add::<CBtree>(); }
+    #[test] fn btree_test_sub() { test_sub::<CBtree>(); }
+    #[test] fn btree_test_get_mut() { test_get_mut::<CBtree>(); }
+    #[test] fn btree_test_add_gen() { test_add_gen::<CBtree>(); }
+    #[test] fn btree_test_sub_gen() { test_sub_gen::<CBtree>(); }
+    #[test] fn btree_test_clear() { test_clear::<CBtree>(); }
 
     #[test] fn dummy_test_clear() { test_clear::<Cnull>(); }
 }
