@@ -21,7 +21,7 @@ extern crate tuple_utils;
 extern crate atom;
 
 pub use storage::{Storage, UnprotectedStorage, AntiStorage,
-                  VecStorage, HashMapStorage, NullStorage, InsertResult,
+                  VecStorage, HashMapStorage, BTreeStorage, NullStorage, InsertResult,
                   MaskedStorage};
 #[cfg(feature="ticket")]
 pub use storage::{GatedStorage};
