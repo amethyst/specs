@@ -300,7 +300,7 @@ trait ResourceLock: Any + Send + Sync {}
 
 mopafy!(ResourceLock);
 
-impl<T:Any+Send+Sync> ResourceLock for Lock<T> {}
+impl<T:Any+Send> ResourceLock for Lock<T> {}
 
 /// The `World` struct contains all the data, which is entities and their components.
 /// All methods are supposed to be valid for any context they are available in.
@@ -425,26 +425,26 @@ impl<C> World<C>
         }
     }
     /// Add a new resource to the world.
-    pub fn add_resource<T: Any+Send+Sync>(&mut self, resource: T) {
+    pub fn add_resource<T: Any+Send>(&mut self, resource: T) {
         let resource = Box::new(Lock::new(resource));
         self.resources.insert(TypeId::of::<T>(), resource);
     }
     /// Check to see if a resource is present.
-    pub fn has_resource<T: Any+Send+Sync>(&self) -> bool {
+    pub fn has_resource<T: Any+Send>(&self) -> bool {
         self.resources.get(&TypeId::of::<T>()).is_some()
     }
-    fn get_resource<T: Any+Send+Sync>(&self) -> &Lock<T> {
+    fn get_resource<T: Any+Send>(&self) -> &Lock<T> {
         self.resources.get(&TypeId::of::<T>())
             .expect("Resource was not registered")
             .downcast_ref::<Lock<T>>()
             .unwrap()
     }
     /// Get read-only access to a resource.
-    pub fn read_resource_now<T: Any+Send+Sync>(&self) -> ReadLockGuard<T> {
+    pub fn read_resource_now<T: Any+Send>(&self) -> ReadLockGuard<T> {
         self.get_resource::<T>().read().unwrap()
     }
     /// Get read-write access to a resource.
-    pub fn write_resource_now<T: Any+Send+Sync>(&self) -> WriteLockGuard<T> {
+    pub fn write_resource_now<T: Any+Send>(&self) -> WriteLockGuard<T> {
         self.get_resource::<T>().write().unwrap()
     }
 }
@@ -485,11 +485,11 @@ impl World<()> {
         self.write_w_comp_id::<T>(())
     }
     /// Get read-only access to a resource.
-    pub fn read_resource<T: Any+Send+Sync>(&self) -> TimeGuard<ReadLockGuard<T>> {
+    pub fn read_resource<T: Any+Send>(&self) -> TimeGuard<ReadLockGuard<T>> {
         TimeGuard(self.get_resource::<T>().read().unwrap())
     }
     /// Get read-write access to a resource.
-    pub fn write_resource<T: Any+Send+Sync>(&self) -> TimeGuard<WriteLockGuard<T>> {
+    pub fn write_resource<T: Any+Send>(&self) -> TimeGuard<WriteLockGuard<T>> {
         TimeGuard(self.get_resource::<T>().write().unwrap())
     }
 }
@@ -507,11 +507,11 @@ impl World<()> {
         GatedStorage::new(self.allocator.read().unwrap(), ticket.0)
     }
     /// Get read-only access to a resource.
-    pub fn read_resource<T: Any+Send+Sync>(&self) -> ReadTicket<T> {
+    pub fn read_resource<T: Any+Send>(&self) -> ReadTicket<T> {
         self.get_resource::<T>().read().0
     }
     /// Get read-write access to a resource.
-    pub fn write_resource<T: Any+Send+Sync>(&self) -> WriteTicket<T> {
+    pub fn write_resource<T: Any+Send>(&self) -> WriteTicket<T> {
         self.get_resource::<T>().write().0
     }
 }
