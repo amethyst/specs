@@ -27,7 +27,7 @@ pub const SHIFT3: usize = SHIFT2 + BITS;
 /// a certain component exists. It does not track the `Generation` of the
 /// entities that it contains.
 ///
-/// Note, a `BitSet` is limited by design to only 1,048,576 indices for 32 bit and 16,777,216 indices for 64 bit architectures.
+/// Note, a `BitSet` is limited by design to only 1,048,576 indices.
 /// Adding beyond this limit will cause the `BitSet` to panic.
 #[derive(Clone)]
 pub struct BitSet {
@@ -457,32 +457,37 @@ impl<'a, T: 'a + Send + Sync> UnindexedProducer for BitProducer<'a, T>
     fn split(mut self) -> (Self, Option<Self>) {
         if self.0.masks[3] != 0 {
             let first_bit = self.0.masks[3].trailing_zeros();
-            let last_bit = self.0.masks[3].leading_zeros();
+            let last_bit = (BITS as u32 * 8) - self.0.masks[3].leading_zeros();
             if first_bit == last_bit {
-                panic!("Because first mask has to be non-zero to be able to return Some and because the bits in masks are cleared when they are visited first time this shouldn't be possible");
+                if self.0.masks[2] == 0 {
+                    self.0.masks[3] &= !(1 << first_bit);
+                    self.0.masks[2] = self.0.set.layer2(first_bit as usize);
+                    self.0.prefix[2] = first_bit << BITS;
+                }
+            } else {
+                let avarage = (first_bit + last_bit) / 2;
+                let mask = (1 << avarage) - 1;
+                let other = BitProducer(BitIter {
+                    set: self.0.set,
+                    masks: [0, 0, 0, self.0.masks[3] & !mask],
+                    prefix: [0; 3],
+                });
+                self.0.masks[3] &= mask;
+                return (self, Some(other));
             }
-            let avarage = (last_bit - first_bit) / 2;
-            let mask = (1 << avarage) - 1;
-            let other = BitProducer(BitIter {
-                set: self.0.set,
-                masks: [0, 0, 0, self.0.masks[3] & !mask],
-                prefix: [0; 3],
-            });
-            self.0.masks[3] &= mask;
-            (self, Some(other))
-
-        } else if self.0.masks[2] != 0 {
+        }
+        if self.0.masks[2] != 0 {
             let first_bit = self.0.masks[2].trailing_zeros();
-            let last_bit = self.0.masks[2].leading_zeros();
+            let last_bit = (BITS as u32 * 8) - self.0.masks[2].leading_zeros();
             if first_bit == last_bit {
-                panic!("Because first mask has to be non-zero to be able to return Some and because the bits in masks are cleared when they are visited first time this shouldn't be possible");
+                return (self, None);
             }
             let avarage = (last_bit - first_bit) / 2;
             let mask = (1 << avarage) - 1;
             let other = BitProducer(BitIter {
                 set: self.0.set,
                 masks: [0, 0, self.0.masks[2] & !mask, 0],
-                prefix: [0; 3],
+                prefix: [0, 0, self.0.prefix[2]],
             });
             self.0.masks[2] &= mask;
             (self, Some(other))
