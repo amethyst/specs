@@ -1,8 +1,10 @@
 use std;
 
-use hibitset::{BitSetAnd, BitIter, BitSetLike};
+use hibitset::{BitSetAnd, BitIter, BitParIter, BitSetLike};
 use tuple_utils::Split;
 
+use rayon::iter::ParallelIterator;
+use rayon::iter::internal::UnindexedConsumer;
 use Index;
 
 /// BitAnd is a helper method to & bitsets together resulting in a tree.
@@ -85,7 +87,7 @@ pub trait Join {
 }
 
 
-/// `JoinIter` is an Iterator over a group of `Storages`.
+/// `JoinIter` is an `Iterator` over a group of `Storages`.
 #[must_use]
 pub struct JoinIter<J: Join> {
     keys: BitIter<J::Mask>,
@@ -110,6 +112,25 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
         self.keys
             .next()
             .map(|idx| unsafe { J::get(&mut self.values, idx) })
+    }
+}
+
+/// `JoinParIter` is an `ParallelIterator` over a group of `Storages`.
+#[must_use]
+pub struct JoinParIter<J: Join> {
+    keys: BitParIter<J::Mask>,
+    values: J::Value,
+}
+
+impl<J: Join + Send> ParallelIterator for JoinParIter<J>
+where J::Type: Send,
+      J::Value: Send,
+{
+    type Item = J::Type;
+
+    fn drive_unindexed<C>(self, consumer: C) -> C::Result where C: UnindexedConsumer<Self::Item> {
+        unimplemented!();
+        //TODO: Implement this using BitParIter
     }
 }
 
