@@ -3,7 +3,9 @@ use std::iter::repeat;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use atom::AtomSetOnce;
+#[cfg(feature="parallel")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+#[cfg(feature="parallel")]
 use rayon::iter::internal::{UnindexedProducer, UnindexedConsumer, Folder, bridge_unindexed};
 
 use Index;
@@ -236,6 +238,7 @@ pub trait BitSetLike {
     }
 
     /// Create a parallel iterator that will scan over the keyspace
+    #[cfg(feature="parallel")]
     fn par_iter(self) -> BitParIter<Self>
         where Self: Sized
     {
@@ -431,6 +434,7 @@ impl<T> Iterator for BitIter<T>
 
 
 // TODO: Implement BoundedParallelIterator for this.
+#[cfg(feature="parallel")]
 pub struct BitParIter<T>(T);
 
 impl<T> ParallelIterator for BitParIter<T>
@@ -443,6 +447,7 @@ impl<T> ParallelIterator for BitParIter<T>
     }
 }
 
+#[cfg(feature="parallel")]
 struct BitProducer<'a, T: 'a + Send + Sync>(BitIter<&'a T>);
 
 impl<'a, T: 'a + Send + Sync> UnindexedProducer for BitProducer<'a, T>
