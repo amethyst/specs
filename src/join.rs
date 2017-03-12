@@ -129,6 +129,7 @@ pub struct JoinParIter<J: Join> {
     values: J::Value,
 }
 
+#[cfg(feature="parallel")]
 impl<J: Join + Send> ParallelIterator for JoinParIter<J>
 where J::Type: Send,
       J::Value: Send,

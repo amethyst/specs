@@ -441,6 +441,7 @@ impl<T> Iterator for BitIter<T>
 #[cfg(feature="parallel")]
 pub struct BitParIter<T>(T);
 
+#[cfg(feature="parallel")]
 impl<T> ParallelIterator for BitParIter<T>
     where T: BitSetLike + Send + Sync,
 {
@@ -454,6 +455,7 @@ impl<T> ParallelIterator for BitParIter<T>
 #[cfg(feature="parallel")]
 struct BitProducer<'a, T: 'a + Send + Sync>(BitIter<&'a T>);
 
+#[cfg(feature="parallel")]
 impl<'a, T: 'a + Send + Sync> UnindexedProducer for BitProducer<'a, T>
     where T: BitSetLike
 {
