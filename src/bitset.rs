@@ -14,6 +14,10 @@ use Index;
 pub const BITS: usize = 6;
 #[cfg(target_pointer_width= "32")]
 pub const BITS: usize = 5;
+#[cfg(target_pointer_width= "64")]
+pub const BITS_IN_USIZE: usize = 64;
+#[cfg(target_pointer_width= "32")]
+pub const BITS_IN_USIZE: usize = 32;
 pub const LAYERS: usize = 4;
 pub const MAX: usize = BITS * LAYERS;
 pub const MAX_EID: usize = 2 << MAX - 1;
@@ -457,7 +461,7 @@ impl<'a, T: 'a + Send + Sync> UnindexedProducer for BitProducer<'a, T>
     fn split(mut self) -> (Self, Option<Self>) {
         if self.0.masks[3] != 0 {
             let first_bit = self.0.masks[3].trailing_zeros();
-            let last_bit = (BITS as u32 * 8) - self.0.masks[3].leading_zeros();
+            let last_bit = BITS_IN_USIZE as u32 - self.0.masks[3].leading_zeros();
             if first_bit == last_bit {
                 if self.0.masks[2] == 0 {
                     self.0.masks[3] &= !(1 << first_bit);
@@ -478,7 +482,7 @@ impl<'a, T: 'a + Send + Sync> UnindexedProducer for BitProducer<'a, T>
         }
         if self.0.masks[2] != 0 {
             let first_bit = self.0.masks[2].trailing_zeros();
-            let last_bit = (BITS as u32 * 8) - self.0.masks[2].leading_zeros();
+            let last_bit = BITS_IN_USIZE as u32 - self.0.masks[2].leading_zeros();
             if first_bit == last_bit {
                 return (self, None);
             }
