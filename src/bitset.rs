@@ -3,10 +3,6 @@ use std::iter::repeat;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use atom::AtomSetOnce;
-#[cfg(feature="parallel")]
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
-#[cfg(feature="parallel")]
-use rayon::iter::internal::{UnindexedProducer, UnindexedConsumer, Folder, bridge_unindexed};
 
 use Index;
 
@@ -14,10 +10,6 @@ use Index;
 pub const BITS: usize = 6;
 #[cfg(target_pointer_width= "32")]
 pub const BITS: usize = 5;
-#[cfg(target_pointer_width= "64")]
-pub const BITS_IN_USIZE: usize = 64;
-#[cfg(target_pointer_width= "32")]
-pub const BITS_IN_USIZE: usize = 32;
 pub const LAYERS: usize = 4;
 pub const MAX: usize = BITS * LAYERS;
 pub const MAX_EID: usize = 2 << MAX - 1;
@@ -436,76 +428,120 @@ impl<T> Iterator for BitIter<T>
     }
 }
 
-
-// TODO: Implement BoundedParallelIterator for this.
+#[cfg(feature="parallel")]
+pub use self::par_iter::*;
 #[cfg(feature="parallel")]
 pub struct BitParIter<T>(T);
-
 #[cfg(feature="parallel")]
-impl<T> ParallelIterator for BitParIter<T>
-    where T: BitSetLike + Send + Sync,
-{
-    type Item = Index;
+mod par_iter {
+    use rayon::iter::{ParallelIterator, BoundedParallelIterator};
+    use rayon::iter::internal::{UnindexedProducer, UnindexedConsumer, Consumer, Folder, bridge_unindexed};
+    use super::*;
 
-    fn drive_unindexed<C>(self, consumer: C) -> C::Result where C: UnindexedConsumer<Self::Item> {
-        bridge_unindexed(BitProducer((&self.0).iter()), consumer)
-    }
-}
+    #[cfg(target_pointer_width= "64")]
+    pub const BITS_IN_USIZE: usize = 64;
+    #[cfg(target_pointer_width= "32")]
+    pub const BITS_IN_USIZE: usize = 32;
 
-#[cfg(feature="parallel")]
-struct BitProducer<'a, T: 'a + Send + Sync>(BitIter<&'a T>);
+    impl<T> ParallelIterator for BitParIter<T>
+        where T: BitSetLike + Send + Sync,
+    {
+        type Item = Index;
 
-#[cfg(feature="parallel")]
-impl<'a, T: 'a + Send + Sync> UnindexedProducer for BitProducer<'a, T>
-    where T: BitSetLike
-{
-    type Item = Index;
-    fn split(mut self) -> (Self, Option<Self>) {
-        if self.0.masks[3] != 0 {
-            let first_bit = self.0.masks[3].trailing_zeros();
-            let last_bit = BITS_IN_USIZE as u32 - self.0.masks[3].leading_zeros();
-            if first_bit == last_bit {
-                if self.0.masks[2] == 0 {
-                    self.0.masks[3] &= !(1 << first_bit);
-                    self.0.masks[2] = self.0.set.layer2(first_bit as usize);
-                    self.0.prefix[2] = first_bit << BITS;
-                }
-            } else {
-                let avarage = (first_bit + last_bit) / 2;
-                let mask = (1 << avarage) - 1;
-                let other = BitProducer(BitIter {
-                    set: self.0.set,
-                    masks: [0, 0, 0, self.0.masks[3] & !mask],
-                    prefix: [0; 3],
-                });
-                self.0.masks[3] &= mask;
-                return (self, Some(other));
-            }
+        fn drive_unindexed<C>(self, consumer: C) -> C::Result
+            where C: UnindexedConsumer<Self::Item>
+        {
+            bridge_unindexed(BitProducer((&self.0).iter()), consumer)
         }
-        if self.0.masks[2] != 0 {
-            let first_bit = self.0.masks[2].trailing_zeros();
-            let last_bit = BITS_IN_USIZE as u32 - self.0.masks[2].leading_zeros();
-            if first_bit == last_bit {
-                return (self, None);
+    }
+
+    impl<T> BoundedParallelIterator for BitParIter<T>
+        where T: BitSetLike + Send + Sync,
+    {
+        fn upper_bound(&mut self) -> usize {
+            unimplemented!();
+        }
+
+        fn drive<C>(self, consumer: C) -> C::Result
+            where C: Consumer<Self::Item>
+        {
+            unimplemented!();  
+        }
+    }
+
+    struct BitProducer<'a, T: 'a + Send + Sync>(BitIter<&'a T>);
+
+    impl<'a, T: 'a + Send + Sync> UnindexedProducer for BitProducer<'a, T>
+        where T: BitSetLike
+    {
+        type Item = Index;
+        fn split(mut self) -> (Self, Option<Self>) {
+            if self.0.masks[3] != 0 {
+                let first_bit = self.0.masks[3].trailing_zeros();
+                let last_bit = BITS_IN_USIZE as u32 - self.0.masks[3].leading_zeros();
+                if first_bit == last_bit {
+                    if self.0.masks[2] == 0 {
+                        self.0.masks[3] &= !(1 << first_bit);
+                        self.0.masks[2] = self.0.set.layer2(first_bit as usize);
+                        self.0.prefix[2] = first_bit << BITS;
+                    }
+                } else {
+                    let avarage = (first_bit + last_bit) / 2;
+                    let mask = (1 << avarage) - 1;
+                    let other = BitProducer(BitIter {
+                        set: self.0.set,
+                        masks: [0, 0, 0, self.0.masks[3] & !mask],
+                        prefix: [0; 3],
+                    });
+                    self.0.masks[3] &= mask;
+                    return (self, Some(other));
+                }
             }
-            let avarage = (last_bit - first_bit) / 2;
-            let mask = (1 << avarage) - 1;
-            let other = BitProducer(BitIter {
-                set: self.0.set,
-                masks: [0, 0, self.0.masks[2] & !mask, 0],
-                prefix: [0, 0, self.0.prefix[2]],
-            });
-            self.0.masks[2] &= mask;
-            (self, Some(other))
-        } else {
+            if self.0.masks[2] != 0 {
+                let first_bit = self.0.masks[2].trailing_zeros();
+                let last_bit = BITS_IN_USIZE as u32 - self.0.masks[2].leading_zeros();
+                if first_bit == last_bit {
+                    if self.0.masks[1] == 0 {
+                        self.0.masks[2] &= !(1 << first_bit);
+                        let idx = self.0.prefix[2] | first_bit;
+                        self.0.masks[1] = self.0.set.layer2(idx as usize);
+                        self.0.prefix[1] = idx << BITS;
+                    }
+                } else {
+                    let avarage = (first_bit + last_bit) / 2;
+                    let mask = (1 << avarage) - 1;
+                    let other = BitProducer(BitIter {
+                        set: self.0.set,
+                        masks: [0, 0, self.0.masks[2] & !mask, 0],
+                        prefix: [0, 0, self.0.prefix[2]],
+                    });
+                    self.0.masks[2] &= mask;
+                    return (self, Some(other));
+                }
+            }
+            if self.0.masks[1] != 0 {
+                let first_bit = self.0.masks[1].trailing_zeros();
+                let last_bit = BITS_IN_USIZE as u32 - self.0.masks[1].leading_zeros();
+                if first_bit != last_bit {
+                    let avarage = (first_bit + last_bit) / 2;
+                    let mask = (1 << avarage) - 1;
+                    let other = BitProducer(BitIter {
+                        set: self.0.set,
+                        masks: [0, self.0.masks[1] & !mask, 0, 0],
+                        prefix: [0, self.0.prefix[1], self.0.prefix[2]],
+                    });
+                    self.0.masks[1] &= mask;
+                    return (self, Some(other));
+                }
+            }
             (self, None)
         }
-    }
 
-    fn fold_with<F>(self, folder: F) -> F
-        where F: Folder<Self::Item>
-    {
-        folder.consume_iter(self.0)
+        fn fold_with<F>(self, folder: F) -> F
+            where F: Folder<Self::Item>
+        {
+            folder.consume_iter(self.0)
+        }
     }
 }
 
@@ -738,7 +774,7 @@ impl BitSetLike for AtomicBitSet {
 #[cfg(test)]
 mod set_test {
     use super::{BitSet, BitSetAnd, BitSetNot, BitSetLike};
-    use rayon::iter::ParallelIterator;
+    use std::num::Wrapping as Z;
 
     #[test]
     fn insert() {
@@ -813,6 +849,26 @@ mod set_test {
     }
 
     #[test]
+    fn iter_random_add() {
+        let mut set = BitSet::new();
+        let mut state = Z(0u64);
+        let max_added = 1_048_576 / 10;
+        let mut added = 0;
+        for _ in 0..max_added {
+            let oldstate = state;
+            state = oldstate * Z(6364136223846793005) + Z(1);
+            let xorshifted = Z((((oldstate >> 18) ^ oldstate) >> 27).0 as u32);
+            let rot = Z((oldstate >> 59).0 as u32);
+            let out = (xorshifted >> rot.0 as usize) | (xorshifted << ((!rot.0 as usize) & 31));
+            let index = out.0 & (1_048_576 - 1);
+            if !set.add(index) {
+                added += 1;
+            }
+        }
+        assert_eq!(set.iter().count(), added as usize);
+    }
+
+    #[test]
     fn not() {
         let mut c = BitSet::new();
         for i in 0..10_000 {
@@ -824,6 +880,33 @@ mod set_test {
         for (idx, i) in d.iter().take(5_000).enumerate() {
             assert_eq!(idx * 2, i as usize);
         }
+    }
+}
+
+#[cfg(all(test, feature="parallel"))]
+mod set_test_parallel {
+    use super::{BitSet, BitSetAnd, BitSetNot, BitSetLike};
+    use rayon::iter::ParallelIterator;
+    use std::num::Wrapping as Z;
+
+    #[test]
+    fn par_iter_random_add() {
+        let mut set = BitSet::new();
+        let mut state = Z(0u64);
+        let max_added = 1_048_576 / 10;
+        let mut added = 0;
+        for _ in 0..max_added {
+            let oldstate = state;
+            state = oldstate * Z(6364136223846793005) + Z(1);
+            let xorshifted = Z((((oldstate >> 18) ^ oldstate) >> 27).0 as u32);
+            let rot = Z((oldstate >> 59).0 as u32);
+            let out = (xorshifted >> rot.0 as usize) | (xorshifted << ((!rot.0 as usize) & 31));
+            let index = out.0 & (1_048_576 - 1);
+            if !set.add(index) {
+                added += 1;
+            }
+        }
+        assert_eq!(set.par_iter().count(), added as usize);
     }
 
     #[test]
