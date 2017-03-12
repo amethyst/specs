@@ -5,6 +5,7 @@ use specs::Entity;
 use specs::Gate;
 #[cfg(feature="parallel")]
 use std::sync::{Arc, Mutex};
+use std::cell::Cell;
 #[cfg(feature="parallel")]
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -342,5 +343,25 @@ fn fetch_has_to_be_called_atmost_once() {
     planner.run_custom(|args| {
         args.fetch(|_| {});
         args.fetch(|_| {});
+    });
+}
+
+#[derive(Clone, Debug)]
+struct NotSync {
+    inner: Cell<u64>,
+}
+
+#[test]
+fn resource_not_sync() {
+    let mut w = specs::World::new();
+
+    w.add_resource(NotSync { inner: Cell::new(2) });
+
+    let mut planner = specs::Planner::<()>::new(w);
+
+    planner.run_custom(move |arg| {
+        let not_sync_res = arg.fetch(|w| w.read_resource::<NotSync>());
+
+        assert_eq!(2, not_sync_res.inner.get());
     });
 }
