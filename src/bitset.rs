@@ -434,8 +434,8 @@ pub use self::par_iter::*;
 pub struct BitParIter<T>(T);
 #[cfg(feature="parallel")]
 mod par_iter {
-    use rayon::iter::{ParallelIterator, BoundedParallelIterator};
-    use rayon::iter::internal::{UnindexedProducer, UnindexedConsumer, Consumer, Folder, bridge_unindexed};
+    use rayon::iter::ParallelIterator;
+    use rayon::iter::internal::{UnindexedProducer, UnindexedConsumer, Folder, bridge_unindexed};
     use super::*;
 
     #[cfg(target_pointer_width= "64")]
@@ -444,7 +444,7 @@ mod par_iter {
     pub const BITS_IN_USIZE: usize = 32;
 
     impl<T> ParallelIterator for BitParIter<T>
-        where T: BitSetLike + Send + Sync,
+    where T: BitSetLike + Send + Sync,
     {
         type Item = Index;
 
@@ -455,24 +455,10 @@ mod par_iter {
         }
     }
 
-    impl<T> BoundedParallelIterator for BitParIter<T>
-        where T: BitSetLike + Send + Sync,
-    {
-        fn upper_bound(&mut self) -> usize {
-            unimplemented!();
-        }
-
-        fn drive<C>(self, consumer: C) -> C::Result
-            where C: Consumer<Self::Item>
-        {
-            unimplemented!();  
-        }
-    }
-
-    struct BitProducer<'a, T: 'a + Send + Sync>(BitIter<&'a T>);
+    pub struct BitProducer<'a, T: 'a + Send + Sync>(pub BitIter<&'a T>);
 
     impl<'a, T: 'a + Send + Sync> UnindexedProducer for BitProducer<'a, T>
-        where T: BitSetLike
+    where T: BitSetLike
     {
         type Item = Index;
         fn split(mut self) -> (Self, Option<Self>) {
@@ -885,7 +871,7 @@ mod set_test {
 
 #[cfg(all(test, feature="parallel"))]
 mod set_test_parallel {
-    use super::{BitSet, BitSetAnd, BitSetNot, BitSetLike};
+    use super::{BitSet, BitSetAnd, BitSetLike};
     use rayon::iter::ParallelIterator;
     use std::num::Wrapping as Z;
 

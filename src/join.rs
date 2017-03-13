@@ -84,7 +84,13 @@ pub trait Join {
     {
         JoinIter::new(self)
     }
-
+    /// Create a joined parallel iterator over the contents.
+    #[cfg(feature="parallel")]
+    fn par_join(self) -> JoinParIter<Self>
+        where Self: Sized
+    {
+        JoinParIter(self)
+    }
     /// Open this join by returning the mask and the storages.
     fn open(self) -> (Self::Mask, Self::Value);
 
@@ -121,24 +127,99 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
     }
 }
 
+#[cfg(feature="parallel")]
+pub use self::par_join::*;
 /// `JoinParIter` is an `ParallelIterator` over a group of `Storages`.
 #[must_use]
 #[cfg(feature="parallel")]
-pub struct JoinParIter<J: Join> {
-    keys: BitParIter<J::Mask>,
-    values: J::Value,
-}
+pub struct JoinParIter<J: Join>(J);
+mod par_join {
+    use std::marker::PhantomData;
+    use rayon::iter::ParallelIterator;
+    use rayon::iter::internal::{UnindexedProducer, UnindexedConsumer, Folder, bridge_unindexed};
+    use super::*;
+    use hibitset::BitProducer;
 
-#[cfg(feature="parallel")]
-impl<J: Join + Send> ParallelIterator for JoinParIter<J>
-where J::Type: Send,
-      J::Value: Send,
-{
-    type Item = J::Type;
+    impl<J> ParallelIterator for JoinParIter<J>
+    where J: Join + Send,
+          J::Type: Send,
+          J::Value: Split + Send,
+          J::Mask: Send + Sync,
+    {
+        type Item = J::Type;
 
-    fn drive_unindexed<C>(self, consumer: C) -> C::Result where C: UnindexedConsumer<Self::Item> {
-        unimplemented!();
-        //TODO: Implement this using BitParIter
+        fn drive_unindexed<C>(self, consumer: C) -> C::Result
+            where C: UnindexedConsumer<Self::Item>
+        {
+            let (keys, mut values) = self.0.open();
+            bridge_unindexed(JoinProducer::<J>{
+                keys: BitProducer((&keys).iter()),
+                values: &mut values as *mut _,
+                _marker: PhantomData,
+            }, consumer)
+        }
+    }
+
+    struct JoinProducer<'a, 'b, J>
+    where J: Join + Send,
+          J::Type: Send,
+          J::Value: 'a + Send,
+          J::Mask: 'b + Send + Sync,
+    {
+        keys: BitProducer<'b, J::Mask>,
+        values: *mut J::Value,
+        _marker: PhantomData<&'a J::Value>,
+    }
+
+    unsafe impl<'a, 'b, J> Send for JoinProducer<'a, 'b, J>
+    where J: Join + Send,
+          J::Type: Send,
+          J::Value: 'a + Send,
+          J::Mask: 'b + Send + Sync,
+    {}
+
+    impl<'a, 'b, J> UnindexedProducer for JoinProducer<'a, 'b, J>
+    where J: Join + Send,
+          J::Type: Send,
+          J::Value: 'a + Send,
+          J::Mask: 'b + Send + Sync,
+    {
+        type Item = J::Type;
+        fn split(self) -> (Self, Option<Self>) {
+            let (cur, other) = self.keys.split();
+            if let Some(other) = other {
+                (JoinProducer {
+                    keys: cur,
+                    values: self.values,
+                    _marker: PhantomData,
+                },
+                Some(JoinProducer {
+                    keys: other,
+                    values: self.values,
+                    _marker: PhantomData,
+                }))
+            } else {
+                (JoinProducer {
+                    keys: cur,
+                    values: self.values,
+                    _marker: PhantomData,
+                }, None)
+            }
+        }
+
+        fn fold_with<F>(self, folder: F) -> F
+        where F: Folder<Self::Item>
+        {
+            let JoinProducer {values, keys, ..} = self;
+            let iter = keys.0.map(|idx| unsafe {
+                // TODO: Figure out is creating mutable reference actually safe.
+                // I am pretty sure it isn't, because this there can be multiple
+                // mutable references to same memory,
+                // but have no idea how else this should be done.
+                J::get(&mut *values, idx)
+            });
+            folder.consume_iter(iter)
+        }
     }
 }
 

@@ -1,4 +1,6 @@
 extern crate specs;
+#[cfg(feature="parallel")]
+extern crate rayon;
 
 use specs::prelude::*;
 
@@ -307,4 +309,94 @@ fn register_idempotency() {
     // ...this would end up trying to unwrap a `None`.
     let i = w.read::<CompInt>().get(e).unwrap().0;
     assert_eq!(i, 10);
+}
+
+// #[should_panic(expected = "fetch should be called once.")]
+// #[test]
+// #[cfg(feature="parallel")]
+// fn fetch_has_to_be_called_atleast_once() {
+//     let mut planner = specs::Planner::<()>::new(specs::World::new());
+//     planner.run_custom(|_| {});
+// }
+//
+// #[ignore] //TODO
+// #[should_panic(expected = "fetch may only be called once.")]
+// #[test]
+// #[cfg(feature="parallel")]
+// fn fetch_has_to_be_called_atmost_once() {
+//     let mut planner = specs::Planner::<()>::new(specs::World::new());
+//     planner.run_custom(|args| {
+//         args.fetch(|_| {});
+//         args.fetch(|_| {});
+//     });
+// }
+
+#[test]
+fn join_two_components() {
+    let mut world = create_world();
+    world.create_entity().with(CompInt(1)).with(CompBool(false)).build();
+    world.create_entity().with(CompInt(2)).with(CompBool(true)).build();
+    world.create_entity().with(CompInt(3)).build();
+
+    struct Iter;
+    impl<'a> System<'a> for Iter {
+        type SystemData = (ReadStorage<'a, CompInt>, ReadStorage<'a, CompBool>);
+
+        fn run(&mut self, data: Self::SystemData) {
+            let (ref int, ref boolean) = data;
+            let (mut first, mut second) = (false, false);
+            for (int, boolean) in (int, boolean).join() {
+                if int.0 == 1 && !boolean.0 {
+                    first = true;
+                } else if int.0 == 2 && boolean.0 {
+                    second = true;
+                } else {
+                    panic!("Entity with compent values that shouldn't be: {:?} {:?}", int, boolean);
+                }
+            }
+            assert!(first, "There should be entity with CompInt(1) and CompBool(false)");
+            assert!(second, "There should be entity with CompInt(2) and CompBool(true)");
+        }
+    }
+    let mut dispatcher = DispatcherBuilder::new()
+        .add(Iter, "iter", &[])
+        .build();
+    dispatcher.dispatch(&mut world.res);
+}
+
+#[test]
+#[cfg(feature="parallel")]
+fn par_join_two_components() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    let mut world = create_world();
+    world.create_entity().with(CompInt(1)).with(CompBool(false)).build();
+    world.create_entity().with(CompInt(2)).with(CompBool(true)).build();
+    world.create_entity().with(CompInt(3)).build();
+
+    struct Iter;
+    impl<'a> System<'a> for Iter {
+        type SystemData = (ReadStorage<'a, CompInt>, ReadStorage<'a, CompBool>);
+
+        fn run(&mut self, data: Self::SystemData) {
+            use rayon::iter::ParallelIterator;
+            let (ref int, ref boolean) = data;
+            let (first, second) = (AtomicBool::new(false), AtomicBool::new(false));
+            // TODO: Because Allocator is inside RwLockReadGuard this fails as it doesn't implement Send.
+            (int, boolean).par_join().for_each(|(int, boolean)| {
+                if int.0 == 1 && !boolean.0 {
+                    first.store(true, Ordering::SeqCst);
+                } else if int.0 == 2 && boolean.0 {
+                    second.store(true, Ordering::SeqCst);
+                } else {
+                    panic!("Entity with compent values that shouldn't be: {:?} {:?}", int, boolean);
+                }
+            });
+            assert!(first.into_inner(), "There should be entity with CompInt(1) and CompBool(false)");
+            assert!(second.into_inner(), "There should be entity with CompInt(2) and CompBool(true)");
+        }
+    }
+    let mut dispatcher = DispatcherBuilder::new()
+        .add(Iter, "iter", &[])
+        .build();
+    dispatcher.dispatch(&mut world.res);
 }
