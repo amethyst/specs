@@ -18,6 +18,9 @@ extern crate pulse;
 #[cfg(feature="parallel")]
 extern crate rayon;
 
+#[cfg(feature="serialize")]
+extern crate serde;
+
 pub use gate::Gate;
 pub use join::{Join, JoinIter};
 pub use storage::{AntiStorage, BTreeStorage, GatedStorage, HashMapStorage, InsertResult,
