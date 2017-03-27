@@ -13,6 +13,9 @@ use join::Join;
 use world::{Allocator, Component};
 use {Entity, Index};
 
+#[cfg(feature="serialize")]
+use serde::{Serialize, Serializer, Deserialize, Deserializer};
+
 
 /// The `UnprotectedStorage` together with the `BitSet` that knows
 /// about which elements are stored, and which are not.
@@ -262,7 +265,37 @@ impl<'a, T, A, D> Join for &'a mut Storage<T, A, D>
     }
 }
 
-///
+#[cfg(feature="serialize")]
+impl<T, A, D> Serialize for Storage<T, A, D> where
+    T: Component + Serialize,
+    A: Deref<Target = Allocator>,
+    D: Deref<Target = MaskedStorage<T>>,
+{
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use bitset::BitSetLike;
+        use serde::ser::SerializeSeq;
+
+        let (bitset, storage) = self.open();
+        let mut sequence = serializer.serialize_seq(None)?;
+        let mut last = 0;
+        for index in bitset.iter() {
+            // Add null entities in between existing
+            for _ in last..(index - 1) {
+                sequence.serialize_element(&None::<T>)?;
+            }
+            last = index;
+
+            unsafe {
+                // If the bitset is wrong we have bigger problems anyways.
+                sequence.serialize_element(&Some(&storage.get(index)))?;
+            }
+        }
+
+        sequence.end()
+    }
+}
+
+/// 
 pub struct GatedStorage<T, A, G> {
     marker: PhantomData<T>,
     alloc: A,
@@ -829,5 +862,19 @@ mod test {
     #[test]
     fn dummy_test_clear() {
         test_clear::<Cnull>();
+    }
+}
+
+#[cfg(feature="serialize")]
+#[cfg(test)]
+mod serialize_test {
+    #[test]
+    fn serialize_storage() {
+
+    }
+
+    #[test]
+    fn deserialize_storage() {
+
     }
 }
