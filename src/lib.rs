@@ -11,9 +11,7 @@ extern crate mopa;
 #[cfg(feature="parallel")]
 extern crate pulse;
 #[cfg(feature="parallel")]
-extern crate threadpool;
-#[cfg(feature="parallel")]
-extern crate num_cpus;
+extern crate rayon;
 #[cfg(feature="ticket")]
 extern crate ticketed_lock;
 extern crate fnv;

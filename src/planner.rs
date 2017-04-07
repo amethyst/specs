@@ -2,8 +2,7 @@ use std::cell::RefCell;
 use std::sync::{mpsc, Arc};
 
 use pulse::{Pulse, Signal};
-use threadpool::ThreadPool;
-use num_cpus::get as get_num_cpus;
+use rayon::{Configuration, ThreadPool};
 
 use gate::Gate;
 use super::{Component, JoinIter, World, Entity};
@@ -112,16 +111,19 @@ impl<C: 'static> Planner<C> {
     /// If you already have a `ThreadPool`, consider using `from_pool` instead.
     /// If you want to specify the number of threads, use `with_num_threads`.
     ///
-    /// The number of threads will be equal to the number
-    /// of virtual cores.
+    /// The number of threads will be dynamically adjusted.
     pub fn new(world: World) -> Planner<C> {
-        Self::with_num_threads(world, get_num_cpus())
+        // num_threads = 0 should be the default
+
+        Self::with_num_threads(world, 0)
     }
 
     /// Creates a new planner with a thread pool that has
     /// `num_threads` threads.
     pub fn with_num_threads(world: World, num_threads: usize) -> Planner<C> {
-        Self::from_pool(world, Arc::new(ThreadPool::new(num_threads)))
+        Self::from_pool(world,
+                        Arc::new(ThreadPool::new(Configuration::new().num_threads(num_threads))
+                            .expect("Invalid thread pool configuration")))
     }
 
     /// Creates a new `Planner` from a given
@@ -162,7 +164,7 @@ impl<C: 'static> Planner<C> {
             world: self.world.clone(),
             pulse: RefCell::new(Some(pulse)),
         };
-        self.threader.execute(move || {
+        self.threader.spawn_async(move || {
             let _ = guard; //for drop()
             functor(arg);
         });
@@ -212,7 +214,7 @@ impl<C: Clone + Send + 'static> Planner<C> {
                 world: self.world.clone(),
                 pulse: RefCell::new(Some(pulse)),
             };
-            self.threader.execute(move || {
+            self.threader.spawn_async(move || {
                 let mut g = guard;
                 g.info.as_mut().unwrap().object.run(arg, ctx);
             });
