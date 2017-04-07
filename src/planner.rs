@@ -20,7 +20,7 @@ impl RunArg {
         where U: Gate, F: FnOnce(&'a World) -> U
     {
         let pulse = self.pulse.borrow_mut().take()
-                        .expect("fetch may only be called once.");
+            .expect("fetch may only be called once.");
         let u = f(&self.world);
         pulse.pulse();
         u.pass()
@@ -122,7 +122,10 @@ impl<C: 'static> Planner<C> {
     /// `num_threads` threads.
     pub fn with_num_threads(world: World, num_threads: usize) -> Planner<C> {
         Self::from_pool(world,
-                        Arc::new(ThreadPool::new(Configuration::new().num_threads(num_threads))
+                        Arc::new(ThreadPool::new(
+                            Configuration::new()
+                                .num_threads(num_threads)
+                                .panic_handler(|x| println!("Panic in worker thread: {:?}", x)))
                             .expect("Invalid thread pool configuration")))
     }
 
