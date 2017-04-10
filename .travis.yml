@@ -9,6 +9,9 @@ script:
 - cargo build --verbose --no-default-features
 - cargo test --verbose --no-default-features
 - cargo test --verbose --no-default-features --features parallel
+- if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
+  cargo bench --verbose --no-run;
+  fi
 
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&
