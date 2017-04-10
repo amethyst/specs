@@ -50,22 +50,34 @@ mod world {
     #[bench]
     fn delete_now(b: &mut test::Bencher) {
         let mut w = specs::World::new();
-        let mut eids: Vec<_> = (0..1_000_000).map(|_| w.create_now().build()).collect();
-        b.iter(|| w.delete_now(eids.pop().unwrap()));
+        let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_now().build()).collect();
+        b.iter(|| {
+            if let Some(id) = eids.pop() {
+                w.delete_now(id)
+            }
+        });
     }
 
     #[bench]
     fn delete_now_with_storage(b: &mut test::Bencher) {
         let mut w = create_world();
-        let mut eids: Vec<_> = (0..1_000_000).map(|_| w.create_now().with(CompInt(1)).build()).collect();
-        b.iter(|| w.delete_now(eids.pop().unwrap()));
+        let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_now().with(CompInt(1)).build()).collect();
+        b.iter(|| {
+            if let Some(id) = eids.pop() {
+                w.delete_now(id)
+            }
+        });
     }
 
     #[bench]
     fn delete_later(b: &mut test::Bencher) {
         let mut w = specs::World::new();
-        let mut eids: Vec<_> = (0..1_000_000).map(|_| w.create_now().build()).collect();
-        b.iter(|| w.delete_later(eids.pop().unwrap()));
+        let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_now().build()).collect();
+        b.iter(|| {
+            if let Some(id) = eids.pop() {
+                w.delete_later(id)
+            }
+        });
     }
 
     #[bench]
@@ -88,9 +100,11 @@ mod world {
     #[bench]
     fn maintain_delete_later(b: &mut test::Bencher) {
         let mut w = specs::World::new();
-        let mut eids: Vec<_> = (0..1_000_000).map(|_| w.create_now().build()).collect();
+        let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_now().build()).collect();
         b.iter(|| {
-            w.delete_later(eids.pop().unwrap());
+            if let Some(id) = eids.pop() {
+                w.delete_later(id);
+            }
             w.maintain();
         });
     }
