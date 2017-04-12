@@ -12,7 +12,6 @@ extern crate mopa;
 extern crate pulse;
 #[cfg(feature="parallel")]
 extern crate rayon;
-#[cfg(feature="ticket")]
 extern crate ticketed_lock;
 extern crate fnv;
 extern crate tuple_utils;
@@ -21,7 +20,6 @@ extern crate atom;
 pub use storage::{Storage, UnprotectedStorage, AntiStorage,
                   VecStorage, HashMapStorage, BTreeStorage, NullStorage, InsertResult,
                   MaskedStorage};
-#[cfg(feature="ticket")]
 pub use storage::{GatedStorage};
 pub use world::{Component, World, EntityBuilder, Entities, CreateEntities,
                 Allocator};

@@ -239,8 +239,6 @@ impl<'a, T, A, D> Join for &'a mut Storage<T, A, D> where
     }
 }
 
-
-#[cfg(feature="ticket")]
 /// 
 pub struct GatedStorage<T, A, G> {
     marker: PhantomData<T>,
@@ -248,7 +246,6 @@ pub struct GatedStorage<T, A, G> {
     gate: G,
 }
 
-#[cfg(feature="ticket")]
 impl<T, A, G> GatedStorage<T, A, G> {
     /// Creates a new `GatedStorage`.
     pub fn new(alloc: A, gate: G) -> Self {
@@ -260,7 +257,6 @@ impl<T, A, G> GatedStorage<T, A, G> {
     }
 }
 
-#[cfg(feature="ticket")]
 impl<T, A, G: Gate> Gate for GatedStorage<T, A, G> {
     type Target = Storage<T, A, G::Target>;
     fn pass(self) -> Self::Target {

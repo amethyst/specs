@@ -7,28 +7,21 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use fnv::FnvHasher;
 use mopa::Any;
 
-#[cfg(feature="ticket")]
 use std::sync::Mutex;
-#[cfg(feature="ticket")]
+
 use ticketed_lock::{TicketedLock, ReadLockGuard, ReadTicket, WriteLockGuard, WriteTicket};
-#[cfg(not(feature="ticket"))]
-use std::sync::{RwLock as Lock, RwLockReadGuard as ReadLockGuard, RwLockWriteGuard as WriteLockGuard};
 
 use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr};
 use gate::Gate;
 use join::Join;
 use storage::{Storage, MaskedStorage, UnprotectedStorage};
-#[cfg(feature="ticket")]
 use storage::GatedStorage;
 use {Index, Generation, Entity};
 
-
-#[cfg(feature="ticket")]
 struct Lock<T> {
     inner: Mutex<TicketedLock<T>>,
 }
 
-#[cfg(feature="ticket")]
 impl<T> Gate for ReadTicket<T> {
     type Target = ReadLockGuard<T>;
     fn pass(self) -> Self::Target {
@@ -36,7 +29,7 @@ impl<T> Gate for ReadTicket<T> {
     }
 }
 
-#[cfg(feature="ticket")]
+
 impl<T> Gate for WriteTicket<T> {
     type Target = WriteLockGuard<T>;
     fn pass(self) -> Self::Target {
@@ -46,21 +39,13 @@ impl<T> Gate for WriteTicket<T> {
 
 pub struct TimeGuard<G>(G);
 
-#[cfg(feature="ticket")]
+
 impl<G: Gate> TimeGuard<G> {
     fn unwrap(self) -> G::Target {
         self.0.pass()
     }
 }
-#[cfg(not(feature="ticket"))]
-impl<G> Gate for TimeGuard<G> {
-    type Target = G;
-    fn pass(self) -> G {
-        self.0
-    }
-}
 
-#[cfg(feature="ticket")]
 impl<T> Lock<T> {
     fn new(data: T) -> Self {
         Lock {
@@ -474,27 +459,6 @@ impl World<()> {
     }*/
 }
 
-#[cfg(not(feature="ticket"))]
-impl World<()> {
-    /// Locks a component's storage for reading.
-    pub fn read<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, ReadLockGuard<MaskedStorage<T>>> {
-        self.read_w_comp_id::<T>(())
-    }
-    /// Locks a component's storage for writing.
-    pub fn write<T: Component>(&self) -> Storage<T, RwLockReadGuard<Allocator>, WriteLockGuard<MaskedStorage<T>>> {
-        self.write_w_comp_id::<T>(())
-    }
-    /// Get read-only access to a resource.
-    pub fn read_resource<T: Any+Send+Sync>(&self) -> TimeGuard<ReadLockGuard<T>> {
-        TimeGuard(self.get_resource::<T>().read().unwrap())
-    }
-    /// Get read-write access to a resource.
-    pub fn write_resource<T: Any+Send+Sync>(&self) -> TimeGuard<WriteLockGuard<T>> {
-        TimeGuard(self.get_resource::<T>().write().unwrap())
-    }
-}
-
-#[cfg(feature="ticket")]
 impl World<()> {
     /// Request a read ticket for a particular component storage.
     pub fn read<T: Component>(&self) -> GatedStorage<T, RwLockReadGuard<Allocator>, ReadTicket<MaskedStorage<T>>> {
