@@ -17,33 +17,42 @@ impl RunArg {
     /// Borrows the world, allowing the system to lock some components and get the entity
     /// iterator. Must be called only once.
     pub fn fetch<'a, U, F>(&'a self, f: F) -> U::Target
-        where U: Gate, F: FnOnce(&'a World) -> U
+        where U: Gate,
+              F: FnOnce(&'a World) -> U
     {
-        let pulse = self.pulse.borrow_mut().take()
+        let pulse = self.pulse
+            .borrow_mut()
+            .take()
             .expect("fetch may only be called once.");
         let u = f(&self.world);
         pulse.pulse();
         u.pass()
     }
+
     /// Borrows the world, allowing the system to lock some components and get the entity
     /// iterator. As an alternative to `fetch()`, it must be called only once.
     /// It allows creating a number of entities instantly, returned in a vector.
     #[allow(mutable_transmutes)]
     pub fn fetch_new<'a, U, F>(&'a self, num_entities: usize, f: F) -> (Vec<Entity>, U::Target)
-        where U: Gate, F: FnOnce(&'a World) -> U
+        where U: Gate,
+              F: FnOnce(&'a World) -> U
     {
         use std::mem::transmute;
         // The transmute is used to call `create_iter`, which is really safe for parallel use.
         // It's only receiving `&mut self` to prevent deadlocks, and these are not possible in
         // the pre-fetch phase we are in right now.
         let entities = unsafe { transmute::<&World, &mut World>(&self.world) }
-            .create_iter().take(num_entities).collect();
+            .create_iter()
+            .take(num_entities)
+            .collect();
         (entities, self.fetch(f))
     }
+
     /// Creates a new entity dynamically.
     pub fn create_pure(&self) -> Entity {
         self.world.create_pure()
     }
+
     /// Deletes an entity dynamically.
     pub fn delete(&self, entity: Entity) {
         self.world.delete_later(entity)
@@ -84,11 +93,15 @@ struct SystemGuard<C> {
 
 impl<C> Drop for SystemGuard<C> {
     fn drop(&mut self) {
-        let info = self.info.take().unwrap_or_else(|| SystemInfo {
-            name: String::new(),
-            priority: 0,
-            object: Box::new(()),
-        });
+        let info = self.info
+            .take()
+            .unwrap_or_else(|| {
+                                SystemInfo {
+                                    name: String::new(),
+                                    priority: 0,
+                                    object: Box::new(()),
+                                }
+                            });
         let _ = self.chan.send(info);
     }
 }
@@ -96,14 +109,15 @@ impl<C> Drop for SystemGuard<C> {
 /// System execution planner. Allows running systems via closures,
 /// distributes the load in parallel using a thread pool.
 pub struct Planner<C> {
-    /// Shared `World`.
-    world: Arc<World>,
     /// Permanent systems in the planner.
     pub systems: Vec<SystemInfo<C>>,
-    wait_count: usize,
-    chan_out: mpsc::Sender<SystemInfo<C>>,
+
     chan_in: mpsc::Receiver<SystemInfo<C>>,
+    chan_out: mpsc::Sender<SystemInfo<C>>,
     threader: Arc<ThreadPool>,
+    wait_count: usize,
+    /// Shared `World`.
+    world: Arc<World>,
 }
 
 impl<C: 'static> Planner<C> {
@@ -145,18 +159,20 @@ impl<C: 'static> Planner<C> {
     }
 
     /// Add a system to the dispatched list.
-    pub fn add_system<S>(&mut self, sys: S, name: &str, priority: Priority) where
-        S: 'static + System<C>
+    pub fn add_system<S>(&mut self, sys: S, name: &str, priority: Priority)
+        where S: 'static + System<C>
     {
-        self.systems.push(SystemInfo {
-            name: name.to_owned(),
-            priority: priority,
-            object: Box::new(sys),
-        });
+        self.systems
+            .push(SystemInfo {
+                      name: name.to_owned(),
+                      priority: priority,
+                      object: Box::new(sys),
+                  });
     }
+
     /// Runs a custom system.
-    pub fn run_custom<F>(&mut self, functor: F) where
-        F: 'static + Send + FnOnce(RunArg)
+    pub fn run_custom<F>(&mut self, functor: F)
+        where F: 'static + Send + FnOnce(RunArg)
     {
         let (signal, pulse) = Signal::new();
         let guard = SystemGuard {
@@ -167,17 +183,20 @@ impl<C: 'static> Planner<C> {
             world: self.world.clone(),
             pulse: RefCell::new(Some(pulse)),
         };
-        self.threader.spawn_async(move || {
-            let _ = guard; //for drop()
-            functor(arg);
-        });
+        self.threader
+            .spawn_async(move || {
+                             let _ = guard; //for drop()
+                             functor(arg);
+                         });
         self.wait_count += 1;
         signal.wait().expect("fetch should be called once.");
     }
 
     fn wait_internal(&mut self) {
         while self.wait_count > 0 {
-            let sinfo = self.chan_in.recv().expect("one or more task has panicked.");
+            let sinfo = self.chan_in
+                .recv()
+                .expect("one or more task has panicked.");
             if !sinfo.name.is_empty() {
                 self.systems.push(sinfo);
             }
@@ -217,10 +236,11 @@ impl<C: Clone + Send + 'static> Planner<C> {
                 world: self.world.clone(),
                 pulse: RefCell::new(Some(pulse)),
             };
-            self.threader.spawn_async(move || {
-                let mut g = guard;
-                g.info.as_mut().unwrap().object.run(arg, ctx);
-            });
+            self.threader
+                .spawn_async(move || {
+                                 let mut g = guard;
+                                 g.info.as_mut().unwrap().object.run(arg, ctx);
+                             });
             self.wait_count += 1;
             signal.wait().expect("fetch should be called once.");
         }

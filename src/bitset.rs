@@ -1,6 +1,7 @@
 use std;
 use std::iter::repeat;
 use std::sync::atomic::{AtomicUsize, Ordering};
+
 use atom::AtomSetOnce;
 
 use Index;
@@ -209,12 +210,15 @@ pub trait BitSetLike {
     /// Return a usize where each bit represents if any word in layer2
     /// has been set.
     fn layer3(&self) -> usize;
+
     /// Return the usize from the array of usizes that indicates if any
     /// bit has been set in layer1
     fn layer2(&self, i: usize) -> usize;
+
     /// Return the usize from the array of usizes that indicates if any
     /// bit has been set in layer0
     fn layer1(&self, i: usize) -> usize;
+
     /// Return a usize that maps to the direct 1:1 association with
     /// each index of the set
     fn layer0(&self, i: usize) -> usize;
@@ -226,24 +230,55 @@ pub trait BitSetLike {
         BitIter {
             prefix: [0; 3],
             masks: [0, 0, 0, self.layer3()],
-            set: self
+            set: self,
         }
     }
 }
 
-impl<'a, T> BitSetLike for &'a T where T: BitSetLike
+impl<'a, T> BitSetLike for &'a T
+    where T: BitSetLike
 {
-    #[inline] fn layer3(&self) -> usize { (*self).layer3() }
-    #[inline] fn layer2(&self, i: usize) -> usize { (*self).layer2(i) }
-    #[inline] fn layer1(&self, i: usize) -> usize { (*self).layer1(i) }
-    #[inline] fn layer0(&self, i: usize) -> usize { (*self).layer0(i) }
+    #[inline]
+    fn layer3(&self) -> usize {
+        (*self).layer3()
+    }
+
+    #[inline]
+    fn layer2(&self, i: usize) -> usize {
+        (*self).layer2(i)
+    }
+
+    #[inline]
+    fn layer1(&self, i: usize) -> usize {
+        (*self).layer1(i)
+    }
+
+    #[inline]
+    fn layer0(&self, i: usize) -> usize {
+        (*self).layer0(i)
+    }
 }
 
 impl BitSetLike for BitSet {
-    #[inline] fn layer3(&self) -> usize { self.layer3 }
-    #[inline] fn layer2(&self, i: usize) -> usize { self.layer2.get(i).map(|&x| x).unwrap_or(0) }
-    #[inline] fn layer1(&self, i: usize) -> usize { self.layer1.get(i).map(|&x| x).unwrap_or(0) }
-    #[inline] fn layer0(&self, i: usize) -> usize { self.layer0.get(i).map(|&x| x).unwrap_or(0) }
+    #[inline]
+    fn layer3(&self) -> usize {
+        self.layer3
+    }
+
+    #[inline]
+    fn layer2(&self, i: usize) -> usize {
+        self.layer2.get(i).map(|&x| x).unwrap_or(0)
+    }
+
+    #[inline]
+    fn layer1(&self, i: usize) -> usize {
+        self.layer1.get(i).map(|&x| x).unwrap_or(0)
+    }
+
+    #[inline]
+    fn layer0(&self, i: usize) -> usize {
+        self.layer0.get(i).map(|&x| x).unwrap_or(0)
+    }
 }
 
 /// `BitSetAnd` takes two `BitSetLike` items, and merges the masks
@@ -252,10 +287,22 @@ impl BitSetLike for BitSet {
 pub struct BitSetAnd<A: BitSetLike, B: BitSetLike>(pub A, pub B);
 
 impl<A: BitSetLike, B: BitSetLike> BitSetLike for BitSetAnd<A, B> {
-    #[inline] fn layer3(&self) -> usize { self.0.layer3() & self.1.layer3() }
-    #[inline] fn layer2(&self, i: usize) -> usize { self.0.layer2(i) & self.1.layer2(i) }
-    #[inline] fn layer1(&self, i: usize) -> usize { self.0.layer1(i) & self.1.layer1(i) }
-    #[inline] fn layer0(&self, i: usize) -> usize { self.0.layer0(i) & self.1.layer0(i) }
+    #[inline]
+    fn layer3(&self) -> usize {
+        self.0.layer3() & self.1.layer3()
+    }
+    #[inline]
+    fn layer2(&self, i: usize) -> usize {
+        self.0.layer2(i) & self.1.layer2(i)
+    }
+    #[inline]
+    fn layer1(&self, i: usize) -> usize {
+        self.0.layer1(i) & self.1.layer1(i)
+    }
+    #[inline]
+    fn layer0(&self, i: usize) -> usize {
+        self.0.layer0(i) & self.1.layer0(i)
+    }
 }
 
 /// `BitSetOr` takes two `BitSetLike` items, and merges the masks
@@ -264,10 +311,22 @@ impl<A: BitSetLike, B: BitSetLike> BitSetLike for BitSetAnd<A, B> {
 pub struct BitSetOr<A: BitSetLike, B: BitSetLike>(pub A, pub B);
 
 impl<A: BitSetLike, B: BitSetLike> BitSetLike for BitSetOr<A, B> {
-    #[inline] fn layer3(&self) -> usize { self.0.layer3() | self.1.layer3() }
-    #[inline] fn layer2(&self, i: usize) -> usize { self.0.layer2(i) | self.1.layer2(i) }
-    #[inline] fn layer1(&self, i: usize) -> usize { self.0.layer1(i) | self.1.layer1(i) }
-    #[inline] fn layer0(&self, i: usize) -> usize { self.0.layer0(i) | self.1.layer0(i) }
+    #[inline]
+    fn layer3(&self) -> usize {
+        self.0.layer3() | self.1.layer3()
+    }
+    #[inline]
+    fn layer2(&self, i: usize) -> usize {
+        self.0.layer2(i) | self.1.layer2(i)
+    }
+    #[inline]
+    fn layer1(&self, i: usize) -> usize {
+        self.0.layer1(i) | self.1.layer1(i)
+    }
+    #[inline]
+    fn layer0(&self, i: usize) -> usize {
+        self.0.layer0(i) | self.1.layer0(i)
+    }
 }
 
 /// `BitSetNot` takes a `BitSetLike` item, and produced an inverted virtual set.
@@ -275,17 +334,29 @@ impl<A: BitSetLike, B: BitSetLike> BitSetLike for BitSetOr<A, B> {
 pub struct BitSetNot<A: BitSetLike>(pub A);
 
 impl<A: BitSetLike> BitSetLike for BitSetNot<A> {
-    #[inline] fn layer3(&self) -> usize { !0 }
-    #[inline] fn layer2(&self, _: usize) -> usize { !0 }
-    #[inline] fn layer1(&self, _: usize) -> usize { !0 }
-    #[inline] fn layer0(&self, i: usize) -> usize { !self.0.layer0(i) }
+    #[inline]
+    fn layer3(&self) -> usize {
+        !0
+    }
+    #[inline]
+    fn layer2(&self, _: usize) -> usize {
+        !0
+    }
+    #[inline]
+    fn layer1(&self, _: usize) -> usize {
+        !0
+    }
+    #[inline]
+    fn layer0(&self, i: usize) -> usize {
+        !self.0.layer0(i)
+    }
 }
 
 
 pub struct BitIter<T> {
     set: T,
     masks: [usize; 4],
-    prefix: [u32; 3]
+    prefix: [u32; 3],
 }
 
 impl<T> Iterator for BitIter<T>
@@ -333,14 +404,14 @@ impl<T> Iterator for BitIter<T>
 
 struct AtomicBlock {
     mask: AtomicUsize,
-    atom: AtomSetOnce<Box<[AtomicUsize; 1 << BITS]>>
+    atom: AtomSetOnce<Box<[AtomicUsize; 1 << BITS]>>,
 }
 
 impl AtomicBlock {
     fn new() -> AtomicBlock {
         AtomicBlock {
             mask: AtomicUsize::new(0),
-            atom: AtomSetOnce::empty()
+            atom: AtomSetOnce::empty(),
         }
     }
     fn add(&self, id: Index) -> bool {
@@ -355,9 +426,10 @@ impl AtomicBlock {
         old & m != 0
     }
     fn contains(&self, id: Index) -> bool {
-        self.atom.get().map(|l0| {
-            l0[id.row(SHIFT1)].load(Ordering::Relaxed) & id.mask(SHIFT0) != 0
-        }).unwrap_or(false)
+        self.atom
+            .get()
+            .map(|l0| l0[id.row(SHIFT1)].load(Ordering::Relaxed) & id.mask(SHIFT0) != 0)
+            .unwrap_or(false)
     }
     fn remove(&mut self, id: Index) -> bool {
         if let Some(l0) = self.atom.get_mut() {
@@ -369,15 +441,17 @@ impl AtomicBlock {
                 self.mask.store(v, Ordering::Relaxed);
             }
             v & id.mask(SHIFT0) == id.mask(SHIFT0)
-        } else { false }
+        } else {
+            false
+        }
     }
     fn clear(&mut self) {
         self.mask.store(0, Ordering::Relaxed);
-        self.atom.get().map(|l0| {
-            for l in &l0[..] {
-                l.store(0, Ordering::Relaxed);
-            }
-        });
+        self.atom
+            .get()
+            .map(|l0| for l in &l0[..] {
+                     l.store(0, Ordering::Relaxed);
+                 });
     }
 }
 
@@ -408,8 +482,14 @@ impl AtomicBitSet {
     pub fn new() -> AtomicBitSet {
         AtomicBitSet {
             layer3: AtomicUsize::new(0),
-            layer2: repeat(0).map(|_| AtomicUsize::new(0)).take(1 << BITS).collect(),
-            layer1: repeat(0).map(|_| AtomicBlock::new()).take(1 << (2*BITS)).collect(),
+            layer2: repeat(0)
+                .map(|_| AtomicUsize::new(0))
+                .take(1 << BITS)
+                .collect(),
+            layer1: repeat(0)
+                .map(|_| AtomicBlock::new())
+                .take(1 << (2 * BITS))
+                .collect(),
         }
     }
 
@@ -445,7 +525,8 @@ impl AtomicBitSet {
         }
 
         self.layer2[p2].store(self.layer2[p2].load(Relaxed) | id.mask(SHIFT2), Relaxed);
-        self.layer3.store(self.layer3.load(Relaxed) | id.mask(SHIFT3), Relaxed);
+        self.layer3
+            .store(self.layer3.load(Relaxed) | id.mask(SHIFT3), Relaxed);
         false
     }
 
@@ -521,17 +602,27 @@ impl AtomicBitSet {
             break;
         }
     }
-
 }
 
 impl BitSetLike for AtomicBitSet {
-    #[inline] fn layer3(&self) -> usize { self.layer3.load(Ordering::Relaxed) }
-    #[inline] fn layer2(&self, i: usize) -> usize { self.layer2[i].load(Ordering::Relaxed) }
-    #[inline] fn layer1(&self, i: usize) -> usize { self.layer1[i].mask.load(Ordering::Relaxed) }
+    #[inline]
+    fn layer3(&self) -> usize {
+        self.layer3.load(Ordering::Relaxed)
+    }
+    #[inline]
+    fn layer2(&self, i: usize) -> usize {
+        self.layer2[i].load(Ordering::Relaxed)
+    }
+    #[inline]
+    fn layer1(&self, i: usize) -> usize {
+        self.layer1[i].mask.load(Ordering::Relaxed)
+    }
     #[inline]
     fn layer0(&self, i: usize) -> usize {
         let (o1, o0) = (i >> BITS, i & ((1 << BITS) - 1));
-        self.layer1[o1].atom.get()
+        self.layer1[o1]
+            .atom
+            .get()
             .map(|l0| l0[o0].load(Ordering::Relaxed))
             .unwrap_or(0)
     }

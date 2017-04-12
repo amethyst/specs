@@ -10,7 +10,7 @@ use fnv::FnvHasher;
 use bitset::{BitSet, BitSetNot};
 use gate::Gate;
 use join::Join;
-use world::{Component, Allocator};
+use world::{Allocator, Component};
 use {Entity, Index};
 
 
@@ -30,9 +30,11 @@ impl<T: Component> MaskedStorage<T> {
             inner: UnprotectedStorage::new(),
         }
     }
+
     fn open_mut(&mut self) -> (&BitSet, &mut T::Storage) {
         (&self.mask, &mut self.inner)
     }
+
     /// Clear the contents of this storage.
     pub fn clear(&mut self) {
         let mask = &mut self.mask;
@@ -41,11 +43,12 @@ impl<T: Component> MaskedStorage<T> {
         }
         mask.clear();
     }
+
     /// Remove an element by a given index.
     pub fn remove(&mut self, id: Index) -> Option<T> {
         if self.mask.remove(id) {
             Some(unsafe { self.inner.remove(id) })
-        }else {
+        } else {
             None
         }
     }
@@ -65,16 +68,18 @@ impl<'a> Join for AntiStorage<'a> {
     type Type = ();
     type Value = ();
     type Mask = BitSetNot<&'a BitSet>;
+
     fn open(self) -> (Self::Mask, ()) {
         (BitSetNot(self.0), ())
     }
+
     unsafe fn get(_: &mut (), _: Index) -> () {
         ()
     }
 }
 
 /// A storage type that iterates entities that have
-/// a particular component type, but does not return the 
+/// a particular component type, but does not return the
 /// component.
 pub struct CheckStorage(BitSet);
 
@@ -82,9 +87,11 @@ impl<'a> Join for &'a CheckStorage {
     type Type = ();
     type Value = ();
     type Mask = &'a BitSet;
+
     fn open(self) -> (Self::Mask, ()) {
         (&self.0, ())
     }
+
     unsafe fn get(_: &mut (), _: Index) -> () {
         ()
     }
@@ -99,11 +106,12 @@ pub struct Storage<T, A, D> {
     data: D,
 }
 
-impl<'a, T, A, D> Not for &'a Storage<T, A, D> where
-    T: Component,
-    D: Deref<Target = MaskedStorage<T>>,
+impl<'a, T, A, D> Not for &'a Storage<T, A, D>
+    where T: Component,
+          D: Deref<Target = MaskedStorage<T>>
 {
     type Output = AntiStorage<'a>;
+
     fn not(self) -> Self::Output {
         AntiStorage(&self.data.mask)
     }
@@ -111,7 +119,7 @@ impl<'a, T, A, D> Not for &'a Storage<T, A, D> where
 
 impl<T, A, D> Storage<T, A, D> {
     /// Create a new `Storage`
-    pub fn new(alloc: A, data: D) -> Storage<T, A, D>{
+    pub fn new(alloc: A, data: D) -> Storage<T, A, D> {
         Storage {
             phantom: PhantomData,
             alloc: alloc,
@@ -120,16 +128,18 @@ impl<T, A, D> Storage<T, A, D> {
     }
 }
 
-impl<T, A, D> Storage<T, A, D> where
-    T: Component,
-    A: Deref<Target = Allocator>,
-    D: Deref<Target = MaskedStorage<T>>,
+impl<T, A, D> Storage<T, A, D>
+    where T: Component,
+          A: Deref<Target = Allocator>,
+          D: Deref<Target = MaskedStorage<T>>
 {
     /// Tries to read the data associated with an `Entity`.
     pub fn get(&self, e: Entity) -> Option<&T> {
         if self.data.mask.contains(e.get_id()) && self.alloc.is_alive(e) {
             Some(unsafe { self.data.inner.get(e.get_id()) })
-        }else {None}
+        } else {
+            None
+        }
     }
 
     /// Returns a struct that can iterate over the entities that have it
@@ -142,8 +152,9 @@ impl<T, A, D> Storage<T, A, D> where
     }
 }
 
-impl<T, A, D> Gate for Storage<T, A , D> {
+impl<T, A, D> Gate for Storage<T, A, D> {
     type Target = Self;
+
     fn pass(self) -> Self {
         self
     }
@@ -162,17 +173,20 @@ pub enum InsertResult<T> {
     EntityIsDead(T),
 }
 
-impl<T, A, D> Storage<T, A, D> where
-    T: Component,
-    A: Deref<Target = Allocator>,
-    D: DerefMut<Target = MaskedStorage<T>>,
+impl<T, A, D> Storage<T, A, D>
+    where T: Component,
+          A: Deref<Target = Allocator>,
+          D: DerefMut<Target = MaskedStorage<T>>
 {
     /// Tries to mutate the data associated with an `Entity`.
     pub fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
         if self.data.mask.contains(e.get_id()) && self.alloc.is_alive(e) {
             Some(unsafe { self.data.inner.get_mut(e.get_id()) })
-        }else {None}
+        } else {
+            None
+        }
     }
+
     /// Inserts new data for a given `Entity`.
     /// Returns the result of the operation as a `InsertResult<T>`
     pub fn insert(&mut self, e: Entity, mut v: T) -> InsertResult<T> {
@@ -190,47 +204,56 @@ impl<T, A, D> Storage<T, A, D> where
             InsertResult::EntityIsDead(v)
         }
     }
+
     /// Removes the data associated with an `Entity`.
     pub fn remove(&mut self, e: Entity) -> Option<T> {
         if self.alloc.is_alive(e) {
             self.data.remove(e.get_id())
-        }else { None }
+        } else {
+            None
+        }
     }
+
     /// Clears the contents of the storage.
     pub fn clear(&mut self) {
         self.data.clear();
     }
 }
 
-impl<'a, T, A, D> Join for &'a Storage<T, A, D> where
-    T: Component,
-    A: Deref<Target = Allocator>,
-    D: Deref<Target = MaskedStorage<T>>,
+impl<'a, T, A, D> Join for &'a Storage<T, A, D>
+    where T: Component,
+          A: Deref<Target = Allocator>,
+          D: Deref<Target = MaskedStorage<T>>
 {
     type Type = &'a T;
     type Value = &'a T::Storage;
     type Mask = &'a BitSet;
+
     fn open(self) -> (Self::Mask, Self::Value) {
         (&self.data.mask, &self.data.inner)
     }
+
     unsafe fn get(v: &mut Self::Value, i: Index) -> &'a T {
         v.get(i)
     }
 }
 
-impl<'a, T, A, D> Join for &'a mut Storage<T, A, D> where
-    T: Component,
-    A: Deref<Target = Allocator>,
-    D: DerefMut<Target = MaskedStorage<T>>,
+impl<'a, T, A, D> Join for &'a mut Storage<T, A, D>
+    where T: Component,
+          A: Deref<Target = Allocator>,
+          D: DerefMut<Target = MaskedStorage<T>>
 {
     type Type = &'a mut T;
     type Value = &'a mut T::Storage;
     type Mask = &'a BitSet;
+
     fn open(self) -> (Self::Mask, Self::Value) {
         self.data.open_mut()
     }
+
     unsafe fn get(v: &mut Self::Value, i: Index) -> &'a mut T {
         use std::mem;
+
         // This is horribly unsafe. Unfortunately, Rust doesn't provide a way
         // to abstract mutable/immutable state at the moment, so we have to hack
         // our way through it.
@@ -239,7 +262,7 @@ impl<'a, T, A, D> Join for &'a mut Storage<T, A, D> where
     }
 }
 
-/// 
+///
 pub struct GatedStorage<T, A, G> {
     marker: PhantomData<T>,
     alloc: A,
@@ -259,6 +282,7 @@ impl<T, A, G> GatedStorage<T, A, G> {
 
 impl<T, A, G: Gate> Gate for GatedStorage<T, A, G> {
     type Target = Storage<T, A, G::Target>;
+
     fn pass(self) -> Self::Target {
         Storage::new(self.alloc, self.gate.pass())
     }
@@ -270,19 +294,24 @@ pub trait UnprotectedStorage<T>: Sized {
     /// Creates a new `Storage<T>`. This is called when you register a new
     /// component type within the world.
     fn new() -> Self;
+
     /// Clean the storage given a check to figure out if an index
     /// is valid or not. Allows us to safely drop the storage.
     unsafe fn clean<F>(&mut self, F) where F: Fn(Index) -> bool;
+
     /// Tries reading the data associated with an `Index`.
     /// This is unsafe because the external set used
     /// to protect this storage is absent.
     unsafe fn get(&self, id: Index) -> &T;
+
     /// Tries mutating the data associated with an `Index`.
     /// This is unsafe because the external set used
     /// to protect this storage is absent.
     unsafe fn get_mut(&mut self, id: Index) -> &mut T;
+
     /// Inserts new data for a given `Index`.
     unsafe fn insert(&mut self, Index, T);
+
     /// Removes the data associated with an `Index`.
     unsafe fn remove(&mut self, Index) -> T;
 }
@@ -294,18 +323,25 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     fn new() -> Self {
         HashMapStorage(Default::default())
     }
-    unsafe fn clean<F>(&mut self, _: F) where F: Fn(Index) -> bool {
+
+    unsafe fn clean<F>(&mut self, _: F)
+        where F: Fn(Index) -> bool
+    {
         //nothing to do
     }
+
     unsafe fn get(&self, id: Index) -> &T {
         self.0.get(&id).unwrap()
     }
+
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
         self.0.get_mut(&id).unwrap()
     }
+
     unsafe fn insert(&mut self, id: Index, v: T) {
         self.0.insert(id, v);
     }
+
     unsafe fn remove(&mut self, id: Index) -> T {
         self.0.remove(&id).unwrap()
     }
@@ -318,18 +354,25 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
     fn new() -> Self {
         BTreeStorage(Default::default())
     }
-    unsafe fn clean<F>(&mut self, _: F) where F: Fn(Index) -> bool {
+
+    unsafe fn clean<F>(&mut self, _: F)
+        where F: Fn(Index) -> bool
+    {
         // nothing to do
     }
+
     unsafe fn get(&self, id: Index) -> &T {
         self.0.get(&id).unwrap()
     }
+
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
         self.0.get_mut(&id).unwrap()
     }
+
     unsafe fn insert(&mut self, id: Index, v: T) {
         self.0.insert(id, v);
     }
+
     unsafe fn remove(&mut self, id: Index) -> T {
         self.0.remove(&id).unwrap()
     }
@@ -344,7 +387,10 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
     fn new() -> Self {
         VecStorage(Vec::new())
     }
-    unsafe fn clean<F>(&mut self, has: F) where F: Fn(Index) -> bool {
+
+    unsafe fn clean<F>(&mut self, has: F)
+        where F: Fn(Index) -> bool
+    {
         use std::ptr;
         for (i, v) in self.0.iter_mut().enumerate() {
             if has(i as Index) {
@@ -353,14 +399,18 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         }
         self.0.set_len(0);
     }
+
     unsafe fn get(&self, id: Index) -> &T {
         self.0.get_unchecked(id as usize)
     }
+
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
         self.0.get_unchecked_mut(id as usize)
     }
+
     unsafe fn insert(&mut self, id: Index, v: T) {
         use std::ptr;
+
         let id = id as usize;
         if self.0.len() <= id {
             let delta = id + 1 - self.0.len();
@@ -371,8 +421,10 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         // the (currently uninitialized) memory.
         ptr::write(self.0.get_unchecked_mut(id), v);
     }
+
     unsafe fn remove(&mut self, id: Index) -> T {
         use std::ptr;
+
         ptr::read(self.get(id))
     }
 }
@@ -386,10 +438,16 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
         NullStorage(Default::default())
     }
     unsafe fn clean<F>(&mut self, _: F) where F: Fn(Index) -> bool {}
-    unsafe fn get(&self, _: Index) -> &T { &self.0 }
-    unsafe fn get_mut(&mut self, _: Index) -> &mut T { panic!("One does not simply modify a NullStorage") }
+    unsafe fn get(&self, _: Index) -> &T {
+        &self.0
+    }
+    unsafe fn get_mut(&mut self, _: Index) -> &mut T {
+        panic!("One does not simply modify a NullStorage")
+    }
     unsafe fn insert(&mut self, _: Index, _: T) {}
-    unsafe fn remove(&mut self, _: Index) -> T { Default::default() }
+    unsafe fn remove(&mut self, _: Index) -> T {
+        Default::default()
+    }
 }
 
 
@@ -498,10 +556,10 @@ fn test_vec_arc() {
     let mut storage = VecStorage::<A>::new();
 
     unsafe {
-        for i in (0..200).filter(|i| i%2 != 0) {
+        for i in (0..200).filter(|i| i % 2 != 0) {
             storage.insert(i, A(Arc::new(())));
         }
-        storage.clean(|i| i%2 != 0);
+        storage.clean(|i| i % 2 != 0);
     }
 }
 
@@ -516,10 +574,14 @@ mod test {
     #[derive(PartialEq, Eq, Debug)]
     struct Cvec(u32);
     impl From<u32> for Cvec {
-        fn from(v: u32) -> Cvec { Cvec(v) }
+        fn from(v: u32) -> Cvec {
+            Cvec(v)
+        }
     }
     impl AsMut<u32> for Cvec {
-        fn as_mut(&mut self) -> &mut u32 { &mut self.0 }
+        fn as_mut(&mut self) -> &mut u32 {
+            &mut self.0
+        }
     }
     impl Component for Cvec {
         type Storage = VecStorage<Cvec>;
@@ -528,10 +590,14 @@ mod test {
     #[derive(PartialEq, Eq, Debug)]
     struct Cmap(u32);
     impl From<u32> for Cmap {
-        fn from(v: u32) -> Cmap { Cmap(v) }
+        fn from(v: u32) -> Cmap {
+            Cmap(v)
+        }
     }
     impl AsMut<u32> for Cmap {
-        fn as_mut(&mut self) -> &mut u32 { &mut self.0 }
+        fn as_mut(&mut self) -> &mut u32 {
+            &mut self.0
+        }
     }
     impl Component for Cmap {
         type Storage = HashMapStorage<Cmap>;
@@ -540,10 +606,14 @@ mod test {
     #[derive(PartialEq, Eq, Debug)]
     struct CBtree(u32);
     impl From<u32> for CBtree {
-        fn from(v: u32) -> CBtree { CBtree(v) }
+        fn from(v: u32) -> CBtree {
+            CBtree(v)
+        }
     }
     impl AsMut<u32> for CBtree {
-        fn as_mut(&mut self) -> &mut u32 { &mut self.0 }
+        fn as_mut(&mut self) -> &mut u32 {
+            &mut self.0
+        }
     }
     impl Component for CBtree {
         type Storage = BTreeStorage<CBtree>;
@@ -552,62 +622,76 @@ mod test {
     #[derive(Clone)]
     struct Cnull(u32);
     impl Default for Cnull {
-        fn default() -> Cnull { Cnull(0) }
+        fn default() -> Cnull {
+            Cnull(0)
+        }
     }
     impl From<u32> for Cnull {
-        fn from(v: u32) -> Cnull { Cnull(v) }
+        fn from(v: u32) -> Cnull {
+            Cnull(v)
+        }
     }
     impl Component for Cnull {
         type Storage = NullStorage<Cnull>;
     }
 
     fn create<T: Component>() -> Storage<T, Box<Allocator>, Box<MaskedStorage<T>>> {
-        Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()))
+        Storage::new(Box::new(Allocator::new()),
+                     Box::new(MaskedStorage::<T>::new()))
     }
 
     fn test_add<T: Component + From<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+        let mut s = Storage::new(Box::new(Allocator::new()),
+                                 Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
         }
 
         for i in 0..1_000 {
-            assert_eq!(s.get(Entity::new(i, Generation(1))).unwrap(), &(i + 2718).into());
+            assert_eq!(s.get(Entity::new(i, Generation(1))).unwrap(),
+                       &(i + 2718).into());
         }
     }
 
     fn test_sub<T: Component + From<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+        let mut s = Storage::new(Box::new(Allocator::new()),
+                                 Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
         }
 
         for i in 0..1_000 {
-            assert_eq!(s.remove(Entity::new(i, Generation(1))).unwrap(), (i + 2718).into());
+            assert_eq!(s.remove(Entity::new(i, Generation(1))).unwrap(),
+                       (i + 2718).into());
             assert!(s.remove(Entity::new(i, Generation(1))).is_none());
         }
     }
 
     fn test_get_mut<T: Component + From<u32> + AsMut<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+        let mut s = Storage::new(Box::new(Allocator::new()),
+                                 Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
         }
 
         for i in 0..1_000 {
-            *s.get_mut(Entity::new(i, Generation(1))).unwrap().as_mut() -= 718;
+            *s.get_mut(Entity::new(i, Generation(1)))
+                 .unwrap()
+                 .as_mut() -= 718;
         }
 
         for i in 0..1_000 {
-            assert_eq!(s.get(Entity::new(i, Generation(1))).unwrap(), &(i + 2000).into());
+            assert_eq!(s.get(Entity::new(i, Generation(1))).unwrap(),
+                       &(i + 2000).into());
         }
     }
 
     fn test_add_gen<T: Component + From<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+        let mut s = Storage::new(Box::new(Allocator::new()),
+                                 Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(1)), (i + 2718).into());
@@ -616,12 +700,14 @@ mod test {
 
         for i in 0..1_000 {
             assert!(s.get(Entity::new(i, Generation(2))).is_none());
-            assert_eq!(s.get(Entity::new(i, Generation(1))).unwrap(), &(i + 2718).into());
+            assert_eq!(s.get(Entity::new(i, Generation(1))).unwrap(),
+                       &(i + 2718).into());
         }
     }
 
     fn test_sub_gen<T: Component + From<u32> + Debug + Eq>() {
-        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+        let mut s = Storage::new(Box::new(Allocator::new()),
+                                 Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..1_000 {
             s.insert(Entity::new(i, Generation(2)), (i + 2718).into());
@@ -633,7 +719,8 @@ mod test {
     }
 
     fn test_clear<T: Component + From<u32>>() {
-        let mut s = Storage::new(Box::new(Allocator::new()), Box::new(MaskedStorage::<T>::new()));
+        let mut s = Storage::new(Box::new(Allocator::new()),
+                                 Box::new(MaskedStorage::<T>::new()));
 
         for i in 0..10 {
             s.insert(Entity::new(i, Generation(1)), (i + 10).into());
@@ -651,7 +738,7 @@ mod test {
         let mut s = create::<T>();
 
         for i in 0..10 {
-            s.insert(Entity::new(i, Generation(1)), (i+10).into());
+            s.insert(Entity::new(i, Generation(1)), (i + 10).into());
         }
 
         for (i, (a, _)) in (&s, !&s).join().take(10).enumerate() {
@@ -660,28 +747,87 @@ mod test {
     }
 
 
-    #[test] fn vec_test_add() { test_add::<Cvec>(); }
-    #[test] fn vec_test_sub() { test_sub::<Cvec>(); }
-    #[test] fn vec_test_get_mut() { test_get_mut::<Cvec>(); }
-    #[test] fn vec_test_add_gen() { test_add_gen::<Cvec>(); }
-    #[test] fn vec_test_sub_gen() { test_sub_gen::<Cvec>(); }
-    #[test] fn vec_test_clear() { test_clear::<Cvec>(); }
-    #[test] fn vec_test_anti() { test_anti::<Cvec>(); }
+    #[test]
+    fn vec_test_add() {
+        test_add::<Cvec>();
+    }
+    #[test]
+    fn vec_test_sub() {
+        test_sub::<Cvec>();
+    }
+    #[test]
+    fn vec_test_get_mut() {
+        test_get_mut::<Cvec>();
+    }
+    #[test]
+    fn vec_test_add_gen() {
+        test_add_gen::<Cvec>();
+    }
+    #[test]
+    fn vec_test_sub_gen() {
+        test_sub_gen::<Cvec>();
+    }
+    #[test]
+    fn vec_test_clear() {
+        test_clear::<Cvec>();
+    }
+    #[test]
+    fn vec_test_anti() {
+        test_anti::<Cvec>();
+    }
 
-    #[test] fn hash_test_add() { test_add::<Cmap>(); }
-    #[test] fn hash_test_sub() { test_sub::<Cmap>(); }
-    #[test] fn hash_test_get_mut() { test_get_mut::<Cmap>(); }
-    #[test] fn hash_test_add_gen() { test_add_gen::<Cmap>(); }
-    #[test] fn hash_test_sub_gen() { test_sub_gen::<Cmap>(); }
-    #[test] fn hash_test_clear() { test_clear::<Cmap>(); }
+    #[test]
+    fn hash_test_add() {
+        test_add::<Cmap>();
+    }
+    #[test]
+    fn hash_test_sub() {
+        test_sub::<Cmap>();
+    }
+    #[test]
+    fn hash_test_get_mut() {
+        test_get_mut::<Cmap>();
+    }
+    #[test]
+    fn hash_test_add_gen() {
+        test_add_gen::<Cmap>();
+    }
+    #[test]
+    fn hash_test_sub_gen() {
+        test_sub_gen::<Cmap>();
+    }
+    #[test]
+    fn hash_test_clear() {
+        test_clear::<Cmap>();
+    }
 
-    #[test] fn btree_test_add() { test_add::<CBtree>(); }
-    #[test] fn btree_test_sub() { test_sub::<CBtree>(); }
-    #[test] fn btree_test_get_mut() { test_get_mut::<CBtree>(); }
-    #[test] fn btree_test_add_gen() { test_add_gen::<CBtree>(); }
-    #[test] fn btree_test_sub_gen() { test_sub_gen::<CBtree>(); }
-    #[test] fn btree_test_clear() { test_clear::<CBtree>(); }
+    #[test]
+    fn btree_test_add() {
+        test_add::<CBtree>();
+    }
+    #[test]
+    fn btree_test_sub() {
+        test_sub::<CBtree>();
+    }
+    #[test]
+    fn btree_test_get_mut() {
+        test_get_mut::<CBtree>();
+    }
+    #[test]
+    fn btree_test_add_gen() {
+        test_add_gen::<CBtree>();
+    }
+    #[test]
+    fn btree_test_sub_gen() {
+        test_sub_gen::<CBtree>();
+    }
+    #[test]
+    fn btree_test_clear() {
+        test_clear::<CBtree>();
+    }
 
-    #[test] fn dummy_test_clear() { test_clear::<Cnull>(); }
+    #[test]
+    fn dummy_test_clear() {
+        test_clear::<Cnull>();
+    }
 }
-
