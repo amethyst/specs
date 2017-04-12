@@ -1,12 +1,15 @@
 use std;
+
 use tuple_utils::Split;
-use bitset::{BitIter, BitSetAnd, BitSetLike};
+
+use bitset::{BitSetAnd, BitIter, BitSetLike};
 use Index;
 
 
 /// BitAnd is a helper method to & bitsets together resulting in a tree.
 pub trait BitAnd {
     type Value: BitSetLike;
+
     fn and(self) -> Self::Value;
 }
 
@@ -15,6 +18,7 @@ impl<A> BitAnd for (A,)
     where A: BitSetLike
 {
     type Value = A;
+
     fn and(self) -> Self::Value {
         self.0
     }
@@ -30,6 +34,7 @@ macro_rules! bitset_and {
                 <<Self as Split>::Left as BitAnd>::Value,
                 <<Self as Split>::Right as BitAnd>::Value
             >;
+
             fn and(self) -> Self::Value {
                 let (l, r) = self.split();
                 BitSetAnd(l.and(), r.and())
@@ -65,12 +70,17 @@ pub trait Join {
     type Value;
     /// Type of joined bit mask.
     type Mask: BitSetLike;
+
     /// Create a joined iterator over the contents.
-    fn join(self) -> JoinIter<Self> where Self: Sized {
+    fn join(self) -> JoinIter<Self>
+        where Self: Sized
+    {
         JoinIter::new(self)
     }
+
     /// Open this join by returning the mask and the storages.
     fn open(self) -> (Self::Mask, Self::Value);
+
     /// Get a joined component value by a given index.
     unsafe fn get(&mut Self::Value, Index) -> Self::Type;
 }
@@ -96,10 +106,11 @@ impl<J: Join> JoinIter<J> {
 
 impl<J: Join> std::iter::Iterator for JoinIter<J> {
     type Item = J::Type;
+
     fn next(&mut self) -> Option<J::Type> {
-        self.keys.next().map(|idx| unsafe {
-            J::get(&mut self.values, idx)
-        })
+        self.keys
+            .next()
+            .map(|idx| unsafe { J::get(&mut self.values, idx) })
     }
 }
 
@@ -122,6 +133,7 @@ macro_rules! define_open {
                     ($($from.1),*,)
                 )
             }
+
             #[allow(non_snake_case)]
             unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
                 let &mut ($(ref mut $from,)*) = v;

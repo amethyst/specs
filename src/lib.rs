@@ -6,34 +6,35 @@
 //! and convenient usage. It is highly flexible when it comes to actual
 //! component data and the way it is stored and accessed.
 
+extern crate atom;
+extern crate fnv;
 #[macro_use]
 extern crate mopa;
+extern crate ticketed_lock;
+extern crate tuple_utils;
+
 #[cfg(feature="parallel")]
 extern crate pulse;
 #[cfg(feature="parallel")]
 extern crate rayon;
-extern crate ticketed_lock;
-extern crate fnv;
-extern crate tuple_utils;
-extern crate atom;
 
-pub use storage::{Storage, UnprotectedStorage, AntiStorage,
-                  VecStorage, HashMapStorage, BTreeStorage, NullStorage, InsertResult,
-                  MaskedStorage};
-pub use storage::{GatedStorage};
-pub use world::{Component, World, EntityBuilder, Entities, CreateEntities,
-                Allocator};
-pub use join::{Join, JoinIter};
 pub use gate::Gate;
-#[cfg(feature="parallel")]
-pub use planner::*; // * because planner contains many macro-generated public functions
+pub use join::{Join, JoinIter};
+pub use storage::{AntiStorage, BTreeStorage, GatedStorage, HashMapStorage, InsertResult,
+                  MaskedStorage, NullStorage, Storage, UnprotectedStorage, VecStorage};
+pub use world::{Allocator, Component, CreateEntities, Entities, World};
 
-mod storage;
-mod world;
+#[cfg(feature="parallel")]
+pub use planner::{Planner, Priority, RunArg, System, SystemInfo};
+
+
 #[doc(hidden)]
 pub mod bitset;
 mod gate;
 mod join;
+mod storage;
+mod world;
+
 #[cfg(feature="parallel")]
 mod planner;
 
@@ -66,6 +67,7 @@ impl Generation {
 /// `Index` type is arbitrary. It doesn't show up in any interfaces.
 /// Keeping it 32bit allows for a single 64bit word per entity.
 pub type Index = u32;
+
 /// `Entity` type, as seen by the user.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Entity(Index, Generation);
@@ -79,8 +81,13 @@ impl Entity {
 
     /// Returns the index of the `Entity`.
     #[inline]
-    pub fn get_id(&self) -> Index { self.0 }
+    pub fn get_id(&self) -> Index {
+        self.0
+    }
+
     /// Returns the `Generation` of the `Entity`.
     #[inline]
-    pub fn get_gen(&self) -> Generation { self.1 }
+    pub fn get_gen(&self) -> Generation {
+        self.1
+    }
 }
