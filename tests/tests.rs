@@ -311,26 +311,6 @@ fn register_idempotency() {
     assert_eq!(i, 10);
 }
 
-// #[should_panic(expected = "fetch should be called once.")]
-// #[test]
-// #[cfg(feature="parallel")]
-// fn fetch_has_to_be_called_atleast_once() {
-//     let mut planner = specs::Planner::<()>::new(specs::World::new());
-//     planner.run_custom(|_| {});
-// }
-//
-// #[ignore] //TODO
-// #[should_panic(expected = "fetch may only be called once.")]
-// #[test]
-// #[cfg(feature="parallel")]
-// fn fetch_has_to_be_called_atmost_once() {
-//     let mut planner = specs::Planner::<()>::new(specs::World::new());
-//     planner.run_custom(|args| {
-//         args.fetch(|_| {});
-//         args.fetch(|_| {});
-//     });
-// }
-
 #[test]
 fn join_two_components() {
     let mut world = create_world();

@@ -2,13 +2,6 @@ use std;
 
 use hibitset::{BitSetAnd, BitIter, BitSetLike};
 
-#[cfg(feature="parallel")]
-use hibitset::BitParIter;
-#[cfg(feature="parallel")]
-use rayon::iter::ParallelIterator;
-#[cfg(feature="parallel")]
-use rayon::iter::internal::UnindexedConsumer;
-
 use tuple_utils::Split;
 
 use Index;
@@ -141,10 +134,11 @@ mod par_join {
     use hibitset::BitProducer;
 
     impl<J> ParallelIterator for JoinParIter<J>
-    where J: Join + Send,
-          J::Type: Send,
-          J::Value: Split + Send,
-          J::Mask: Send + Sync,
+      where
+        J: Join + Send,
+        J::Type: Send,
+        J::Value: Split + Send,
+        J::Mask: Send + Sync,
     {
         type Item = J::Type;
 
@@ -161,10 +155,11 @@ mod par_join {
     }
 
     struct JoinProducer<'a, 'b, J>
-    where J: Join + Send,
-          J::Type: Send,
-          J::Value: 'a + Send,
-          J::Mask: 'b + Send + Sync,
+      where
+        J: Join + Send,
+        J::Type: Send,
+        J::Value: 'a + Send,
+        J::Mask: 'b + Send + Sync,
     {
         keys: BitProducer<'b, J::Mask>,
         values: *mut J::Value,
@@ -172,17 +167,19 @@ mod par_join {
     }
 
     unsafe impl<'a, 'b, J> Send for JoinProducer<'a, 'b, J>
-    where J: Join + Send,
-          J::Type: Send,
-          J::Value: 'a + Send,
-          J::Mask: 'b + Send + Sync,
+      where
+        J: Join + Send,
+        J::Type: Send,
+        J::Value: 'a + Send,
+        J::Mask: 'b + Send + Sync,
     {}
 
     impl<'a, 'b, J> UnindexedProducer for JoinProducer<'a, 'b, J>
-    where J: Join + Send,
-          J::Type: Send,
-          J::Value: 'a + Send,
-          J::Mask: 'b + Send + Sync,
+      where
+        J: Join + Send,
+        J::Type: Send,
+        J::Value: 'a + Send,
+        J::Mask: 'b + Send + Sync,
     {
         type Item = J::Type;
         fn split(self) -> (Self, Option<Self>) {
@@ -213,7 +210,7 @@ mod par_join {
             let JoinProducer {values, keys, ..} = self;
             let iter = keys.0.map(|idx| unsafe {
                 // TODO: Figure out is creating mutable reference actually safe.
-                // I am pretty sure it isn't, because this there can be multiple
+                // I am pretty sure it isn't, because there can be multiple
                 // mutable references to same memory,
                 // but have no idea how else this should be done.
                 J::get(&mut *values, idx)
