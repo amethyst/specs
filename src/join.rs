@@ -128,6 +128,8 @@ pub use self::par_join::*;
 pub struct JoinParIter<J: Join>(J);
 mod par_join {
     use std::marker::PhantomData;
+    use std::sync::Arc;
+    use std::cell::UnsafeCell;
     use rayon::iter::ParallelIterator;
     use rayon::iter::internal::{UnindexedProducer, UnindexedConsumer, Folder, bridge_unindexed};
     use super::*;
@@ -145,12 +147,10 @@ mod par_join {
         fn drive_unindexed<C>(self, consumer: C) -> C::Result
             where C: UnindexedConsumer<Self::Item>
         {
-            let (keys, mut values) = self.0.open();
-            bridge_unindexed(JoinProducer::<J>{
-                keys: BitProducer((&keys).iter()),
-                values: &mut values as *mut _,
-                _marker: PhantomData,
-            }, consumer)
+            let (keys, values) = self.0.open();
+            let producer = BitProducer((&keys).iter());
+            let values = Arc::new(UnsafeCell::new(values));
+            bridge_unindexed(JoinProducer::<J>::new(producer, values), consumer)
         }
     }
 
@@ -162,8 +162,24 @@ mod par_join {
         J::Mask: 'b + Send + Sync,
     {
         keys: BitProducer<'b, J::Mask>,
-        values: *mut J::Value,
+        values: Arc<UnsafeCell<J::Value>>,
         _marker: PhantomData<&'a J::Value>,
+    }
+
+    impl<'a, 'b, J> JoinProducer<'a, 'b, J>
+      where
+        J: Join + Send,
+        J::Type: Send,
+        J::Value: 'a + Send,
+        J::Mask: 'b + Send + Sync,
+    {
+        fn new(keys: BitProducer<'b, J::Mask>, values: Arc<UnsafeCell<J::Value>>) -> Self {
+            JoinProducer {
+                keys: keys,
+                values: values,
+                _marker: PhantomData,
+            }
+        }
     }
 
     unsafe impl<'a, 'b, J> Send for JoinProducer<'a, 'b, J>
@@ -184,36 +200,19 @@ mod par_join {
         type Item = J::Type;
         fn split(self) -> (Self, Option<Self>) {
             let (cur, other) = self.keys.split();
-            if let Some(other) = other {
-                (JoinProducer {
-                    keys: cur,
-                    values: self.values,
-                    _marker: PhantomData,
-                },
-                Some(JoinProducer {
-                    keys: other,
-                    values: self.values,
-                    _marker: PhantomData,
-                }))
-            } else {
-                (JoinProducer {
-                    keys: cur,
-                    values: self.values,
-                    _marker: PhantomData,
-                }, None)
-            }
+            let prod = JoinProducer::new;
+            let values = self.values;
+            (prod(cur, values.clone()), other.map(|o| prod(o, values)))
         }
 
         fn fold_with<F>(self, folder: F) -> F
-        where F: Folder<Self::Item>
+          where
+            F: Folder<Self::Item>
         {
             let JoinProducer {values, keys, ..} = self;
             let iter = keys.0.map(|idx| unsafe {
-                // TODO: Figure out is creating mutable reference actually safe.
-                // I am pretty sure it isn't, because there can be multiple
-                // mutable references to same memory,
-                // but have no idea how else this should be done.
-                J::get(&mut *values, idx)
+                // TODO: There can be multiple mutable references to storage and thus this is not safe, right?
+                J::get(&mut *values.get(), idx)
             });
             folder.consume_iter(iter)
         }
