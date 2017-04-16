@@ -14,7 +14,7 @@ use world::{Allocator, Component};
 use {Entity, Index};
 
 #[cfg(feature="serialize")]
-use serde::{Serialize, Serializer, Deserialize, Deserializer};
+use serde;
 
 
 /// The `UnprotectedStorage` together with the `BitSet` that knows
@@ -223,10 +223,38 @@ impl<T, A, D> Storage<T, A, D>
     }
 }
 
-impl<'a, T, A, D> Join for &'a Storage<T, A, D>
-    where T: Component,
-          A: Deref<Target = Allocator>,
-          D: Deref<Target = MaskedStorage<T>>
+#[cfg(feature="serialize")]
+impl<T, A, D> Storage<T, A, D> where
+    T: Component + serde::Deserialize,
+    A: Deref<Target = Allocator>,
+    D: DerefMut<Target = MaskedStorage<T>>,
+{
+    /// Merges a list of components into the storage.
+    ///
+    /// The list of entities will be used as the base for the offsets of the packed data.
+    ///
+    /// e.g.
+    /// ```rust,ignore
+    ///let list = vec![Entity(0, 1), Entity(1, 1), Entity(2, 1)];
+    ///let packed = PackedData { offsets: [0, 2], components: [ ... ] };
+    ///storage.merge(&list, packed);
+    /// ```
+    /// Would merge the components at offset 0 and 2, which would be `Entity(0, 1)` and `Entity(2, 1)` while ignoring
+    /// `Entity(1, 1)`.
+    pub fn merge<'a>(&'a mut self, entities: &'a Vec<Entity>, mut packed: PackedData<T>) {
+        for (component, offset) in packed.components.drain(..).zip(packed.offsets.iter()) {
+            match entities.get(*offset as usize) {
+                Some(entity) => { self.insert(*entity, component); },
+                None => { println!("No entity at offset {:?}", *offset as usize) }
+            }
+        }
+    }
+}
+
+impl<'a, T, A, D> Join for &'a Storage<T, A, D> where
+    T: Component,
+    A: Deref<Target = Allocator>,
+    D: Deref<Target = MaskedStorage<T>>,
 {
     type Type = &'a T;
     type Value = &'a T::Storage;
@@ -266,32 +294,64 @@ impl<'a, T, A, D> Join for &'a mut Storage<T, A, D>
 }
 
 #[cfg(feature="serialize")]
-impl<T, A, D> Serialize for Storage<T, A, D> where
-    T: Component + Serialize,
+impl<T, A, D> serde::Serialize for Storage<T, A, D> where
+    T: Component + serde::Serialize,
     A: Deref<Target = Allocator>,
     D: Deref<Target = MaskedStorage<T>>,
 {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use bitset::BitSetLike;
-        use serde::ser::SerializeSeq;
+        use serde::ser::SerializeStruct;
 
+        // Serializes the storage in a format of PackedData<T>
         let (bitset, storage) = self.open();
-        let mut sequence = serializer.serialize_seq(None)?;
-        let mut last = 0;
+        let mut structure = serializer.serialize_struct("PackedData", 2)?;
+        let mut components: Vec<&T> = Vec::new();
+        let mut offsets: Vec<u32> = Vec::new();
         for index in bitset.iter() {
-            // Add null entities in between existing
-            for _ in last..(index - 1) {
-                sequence.serialize_element(&None::<T>)?;
-            }
-            last = index;
-
+            offsets.push(index);
             unsafe {
-                // If the bitset is wrong we have bigger problems anyways.
-                sequence.serialize_element(&Some(&storage.get(index)))?;
+                components.push(storage.get(index));
             }
         }
 
-        sequence.end()
+        structure.serialize_field("offsets", &offsets)?;
+        structure.serialize_field("components", &components)?;
+        structure.end()
+    }
+}
+
+#[cfg(feature="serialize")]
+#[derive(Debug, Serialize, Deserialize)]
+/// Structure of packed components with offsets of which entities they belong to.
+/// Offsets define which entities the components correspond to, based on a list of entities
+/// the packed data is sent in with.
+///
+/// If the list of entities is all entities in the world, then the offsets in the 
+/// packed data are the indices of the entities.
+pub struct PackedData<T> {
+    /// List of components.
+    pub components: Vec<T>,
+    /// Offsets used to get entities which correspond to the components.
+    pub offsets: Vec<u32>,
+}
+
+#[cfg(feature="serialize")]
+impl<T> PackedData<T> {
+    /// Shifts all offsets in the packed data to match a new base.
+    ///
+    /// Useful if you want to merge some components ontop of the current world:
+    /// `packed.rebase( ... /* amount of entities in world */ );`
+    ///
+    /// If the base is higher than the offset then the function will return the index of that offset.
+    pub fn rebase(&mut self, base: u32) -> Option<usize> {
+        for index in 0..self.offsets.len() {
+            if self.offsets[index] < base {
+                return Some(index);
+            }
+            self.offsets[index] -= base;
+        }
+        None
     }
 }
 

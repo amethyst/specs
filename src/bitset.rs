@@ -67,10 +67,10 @@ impl BitSet {
     #[inline(never)]
     fn extend(&mut self, id: Index) {
         Self::valid_range(id);
-        let (p0, p1, p2) = offsets(id); // 0, 5, 10
+        let (p0, p1, p2) = offsets(id);
 
         if self.layer2.len() <= p2 {
-            let count = p2 - self.layer2.len() + 1; // 10 - length + 1
+            let count = p2 - self.layer2.len() + 1;
             self.layer2.extend(repeat(0).take(count));
         }
         if self.layer1.len() <= p1 {
@@ -367,8 +367,8 @@ impl<T> Iterator for BitIter<T>
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if self.masks[0] != 0 {
-                let bit = self.masks[0].trailing_zeros(); // 0b0100_1100
-                self.masks[0] &= !(1 << bit); // !(0000_0001 << 2) = !0000_0100 = 1111_1011
+                let bit = self.masks[0].trailing_zeros();
+                self.masks[0] &= !(1 << bit);
                 return Some(self.prefix[0] | bit);
             }
 

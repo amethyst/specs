@@ -1,11 +1,4 @@
 extern crate specs;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-
-use std::mem;
-use std::fmt;
 
 #[cfg(feature="parallel")]
 use specs::Join;
@@ -34,36 +27,6 @@ impl specs::Component for CompFloat {
 #[derive(Clone, Debug)]
 struct Sum(usize);
 
-#[derive(Serialize, Deserialize)]
-struct CompTest {
-    field: u32,
-    other: bool,
-}
-impl specs::Component for CompTest {
-    type Storage = specs::VecStorage<CompTest>;
-}
-
-struct SystemTest;
-impl specs::System<()> for SystemTest {
-    fn run(&mut self, arg: specs::RunArg, _: ()) {
-        use serde::Serialize;
-        use fmt::Display;
-
-        let (entities, components) = arg.fetch(|w| {
-            (w.entities(), w.read::<CompTest>())
-        });
-
-        println!("Running");
-
-        let mut buffer: Vec<u8> = Vec::new();
-        let mut serializer = serde_json::Serializer::pretty(buffer);
-        let result = components.serialize(&mut serializer);
-
-        println!("{:?}", result);
-        println!("{}", serializer.into_inner().iter().map(|b| *b as char).collect::<String>());
-    }
-}
-
 #[cfg(not(feature="parallel"))]
 fn main() {
 }
@@ -76,7 +39,6 @@ fn main() {
         w.register::<CompInt>();
         w.register::<CompBool>();
         w.register::<CompFloat>();
-        w.register::<CompTest>();
         // create_now() of World provides with an EntityBuilder to add components to an Entity
         w.create_now().with(CompInt(4)).with(CompBool(false)).build();
         // build() returns an entity, we will use it later to perform a deletion
@@ -85,21 +47,13 @@ fn main() {
         w.create_now().with(CompInt(127)).build();
         w.create_now().with(CompBool(false)).build();
 
-        w.create_now().with(CompTest { field: 5, other: true }).build();
-        w.create_now().with(CompTest { field: 10, other: false }).build();
-        w.create_now().build();
-        w.create_now().with(CompTest { field: 0, other: false }).build();
-
         // resources can be installed, these are nothing fancy, but allow you
         // to pass data to systems and follow the same sync strategy as the
         // component storage does.
         w.add_resource(Sum(0xdeadbeef));
-        
-        let mut planner = specs::Planner::<()>::new(w);
-        planner.add_system::<SystemTest>(SystemTest, "system_test", 0);
 
         // Planner is used to run systems on the specified world with a specified number of threads
-        (e, planner)
+        (e, specs::Planner::<()>::new(w))
     };
 
     // Planner only runs closure on entites with specified components, for example:
@@ -183,17 +137,5 @@ fn main() {
             println!("{:?} {:?} {:?}", entity, compint, compbool);
         }
     });
-    planner.wait();
-
-    let mut bitset = specs::bitset::BitSet::new();
-    println!("usize: {}", mem::size_of::<usize>() * 8);
-
-    bitset.add(1);
-    bitset.add(64);
-    bitset.add(66);
-    bitset.add(128);
-    println!("{:?}", bitset);
-
-    planner.dispatch(());
     planner.wait();
 }

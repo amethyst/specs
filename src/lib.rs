@@ -20,6 +20,9 @@ extern crate rayon;
 
 #[cfg(feature="serialize")]
 extern crate serde;
+#[cfg(feature="serialize")]
+#[macro_use]
+extern crate serde_derive;
 
 pub use gate::Gate;
 pub use join::{Join, JoinIter};
@@ -31,6 +34,8 @@ pub use world::{Allocator, Component, CreateEntities, Entities, World};
 #[cfg(feature="parallel")]
 pub use planner::{Planner, Priority, RunArg, System, SystemInfo};
 
+#[cfg(feature="serialize")]
+pub use storage::PackedData;
 
 #[doc(hidden)]
 pub mod bitset;
