@@ -21,7 +21,8 @@ extern crate rayon;
 pub use gate::Gate;
 pub use join::{Join, JoinIter};
 pub use storage::{AntiStorage, BTreeStorage, GatedStorage, HashMapStorage, InsertResult,
-                  MaskedStorage, NullStorage, Storage, UnprotectedStorage, VecStorage};
+                  MaskedStorage, NullStorage, Storage, UnprotectedStorage, VecStorage,
+                  DenseVecStorage};
 pub use world::{Allocator, Component, CreateEntities, Entities, World};
 
 #[cfg(feature="parallel")]
