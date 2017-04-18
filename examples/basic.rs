@@ -21,7 +21,7 @@ impl specs::Component for CompBool {
 #[derive(Clone, Debug)]
 struct CompFloat(f32);
 impl specs::Component for CompFloat {
-    type Storage = specs::VecStorage<CompFloat>;
+    type Storage = specs::DenseVecStorage<CompFloat>;
 }
 
 #[derive(Clone, Debug)]

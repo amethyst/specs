@@ -378,8 +378,7 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
     }
 }
 
-/// Vec-based storage, stores the generations of the data in
-/// order to match with given entities. Supposed to have maximum
+/// Vector storage. Uses a simple `Vec`. Supposed to have maximum
 /// performance for the components mostly present in entities.
 pub struct VecStorage<T>(Vec<T>);
 
@@ -426,6 +425,61 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         use std::ptr;
 
         ptr::read(self.get(id))
+    }
+}
+
+/// Dense vector storage. Has a redirection 2-way table
+/// between entities and components, allowing to leave
+/// no gaps within the data.
+pub struct DenseVecStorage<T> {
+    data: Vec<T>,
+    entity_id: Vec<Index>,
+    data_id: Vec<Index>,
+}
+
+impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
+    fn new() -> Self {
+        DenseVecStorage {
+            data: Vec::new(),
+            entity_id: Vec::new(),
+            data_id: Vec::new(),
+        }
+    }
+
+    unsafe fn clean<F>(&mut self, _: F)
+        where F: Fn(Index) -> bool
+    {
+        // nothing to do
+    }
+
+    unsafe fn get(&self, id: Index) -> &T {
+        let did = *self.data_id.get_unchecked(id as usize);
+        self.data.get_unchecked(did as usize)
+    }
+
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
+        let did = *self.data_id.get_unchecked(id as usize);
+        self.data.get_unchecked_mut(did as usize)
+    }
+
+    unsafe fn insert(&mut self, id: Index, v: T) {
+        let id = id as usize;
+        if self.data_id.len() <= id {
+            let delta = id + 1 - self.data_id.len();
+            self.data_id.reserve(delta);
+            self.data_id.set_len(id + 1);
+        }
+        *self.data_id.get_unchecked_mut(id) = self.data.len() as Index;
+        self.entity_id.push(id as Index);
+        self.data.push(v);
+    }
+
+    unsafe fn remove(&mut self, id: Index) -> T {
+        let did = *self.data_id.get_unchecked(id as usize);
+        let last = *self.entity_id.last().unwrap();
+        *self.data_id.get_unchecked_mut(last as usize) = did;
+        self.entity_id.swap_remove(did as usize);
+        self.data.swap_remove(did as usize)
     }
 }
 
