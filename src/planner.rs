@@ -71,6 +71,30 @@ impl<C> System<C> for () {
     fn run(&mut self, _: RunArg, _: C) {}
 }
 
+/// A proxy system for external code. Useful to process the world
+/// in a pseudo-system that lives on its own dedicated thread.
+/// E.g. a rendering system for an OpenGL context.
+pub struct ExternalSystem<C: Send> {
+    sender: mpsc::Sender<(RunArg, C)>,
+}
+
+impl<C: Send> ExternalSystem<C> {
+    /// Create a new external system proxy.
+    pub fn new() -> (ExternalSystem<C>, mpsc::Receiver<(RunArg, C)>) {
+        let (sender, receiver) = mpsc::channel();
+        let system = ExternalSystem {
+            sender: sender,
+        };
+        (system, receiver)
+    }
+}
+
+impl<C: Send> System<C> for ExternalSystem<C> {
+    fn run(&mut self, arg: RunArg, context: C) {
+        self.sender.send((arg, context)).unwrap();
+    }
+}
+
 /// System scheduling priority. Higher priority systems are started
 /// earlier than lower-priority ones.
 pub type Priority = i32;

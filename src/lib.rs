@@ -26,7 +26,7 @@ pub use storage::{AntiStorage, BTreeStorage, GatedStorage, HashMapStorage, Inser
 pub use world::{Allocator, Component, CreateEntities, Entities, World};
 
 #[cfg(feature="parallel")]
-pub use planner::{Planner, Priority, RunArg, System, SystemInfo};
+pub use planner::{Planner, Priority, RunArg, System, SystemInfo, ExternalSystem};
 
 
 #[doc(hidden)]
