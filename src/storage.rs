@@ -223,6 +223,10 @@ impl<T, A, D> Storage<T, A, D>
     }
 }
 
+pub enum MergeError {
+    NoEntity(Index),
+}
+
 #[cfg(feature="serialize")]
 impl<T, A, D> Storage<T, A, D> where
     T: Component + serde::Deserialize,
@@ -241,13 +245,21 @@ impl<T, A, D> Storage<T, A, D> where
     /// ```
     /// Would merge the components at offset 0 and 2, which would be `Entity(0, 1)` and `Entity(2, 1)` while ignoring
     /// `Entity(1, 1)`.
-    pub fn merge<'a>(&'a mut self, entities: &'a Vec<Entity>, mut packed: PackedData<T>) {
+    ///
+    /// Note:
+    /// The entity list should be at least the same size as the packed data. To make sure, you can call `packed.pair_truncate(&entities)`.
+    /// If the entity list is larger than the packed data then those entities are ignored.
+    /// 
+    /// Packed data should also be sorted in ascending order of offsets.
+    /// If this is deserialized from data received from serializing a storage it will be in ascending order.
+    pub fn merge<'a>(&'a mut self, entities: &'a [Entity], mut packed: PackedData<T>) -> Result<(), MergeError> {
         for (component, offset) in packed.components.drain(..).zip(packed.offsets.iter()) {
             match entities.get(*offset as usize) {
                 Some(entity) => { self.insert(*entity, component); },
-                None => { println!("No entity at offset {:?}", *offset as usize) }
+                None => { return Err(MergeError::NoEntity(*offset)); }
             }
         }
+        Ok(())
     }
 }
 
@@ -305,14 +317,15 @@ impl<T, A, D> serde::Serialize for Storage<T, A, D> where
 
         // Serializes the storage in a format of PackedData<T>
         let (bitset, storage) = self.open();
-        let mut structure = serializer.serialize_struct("PackedData", 2)?;
+        let mut structure = serializer.serialize_struct("PackedData", 2)?; // Serialize a struct that has 2 fields
         let mut components: Vec<&T> = Vec::new();
         let mut offsets: Vec<u32> = Vec::new();
         for index in bitset.iter() {
             offsets.push(index);
-            unsafe {
-                components.push(storage.get(index));
-            }
+            let component = unsafe {
+                storage.get(index)
+            };
+            components.push(component);
         }
 
         structure.serialize_field("offsets", &offsets)?;
@@ -333,25 +346,19 @@ pub struct PackedData<T> {
     /// List of components.
     pub components: Vec<T>,
     /// Offsets used to get entities which correspond to the components.
-    pub offsets: Vec<u32>,
+    pub offsets: Vec<Index>,
 }
 
 #[cfg(feature="serialize")]
 impl<T> PackedData<T> {
-    /// Shifts all offsets in the packed data to match a new base.
-    ///
-    /// Useful if you want to merge some components ontop of the current world:
-    /// `packed.rebase( ... /* amount of entities in world */ );`
-    ///
-    /// If the base is higher than the offset then the function will return the index of that offset.
-    pub fn rebase(&mut self, base: u32) -> Option<usize> {
-        for index in 0..self.offsets.len() {
-            if self.offsets[index] < base {
-                return Some(index);
-            }
-            self.offsets[index] -= base;
-        }
-        None
+    /// Modifies the data to match an entity list's length for merging.
+    pub fn pair_truncate<'a>(&mut self, entities: &'a [Entity]) {
+        self.truncate(entities.len());
+    }
+    /// Truncates the length of components and offsets.
+    pub fn truncate(&mut self, length: usize) {
+        self.components.truncate(length);
+        self.offsets.truncate(length);
     }
 }
 
@@ -1002,15 +1009,19 @@ mod serialize_test {
         let mut world = {
             let mut world = World::<()>::new();
             world.register::<CompTest>();
+            world.create_pure();
             world.create_now().with(CompTest { field1: 0, field2: true }).build();
+            world.create_pure();
+            world.create_pure();
             world.create_now().with(CompTest { field1: 158123, field2: false }).build();
             world.create_now().with(CompTest { field1: u32::max_value(), field2: false }).build();
+            world.create_pure();
             world
         };
 
         let storage = world.read::<CompTest>().pass();
         let serialized = serde_json::to_string(&storage).unwrap();
-        assert_eq!(serialized, r#"{"offsets":[0,1,2],"components":[{"field1":0,"field2":true},{"field1":158123,"field2":false},{"field1":4294967295,"field2":false}]}"#);
+        assert_eq!(serialized, r#"{"offsets":[1,4,5],"components":[{"field1":0,"field2":true},{"field1":158123,"field2":false},{"field1":4294967295,"field2":false}]}"#);
     }
 
     #[test]
@@ -1052,7 +1063,7 @@ mod serialize_test {
             CompTest { field1: u32::max_value(), field2: false, },
         ]);
 
-        storage.merge(&entities, packed);
+        storage.merge(&entities.as_slice(), packed);
 
         assert_eq!((&storage).join().count(), 3);
         assert_eq!((&storage).get(entities[3]), Some(&CompTest { field1: 0, field2: true }));

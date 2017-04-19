@@ -44,10 +44,7 @@ mod s {
             println!("Serialized storage: {}", serialized);
 
             // Get a list of all entities in the world
-            let mut entity_list = Vec::new();
-            for entity in (&entities).join() {
-                entity_list.push(entity);
-            }
+            let mut entity_list: Vec<specs::Entity> = (&entities).join().collect();
 
             // Remove all components
             for (entity, _) in (&entities, &components.check()).join() {
@@ -57,7 +54,7 @@ mod s {
             // Deserialize with entity list
             let mut list = serde_json::from_str::<PackedData<CompSerialize>>(&serialized);
             println!("list: {:?}", list);
-            let created = components.merge(&mut entity_list, list.unwrap());
+            let created = components.merge(entity_list.as_slice(), list.unwrap());
 
             for (entity, _) in (&entities, &components.check()).join() {
                 println!("Has: {:?}", entity);
