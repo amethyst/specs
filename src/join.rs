@@ -126,6 +126,7 @@ pub use self::par_join::*;
 #[must_use]
 #[cfg(feature="parallel")]
 pub struct JoinParIter<J: Join>(J);
+#[cfg(feature="parallel")]
 mod par_join {
     use std::marker::PhantomData;
     use std::sync::Arc;
