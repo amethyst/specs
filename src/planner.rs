@@ -116,7 +116,8 @@ impl<C> DoWork<C> where C: Send {
 
                 true
             }
-            Err(TryRecvError::Disconnected) => panic!(DISCONNECTED_ERR),
+            Err(TryRecvError::Disconnected) => panic!("Associated external system is not \
+    alive anymore"),
             Err(TryRecvError::Empty) => false,
         }
     }
@@ -176,9 +177,6 @@ pub struct SystemInfo<C> {
     /// System trait object itself.
     pub object: Box<System<C>>,
 }
-
-const DISCONNECTED_ERR: &'static str = "Associated external system is not \
-    alive anymore";
 
 struct SystemGuard<C> {
     info: Option<SystemInfo<C>>,

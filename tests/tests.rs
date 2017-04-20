@@ -344,3 +344,51 @@ fn fetch_has_to_be_called_atmost_once() {
         args.fetch(|_| {});
     });
 }
+
+#[test]
+#[cfg(feature="parallel")]
+fn external_system() {
+    use specs::{ExternalSystem, Planner, World};
+
+    struct SingleThreadedStuff {
+        counter: u32,
+        #[allow(unused)]
+        something_unsafe: *const u8, // This makes the struct !Send
+    }
+
+    let mut world = World::new();
+
+    {
+        world.register::<CompInt>();
+        world.create_now().with(CompInt(4)).build();
+        world.create_now().with(CompInt(7)).build();
+    }
+
+    let mut planner = Planner::<()>::new(world);
+
+
+    let (ext, work) = ExternalSystem::new();
+
+    planner.add_system(ext, "external_sys", 1);
+
+    planner.dispatch(());
+
+    let mut single_threaded = SingleThreadedStuff {
+        counter: 0,
+        something_unsafe: ::std::ptr::null(),
+    };
+
+    work.do_work(|arg, ()| {
+        use specs::Join;
+
+        let comp_int = arg.fetch(|w| w.read::<CompInt>());
+
+        for i in (comp_int).join() {
+            single_threaded.counter += i.0 as u32;
+        }
+    });
+
+    assert_eq!(single_threaded.counter, 4 + 7);
+
+    planner.wait();
+}
