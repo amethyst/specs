@@ -1,8 +1,8 @@
 use std;
 
+use hibitset::{BitSetAnd, BitIter, BitSetLike};
 use tuple_utils::Split;
 
-use bitset::{BitSetAnd, BitIter, BitSetLike};
 use Index;
 
 

@@ -6,8 +6,8 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
 
 use fnv::FnvHasher;
+use hibitset::{BitSet, BitSetNot};
 
-use bitset::{BitSet, BitSetNot};
 use gate::Gate;
 use join::Join;
 use world::{Allocator, Component};
@@ -319,7 +319,7 @@ impl<T, A, D> serde::Serialize for Storage<T, A, D> where
     D: Deref<Target = MaskedStorage<T>>,
 {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        use bitset::BitSetLike;
+        use hibitset::BitSetLike;
         use serde::ser::SerializeStruct;
 
         // Serializes the storage in a format of PackedData<T>

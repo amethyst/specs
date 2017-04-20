@@ -5,10 +5,10 @@ use std::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use fnv::FnvHasher;
+use hibitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr};
 use mopa::Any;
 use ticketed_lock::{TicketedLock, ReadLockGuard, ReadTicket, WriteLockGuard, WriteTicket};
 
-use bitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr};
 use gate::Gate;
 use join::Join;
 use storage::{MaskedStorage, Storage, UnprotectedStorage};
