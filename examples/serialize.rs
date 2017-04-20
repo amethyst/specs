@@ -7,8 +7,6 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
-use std::fmt;
-
 #[cfg(feature="serialize")]
 mod s {
     use serde::{self, Serialize};
@@ -27,7 +25,7 @@ mod s {
     struct SerializeSystem;
     impl specs::System<()> for SerializeSystem {
         fn run(&mut self, arg: specs::RunArg, _: ()) {
-            use fmt::Display;
+            use std::fmt::Display;
 
             let (entities, mut components) = arg.fetch(|w| {
                 let entities = w.entities();
