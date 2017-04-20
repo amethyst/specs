@@ -223,7 +223,14 @@ impl<T, A, D> Storage<T, A, D>
     }
 }
 
+/// The error type returned
+/// by [`Storage::merge`].
+///
+/// [`Storage::merge`]: struct.Storage.html#method.merge
+#[cfg(feature="serialize")]
 pub enum MergeError {
+    /// Returned if there is no
+    /// entity matching the specified offset.
     NoEntity(Index),
 }
 

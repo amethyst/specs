@@ -35,7 +35,7 @@ pub use world::{Allocator, Component, CreateEntities, Entities, World};
 pub use planner::{Planner, Priority, RunArg, System, SystemInfo};
 
 #[cfg(feature="serialize")]
-pub use storage::PackedData;
+pub use storage::{MergeError, PackedData};
 
 #[doc(hidden)]
 pub mod bitset;
