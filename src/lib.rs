@@ -8,6 +8,7 @@
 
 extern crate atom;
 extern crate fnv;
+extern crate hibitset;
 #[macro_use]
 extern crate mopa;
 extern crate ticketed_lock;
@@ -37,8 +38,6 @@ pub use planner::{Planner, Priority, RunArg, System, SystemInfo};
 #[cfg(feature="serialize")]
 pub use storage::{MergeError, PackedData};
 
-#[doc(hidden)]
-pub mod bitset;
 mod gate;
 mod join;
 mod storage;

@@ -23,6 +23,7 @@ exclude = ["doc", ".travis.yml"]
 [dependencies]
 atom = "0.3"
 fnv = "1.0"
+hibitset = "0.1"
 mopa = "0.2"
 ticketed_lock = "0.1"
 tuple_utils = "0.2"
