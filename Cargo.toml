@@ -38,14 +38,9 @@ rayon = { version = "0.7", optional = true }
 serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
 
-[dependencies.rayon-core]
-version = "1.0"
-optional = true
-features = ["unstable"]
-
 [features]
 default = ["parallel"]
-parallel = ["rayon", "rayon-core"]
+parallel = ["rayon"]
 serialize = ["serde", "serde_derive"]
 
 [dev-dependencies]

@@ -133,8 +133,6 @@ extern crate tuple_utils;
 
 #[cfg(feature="parallel")]
 extern crate rayon;
-#[cfg(feature="parallel")]
-extern crate rayon_core;
 
 #[cfg(feature="serialize")]
 extern crate serde;
