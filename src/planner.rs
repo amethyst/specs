@@ -71,6 +71,97 @@ impl<C> System<C> for () {
     fn run(&mut self, _: RunArg, _: C) {}
 }
 
+/// This is a helper struct used to
+/// execute a single-threaded system
+/// with the [`ExternalSystem`].
+/// To get one, use [`ExternalSystem::new`].
+///
+/// [`ExternalSystem`]: struct.ExternalSystem.html
+/// [`ExternalSystem`]: struct.ExternalSystem.html#method.new
+pub struct DoWork<C> where C: Send {
+    recv: mpsc::Receiver<(RunArg, C, Pulse)>,
+}
+
+impl<C> DoWork<C> where C: Send {
+    /// Blocks the calling thread until the
+    /// associated external system is executed
+    /// and executes `f`.
+    ///
+    /// # Panics
+    ///
+    /// * if the `ExternalSystem` was dropped
+    pub fn do_work<F>(&self, f: F) where F: FnOnce(RunArg, C) {
+        let (arg, c, pulse) = self.recv.recv().expect("Associated external system is not \
+    alive anymore");
+
+        Self::do_work_internal(f, arg, c, pulse);
+    }
+
+    /// Executes `f` if the associated external
+    /// system is executed and returns `true`.
+    ///
+    /// This is the non-blocking version of `do_work`.
+    ///
+    /// If this method did not execute anything, `false` is returned.
+    ///
+    /// # Panics
+    ///
+    /// * if the `ExternalSystem` was dropped
+    pub fn try_do_work<F>(&self, f: F) -> bool where F: FnOnce(RunArg, C) {
+        use std::sync::mpsc::TryRecvError;
+
+        match self.recv.try_recv() {
+            Ok((arg, c, pulse)) => {
+                Self::do_work_internal(f, arg, c, pulse);
+
+                true
+            }
+            Err(TryRecvError::Disconnected) => panic!(DISCONNECTED_ERR),
+            Err(TryRecvError::Empty) => false,
+        }
+    }
+
+    fn do_work_internal<F>(f: F, arg: RunArg, c: C, pulse: Pulse) where F: FnOnce(RunArg, C)
+    {
+        f(arg, c);
+        pulse.pulse();
+    }
+}
+
+/// A proxy system for external code. Useful to process the world
+/// in a pseudo-system that lives on its own dedicated thread.
+/// E.g. a rendering system for an OpenGL context.
+pub struct ExternalSystem<C> where C: Send {
+    sender: mpsc::Sender<(RunArg, C, Pulse)>,
+}
+
+impl<C> ExternalSystem<C> where C: Send {
+    /// Creates a new `ExternalSystem` with
+    /// an associated [`DoWork`] struct.
+    ///
+    /// [`DoWork`]: struct.DoWork.html
+    pub fn new() -> (Self, DoWork<C>) {
+        let (sender, recv) = mpsc::channel();
+
+        (ExternalSystem { sender: sender },
+         DoWork { recv: recv })
+    }
+}
+
+impl<C> System<C> for ExternalSystem<C> where C: Send {
+    fn run(&mut self, arg: RunArg, c: C) {
+        use pulse::Signal;
+
+        let (signal, pulse) = Signal::new();
+
+        self.sender.send((arg, c, pulse)).expect(
+            "Associated DoWork is destroyed"
+        );
+
+        signal.wait().expect("The pulse was dropped");
+    }
+}
+
 /// System scheduling priority. Higher priority systems are started
 /// earlier than lower-priority ones.
 pub type Priority = i32;
@@ -85,6 +176,9 @@ pub struct SystemInfo<C> {
     /// System trait object itself.
     pub object: Box<System<C>>,
 }
+
+const DISCONNECTED_ERR: &'static str = "Associated external system is not \
+    alive anymore";
 
 struct SystemGuard<C> {
     info: Option<SystemInfo<C>>,
