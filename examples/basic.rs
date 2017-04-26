@@ -131,10 +131,18 @@ fn main() {
         });
 
         // components that have a CompInt but no CompBool
-        for (entity, _, _) in (&entities, &ci.check(), !&cb).join() {
-            let compint = ci.get_mut(entity); // This works because `.check()` isn't returning the component.
-            let compbool = cb.get(entity);
-            println!("{:?} {:?} {:?}", entity, compint, compbool);
+        for (entity, entry, _) in (&entities, &ci.check(), !&cb).join() {
+            {
+                let compint = ci.get_mut(entity); // This works because `.check()` isn't returning the component.
+
+                let compbool = cb.get(entity);
+                println!("{:?} {:?} {:?}", entity, compint, compbool);
+            }
+
+            {
+                // This does the same as the above, only it doesn't check again whether the storage has the component.
+                let _unchecked_compint = ci.get_mut_unchecked(entry);
+            }
         }
     });
     planner.wait();

@@ -81,22 +81,39 @@ impl<'a> Join for AntiStorage<'a> {
     }
 }
 
+/// An entry to a storage.
+pub struct Entry<'a, T, A, D> {
+    id: Index,
+    // Pointer for comparison when attempting to check against a storage.
+    original: *const Storage<T, A, D>,
+    phantom: PhantomData<&'a ()>,
+}
+
 /// A storage type that iterates entities that have
 /// a particular component type, but does not return the
 /// component.
-pub struct CheckStorage(BitSet);
+pub struct CheckStorage<T: Component, A, D> {
+    bitset: BitSet,
+    // Pointer back to the storage the CheckStorage was created from.
+    original: *const Storage<T, A, D>,
+}
 
-impl<'a> Join for &'a CheckStorage {
-    type Type = ();
-    type Value = ();
+impl<'a, T, A, D> Join for &'a CheckStorage<T, A, D>
+    where T: Component {
+    type Type = Entry<'a, T, A, D>;
+    type Value = *const Storage<T, A, D>;
     type Mask = &'a BitSet;
 
-    fn open(self) -> (Self::Mask, ()) {
-        (&self.0, ())
+    fn open(self) -> (Self::Mask, Self::Value) {
+        (&self.bitset, self.original)
     }
 
-    unsafe fn get(_: &mut (), _: Index) -> () {
-        ()
+    unsafe fn get(storage: &mut *const Storage<T, A, D>, id: Index) -> Entry<'a, T, A, D> {
+        Entry {
+            id: id,
+            original: *storage,
+            phantom: PhantomData,
+        }
     }
 }
 
@@ -150,8 +167,19 @@ impl<T, A, D> Storage<T, A, D>
     ///
     /// Useful if you want to check if an entity has a component
     /// and then possibly get the component later on in the loop.
-    pub fn check(&self) -> CheckStorage {
-        CheckStorage(self.data.mask.clone())
+    pub fn check(&self) -> CheckStorage<T, A, D> {
+        CheckStorage {
+            bitset: self.data.mask.clone(),
+            original: self as *const Storage<T, A, D>,
+        }
+    }
+
+    /// Reads the data associated with the entry.
+    ///
+    /// `Entry`s are returned from a `CheckStorage` to remove unnecessary checks.
+    pub fn get_unchecked<'a>(&'a self, entry: Entry<'a, T, A, D>) -> &T {
+        assert_eq!(entry.original, self as *const Storage<T, A, D>);
+        unsafe { self.data.inner.get(entry.id) }
     }
 }
 
@@ -188,6 +216,14 @@ impl<T, A, D> Storage<T, A, D>
         } else {
             None
         }
+    }
+
+    /// Tries to mutate the data associated with an entry.
+    ///
+    /// `Entry`s are returned from a `CheckStorage` to remove unnecessary checks.
+    pub fn get_mut_unchecked<'a>(&'a mut self, entry: Entry<'a, T, A, D>) -> &mut T {
+        assert_eq!(entry.original, self as *const Storage<T, A, D>);
+        unsafe { self.data.inner.get_mut(entry.id) }
     }
 
     /// Inserts new data for a given `Entity`.
