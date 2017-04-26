@@ -177,8 +177,8 @@ impl<T, A, D> Storage<T, A, D>
     /// Reads the data associated with the entry.
     ///
     /// `Entry`s are returned from a `CheckStorage` to remove unnecessary checks.
-    pub fn get_unchecked<'a>(&'a self, entry: Entry<'a, T, A, D>) -> &T {
-        assert_eq!(entry.original, self as *const Storage<T, A, D>);
+    pub fn get_unchecked<'a>(&'a self, entry: &'a Entry<'a, T, A, D>) -> &'a T {
+        assert_eq!(entry.original, self as *const Storage<T, A, D>, "Attempt to get an unchecked entry from a storage: {:?} {:?}", entry.original, self as *const Storage<T, A, D>);
         unsafe { self.data.inner.get(entry.id) }
     }
 }
@@ -221,8 +221,8 @@ impl<T, A, D> Storage<T, A, D>
     /// Tries to mutate the data associated with an entry.
     ///
     /// `Entry`s are returned from a `CheckStorage` to remove unnecessary checks.
-    pub fn get_mut_unchecked<'a>(&'a mut self, entry: Entry<'a, T, A, D>) -> &mut T {
-        assert_eq!(entry.original, self as *const Storage<T, A, D>);
+    pub fn get_mut_unchecked<'a>(&'a mut self, entry: &'a mut Entry<'a, T, A, D>) -> &'a mut T {
+        assert_eq!(entry.original, self as *const Storage<T, A, D>, "Attempt to get an unchecked entry from a storage: {:?} {:?}", entry.original, self as *const Storage<T, A, D>);
         unsafe { self.data.inner.get_mut(entry.id) }
     }
 
@@ -1026,6 +1026,40 @@ mod test {
     #[test]
     fn dummy_test_clear() {
         test_clear::<Cnull>();
+    }
+
+    // Check storage tests
+    #[test]
+    fn check_storage() {
+        use join::Join;
+        let mut s1 = create::<Cvec>();
+        let mut s2 = create::<Cvec>(); // Possibility if the world uses dynamic components.
+        for i in 0..50 {
+            s1.insert(Entity::new(i, Generation(1)), (i + 10).into());
+        }
+        for mut entry in (&s1.check()).join() {
+            {
+                s1.get_unchecked(&entry);
+            }
+
+            {
+                s1.get_mut_unchecked(&mut entry);
+            }
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn wrong_storage() {
+        use join::Join;
+        let mut s1 = create::<Cvec>();
+        let mut s2 = create::<Cvec>(); // Possibility if the world uses dynamic components.
+        for i in 0..50 {
+            s1.insert(Entity::new(i, Generation(1)), (i + 10).into());
+        }
+        for entry in (&s1.check()).join() {
+            s2.get_unchecked(&entry); // verify that the assert fails if the storage is not the original.
+        }
     }
 }
 
