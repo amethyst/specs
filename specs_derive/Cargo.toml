@@ -10,4 +10,8 @@ proc-macro = true
 specs = { path = "../specs", version = "0.9.1" }
 syn = "0.11.10"
 quote = "0.3.15"
-serde = "0.9.11"
+serde = { version = "0.9.11", optional = true }
+
+[features]
+default = []
+serialize = ["serde"]

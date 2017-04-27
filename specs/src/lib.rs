@@ -184,6 +184,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+pub use group::ComponentGroup;
 pub use join::{Join, JoinIter, JoinParIter, ParJoin};
 pub use shred::{ Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
                 FetchMut, RunNow, RunningTime, System, SystemData};
@@ -218,6 +219,3 @@ pub type Entities<'a> = Fetch<'a, EntitiesRes>;
 /// An index is basically the id of an `Entity`.
 pub type Index = u32;
 
-mod join;
-mod storage;
-mod world;
