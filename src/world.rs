@@ -106,7 +106,7 @@ impl<'a> Gate for Entities<'a> {
 }
 
 /// Helper builder for entities.
-pub struct EntityBuilder<'a, C = ()>(Entity, &'a World<C>) where C: 'a + PartialEq + Eq + Hash;
+pub struct EntityBuilder<'a, C = ()>(Entity, &'a World<C>) where C: 'a;
 
 impl<'a, C> EntityBuilder<'a, C>
     where C: 'a + PartialEq + Eq + Hash
@@ -298,9 +298,7 @@ impl<T: Any + Send + Sync> ResourceLock for Lock<T> {}
 /// The `World` struct contains all the data, which is entities and their components.
 /// All methods are supposed to be valid for any context they are available in.
 /// The type parameter C is for component identification in addition of their types.
-pub struct World<C = ()>
-    where C: PartialEq + Eq + Hash
-{
+pub struct World<C = ()> {
     allocator: RwLock<Allocator>,
     components: HashMap<(C, TypeId), Box<StorageLock>, BuildHasherDefault<FnvHasher>>,
     resources: HashMap<TypeId, Box<ResourceLock>, BuildHasherDefault<FnvHasher>>,
