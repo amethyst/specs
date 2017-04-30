@@ -1,6 +1,6 @@
 extern crate specs;
 
-use specs::{Component, RunArg, Planner, System, VecStorage, World};
+use specs::{Component, VecStorage, World};
 
 struct Vel(f32);
 struct Pos(f32);
@@ -18,10 +18,29 @@ fn main() {}
 
 #[cfg(feature="parallel")]
 fn main() {
+    use specs::{RunArg, Planner, System};
+
     let mut planner = {
         let mut world = World::new();
         world.register::<Pos>();
         world.register::<Vel>();
+
+        world
+            .create_now()
+            .with(Vel(2.0))
+            .with(Pos(0.0))
+            .build();
+        world
+            .create_now()
+            .with(Vel(4.0))
+            .with(Pos(1.6))
+            .build();
+        world
+            .create_now()
+            .with(Vel(1.5))
+            .with(Pos(5.4))
+            .build();
+
         Planner::new(world)
     };
 
