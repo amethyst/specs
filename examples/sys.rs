@@ -13,6 +13,10 @@ impl Component for Pos {
     type Storage = VecStorage<Pos>;
 }
 
+#[cfg(not(feature="parallel"))]
+fn main() {}
+
+#[cfg(feature="parallel")]
 fn main() {
     let mut planner = {
         let mut world = World::new();
