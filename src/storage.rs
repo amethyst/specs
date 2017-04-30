@@ -92,14 +92,13 @@ pub struct Entry<'a, T, A, D> {
 /// A storage type that iterates entities that have
 /// a particular component type, but does not return the
 /// component.
-pub struct CheckStorage<T: Component, A, D> {
+pub struct CheckStorage<T, A, D> {
     bitset: BitSet,
     // Pointer back to the storage the CheckStorage was created from.
     original: *const Storage<T, A, D>,
 }
 
-impl<'a, T, A, D> Join for &'a CheckStorage<T, A, D>
-    where T: Component {
+impl<'a, T, A, D> Join for &'a CheckStorage<T, A, D> {
     type Type = Entry<'a, T, A, D>;
     type Value = *const Storage<T, A, D>;
     type Mask = &'a BitSet;
