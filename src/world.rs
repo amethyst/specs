@@ -117,7 +117,7 @@ impl<'a, C> EntityBuilder<'a, C>
     }
 
     /// Adds a `Component` value to the new `Entity`.
-    pub fn with_w_comp_id<T: Component>(self, comp_id: C, value: T) -> EntityBuilder<'a, C> {
+    pub fn with_w_comp_id<T: Component>(self, comp_id: Option<C>, value: T) -> EntityBuilder<'a, C> {
         self.1
             .write_w_comp_id::<T>(comp_id)
             .insert(self.0, value);
@@ -302,12 +302,12 @@ pub struct World<C = ()>
     where C: PartialEq + Eq + Hash
 {
     allocator: RwLock<Allocator>,
-    components: HashMap<(C, TypeId), Box<StorageLock>, BuildHasherDefault<FnvHasher>>,
+    components: HashMap<(Option<C>, TypeId), Box<StorageLock>, BuildHasherDefault<FnvHasher>>,
     resources: HashMap<TypeId, Box<ResourceLock>, BuildHasherDefault<FnvHasher>>,
 }
 
 impl<C> World<C>
-    where C: PartialEq + Eq + Hash
+    where C: PartialEq + Eq + Hash,
 {
     /// Creates a new empty `World` with the associated component id.
     pub fn new_w_comp_id() -> World<C> {
@@ -321,7 +321,7 @@ impl<C> World<C>
     /// Registers a new component type and id pair.
     ///
     /// Does nothing if the type and id pair was already registered.
-    pub fn register_w_comp_id<T: Component>(&mut self, comp_id: C) {
+    pub fn register_w_comp_id<T: Component>(&mut self, comp_id: Option<C>) {
         self.components
             .entry((comp_id, TypeId::of::<T>()))
             .or_insert_with(|| {
@@ -330,8 +330,15 @@ impl<C> World<C>
                             });
     }
 
+    /// Registers a new component type.
+    /// 
+    /// If the world has an id set, it uses `None` for the id.
+    pub fn register<T: Component>(&mut self) {
+        self.register_w_comp_id::<T>(None);
+    }
+
     /// Unregisters a component type and id pair.
-    pub fn unregister_w_comp_id<T: Component>(&mut self, comp_id: C) -> Option<MaskedStorage<T>> {
+    pub fn unregister_w_comp_id<T: Component>(&mut self, comp_id: Option<C>) -> Option<MaskedStorage<T>> {
         self.components
             .remove(&(comp_id, TypeId::of::<T>()))
             .map(|boxed| match boxed.downcast::<Lock<MaskedStorage<T>>>() {
@@ -340,7 +347,14 @@ impl<C> World<C>
                  })
     }
 
-    fn lock_w_comp_id<T: Component>(&self, comp_id: C) -> &Lock<MaskedStorage<T>> {
+    /// Unregisters a component type.
+    /// 
+    /// If the world has an id set, it uses `None` for the id.
+    pub fn unregister<T: Component>(&mut self) -> Option<MaskedStorage<T>> {
+        self.unregister_w_comp_id::<T>(None)
+    }
+
+    fn lock_w_comp_id<T: Component>(&self, comp_id: Option<C>) -> &Lock<MaskedStorage<T>> {
         let boxed =
             self.components
                 .get(&(comp_id, TypeId::of::<T>()))
@@ -351,19 +365,35 @@ impl<C> World<C>
     /// Locks a component's storage for reading.
     pub fn read_w_comp_id<T: Component>
         (&self,
-         comp_id: C)
+         comp_id: Option<C>)
          -> Storage<T, RwLockReadGuard<Allocator>, ReadLockGuard<MaskedStorage<T>>> {
         let data = self.lock_w_comp_id::<T>(comp_id).read().unwrap();
         Storage::new(self.allocator.read().unwrap(), data)
     }
 
+    /// Locks a component's storage for reading.
+    /// 
+    /// If the world has an id set, it uses `None` for the id.
+    pub fn read<T: Component>(&self)
+         -> Storage<T, RwLockReadGuard<Allocator>, ReadLockGuard<MaskedStorage<T>>> {
+        self.read_w_comp_id::<T>(None)
+    }
+
     /// Locks a component's storage for writing.
     pub fn write_w_comp_id<T: Component>
         (&self,
-         comp_id: C)
+         comp_id: Option<C>)
          -> Storage<T, RwLockReadGuard<Allocator>, WriteLockGuard<MaskedStorage<T>>> {
         let data = self.lock_w_comp_id::<T>(comp_id).write().unwrap();
         Storage::new(self.allocator.read().unwrap(), data)
+    }
+
+    /// Locks a component's storage for reading.
+    /// 
+    /// If the world has an id set, it uses `None` for the id.
+    pub fn write<T: Component>(&self)
+         -> Storage<T, RwLockReadGuard<Allocator>, WriteLockGuard<MaskedStorage<T>>> {
+        self.write_w_comp_id(None)
     }
 
     /// Returns the entity iterator.
@@ -465,46 +495,7 @@ impl<C> World<C>
     pub fn write_resource_now<T: Any + Send + Sync>(&self) -> WriteLockGuard<T> {
         self.get_resource::<T>().write().unwrap()
     }
-}
-
-impl World<()> {
-    /// Creates a new empty `World`.
-    pub fn new() -> World<()> {
-        World {
-            components: Default::default(),
-            allocator: RwLock::new(Allocator::new()),
-            resources: Default::default(),
-        }
-    }
-
-    /// Registers a new component type.
-    ///
-    /// Does nothing if the component type was already registered.
-    pub fn register<T: Component>(&mut self) {
-        self.register_w_comp_id::<T>(())
-    }
-
-    /// Unregisters a component type.
-    pub fn unregister<T: Component>(&mut self) -> Option<MaskedStorage<T>> {
-        self.unregister_w_comp_id::<T>(())
-    }
-
-    /// Request a read ticket for a particular component storage.
-    pub fn read<T: Component>
-    (&self)
-     -> GatedStorage<T, RwLockReadGuard<Allocator>, ReadTicket<MaskedStorage<T>>> {
-        let ticket = self.lock_w_comp_id::<T>(()).read();
-        GatedStorage::new(self.allocator.read().unwrap(), ticket.0)
-    }
-
-    /// Request a write ticket for a particular component storage.
-    pub fn write<T: Component>
-    (&self)
-     -> GatedStorage<T, RwLockReadGuard<Allocator>, WriteTicket<MaskedStorage<T>>> {
-        let ticket = self.lock_w_comp_id::<T>(()).write();
-        GatedStorage::new(self.allocator.read().unwrap(), ticket.0)
-    }
-
+    
     /// Get read-only access to a resource.
     pub fn read_resource<T: Any + Send + Sync>(&self) -> ReadTicket<T> {
         self.get_resource::<T>().read().0
@@ -514,4 +505,14 @@ impl World<()> {
     pub fn write_resource<T: Any + Send + Sync>(&self) -> WriteTicket<T> {
         self.get_resource::<T>().write().0
     }
+}
+
+impl World<()> {
+    /// Creates a new empty `World`.
+    ///
+    /// Uses () as the associated component id.
+    pub fn new() -> World<()> {
+        World::<()>::new_w_comp_id()
+    }
+
 }
