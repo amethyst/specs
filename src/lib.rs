@@ -33,7 +33,7 @@ pub use storage::{AntiStorage, BTreeStorage, GatedStorage, HashMapStorage, Inser
 pub use world::{Allocator, Component, CreateEntities, Entities, World};
 
 #[cfg(feature="parallel")]
-pub use planner::{Planner, Priority, RunArg, System, SystemInfo};
+pub use planner::{ExternalSystem, DoWork, Planner, Priority, RunArg, System, SystemInfo};
 
 #[cfg(feature="serialize")]
 pub use storage::{MergeError, PackedData};

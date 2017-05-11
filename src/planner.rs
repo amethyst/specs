@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::sync::{mpsc, Arc};
+use std::sync::{mpsc, Arc, Mutex, MutexGuard};
 
 use pulse::{Pulse, Signal};
 use rayon::{Configuration, ThreadPool};
@@ -71,6 +71,98 @@ impl<C> System<C> for () {
     fn run(&mut self, _: RunArg, _: C) {}
 }
 
+/// This is a helper struct used to
+/// execute a single-threaded system
+/// with the [`ExternalSystem`].
+/// To get one, use [`ExternalSystem::new`].
+///
+/// [`ExternalSystem`]: struct.ExternalSystem.html
+/// [`ExternalSystem`]: struct.ExternalSystem.html#method.new
+pub struct DoWork<C> where C: Send {
+    recv: mpsc::Receiver<(RunArg, C, Pulse)>,
+}
+
+impl<C> DoWork<C> where C: Send {
+    /// Blocks the calling thread until the
+    /// associated external system is executed
+    /// and executes `f`.
+    ///
+    /// # Panics
+    ///
+    /// * if the `ExternalSystem` was dropped
+    pub fn do_work<F>(&self, f: F) where F: FnOnce(RunArg, C) {
+        let (arg, c, pulse) = self.recv.recv().expect("Associated external system is not \
+    alive anymore");
+
+        Self::do_work_internal(f, arg, c, pulse);
+    }
+
+    /// Executes `f` if the associated external
+    /// system is executed and returns `true`.
+    ///
+    /// This is the non-blocking version of `do_work`.
+    ///
+    /// If this method did not execute anything, `false` is returned.
+    ///
+    /// # Panics
+    ///
+    /// * if the `ExternalSystem` was dropped
+    pub fn try_do_work<F>(&self, f: F) -> bool where F: FnOnce(RunArg, C) {
+        use std::sync::mpsc::TryRecvError;
+
+        match self.recv.try_recv() {
+            Ok((arg, c, pulse)) => {
+                Self::do_work_internal(f, arg, c, pulse);
+
+                true
+            }
+            Err(TryRecvError::Disconnected) => panic!("Associated external system is not \
+    alive anymore"),
+            Err(TryRecvError::Empty) => false,
+        }
+    }
+
+    fn do_work_internal<F>(f: F, arg: RunArg, c: C, pulse: Pulse) where F: FnOnce(RunArg, C)
+    {
+        f(arg, c);
+        pulse.pulse();
+    }
+}
+
+/// A proxy system for external code. Useful to process the world
+/// in a pseudo-system that lives on its own dedicated thread.
+/// E.g. a rendering system for an OpenGL context.
+pub struct ExternalSystem<C> where C: Send {
+    sender: mpsc::Sender<(RunArg, C, Pulse)>,
+}
+
+impl<C> ExternalSystem<C> where C: Send {
+    /// Creates a new `ExternalSystem` with
+    /// an associated [`DoWork`] struct.
+    ///
+    /// [`DoWork`]: struct.DoWork.html
+    pub fn new() -> (Self, DoWork<C>) {
+        let (sender, recv) = mpsc::channel();
+
+        (ExternalSystem { sender: sender },
+         DoWork { recv: recv })
+    }
+}
+
+impl<C> System<C> for ExternalSystem<C> where C: Send {
+    fn run(&mut self, arg: RunArg, c: C) {
+        use pulse::Signal;
+
+        let (signal, pulse) = Signal::new();
+
+        self.sender.send((arg, c, pulse)).expect(
+            "Associated DoWork is destroyed"
+        );
+
+        signal.wait().expect("The pulse was dropped");
+    }
+}
+
 /// System scheduling priority. Higher priority systems are started
 /// earlier than lower-priority ones.
 pub type Priority = i32;
@@ -109,15 +201,18 @@ impl<C> Drop for SystemGuard<C> {
 /// System execution planner. Allows running systems via closures,
 /// distributes the load in parallel using a thread pool.
 pub struct Planner<C> {
-    /// Permanent systems in the planner.
-    pub systems: Vec<SystemInfo<C>>,
-
-    chan_in: mpsc::Receiver<SystemInfo<C>>,
-    chan_out: mpsc::Sender<SystemInfo<C>>,
+    inner: Arc<Mutex<InnerPlanner<C>>>,
     threader: Arc<ThreadPool>,
-    wait_count: usize,
     /// Shared `World`.
     world: Arc<World>,
+}
+
+struct InnerPlanner<C> {
+    chan_in: mpsc::Receiver<SystemInfo<C>>,
+    chan_out: mpsc::Sender<SystemInfo<C>>,
+    /// Permanent systems in the planner.
+    systems: Vec<SystemInfo<C>>,
+    wait_count: usize,
 }
 
 impl<C: 'static> Planner<C> {
@@ -149,12 +244,14 @@ impl<C: 'static> Planner<C> {
         let (cout, cin) = mpsc::channel();
 
         Planner {
-            world: Arc::new(world),
-            systems: Vec::new(),
-            wait_count: 0,
-            chan_out: cout,
-            chan_in: cin,
             threader: pool,
+            world: Arc::new(world),
+            inner: Arc::new(Mutex::new(InnerPlanner {
+                chan_in: cin,
+                chan_out: cout,
+                wait_count: 0,
+                systems: Vec::new(),
+            }))
         }
     }
 
@@ -162,7 +259,9 @@ impl<C: 'static> Planner<C> {
     pub fn add_system<S>(&mut self, sys: S, name: &str, priority: Priority)
         where S: 'static + System<C>
     {
-        self.systems
+        let mut systems: &mut Vec<SystemInfo<C>> = &mut self.inner().systems;
+
+        systems
             .push(SystemInfo {
                       name: name.to_owned(),
                       priority: priority,
@@ -171,13 +270,32 @@ impl<C: 'static> Planner<C> {
     }
 
     /// Runs a custom system.
+    ///
+    /// ## Deprecated
+    ///
+    /// This method is deprecated,
+    /// because it blocks until
+    /// all the other systems are finished.
+    ///
+    /// Please use [`Planner::add_system`]
+    /// instead.
+    ///
+    /// [`Planner::add_system`]: struct.Planner.html#method.add_system
+    #[deprecated(note = "Add a system instead")]
     pub fn run_custom<F>(&mut self, functor: F)
         where F: 'static + Send + FnOnce(RunArg)
     {
+        let chan = {
+            let mut inner = self.inner();
+            inner.wait_count += 1;
+
+            inner.chan_out.clone()
+        };
+
         let (signal, pulse) = Signal::new();
         let guard = SystemGuard {
             info: None,
-            chan: self.chan_out.clone(),
+            chan: chan,
         };
         let arg = RunArg {
             world: self.world.clone(),
@@ -188,19 +306,21 @@ impl<C: 'static> Planner<C> {
                              let _ = guard; //for drop()
                              functor(arg);
                          });
-        self.wait_count += 1;
+
         signal.wait().expect("fetch should be called once.");
     }
 
     fn wait_internal(&mut self) {
-        while self.wait_count > 0 {
-            let sinfo = self.chan_in
+        let mut inner = self.inner();
+
+        while inner.wait_count > 0 {
+            let sinfo = inner.chan_in
                 .recv()
                 .expect("one or more task has panicked.");
             if !sinfo.name.is_empty() {
-                self.systems.push(sinfo);
+                inner.systems.push(sinfo);
             }
-            self.wait_count -= 1;
+            inner.wait_count -= 1;
         }
     }
 
@@ -217,31 +337,59 @@ impl<C: 'static> Planner<C> {
     pub fn wait(&mut self) {
         self.mut_world().maintain();
     }
+
+    fn inner(&self) -> MutexGuard<InnerPlanner<C>> {
+        self.inner.lock().expect("Failed to acquire lock")
+    }
 }
 
 impl<C: Clone + Send + 'static> Planner<C> {
     /// Dispatch all systems according to their associated priorities.
     pub fn dispatch(&mut self, context: C) {
         self.wait();
-        self.systems.sort_by_key(|sinfo| -sinfo.priority);
-        for sinfo in self.systems.drain(..) {
+
+        let threader = self.threader.clone();
+        let world = self.world.clone();
+        let inner = self.inner.clone();
+
+        self.threader.spawn_async(move || {
+            Self::dispatch_inner(threader, world,
+                inner, context);
+        });
+    }
+
+    fn dispatch_inner(threader: Arc<ThreadPool>,
+                      world: Arc<World>,
+                      planner: Arc<Mutex<InnerPlanner<C>>>,
+                      context: C) {
+        let mut planner = planner.lock().expect("Failed to acquire lock");
+        let planner: &mut InnerPlanner<_> = &mut *planner;
+        let ref mut systems = planner.systems;
+        let ref chan_out = planner.chan_out;
+        let ref mut wait_count = planner.wait_count;
+
+        systems.sort_by_key(|sinfo| -sinfo.priority);
+        for sinfo in systems.drain(..) {
             assert!(!sinfo.name.is_empty());
             let ctx = context.clone();
             let (signal, pulse) = Signal::new();
             let guard = SystemGuard {
                 info: Some(sinfo),
-                chan: self.chan_out.clone(),
+                chan: chan_out.clone(),
             };
+
             let arg = RunArg {
-                world: self.world.clone(),
+                world: world.clone(),
                 pulse: RefCell::new(Some(pulse)),
             };
-            self.threader
+
+            threader
                 .spawn_async(move || {
-                                 let mut g = guard;
-                                 g.info.as_mut().unwrap().object.run(arg, ctx);
-                             });
-            self.wait_count += 1;
+                    let mut g = guard;
+                    g.info.as_mut().unwrap().object.run(arg, ctx);
+                });
+
+            *wait_count += 1;
             signal.wait().expect("fetch should be called once.");
         }
     }
