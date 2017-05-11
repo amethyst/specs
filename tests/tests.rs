@@ -290,18 +290,18 @@ fn dynamic_component() {
     // a simple test for the dynamic component feature.
     let mut w = specs::World::<i32>::new_w_comp_id();
 
-    w.register_w_comp_id::<CompInt>(1);
-    w.register_w_comp_id::<CompBool>(2);
+    w.register_w_comp_id::<CompInt>(Some(1));
+    w.register_w_comp_id::<CompBool>(Some(2));
 
     let e = w.create_now()
-        .with_w_comp_id::<CompInt>(1, CompInt(10))
-        .with_w_comp_id::<CompBool>(2, CompBool(true))
+        .with_w_comp_id::<CompInt>(Some(1), CompInt(10))
+        .with_w_comp_id::<CompBool>(Some(2), CompBool(true))
         .build();
 
-    let i = w.read_w_comp_id::<CompInt>(1).pass().get(e).unwrap().0;
+    let i = w.read_w_comp_id::<CompInt>(Some(1)).pass().get(e).unwrap().0;
     assert_eq!(i, 10);
 
-    let c = w.read_w_comp_id::<CompBool>(2).pass().get(e).unwrap().0;
+    let c = w.read_w_comp_id::<CompBool>(Some(2)).pass().get(e).unwrap().0;
     assert_eq!(c, true);
 }
 
