@@ -25,7 +25,6 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-pub use gate::Gate;
 pub use join::{Join, JoinIter};
 pub use storage::{AntiStorage, BTreeStorage, GatedStorage, HashMapStorage, InsertResult,
                   MaskedStorage, NullStorage, Storage, UnprotectedStorage, VecStorage,
@@ -38,7 +37,6 @@ pub use planner::{Planner, Priority, RunArg, System, SystemInfo};
 #[cfg(feature="serialize")]
 pub use storage::{MergeError, PackedData};
 
-mod gate;
 mod join;
 mod storage;
 mod world;
