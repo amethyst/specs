@@ -1,148 +1,19 @@
-use std::any::TypeId;
-use std::collections::HashMap;
-use std::hash::{BuildHasherDefault, Hash};
-use std::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::fmt::Debug;
+use std::hash::Hash;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use fnv::FnvHasher;
-use hibitset::{AtomicBitSet, BitSet, BitSetLike, BitSetOr};
+use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use mopa::Any;
-use ticketed_lock::{TicketedLock, ReadLockGuard, ReadTicket, WriteLockGuard, WriteTicket};
+use shred::{Fetch, FetchMut, Resource, Resources};
 
-use gate::Gate;
 use join::Join;
-use storage::{MaskedStorage, Storage, UnprotectedStorage};
-use storage::GatedStorage;
-use {Entity, Generation, Index,};
-
-struct Lock<T> {
-    inner: Mutex<TicketedLock<T>>,
-}
-
-impl<T> Gate for ReadTicket<T> {
-    type Target = ReadLockGuard<T>;
-
-    fn pass(self) -> Self::Target {
-        self.wait()
-    }
-}
-
-impl<T> Gate for WriteTicket<T> {
-    type Target = WriteLockGuard<T>;
-
-    fn pass(self) -> Self::Target {
-        self.wait()
-    }
-}
-
-pub struct TimeGuard<G>(G);
-
-impl<G: Gate> TimeGuard<G> {
-    fn unwrap(self) -> G::Target {
-        self.0.pass()
-    }
-}
-
-impl<T> Lock<T> {
-    fn new(data: T) -> Self {
-        Lock { inner: Mutex::new(TicketedLock::new(data)) }
-    }
-
-    fn read(&self) -> TimeGuard<ReadTicket<T>> {
-        TimeGuard(self.inner.lock().unwrap().read())
-    }
-
-    fn write(&self) -> TimeGuard<WriteTicket<T>> {
-        TimeGuard(self.inner.lock().unwrap().write())
-    }
-
-    fn into_inner(self) -> Option<T> {
-        self.inner.into_inner().ok().map(|lock| lock.unlock())
-    }
-}
-
-
-/// Abstract component type. Doesn't have to be Copy or even Clone.
-pub trait Component: Any + Sized {
-    /// Associated storage type for this component.
-    type Storage: UnprotectedStorage<Self> + Any + Send + Sync;
-}
-
-
-/// A custom entity guard used to hide the the fact that Generations
-/// is lazily created and updated. For this to be useful it _must_
-/// be joined with a component. This is because the Generation table
-/// includes every possible Generation of Entities even if they
-/// have never existed.
-pub struct Entities<'a> {
-    guard: RwLockReadGuard<'a, Allocator>,
-}
-
-impl<'a> Join for &'a Entities<'a> {
-    type Type = Entity;
-    type Value = Self;
-    type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
-
-    fn open(self) -> (Self::Mask, Self) {
-        (BitSetOr(&self.guard.alive, &self.guard.raised), self)
-    }
-
-    unsafe fn get(v: &mut Self, idx: Index) -> Entity {
-        let gen = v.guard
-            .generations
-            .get(idx as usize)
-            .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
-            .unwrap_or(Generation(1));
-        Entity(idx, gen)
-    }
-}
-
-impl<'a> Gate for Entities<'a> {
-    type Target = Self;
-
-    fn pass(self) -> Self {
-        self
-    }
-}
-
-/// Helper builder for entities.
-pub struct EntityBuilder<'a, C = ()>(Entity, &'a World<C>) where C: 'a;
-
-impl<'a, C> EntityBuilder<'a, C>
-    where C: 'a + PartialEq + Eq + Hash
-{
-    /// Starts a new entity builder for a given `Entity`.
-    pub fn new(e: Entity, w: &'a World<C>) -> Self {
-        EntityBuilder(e, w)
-    }
-
-    /// Adds a `Component` value to the new `Entity`.
-    pub fn with_w_comp_id<T: Component>(self, comp_id: C, value: T) -> EntityBuilder<'a, C> {
-        self.1
-            .write_w_comp_id::<T>(comp_id)
-            .insert(self.0, value);
-        self
-    }
-
-    /// Finishes entity construction.
-    pub fn build(self) -> Entity {
-        self.0
-    }
-}
-
-impl<'a> EntityBuilder<'a, ()> {
-    /// Adds a `Component` value to the new `Entity`.
-    pub fn with<T: Component>(self, value: T) -> EntityBuilder<'a> {
-        self.1.write::<T>().pass().insert(self.0, value);
-        self
-    }
-}
-
+use storage::{AnyStorage, MaskedStorage, ReadStorage, Storage, UnprotectedStorage, WriteStorage};
+use Index;
 
 /// Internally used structure for `Entity` allocation.
-pub struct Allocator {
-    #[doc(hidden)]
-    pub generations: Vec<Generation>,
+#[derive(Default, Debug)]
+struct Allocator {
+    generations: Vec<Generation>,
 
     alive: BitSet,
     raised: AtomicBitSet,
@@ -151,23 +22,12 @@ pub struct Allocator {
 }
 
 impl Allocator {
-    #[doc(hidden)]
-    pub fn new() -> Allocator {
-        Allocator {
-            generations: vec![],
-            alive: BitSet::new(),
-            raised: AtomicBitSet::new(),
-            killed: AtomicBitSet::new(),
-            start_from: AtomicUsize::new(0),
-        }
-    }
-
     fn kill(&self, e: Entity) {
         self.killed.add_atomic(e.get_id());
     }
 
     /// Return `true` if the entity is alive.
-    pub fn is_alive(&self, e: Entity) -> bool {
+    fn is_alive(&self, e: Entity) -> bool {
         e.get_gen() ==
         match self.generations.get(e.get_id() as usize) {
             Some(g) if !g.is_alive() && self.raised.contains(e.get_id()) => g.raised(),
@@ -232,6 +92,8 @@ impl Allocator {
     }
 
     fn merge(&mut self) -> Vec<Entity> {
+        use hibitset::BitSetLike;
+
         let mut deleted = vec![];
 
         for i in (&self.raised).iter() {
@@ -260,256 +122,345 @@ impl Allocator {
     }
 }
 
-/// Entity creation iterator. Will yield new empty entities infinitely.
-/// Useful for bulk entity construction, since the locks are only happening once.
-pub struct CreateEntities<'a> {
-    allocate: RwLockWriteGuard<'a, Allocator>,
+/// Abstract component type. Doesn't have to be Copy or even Clone.
+pub trait Component: Any + Debug + Sized {
+    /// Associated storage type for this component.
+    type Storage: UnprotectedStorage<Self> + Any + Send + Sync;
 }
 
-impl<'a> Iterator for CreateEntities<'a> {
+/// An iterator for entity creation.
+/// Please note that you have to consume
+/// it because iterators are lazy.
+pub struct CreateIter<'a>(&'a Allocator);
+
+impl<'a> Iterator for CreateIter<'a> {
     type Item = Entity;
+
     fn next(&mut self) -> Option<Entity> {
-        Some(self.allocate.allocate())
+        Some(self.0.allocate_atomic())
     }
 }
 
+/// `Entity` type, as seen by the user.
+#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Entity(Index, Generation);
 
-trait StorageLock: Any + Send + Sync {
-    fn del_slice(&self, &[Entity]);
+impl Entity {
+    /// Creates a new entity (externally from ECS).
+    #[cfg(test)]
+    pub fn new(index: Index, gen: Generation) -> Entity {
+        Entity(index, gen)
+    }
+
+    /// Returns the index of the `Entity`.
+    #[inline]
+    pub fn get_id(&self) -> Index {
+        self.0
+    }
+
+    /// Returns the `Generation` of the `Entity`.
+    #[inline]
+    pub fn get_gen(&self) -> Generation {
+        self.1
+    }
 }
 
-mopafy!(StorageLock);
+/// The entity builder, allowing to
+/// build an entity together with its components.
+#[derive(Debug)]
+pub struct EntityBuilder<'a> {
+    entity: Entity,
+    world: &'a mut World,
+}
 
-impl<T: Component> StorageLock for Lock<MaskedStorage<T>> {
-    fn del_slice(&self, entities: &[Entity]) {
-        let mut guard = self.write().unwrap();
-        for &e in entities.iter() {
-            guard.remove(e.get_id());
+impl<'a> EntityBuilder<'a> {
+    /// Appends a component with the default component id.
+    pub fn with<T: Component>(self, c: T) -> Self {
+        self.with_id(c, ())
+    }
+
+    /// Appends a component with a component id.
+    pub fn with_id<T: Component, ID: Hash + Eq>(self, c: T, id: ID) -> Self {
+        {
+            let mut storage = self.world.write_component_with_id(id);
+            storage.insert(self.entity, c);
         }
+
+        self
+    }
+
+    /// Finishes the building and returns
+    /// the entity.
+    pub fn build(self) -> Entity {
+        self.entity
     }
 }
 
-trait ResourceLock: Any + Send + Sync {}
+/// The entities of this ECS.
+///
+/// **Please note that you should never fetch
+/// this mutably in a system, because it would
+/// block all the other systems.**
+#[derive(Debug, Default)]
+pub struct Entities {
+    alloc: Allocator,
+}
 
-mopafy!(ResourceLock);
+impl Entities {
+    /// Creates a new entity atomically.
+    /// This will be persistent as soon
+    /// as you call `World::maintain`.
+    pub fn create(&self) -> Entity {
+        self.alloc.allocate_atomic()
+    }
 
-impl<T: Any + Send + Sync> ResourceLock for Lock<T> {}
+    /// Returns an iterator which creates
+    /// new entities atomically.
+    /// They will be persistent as soon
+    /// as you call `World::maintain`.
+    pub fn create_iter(&self) -> CreateIter {
+        CreateIter(&self.alloc)
+    }
+
+    /// Deletes an entity atomically.
+    /// The associated components will be
+    /// deleted as soon as you call `World::maintain`.
+    pub fn delete(&self, e: Entity) {
+        self.alloc.kill(e);
+    }
+
+    /// Returns `true` if the specified entity is
+    /// alive.
+    #[inline]
+    pub fn is_alive(&self, e: Entity) -> bool {
+        self.alloc.is_alive(e)
+    }
+}
+
+impl<'a> Join for &'a Entities {
+    type Type = Entity;
+    type Value = Self;
+    type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
+
+    fn open(self) -> (Self::Mask, Self) {
+        (BitSetOr(&self.alloc.alive, &self.alloc.raised), self)
+    }
+
+    unsafe fn get(v: &mut &'a Entities, idx: Index) -> Entity {
+        let gen = v.alloc
+            .generations
+            .get(idx as usize)
+            .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
+            .unwrap_or(Generation(1));
+        Entity(idx, gen)
+    }
+}
+
+impl Resource for Entities {}
+
+/// Index generation. When a new entity is placed at an old index,
+/// it bumps the `Generation` by 1. This allows to avoid using components
+/// from the entities that were deleted.
+#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Generation(i32);
+
+impl Generation {
+    /// Returns `true` if entities of this `Generation` are alive.
+    pub fn is_alive(&self) -> bool {
+        self.0 > 0
+    }
+
+    /// Kills this `Generation`.
+    fn die(&mut self) {
+        debug_assert!(self.is_alive());
+        self.0 = -self.0;
+    }
+
+    /// Revives and increments a dead `Generation`.
+    fn raised(self) -> Generation {
+        debug_assert!(!self.is_alive());
+        Generation(1 - self.0)
+    }
+}
 
 /// The `World` struct contains all the data, which is entities and their components.
 /// All methods are supposed to be valid for any context they are available in.
 /// The type parameter C is for component identification in addition of their types.
-pub struct World<C = ()> {
-    allocator: RwLock<Allocator>,
-    components: HashMap<(C, TypeId), Box<StorageLock>, BuildHasherDefault<FnvHasher>>,
-    resources: HashMap<TypeId, Box<ResourceLock>, BuildHasherDefault<FnvHasher>>,
+#[derive(Debug)]
+pub struct World {
+    res: Resources,
+    storages: Vec<*mut AnyStorage>,
 }
 
-impl<C> World<C>
-    where C: PartialEq + Eq + Hash
-{
-    /// Creates a new empty `World` with the associated component id.
-    pub fn new_w_comp_id() -> World<C> {
-        World {
-            components: Default::default(),
-            allocator: RwLock::new(Allocator::new()),
-            resources: Default::default(),
-        }
+impl World {
+    /// Creates a new empty `World`.
+    pub fn new() -> World {
+        Default::default()
     }
 
-    /// Registers a new component type and id pair.
+    /// Registers a new component.
     ///
-    /// Does nothing if the type and id pair was already registered.
-    pub fn register_w_comp_id<T: Component>(&mut self, comp_id: C) {
-        self.components
-            .entry((comp_id, TypeId::of::<T>()))
-            .or_insert_with(|| {
-                                let any = Lock::new(MaskedStorage::<T>::new());
-                                Box::new(any)
-                            });
-    }
+    /// Does nothing if the component was already
+    /// registered.
+    pub fn register_component<T: Component, ID: Clone + Hash + Eq>(&mut self, id: ID) {
+        use std::any::TypeId;
 
-    /// Unregisters a component type and id pair.
-    pub fn unregister_w_comp_id<T: Component>(&mut self, comp_id: C) -> Option<MaskedStorage<T>> {
-        self.components
-            .remove(&(comp_id, TypeId::of::<T>()))
-            .map(|boxed| match boxed.downcast::<Lock<MaskedStorage<T>>>() {
-                     Ok(b) => (*b).into_inner().unwrap(),
-                     Err(_) => panic!("Unable to downcast the storage type"),
-                 })
-    }
-
-    fn lock_w_comp_id<T: Component>(&self, comp_id: C) -> &Lock<MaskedStorage<T>> {
-        let boxed =
-            self.components
-                .get(&(comp_id, TypeId::of::<T>()))
-                .expect("Tried to perform an operation on component type that was not registered");
-        boxed.downcast_ref().unwrap()
-    }
-
-    /// Locks a component's storage for reading.
-    pub fn read_w_comp_id<T: Component>
-        (&self,
-         comp_id: C)
-         -> Storage<T, RwLockReadGuard<Allocator>, ReadLockGuard<MaskedStorage<T>>> {
-        let data = self.lock_w_comp_id::<T>(comp_id).read().unwrap();
-        Storage::new(self.allocator.read().unwrap(), data)
-    }
-
-    /// Locks a component's storage for writing.
-    pub fn write_w_comp_id<T: Component>
-        (&self,
-         comp_id: C)
-         -> Storage<T, RwLockReadGuard<Allocator>, WriteLockGuard<MaskedStorage<T>>> {
-        let data = self.lock_w_comp_id::<T>(comp_id).write().unwrap();
-        Storage::new(self.allocator.read().unwrap(), data)
-    }
-
-    /// Returns the entity iterator.
-    pub fn entities(&self) -> Entities {
-        Entities { guard: self.allocator.read().unwrap() }
-    }
-
-    /// Returns the entity creation iterator. Can be used to create many
-    /// empty entities at once without paying the locking overhead.
-    pub fn create_iter(&mut self) -> CreateEntities {
-        CreateEntities { allocate: self.allocator.write().unwrap() }
-    }
-
-    /// Creates a new entity instantly, locking the generations data.
-    pub fn create_now(&mut self) -> EntityBuilder<C> {
-        let id = self.allocator.write().unwrap().allocate();
-        EntityBuilder::new(id, self)
-    }
-
-    /// Deletes a new entity instantly, locking the generations data.
-    pub fn delete_now(&mut self, entity: Entity) {
-        for comp in self.components.values() {
-            comp.del_slice(&[entity]);
+        if self.res.has_value(TypeId::of::<MaskedStorage<T>>(), ()) {
+            return;
         }
-        let mut gens = self.allocator.write().unwrap();
-        gens.alive.remove(entity.get_id());
-        gens.raised.remove(entity.get_id());
-        let id = entity.get_id() as usize;
-        gens.generations[id].die();
-        if id < gens.start_from.load(Ordering::Relaxed) {
-            gens.start_from.store(id, Ordering::Relaxed);
+
+        self.res.add(MaskedStorage::<T>::new(), id.clone());
+
+        let mut storage = self.res.fetch_mut::<MaskedStorage<T>, _>(id);
+        self.storages.push(&mut *storage as *mut AnyStorage);
+    }
+
+    /// Fetches a component's storage with the default id for reading.
+    ///
+    /// # Panics
+    ///
+    /// Panics if it is already borrowed mutably.
+    pub fn read_component<T: Component>(&self) -> ReadStorage<T> {
+        self.read_component_with_id(())
+    }
+
+    /// Fetches a component's storage with the default id for writing.
+    ///
+    /// # Panics
+    ///
+    /// Panics if it is already borrowed.
+    pub fn write_component<T: Component>(&self) -> WriteStorage<T> {
+        self.write_component_with_id(())
+    }
+
+    /// Fetches a component's storage with a specified id for reading.
+    ///
+    /// # Panics
+    ///
+    /// Panics if it is already borrowed mutably.
+    pub fn read_component_with_id<T: Component, ID: Hash + Eq>(&self, id: ID) -> ReadStorage<T> {
+        let entities = self.entities();
+
+        Storage::new(entities, self.res.fetch(id))
+    }
+
+    /// Fetches a component's storage with a specified id for writing.
+    ///
+    /// # Panics
+    ///
+    /// Panics if it is already borrowed.
+    pub fn write_component_with_id<T: Component, ID: Hash + Eq>(&self, id: ID) -> WriteStorage<T> {
+        let entities = self.entities();
+
+        Storage::new(entities, self.res.fetch_mut(id))
+    }
+
+    /// Fetches a resource with a specified id for reading.
+    ///
+    /// # Panics
+    ///
+    /// Panics if it is already borrowed mutably.
+    pub fn read_resource_with_id<T: Resource, ID: Hash + Eq>(&self, id: ID) -> Fetch<T> {
+        self.res.fetch(id)
+    }
+
+    /// Fetches a resource with a specified id for writing.
+    ///
+    /// # Panics
+    ///
+    /// Panics if it is already borrowed.
+    pub fn write_resource_with_id<T: Resource, ID: Hash + Eq>(&self, id: ID) -> FetchMut<T> {
+        self.res.fetch_mut(id)
+    }
+
+    /// Fetches a resource with the default id for reading.
+    ///
+    /// # Panics
+    ///
+    /// Panics if it is already borrowed mutably.
+    pub fn read_resource<T: Resource>(&self) -> Fetch<T> {
+        self.read_resource_with_id(())
+    }
+
+    /// Fetches a resource with the default id for writing.
+    ///
+    /// # Panics
+    ///
+    /// Panics if it is already borrowed.
+    pub fn write_resource<T: Resource>(&self) -> FetchMut<T> {
+        self.write_resource_with_id(())
+    }
+
+    /// Convenience method for fetching entities.
+    pub fn entities(&self) -> Fetch<Entities> {
+        self.read_resource()
+    }
+
+    /// Convenience method for fetching entities.
+    fn entities_mut(&self) -> FetchMut<Entities> {
+        self.write_resource()
+    }
+
+    /// Allows building an entity with its
+    /// components.
+    pub fn create_entity(&mut self) -> EntityBuilder {
+        let entity = self.entities_mut().alloc.allocate();
+
+        EntityBuilder {
+            entity: entity,
+            world: self,
         }
     }
 
-    /// Creates a new entity dynamically.
-    pub fn create_pure(&self) -> Entity {
-        let allocator = self.allocator.read().unwrap();
-        allocator.allocate_atomic()
+    /// Deletes an entity and its components.
+    pub fn delete_entity(&mut self, entity: Entity) {
+        self.delete_entities(&[entity]);
     }
 
-    /// Creates a new entity dynamically, and starts building it.
-    pub fn create(&self) -> EntityBuilder<C> {
-        EntityBuilder::new(self.create_pure(), self)
-    }
+    /// Deletes the specified entities and their components.
+    pub fn delete_entities(&mut self, delete: &[Entity]) {
+        self.delete_components(delete);
 
-    /// Deletes an entity dynamically.
-    pub fn delete_later(&self, entity: Entity) {
-        let allocator = self.allocator.read().unwrap();
-        allocator.kill(entity);
-    }
-
-    /// Returns `true` if the given `Entity` is alive.
-    pub fn is_alive(&self, entity: Entity) -> bool {
-        debug_assert!(entity.get_gen().is_alive());
-        let gens = self.allocator.read().unwrap();
-        gens.generations
-            .get(entity.get_id() as usize)
-            .map(|&x| x == entity.get_gen())
-            .unwrap_or(false)
+        let mut entities = self.entities_mut();
+        let alloc: &mut Allocator = &mut entities.alloc;
+        for entity in delete {
+            alloc.alive.remove(entity.get_id());
+            alloc.raised.remove(entity.get_id());
+            let id = entity.get_id() as usize;
+            alloc.generations[id].die();
+            if id < alloc.start_from.load(Ordering::Relaxed) {
+                alloc.start_from.store(id, Ordering::Relaxed);
+            }
+        }
     }
 
     /// Merges in the appendix, recording all the dynamically created
     /// and deleted entities into the persistent generations vector.
     /// Also removes all the abandoned components.
     pub fn maintain(&mut self) {
-        let mut allocator = self.allocator.write().unwrap();
+        let deleted = self.entities_mut().alloc.merge();
+        self.delete_components(&deleted);
+    }
 
-        let temp_list = allocator.merge();
-        for comp in self.components.values() {
-            comp.del_slice(&temp_list);
+    fn delete_components(&mut self, delete: &[Entity]) {
+        for storage in &mut self.storages {
+            let storage: &mut AnyStorage = unsafe { &mut **storage };
+
+            for entity in delete {
+                storage.remove(entity.get_id());
+            }
         }
-    }
-
-    /// Add a new resource to the world.
-    pub fn add_resource<T: Any + Send + Sync>(&mut self, resource: T) {
-        let resource = Box::new(Lock::new(resource));
-        self.resources.insert(TypeId::of::<T>(), resource);
-    }
-
-    /// Check to see if a resource is present.
-    pub fn has_resource<T: Any + Send + Sync>(&self) -> bool {
-        self.resources.get(&TypeId::of::<T>()).is_some()
-    }
-
-    fn get_resource<T: Any + Send + Sync>(&self) -> &Lock<T> {
-        self.resources
-            .get(&TypeId::of::<T>())
-            .expect("Resource was not registered")
-            .downcast_ref::<Lock<T>>()
-            .unwrap()
-    }
-
-    /// Get read-only access to a resource.
-    pub fn read_resource_now<T: Any + Send + Sync>(&self) -> ReadLockGuard<T> {
-        self.get_resource::<T>().read().unwrap()
-    }
-
-    /// Get read-write access to a resource.
-    pub fn write_resource_now<T: Any + Send + Sync>(&self) -> WriteLockGuard<T> {
-        self.get_resource::<T>().write().unwrap()
     }
 }
 
-impl World<()> {
-    /// Creates a new empty `World`.
-    pub fn new() -> World<()> {
+impl Default for World {
+    fn default() -> Self {
+        let mut res = Resources::new();
+        res.add(Entities::default(), ());
+
         World {
-            components: Default::default(),
-            allocator: RwLock::new(Allocator::new()),
-            resources: Default::default(),
+            res: res,
+            storages: Default::default(),
         }
-    }
-
-    /// Registers a new component type.
-    ///
-    /// Does nothing if the component type was already registered.
-    pub fn register<T: Component>(&mut self) {
-        self.register_w_comp_id::<T>(())
-    }
-
-    /// Unregisters a component type.
-    pub fn unregister<T: Component>(&mut self) -> Option<MaskedStorage<T>> {
-        self.unregister_w_comp_id::<T>(())
-    }
-
-    /// Request a read ticket for a particular component storage.
-    pub fn read<T: Component>
-    (&self)
-     -> GatedStorage<T, RwLockReadGuard<Allocator>, ReadTicket<MaskedStorage<T>>> {
-        let ticket = self.lock_w_comp_id::<T>(()).read();
-        GatedStorage::new(self.allocator.read().unwrap(), ticket.0)
-    }
-
-    /// Request a write ticket for a particular component storage.
-    pub fn write<T: Component>
-    (&self)
-     -> GatedStorage<T, RwLockReadGuard<Allocator>, WriteTicket<MaskedStorage<T>>> {
-        let ticket = self.lock_w_comp_id::<T>(()).write();
-        GatedStorage::new(self.allocator.read().unwrap(), ticket.0)
-    }
-
-    /// Get read-only access to a resource.
-    pub fn read_resource<T: Any + Send + Sync>(&self) -> ReadTicket<T> {
-        self.get_resource::<T>().read().0
-    }
-
-    /// Get read-write access to a resource.
-    pub fn write_resource<T: Any + Send + Sync>(&self) -> WriteTicket<T> {
-        self.get_resource::<T>().write().0
     }
 }

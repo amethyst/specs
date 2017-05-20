@@ -23,9 +23,9 @@ exclude = ["doc", ".travis.yml"]
 [dependencies]
 atom = "0.3"
 fnv = "1.0"
-hibitset = "0.1"
+hibitset = { path = "../hibitset" }
 mopa = "0.2"
-ticketed_lock = "0.1"
+shred = { path = "../shred" }
 tuple_utils = "0.2"
 
 pulse = { version = "0.5", optional = true }

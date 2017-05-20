@@ -1,24 +1,47 @@
+//! Storage types
+
 use std;
 use std::collections::HashMap;
 use std::collections::BTreeMap;
+use std::fmt::Debug;
 use std::hash::BuildHasherDefault;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
 
 use fnv::FnvHasher;
 use hibitset::{BitSet, BitSetNot};
+use mopa::Any;
+use shred::{Fetch, FetchMut, Resource};
 
-use gate::Gate;
 use join::Join;
-use world::{Allocator, Component};
-use {Entity, Index};
+use world::{Component, Entity, Entities};
+use Index;
 
 #[cfg(feature="serialize")]
 use serde;
 
+/// A storage with read access.
+pub type ReadStorage<'a, 'e, T> = Storage<'e, T, Fetch<'a, MaskedStorage<T>>>;
+/// A storage with read and write access.
+pub type WriteStorage<'a, 'e, T> = Storage<'e, T, FetchMut<'a, MaskedStorage<T>>>;
+
+/// A dynamic storage.
+pub trait AnyStorage {
+    /// Remove the component of an entity with a given index.
+    fn remove(&mut self, id: Index) -> Option<Box<Any>>;
+}
+
+impl<T> AnyStorage for MaskedStorage<T>
+    where T: Component
+{
+    fn remove(&mut self, id: Index) -> Option<Box<Any>> {
+        MaskedStorage::remove(self, id).map(|x| Box::new(x) as Box<Any>)
+    }
+}
 
 /// The `UnprotectedStorage` together with the `BitSet` that knows
 /// about which elements are stored, and which are not.
+#[derive(Debug)]
 pub struct MaskedStorage<T: Component> {
     mask: BitSet,
     inner: T::Storage,
@@ -57,6 +80,8 @@ impl<T: Component> MaskedStorage<T> {
     }
 }
 
+impl<T> Resource for MaskedStorage<T> where T: Component + Debug {}
+
 impl<T: Component> Drop for MaskedStorage<T> {
     fn drop(&mut self) {
         self.clear();
@@ -82,32 +107,32 @@ impl<'a> Join for AntiStorage<'a> {
 }
 
 /// An entry to a storage.
-pub struct Entry<'a, T, A, D> {
+pub struct Entry<'a, 'e, T, D> {
     id: Index,
     // Pointer for comparison when attempting to check against a storage.
-    original: *const Storage<T, A, D>,
+    original: *const Storage<'e, T, D>,
     phantom: PhantomData<&'a ()>,
 }
 
 /// A storage type that iterates entities that have
 /// a particular component type, but does not return the
 /// component.
-pub struct CheckStorage<T, A, D> {
+pub struct CheckStorage<'a, T, D> {
     bitset: BitSet,
     // Pointer back to the storage the CheckStorage was created from.
-    original: *const Storage<T, A, D>,
+    original: *const Storage<'a, T, D>,
 }
 
-impl<'a, T, A, D> Join for &'a CheckStorage<T, A, D> {
-    type Type = Entry<'a, T, A, D>;
-    type Value = *const Storage<T, A, D>;
+impl<'a, 'e, T, D> Join for &'a CheckStorage<'e, T, D> {
+    type Type = Entry<'a, 'e, T, D>;
+    type Value = *const Storage<'e, T, D>;
     type Mask = &'a BitSet;
 
     fn open(self) -> (Self::Mask, Self::Value) {
         (&self.bitset, self.original)
     }
 
-    unsafe fn get(storage: &mut *const Storage<T, A, D>, id: Index) -> Entry<'a, T, A, D> {
+    unsafe fn get(storage: &mut *const Storage<'e, T, D>, id: Index) -> Entry<'a, 'e, T, D> {
         Entry {
             id: id,
             original: *storage,
@@ -119,13 +144,13 @@ impl<'a, T, A, D> Join for &'a CheckStorage<T, A, D> {
 /// A wrapper around the masked storage and the generations vector.
 /// Can be used for safe lookup of components, insertions and removes.
 /// This is what `World::read/write` locks for the user.
-pub struct Storage<T, A, D> {
-    phantom: PhantomData<T>,
-    alloc: A,
+pub struct Storage<'e, T, D> {
     data: D,
+    entities: Fetch<'e, Entities>,
+    phantom: PhantomData<T>,
 }
 
-impl<'a, T, A, D> Not for &'a Storage<T, A, D>
+impl<'a, 'e, T, D> Not for &'a Storage<'e, T, D>
     where T: Component,
           D: Deref<Target = MaskedStorage<T>>
 {
@@ -136,25 +161,24 @@ impl<'a, T, A, D> Not for &'a Storage<T, A, D>
     }
 }
 
-impl<T, A, D> Storage<T, A, D> {
+impl<'e, T, D> Storage<'e, T, D> {
     /// Create a new `Storage`
-    pub fn new(alloc: A, data: D) -> Storage<T, A, D> {
+    pub fn new(entities: Fetch<'e, Entities>, data: D) -> Storage<'e, T, D> {
         Storage {
-            phantom: PhantomData,
-            alloc: alloc,
             data: data,
+            entities: entities,
+            phantom: PhantomData,
         }
     }
 }
 
-impl<T, A, D> Storage<T, A, D>
+impl<'e, T, D> Storage<'e, T, D>
     where T: Component,
-          A: Deref<Target = Allocator>,
           D: Deref<Target = MaskedStorage<T>>
 {
     /// Tries to read the data associated with an `Entity`.
     pub fn get(&self, e: Entity) -> Option<&T> {
-        if self.data.mask.contains(e.get_id()) && self.alloc.is_alive(e) {
+        if self.data.mask.contains(e.get_id()) && self.entities.is_alive(e) {
             Some(unsafe { self.data.inner.get(e.get_id()) })
         } else {
             None
@@ -166,32 +190,27 @@ impl<T, A, D> Storage<T, A, D>
     ///
     /// Useful if you want to check if an entity has a component
     /// and then possibly get the component later on in the loop.
-    pub fn check(&self) -> CheckStorage<T, A, D> {
+    pub fn check(&self) -> CheckStorage<'e, T, D> {
         CheckStorage {
             bitset: self.data.mask.clone(),
-            original: self as *const Storage<T, A, D>,
+            original: self as *const Storage<'e, T, D>,
         }
     }
 
     /// Reads the data associated with the entry.
     ///
     /// `Entry`s are returned from a `CheckStorage` to remove unnecessary checks.
-    pub fn get_unchecked<'a>(&'a self, entry: &'a Entry<'a, T, A, D>) -> &'a T {
-        assert_eq!(entry.original, self as *const Storage<T, A, D>, "Attempt to get an unchecked entry from a storage: {:?} {:?}", entry.original, self as *const Storage<T, A, D>);
+    pub fn get_unchecked<'a>(&'a self, entry: &'a Entry<'a, 'e, T, D>) -> &'a T {
+        assert_eq!(entry.original,
+                   self as *const Storage<'e, T, D>,
+                   "Attempt to get an unchecked entry from a storage: {:?} {:?}",
+                   entry.original,
+                   self as *const Storage<'e, T, D>);
         unsafe { self.data.inner.get(entry.id) }
     }
 }
 
-impl<T, A, D> Gate for Storage<T, A, D> {
-    type Target = Self;
-
-    fn pass(self) -> Self {
-        self
-    }
-}
-
-
-/// the status of an insert operation
+/// The status of an insert operation
 pub enum InsertResult<T> {
     /// The value was inserted and there was no value before
     Inserted,
@@ -203,14 +222,13 @@ pub enum InsertResult<T> {
     EntityIsDead(T),
 }
 
-impl<T, A, D> Storage<T, A, D>
+impl<'e, T, D> Storage<'e, T, D>
     where T: Component,
-          A: Deref<Target = Allocator>,
           D: DerefMut<Target = MaskedStorage<T>>
 {
     /// Tries to mutate the data associated with an `Entity`.
     pub fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
-        if self.data.mask.contains(e.get_id()) && self.alloc.is_alive(e) {
+        if self.data.mask.contains(e.get_id()) && self.entities.is_alive(e) {
             Some(unsafe { self.data.inner.get_mut(e.get_id()) })
         } else {
             None
@@ -220,15 +238,20 @@ impl<T, A, D> Storage<T, A, D>
     /// Tries to mutate the data associated with an entry.
     ///
     /// `Entry`s are returned from a `CheckStorage` to remove unnecessary checks.
-    pub fn get_mut_unchecked<'a>(&'a mut self, entry: &'a mut Entry<'a, T, A, D>) -> &'a mut T {
-        assert_eq!(entry.original, self as *const Storage<T, A, D>, "Attempt to get an unchecked entry from a storage: {:?} {:?}", entry.original, self as *const Storage<T, A, D>);
+    pub fn get_mut_unchecked<'a>(&'a mut self, entry: &'a mut Entry<'a, 'e, T, D>) -> &'a mut T {
+        assert_eq!(entry.original,
+                   self as *const Storage<'e, T, D>,
+                   "Attempt to get an unchecked entry from a storage: {:?} {:?}",
+                   entry.original,
+                   self as *const Storage<'e, T, D>);
+
         unsafe { self.data.inner.get_mut(entry.id) }
     }
 
     /// Inserts new data for a given `Entity`.
     /// Returns the result of the operation as a `InsertResult<T>`
     pub fn insert(&mut self, e: Entity, mut v: T) -> InsertResult<T> {
-        if self.alloc.is_alive(e) {
+        if self.entities.is_alive(e) {
             let id = e.get_id();
             if self.data.mask.contains(id) {
                 std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id) });
@@ -245,7 +268,7 @@ impl<T, A, D> Storage<T, A, D>
 
     /// Removes the data associated with an `Entity`.
     pub fn remove(&mut self, e: Entity) -> Option<T> {
-        if self.alloc.is_alive(e) {
+        if self.entities.is_alive(e) {
             self.data.remove(e.get_id())
         } else {
             None
@@ -270,10 +293,9 @@ pub enum MergeError {
 }
 
 #[cfg(feature="serialize")]
-impl<T, A, D> Storage<T, A, D> where
-    T: Component + serde::Deserialize,
-    A: Deref<Target = Allocator>,
-    D: DerefMut<Target = MaskedStorage<T>>,
+impl<'e, T, D> Storage<'e, T, D>
+    where T: Component + serde::Deserialize,
+          D: DerefMut<Target = MaskedStorage<T>>
 {
     /// Merges a list of components into the storage.
     ///
@@ -285,30 +307,39 @@ impl<T, A, D> Storage<T, A, D> where
     ///let packed = PackedData { offsets: [0, 2], components: [ ... ] };
     ///storage.merge(&list, packed);
     /// ```
-    /// Would merge the components at offset 0 and 2, which would be `Entity(0, 1)` and `Entity(2, 1)` while ignoring
+    /// Would merge the components at offset 0 and 2, which would be `Entity(0, 1)` and
+    /// `Entity(2, 1)` while ignoring
     /// `Entity(1, 1)`.
     ///
     /// Note:
-    /// The entity list should be at least the same size as the packed data. To make sure, you can call `packed.pair_truncate(&entities)`.
+    /// The entity list should be at least the same size as the packed data. To make sure,
+    /// you can call `packed.pair_truncate(&entities)`.
     /// If the entity list is larger than the packed data then those entities are ignored.
-    /// 
+    ///
     /// Packed data should also be sorted in ascending order of offsets.
-    /// If this is deserialized from data received from serializing a storage it will be in ascending order.
-    pub fn merge<'a>(&'a mut self, entities: &'a [Entity], mut packed: PackedData<T>) -> Result<(), MergeError> {
+    /// If this is deserialized from data received from serializing a storage it will be
+    /// in ascending order.
+    pub fn merge<'a>(&'a mut self,
+                     entities: &'a [Entity],
+                     mut packed: PackedData<T>)
+                     -> Result<(), MergeError> {
         for (component, offset) in packed.components.drain(..).zip(packed.offsets.iter()) {
             match entities.get(*offset as usize) {
-                Some(entity) => { self.insert(*entity, component); },
-                None => { return Err(MergeError::NoEntity(*offset)); }
+                Some(entity) => {
+                    self.insert(*entity, component);
+                }
+                None => {
+                    return Err(MergeError::NoEntity(*offset));
+                }
             }
         }
         Ok(())
     }
 }
 
-impl<'a, T, A, D> Join for &'a Storage<T, A, D> where
-    T: Component,
-    A: Deref<Target = Allocator>,
-    D: Deref<Target = MaskedStorage<T>>,
+impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
+    where T: Component,
+          D: Deref<Target = MaskedStorage<T>>
 {
     type Type = &'a T;
     type Value = &'a T::Storage;
@@ -323,9 +354,8 @@ impl<'a, T, A, D> Join for &'a Storage<T, A, D> where
     }
 }
 
-impl<'a, T, A, D> Join for &'a mut Storage<T, A, D>
+impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
     where T: Component,
-          A: Deref<Target = Allocator>,
           D: DerefMut<Target = MaskedStorage<T>>
 {
     type Type = &'a mut T;
@@ -348,10 +378,9 @@ impl<'a, T, A, D> Join for &'a mut Storage<T, A, D>
 }
 
 #[cfg(feature="serialize")]
-impl<T, A, D> serde::Serialize for Storage<T, A, D> where
-    T: Component + serde::Serialize,
-    A: Deref<Target = Allocator>,
-    D: Deref<Target = MaskedStorage<T>>,
+impl<'e, T, D> serde::Serialize for Storage<'e, T, D>
+    where T: Component + serde::Serialize,
+          D: Deref<Target = MaskedStorage<T>>
 {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use hibitset::BitSetLike;
@@ -359,14 +388,13 @@ impl<T, A, D> serde::Serialize for Storage<T, A, D> where
 
         // Serializes the storage in a format of PackedData<T>
         let (bitset, storage) = self.open();
-        let mut structure = serializer.serialize_struct("PackedData", 2)?; // Serialize a struct that has 2 fields
+        // Serialize a struct that has 2 fields
+        let mut structure = serializer.serialize_struct("PackedData", 2)?;
         let mut components: Vec<&T> = Vec::new();
         let mut offsets: Vec<u32> = Vec::new();
         for index in bitset.iter() {
             offsets.push(index);
-            let component = unsafe {
-                storage.get(index)
-            };
+            let component = unsafe { storage.get(index) };
             components.push(component);
         }
 
@@ -382,7 +410,7 @@ impl<T, A, D> serde::Serialize for Storage<T, A, D> where
 /// Offsets define which entities the components correspond to, based on a list of entities
 /// the packed data is sent in with.
 ///
-/// If the list of entities is all entities in the world, then the offsets in the 
+/// If the list of entities is all entities in the world, then the offsets in the
 /// packed data are the indices of the entities.
 pub struct PackedData<T> {
     /// List of components.
@@ -404,35 +432,8 @@ impl<T> PackedData<T> {
     }
 }
 
-/// 
-pub struct GatedStorage<T, A, G> {
-    marker: PhantomData<T>,
-    alloc: A,
-    gate: G,
-}
-
-impl<T, A, G> GatedStorage<T, A, G> {
-    /// Creates a new `GatedStorage`.
-    pub fn new(alloc: A, gate: G) -> Self {
-        GatedStorage {
-            marker: PhantomData,
-            alloc: alloc,
-            gate: gate,
-        }
-    }
-}
-
-impl<T, A, G: Gate> Gate for GatedStorage<T, A, G> {
-    type Target = Storage<T, A, G::Target>;
-
-    fn pass(self) -> Self::Target {
-        Storage::new(self.alloc, self.gate.pass())
-    }
-}
-
-
 /// Used by the framework to quickly join componets
-pub trait UnprotectedStorage<T>: Sized {
+pub trait UnprotectedStorage<T>: Debug + Sized {
     /// Creates a new `Storage<T>`. This is called when you register a new
     /// component type within the world.
     fn new() -> Self;
@@ -459,9 +460,12 @@ pub trait UnprotectedStorage<T>: Sized {
 }
 
 /// HashMap-based storage. Best suited for rare components.
+#[derive(Debug)]
 pub struct HashMapStorage<T>(HashMap<Index, T, BuildHasherDefault<FnvHasher>>);
 
-impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
+impl<T> UnprotectedStorage<T> for HashMapStorage<T>
+    where T: Debug
+{
     fn new() -> Self {
         HashMapStorage(Default::default())
     }
@@ -490,9 +494,12 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
 }
 
 /// BTreeMap-based storage.
+#[derive(Debug)]
 pub struct BTreeStorage<T>(BTreeMap<Index, T>);
 
-impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
+impl<T> UnprotectedStorage<T> for BTreeStorage<T>
+    where T: Debug
+{
     fn new() -> Self {
         BTreeStorage(Default::default())
     }
@@ -522,9 +529,12 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
 
 /// Vector storage. Uses a simple `Vec`. Supposed to have maximum
 /// performance for the components mostly present in entities.
+#[derive(Debug)]
 pub struct VecStorage<T>(Vec<T>);
 
-impl<T> UnprotectedStorage<T> for VecStorage<T> {
+impl<T> UnprotectedStorage<T> for VecStorage<T>
+    where T: Debug
+{
     fn new() -> Self {
         VecStorage(Vec::new())
     }
@@ -573,13 +583,16 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
 /// Dense vector storage. Has a redirection 2-way table
 /// between entities and components, allowing to leave
 /// no gaps within the data.
+#[derive(Debug)]
 pub struct DenseVecStorage<T> {
     data: Vec<T>,
     entity_id: Vec<Index>,
     data_id: Vec<Index>,
 }
 
-impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
+impl<T> UnprotectedStorage<T> for DenseVecStorage<T>
+    where T: Debug
+{
     fn new() -> Self {
         DenseVecStorage {
             data: Vec::new(),
@@ -627,9 +640,12 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
 
 /// A null storage type, used for cases where the component
 /// doesn't contain any data and instead works as a simple flag.
+#[derive(Debug)]
 pub struct NullStorage<T>(T);
 
-impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
+impl<T: Default> UnprotectedStorage<T> for NullStorage<T>
+    where T: Debug
+{
     fn new() -> Self {
         NullStorage(Default::default())
     }
@@ -831,7 +847,7 @@ mod test {
         type Storage = NullStorage<Cnull>;
     }
 
-    fn create<T: Component>() -> Storage<T, Box<Allocator>, Box<MaskedStorage<T>>> {
+    fn create<T: Component>() -> Storage<T, Box<MaskedStorage<T>>> {
         Storage::new(Box::new(Allocator::new()),
                      Box::new(MaskedStorage::<T>::new()))
     }
@@ -874,9 +890,7 @@ mod test {
         }
 
         for i in 0..1_000 {
-            *s.get_mut(Entity::new(i, Generation(1)))
-                 .unwrap()
-                 .as_mut() -= 718;
+            *s.get_mut(Entity::new(i, Generation(1))).unwrap().as_mut() -= 718;
         }
 
         for i in 0..1_000 {
@@ -1086,11 +1100,29 @@ mod serialize_test {
             let mut world = World::<()>::new();
             world.register::<CompTest>();
             world.create_pure();
-            world.create_now().with(CompTest { field1: 0, field2: true }).build();
+            world
+                .create_now()
+                .with(CompTest {
+                          field1: 0,
+                          field2: true,
+                      })
+                .build();
             world.create_pure();
             world.create_pure();
-            world.create_now().with(CompTest { field1: 158123, field2: false }).build();
-            world.create_now().with(CompTest { field1: u32::max_value(), field2: false }).build();
+            world
+                .create_now()
+                .with(CompTest {
+                          field1: 158123,
+                          field2: false,
+                      })
+                .build();
+            world
+                .create_now()
+                .with(CompTest {
+                          field1: u32::max_value(),
+                          field2: false,
+                      })
+                .build();
             world.create_pure();
             world
         };
@@ -1133,18 +1165,38 @@ mod serialize_test {
         let mut storage = world.write::<CompTest>().pass();
         let packed: PackedData<CompTest> = serde_json::from_str(&data).unwrap();
         assert_eq!(packed.offsets, vec![3, 7, 8]);
-        assert_eq!(packed.components, vec![
-            CompTest { field1: 0, field2: true, },
-            CompTest { field1: 158123, field2: false, },
-            CompTest { field1: u32::max_value(), field2: false, },
-        ]);
+        assert_eq!(packed.components,
+                   vec![CompTest {
+                            field1: 0,
+                            field2: true,
+                        },
+                        CompTest {
+                            field1: 158123,
+                            field2: false,
+                        },
+                        CompTest {
+                            field1: u32::max_value(),
+                            field2: false,
+                        }]);
 
         storage.merge(&entities.as_slice(), packed);
 
         assert_eq!((&storage).join().count(), 3);
-        assert_eq!((&storage).get(entities[3]), Some(&CompTest { field1: 0, field2: true }));
-        assert_eq!((&storage).get(entities[7]), Some(&CompTest { field1: 158123, field2: false }));
-        assert_eq!((&storage).get(entities[8]), Some(&CompTest { field1: u32::max_value(), field2: false }));
+        assert_eq!((&storage).get(entities[3]),
+                   Some(&CompTest {
+                            field1: 0,
+                            field2: true,
+                        }));
+        assert_eq!((&storage).get(entities[7]),
+                   Some(&CompTest {
+                            field1: 158123,
+                            field2: false,
+                        }));
+        assert_eq!((&storage).get(entities[8]),
+                   Some(&CompTest {
+                            field1: u32::max_value(),
+                            field2: false,
+                        }));
 
         let none = vec![0, 1, 2, 4, 5, 6, 9];
         for entity in none {

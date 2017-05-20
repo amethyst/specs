@@ -5,7 +5,6 @@ use tuple_utils::Split;
 
 use Index;
 
-
 /// BitAnd is a helper method to & bitsets together resulting in a tree.
 pub trait BitAnd {
     type Value: BitSetLike;

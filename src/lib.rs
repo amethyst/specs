@@ -9,9 +9,8 @@
 extern crate atom;
 extern crate fnv;
 extern crate hibitset;
-#[macro_use]
 extern crate mopa;
-extern crate ticketed_lock;
+extern crate shred;
 extern crate tuple_utils;
 
 #[cfg(feature="parallel")]
@@ -26,16 +25,25 @@ extern crate serde;
 extern crate serde_derive;
 
 pub use join::{Join, JoinIter};
-pub use storage::{AntiStorage, BTreeStorage, GatedStorage, HashMapStorage, InsertResult,
-                  MaskedStorage, NullStorage, Storage, UnprotectedStorage, VecStorage,
-                  DenseVecStorage};
-pub use world::{Allocator, Component, CreateEntities, Entities, World};
+pub use world::World;
+pub use storage::{CheckStorage, InsertResult, ReadStorage, Storage, UnprotectedStorage,
+                  WriteStorage};
 
-#[cfg(feature="parallel")]
-pub use planner::{Planner, Priority, RunArg, System, SystemInfo};
-
-#[cfg(feature="serialize")]
+#[cfg(feature = "serialize")]
 pub use storage::{MergeError, PackedData};
+
+//#[cfg(feature="parallel")]
+//pub use planner::{Planner, Priority, RunArg, System, SystemInfo};
+
+/// Entity related types.
+pub mod entity {
+    pub use world::{Component, CreateIter, Entity, Entities, EntityBuilder, Generation};
+}
+
+/// Different types of storages you can use for your components.
+pub mod storages {
+    pub use storage::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
+}
 
 mod join;
 mod storage;
@@ -44,56 +52,6 @@ mod world;
 #[cfg(feature="parallel")]
 mod planner;
 
-
-/// Index generation. When a new entity is placed at an old index,
-/// it bumps the `Generation` by 1. This allows to avoid using components
-/// from the entities that were deleted.
-#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Generation(i32);
-
-impl Generation {
-    /// Returns `true` if entities of this `Generation` are alive.
-    pub fn is_alive(&self) -> bool {
-        self.0 > 0
-    }
-
-    /// Kills this `Generation`.
-    fn die(&mut self) {
-        debug_assert!(self.is_alive());
-        self.0 = -self.0;
-    }
-
-    /// Revives and increments a dead `Generation`.
-    fn raised(self) -> Generation {
-        debug_assert!(!self.is_alive());
-        Generation(1 - self.0)
-    }
-}
-
 /// `Index` type is arbitrary. It doesn't show up in any interfaces.
 /// Keeping it 32bit allows for a single 64bit word per entity.
 pub type Index = u32;
-
-/// `Entity` type, as seen by the user.
-#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Entity(Index, Generation);
-
-impl Entity {
-    #[cfg(test)]
-    /// Creates a new entity (externally from ECS).
-    pub fn new(index: Index, gen: Generation) -> Entity {
-        Entity(index, gen)
-    }
-
-    /// Returns the index of the `Entity`.
-    #[inline]
-    pub fn get_id(&self) -> Index {
-        self.0
-    }
-
-    /// Returns the `Generation` of the `Entity`.
-    #[inline]
-    pub fn get_gen(&self) -> Generation {
-        self.1
-    }
-}

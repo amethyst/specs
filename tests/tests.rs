@@ -36,22 +36,24 @@ fn wait() {
         let found_ent_0 = Arc::new(AtomicBool::new(false));
         let found_ent_1 = Arc::new(AtomicBool::new(false));
 
-        planner.mut_world().create_now()
+        planner
+            .mut_world()
+            .create_now()
             .with(CompInt(7))
             .with(CompBool(false))
             .build();
 
         let marker = found_ent_0.clone();
         planner.run1w1r(move |b: &mut CompBool, r: &CompInt| {
-            b.0 = r.0 == 7;
-            marker.store(true, Ordering::SeqCst);
-        });
+                            b.0 = r.0 == 7;
+                            marker.store(true, Ordering::SeqCst);
+                        });
         let marker = found_ent_1.clone();
         planner.run0w2r(move |r: &CompInt, b: &CompBool| {
-            assert_eq!(r.0, 7);
-            assert_eq!(b.0, true);
-            marker.store(true, Ordering::SeqCst);
-        });
+                            assert_eq!(r.0, 7);
+                            assert_eq!(b.0, true);
+                            marker.store(true, Ordering::SeqCst);
+                        });
         planner.wait();
 
         assert_eq!(found_ent_0.load(Ordering::SeqCst), true);
@@ -59,21 +61,24 @@ fn wait() {
     }
 }
 
-#[ignore] //TODO
+#[ignore]
+//TODO
 #[should_panic]
 #[test]
 #[cfg(feature="parallel")]
 fn _task_panics() {
     let mut planner = create_world();
-    planner.mut_world().create_now()
+    planner
+        .mut_world()
+        .create_now()
         .with(CompInt(7))
         .with(CompBool(false))
         .build();
 
     planner.run_custom(|args| {
-        args.fetch(|_| ());
-        panic!();
-    });
+                           args.fetch(|_| ());
+                           panic!();
+                       });
     planner.wait();
 }
 
@@ -83,14 +88,16 @@ fn _task_panics() {
 #[cfg(feature="parallel")]
 fn task_panics_args_captured() {
     let mut planner = create_world();
-    planner.mut_world().create_now()
+    planner
+        .mut_world()
+        .create_now()
         .with(CompInt(7))
         .with(CompBool(false))
         .build();
 
     planner.run_custom(|_| {
-        panic!();
-    });
+                           panic!();
+                       });
     planner.wait();
 }
 
@@ -101,9 +108,9 @@ fn dynamic_create() {
 
     for _ in 0..1_000 {
         planner.run_custom(|arg| {
-            arg.fetch(|_| ());
-            arg.create_pure();
-        });
+                               arg.fetch(|_| ());
+                               arg.create_pure();
+                           });
         planner.wait();
     }
 }
@@ -115,11 +122,11 @@ fn dynamic_deletion() {
 
     for _ in 0..1_000 {
         planner.run_custom(|arg| {
-            arg.fetch(|_| ());
-            let e = arg.create_pure();
-            arg.delete(e);
-            arg.delete(e); // double free
-        });
+                               arg.fetch(|_| ());
+                               let e = arg.create_pure();
+                               arg.delete(e);
+                               arg.delete(e); // double free
+                           });
         planner.wait();
     }
 }
@@ -130,25 +137,22 @@ fn dynamic_create_and_delete() {
     use std::mem::swap;
     let mut planner = create_world();
 
-    let (mut ent0, mut ent1) = (
-        Arc::new(Mutex::new(None)),
-        Arc::new(Mutex::new(None))
-    );
+    let (mut ent0, mut ent1) = (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)));
 
     for i in 0..1_000 {
         let e = ent0.clone();
         planner.run_custom(move |arg| {
-            arg.fetch(|_| ());
-            let mut e = e.lock().unwrap();
-            *e = Some(arg.create_pure());
-        });
+                               arg.fetch(|_| ());
+                               let mut e = e.lock().unwrap();
+                               *e = Some(arg.create_pure());
+                           });
         if i >= 1 {
             let e = ent1.clone();
             planner.run_custom(move |arg| {
-                arg.fetch(|_| ());
-                let mut e = e.lock().unwrap();
-                arg.delete(e.take().unwrap());
-            })
+                                   arg.fetch(|_| ());
+                                   let mut e = e.lock().unwrap();
+                                   arg.delete(e.take().unwrap());
+                               })
         }
         planner.wait();
         swap(&mut ent1, &mut ent0)
@@ -220,8 +224,12 @@ fn stillborn_entities() {
     struct LCG(u32);
     const RANDMAX: u32 = 32767;
     impl LCG {
-        fn new() -> Self { LCG(0xdeadbeef) }
-        fn geni(&mut self) -> i8 { ((self.gen() as i32) - 0x7f) as i8 }
+        fn new() -> Self {
+            LCG(0xdeadbeef)
+        }
+        fn geni(&mut self) -> i8 {
+            ((self.gen() as i32) - 0x7f) as i8
+        }
         fn gen(&mut self) -> u32 {
             self.0 = self.0.wrapping_mul(214013).wrapping_add(2531011);
             self.0 % RANDMAX
@@ -231,29 +239,30 @@ fn stillborn_entities() {
     let mut rng = LCG::new();
 
     // Construct a bunch of entities
-    let mut planner = specs::Planner::<()>::new({
-        let mut world = specs::World::new();
-        world.register::<CompInt>();
+    let mut planner =
+        specs::Planner::<()>::new({
+                                      let mut world = specs::World::new();
+                                      world.register::<CompInt>();
 
-        for _ in 0 .. 100 {
-            world.create_now().with(CompInt(rng.geni())).build();
-        }
+                                      for _ in 0..100 {
+                                          world.create_now().with(CompInt(rng.geni())).build();
+                                      }
 
-        world
-    });
+                                      world
+                                  });
 
-    for _ in 0 .. 100 {
+    for _ in 0..100 {
         let count = (rng.gen() % 25) as usize;
         let mut values = vec![];
-        for _ in 0 .. count { values.push(rng.geni()); }
+        for _ in 0..count {
+            values.push(rng.geni());
+        }
 
         // Cull the same number of entities we expect to insert
         planner.run_custom(move |arg| {
             use specs::Join;
 
-            let (compint, eids) = arg.fetch(|w| {
-                (w.read::<CompInt>(), w.entities())
-            });
+            let (compint, eids) = arg.fetch(|w| (w.read::<CompInt>(), w.entities()));
 
             let mut lowest = vec![];
             for (&CompInt(k), eid) in (&compint, &eids).join() {
@@ -264,7 +273,9 @@ fn stillborn_entities() {
 
             lowest.reverse();
             lowest.truncate(count);
-            for (_, eid) in lowest.into_iter() { arg.delete(eid); }
+            for (_, eid) in lowest.into_iter() {
+                arg.delete(eid);
+            }
         });
 
         planner.run_custom(move |arg| {
@@ -312,9 +323,7 @@ fn register_idempotency() {
     let mut w = specs::World::new();
     w.register::<CompInt>();
 
-    let e = w.create_now()
-        .with::<CompInt>(CompInt(10))
-        .build();
+    let e = w.create_now().with::<CompInt>(CompInt(10)).build();
 
     // At the time this test was written, a call to `register`
     // would blindly plough ahead and stomp the existing storage, so...
@@ -333,14 +342,15 @@ fn fetch_has_to_be_called_atleast_once() {
     planner.run_custom(|_| {});
 }
 
-#[ignore] //TODO
+#[ignore]
+//TODO
 #[should_panic(expected = "fetch may only be called once.")]
 #[test]
 #[cfg(feature="parallel")]
 fn fetch_has_to_be_called_atmost_once() {
     let mut planner = specs::Planner::<()>::new(specs::World::new());
     planner.run_custom(|args| {
-        args.fetch(|_| {});
-        args.fetch(|_| {});
-    });
+                           args.fetch(|_| {});
+                           args.fetch(|_| {});
+                       });
 }
