@@ -24,6 +24,8 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+pub use shred::{Dispatcher, DispatcherBuilder, Resource, System, SystemData};
+
 pub use join::{Join, JoinIter};
 pub use world::World;
 pub use storage::{CheckStorage, InsertResult, ReadStorage, Storage, UnprotectedStorage,
@@ -31,9 +33,6 @@ pub use storage::{CheckStorage, InsertResult, ReadStorage, Storage, UnprotectedS
 
 #[cfg(feature = "serialize")]
 pub use storage::{MergeError, PackedData};
-
-//#[cfg(feature="parallel")]
-//pub use planner::{Planner, Priority, RunArg, System, SystemInfo};
 
 /// Entity related types.
 pub mod entity {
