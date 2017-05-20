@@ -26,21 +26,13 @@ fnv = "1.0"
 hibitset = { path = "../hibitset" }
 mopa = "0.2"
 shred = { path = "../shred" }
+shred-derive = { path = "../shred/shred-derive" }
 tuple_utils = "0.2"
-
-pulse = { version = "0.5", optional = true }
 
 serde = { version = "0.9.11", optional = true }
 serde_derive = { version = "0.9.11", optional = true }
 
-[dependencies.rayon]
-version = "0.7"
-optional = true
-features = ["unstable"]
-
 [features]
-default = ["parallel"]
-parallel = ["pulse", "rayon"]
 serialize = ["serde", "serde_derive"]
 
 [dev-dependencies]

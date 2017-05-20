@@ -5,9 +5,9 @@ use entity::{Component, Entity, Generation};
 use {Index, World};
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T> {
-    world.register_component::<T, _>(());
+    world.register::<T, _>(());
 
-    world.write_component()
+    world.write()
 }
 
 mod map_test {
@@ -412,11 +412,11 @@ mod test {
     fn wrong_storage() {
         use join::Join;
         let mut w = World::new();
-        w.register_component::<Cvec, _>(1);
-        w.register_component::<Cvec, _>(2);
-        let mut s1: Storage<Cvec, _> = w.write_component_with_id(1);
+        w.register::<Cvec, _>(1);
+        w.register::<Cvec, _>(2);
+        let mut s1: Storage<Cvec, _> = w.write_with_id(1);
         // Possibility if the world uses dynamic components.
-        let s2: Storage<Cvec, _> = w.write_component_with_id(2);
+        let s2: Storage<Cvec, _> = w.write_with_id(2);
 
         for i in 0..50 {
             s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
@@ -449,7 +449,7 @@ mod serialize_test {
         // set up
         let mut world = {
             let mut world = World::<()>::new();
-            world.register::<CompTest>();
+            world.register::<CompTest, _>(());
             world.create_pure();
             world
                 .create_now()
@@ -488,7 +488,7 @@ mod serialize_test {
         // set up
         let (mut world, entities) = {
             let mut world = World::<()>::new();
-            world.register::<CompTest>();
+            world.register::<CompTest, _>(());
             let entities = world.create_iter().take(10).collect::<Vec<Entity>>();
             (world, entities)
         };

@@ -1,11 +1,8 @@
 extern crate specs;
 
-#[cfg(feature="parallel")]
 use specs::Entity;
 use specs::Gate;
-#[cfg(feature="parallel")]
 use std::sync::{Arc, Mutex};
-#[cfg(feature="parallel")]
 use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Clone, Debug)]
@@ -19,7 +16,6 @@ impl specs::Component for CompBool {
     type Storage = specs::HashMapStorage<CompBool>;
 }
 
-#[cfg(feature="parallel")]
 fn create_world() -> specs::Planner<()> {
     let mut w = specs::World::new();
     w.register::<CompInt>();
@@ -28,7 +24,6 @@ fn create_world() -> specs::Planner<()> {
 }
 
 #[test]
-#[cfg(feature="parallel")]
 fn wait() {
     let mut planner = create_world();
 
@@ -65,7 +60,6 @@ fn wait() {
 //TODO
 #[should_panic]
 #[test]
-#[cfg(feature="parallel")]
 fn _task_panics() {
     let mut planner = create_world();
     planner
@@ -85,7 +79,6 @@ fn _task_panics() {
 
 #[should_panic]
 #[test]
-#[cfg(feature="parallel")]
 fn task_panics_args_captured() {
     let mut planner = create_world();
     planner
@@ -102,7 +95,6 @@ fn task_panics_args_captured() {
 }
 
 #[test]
-#[cfg(feature="parallel")]
 fn dynamic_create() {
     let mut planner = create_world();
 
@@ -116,7 +108,6 @@ fn dynamic_create() {
 }
 
 #[test]
-#[cfg(feature="parallel")]
 fn dynamic_deletion() {
     let mut planner = create_world();
 
@@ -132,7 +123,6 @@ fn dynamic_deletion() {
 }
 
 #[test]
-#[cfg(feature="parallel")]
 fn dynamic_create_and_delete() {
     use std::mem::swap;
     let mut planner = create_world();
@@ -160,7 +150,6 @@ fn dynamic_create_and_delete() {
 }
 
 #[test]
-#[cfg(feature="parallel")]
 fn mixed_create_merge() {
     use std::collections::HashSet;
     let mut planner = create_world();
@@ -219,7 +208,6 @@ fn is_alive() {
 
 // Checks whether entities are considered dead immediately after creation
 #[test]
-#[cfg(feature="parallel")]
 fn stillborn_entities() {
     struct LCG(u32);
     const RANDMAX: u32 = 32767;
@@ -336,7 +324,6 @@ fn register_idempotency() {
 
 #[should_panic(expected = "fetch should be called once.")]
 #[test]
-#[cfg(feature="parallel")]
 fn fetch_has_to_be_called_atleast_once() {
     let mut planner = specs::Planner::<()>::new(specs::World::new());
     planner.run_custom(|_| {});
@@ -346,7 +333,6 @@ fn fetch_has_to_be_called_atleast_once() {
 //TODO
 #[should_panic(expected = "fetch may only be called once.")]
 #[test]
-#[cfg(feature="parallel")]
 fn fetch_has_to_be_called_atmost_once() {
     let mut planner = specs::Planner::<()>::new(specs::World::new());
     planner.run_custom(|args| {

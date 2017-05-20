@@ -1,6 +1,5 @@
 extern crate specs;
 
-#[cfg(feature="parallel")]
 use specs::Join;
 
 #[derive(Clone, Debug)]
@@ -27,10 +26,6 @@ impl specs::Component for CompFloat {
 #[derive(Clone, Debug)]
 struct Sum(usize);
 
-#[cfg(not(feature="parallel"))]
-fn main() {}
-
-#[cfg(feature="parallel")]
 fn main() {
     let (e, mut planner) = {
         let mut w = specs::World::new();
