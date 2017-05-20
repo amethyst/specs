@@ -12,7 +12,7 @@ use Index;
 
 /// Internally used structure for `Entity` allocation.
 #[derive(Default, Debug)]
-struct Allocator {
+pub struct Allocator {
     generations: Vec<Generation>,
 
     alive: BitSet,
@@ -265,6 +265,11 @@ impl Resource for Entities {}
 pub struct Generation(i32);
 
 impl Generation {
+    #[cfg(test)]
+    pub fn new(v: i32) -> Self {
+        Generation(v)
+    }
+
     /// Returns `true` if entities of this `Generation` are alive.
     pub fn is_alive(&self) -> bool {
         self.0 > 0
