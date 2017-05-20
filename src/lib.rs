@@ -42,7 +42,8 @@ pub mod entity {
 
 /// Different types of storages you can use for your components.
 pub mod storages {
-    pub use storage::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
+    pub use storage::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage,
+                                VecStorage};
 }
 
 mod join;
