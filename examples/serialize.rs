@@ -28,17 +28,22 @@ mod s {
             use std::fmt::Display;
 
             let (entities, mut components) = arg.fetch(|w| {
-                let entities = w.entities();
-                let mut components = w.write::<CompSerialize>();
+                                                           let entities = w.entities();
+                                                           let mut components =
+                                                               w.write::<CompSerialize>();
 
-                (entities, components)
-            });
+                                                           (entities, components)
+                                                       });
 
             // Serialize the storage into JSON
             let mut buffer: Vec<u8> = Vec::new();
             let mut serializer = serde_json::Serializer::pretty(buffer);
             let result = components.serialize(&mut serializer);
-            let serialized = serializer.into_inner().iter().map(|b| *b as char).collect::<String>(); 
+            let serialized = serializer
+                .into_inner()
+                .iter()
+                .map(|b| *b as char)
+                .collect::<String>();
             println!("Serialized storage: {}", serialized);
 
             // Get a list of all entities in the world
@@ -66,13 +71,37 @@ mod s {
 
         world.create_pure();
         world.create_pure();
-        world.create_now().with(CompSerialize { field: 5, other: true }).build();
+        world
+            .create_now()
+            .with(CompSerialize {
+                      field: 5,
+                      other: true,
+                  })
+            .build();
         world.create_pure();
         world.create_pure();
-        world.create_now().with(CompSerialize { field: 5, other: true }).build();
-        world.create_now().with(CompSerialize { field: 10, other: false }).build();
+        world
+            .create_now()
+            .with(CompSerialize {
+                      field: 5,
+                      other: true,
+                  })
+            .build();
+        world
+            .create_now()
+            .with(CompSerialize {
+                      field: 10,
+                      other: false,
+                  })
+            .build();
         world.create_pure();
-        world.create_now().with(CompSerialize { field: 0, other: false }).build();
+        world
+            .create_now()
+            .with(CompSerialize {
+                      field: 0,
+                      other: false,
+                  })
+            .build();
 
         let mut planner = specs::Planner::<()>::new(world);
         planner.add_system::<SerializeSystem>(SerializeSystem, "serialize_system", 0);

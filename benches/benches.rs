@@ -51,50 +51,44 @@ mod world {
     fn delete_now(b: &mut test::Bencher) {
         let mut w = specs::World::new();
         let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_now().build()).collect();
-        b.iter(|| {
-            if let Some(id) = eids.pop() {
-                w.delete_now(id)
-            }
-        });
+        b.iter(|| if let Some(id) = eids.pop() {
+                   w.delete_now(id)
+               });
     }
 
     #[bench]
     fn delete_now_with_storage(b: &mut test::Bencher) {
         let mut w = create_world();
-        let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_now().with(CompInt(1)).build()).collect();
-        b.iter(|| {
-            if let Some(id) = eids.pop() {
-                w.delete_now(id)
-            }
-        });
+        let mut eids: Vec<_> = (0..10_000_000)
+            .map(|_| w.create_now().with(CompInt(1)).build())
+            .collect();
+        b.iter(|| if let Some(id) = eids.pop() {
+                   w.delete_now(id)
+               });
     }
 
     #[bench]
     fn delete_later(b: &mut test::Bencher) {
         let mut w = specs::World::new();
         let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_now().build()).collect();
-        b.iter(|| {
-            if let Some(id) = eids.pop() {
-                w.delete_later(id)
-            }
-        });
+        b.iter(|| if let Some(id) = eids.pop() {
+                   w.delete_later(id)
+               });
     }
 
     #[bench]
     fn maintain_noop(b: &mut test::Bencher) {
         let mut w = specs::World::new();
-        b.iter(|| {
-            w.maintain();
-        });
+        b.iter(|| { w.maintain(); });
     }
 
     #[bench]
     fn maintain_add_later(b: &mut test::Bencher) {
         let mut w = specs::World::new();
         b.iter(|| {
-            w.create_pure();
-            w.maintain();
-        });
+                   w.create_pure();
+                   w.maintain();
+               });
     }
 
     #[bench]
@@ -102,10 +96,10 @@ mod world {
         let mut w = specs::World::new();
         let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_now().build()).collect();
         b.iter(|| {
-            if let Some(id) = eids.pop() {
-                w.delete_later(id);
-            }
-            w.maintain();
-        });
+                   if let Some(id) = eids.pop() {
+                       w.delete_later(id);
+                   }
+                   w.maintain();
+               });
     }
 }
