@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut, Not};
 
 use hibitset::{BitSet, BitSetNot};
 use mopa::Any;
-use shred::{Fetch, FetchMut, Resource};
+use shred::{Fetch, FetchMut, Resource, ResourceId, Resources, SystemData};
 
 use join::Join;
 use world::{Component, Entity, Entities};
@@ -22,9 +22,38 @@ pub mod storages;
 mod tests;
 
 /// A storage with read access.
-pub type ReadStorage<'a, 'e, T> = Storage<'e, T, Fetch<'a, MaskedStorage<T>>>;
+pub type ReadStorage<'a, T> = Storage<'a, T, Fetch<'a, MaskedStorage<T>>>;
+
+impl<'a, T> SystemData<'a> for ReadStorage<'a, T> where T: Component {
+    fn fetch(res: &'a Resources) -> Self {
+        Storage::new(res.fetch(()), res.fetch(()))
+    }
+
+    unsafe fn reads() -> Vec<ResourceId> {
+        vec![ResourceId::new::<Entities>(), ResourceId::new::<MaskedStorage<T>>()]
+    }
+
+    unsafe fn writes() -> Vec<ResourceId> {
+        vec![]
+    }
+}
+
 /// A storage with read and write access.
-pub type WriteStorage<'a, 'e, T> = Storage<'e, T, FetchMut<'a, MaskedStorage<T>>>;
+pub type WriteStorage<'a, T> = Storage<'a, T, FetchMut<'a, MaskedStorage<T>>>;
+
+impl<'a, T> SystemData<'a> for WriteStorage<'a, T> where T: Component {
+    fn fetch(res: &'a Resources) -> Self {
+        Storage::new(res.fetch(()), res.fetch_mut(()))
+    }
+
+    unsafe fn reads() -> Vec<ResourceId> {
+        vec![ResourceId::new::<Entities>()]
+    }
+
+    unsafe fn writes() -> Vec<ResourceId> {
+        vec![ResourceId::new::<MaskedStorage<T>>()]
+    }
+}
 
 /// A dynamic storage.
 pub trait AnyStorage {

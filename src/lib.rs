@@ -13,18 +13,11 @@ extern crate mopa;
 extern crate shred;
 extern crate tuple_utils;
 
-#[cfg(feature="parallel")]
-extern crate pulse;
-#[cfg(feature="parallel")]
-extern crate rayon;
-
 #[cfg(feature="serialize")]
 extern crate serde;
 #[cfg(feature="serialize")]
 #[macro_use]
 extern crate serde_derive;
-
-pub use shred::{Dispatcher, DispatcherBuilder, Resource, System, SystemData};
 
 pub use join::{Join, JoinIter};
 pub use world::World;

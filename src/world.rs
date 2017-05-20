@@ -182,7 +182,7 @@ impl<'a> EntityBuilder<'a> {
     /// Appends a component with a component id.
     pub fn with_id<T: Component, ID: Hash + Eq>(self, c: T, id: ID) -> Self {
         {
-            let mut storage = self.world.write_component_with_id(id);
+            let mut storage = self.world.write_with_id(id);
             storage.insert(self.entity, c);
         }
 
@@ -293,7 +293,8 @@ impl Generation {
 /// The type parameter C is for component identification in addition of their types.
 #[derive(Debug)]
 pub struct World {
-    res: Resources,
+    /// The resources used for this world.
+    pub res: Resources,
     storages: Vec<*mut AnyStorage>,
 }
 
@@ -307,10 +308,18 @@ impl World {
     ///
     /// Does nothing if the component was already
     /// registered.
-    pub fn register_component<T: Component, ID: Clone + Hash + Eq>(&mut self, id: ID) {
-        use std::any::TypeId;
+    pub fn register<T: Component>(&mut self) {
+        self.register_with_id::<T, ()>(());
+    }
 
-        if self.res.has_value(TypeId::of::<MaskedStorage<T>>(), ()) {
+    /// Registers a new component with a given id.
+    ///
+    /// Does nothing if the component was already
+    /// registered.
+    pub fn register_with_id<T: Component, ID: Clone + Hash + Eq>(&mut self, id: ID) {
+        use shred::ResourceId;
+
+        if self.res.has_value(ResourceId::new_with_id::<MaskedStorage<T>, ID>(id.clone())) {
             return;
         }
 
@@ -325,8 +334,8 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed mutably.
-    pub fn read_component<T: Component>(&self) -> ReadStorage<T> {
-        self.read_component_with_id(())
+    pub fn read<T: Component>(&self) -> ReadStorage<T> {
+        self.read_with_id(())
     }
 
     /// Fetches a component's storage with the default id for writing.
@@ -334,8 +343,8 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed.
-    pub fn write_component<T: Component>(&self) -> WriteStorage<T> {
-        self.write_component_with_id(())
+    pub fn write<T: Component>(&self) -> WriteStorage<T> {
+        self.write_with_id(())
     }
 
     /// Fetches a component's storage with a specified id for reading.
@@ -343,7 +352,7 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed mutably.
-    pub fn read_component_with_id<T: Component, ID: Hash + Eq>(&self, id: ID) -> ReadStorage<T> {
+    pub fn read_with_id<T: Component, ID: Hash + Eq>(&self, id: ID) -> ReadStorage<T> {
         let entities = self.entities();
 
         Storage::new(entities, self.res.fetch(id))
@@ -354,7 +363,7 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed.
-    pub fn write_component_with_id<T: Component, ID: Hash + Eq>(&self, id: ID) -> WriteStorage<T> {
+    pub fn write_with_id<T: Component, ID: Hash + Eq>(&self, id: ID) -> WriteStorage<T> {
         let entities = self.entities();
 
         Storage::new(entities, self.res.fetch_mut(id))
