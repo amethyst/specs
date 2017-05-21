@@ -319,7 +319,8 @@ impl World {
     pub fn register_with_id<T: Component, ID: Clone + Hash + Eq>(&mut self, id: ID) {
         use shred::ResourceId;
 
-        if self.res.has_value(ResourceId::new_with_id::<MaskedStorage<T>, ID>(id.clone())) {
+        if self.res
+               .has_value(ResourceId::new_with_id::<MaskedStorage<T>, ID>(id.clone())) {
             return;
         }
 
@@ -327,6 +328,27 @@ impl World {
 
         let mut storage = self.res.fetch_mut::<MaskedStorage<T>, _>(id);
         self.storages.push(&mut *storage as *mut AnyStorage);
+    }
+
+    /// Adds a resource with the default ID.
+    ///
+    /// If the resource already exists it will be overwritten.
+    pub fn add_resource<T: Resource>(&mut self, res: T) {
+        self.add_resource_with_id(res, ());
+    }
+
+    /// Adds a resource with a given ID.
+    ///
+    /// If the resource already exists it will be overwritten.
+    pub fn add_resource_with_id<T: Resource, ID: Clone + Hash + Eq>(&mut self, res: T, id: ID) {
+        use shred::ResourceId;
+
+        if self.res
+               .has_value(ResourceId::new_with_id::<T, ID>(id.clone())) {
+            *self.write_resource_with_id(id) = res;
+        } else {
+            self.res.add(res, id);
+        }
     }
 
     /// Fetches a component's storage with the default id for reading.
