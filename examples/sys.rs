@@ -51,9 +51,7 @@ fn main() {
     world.create_entity().with(Vel(4.0)).with(Pos(1.6)).build();
     world.create_entity().with(Vel(1.5)).with(Pos(5.4)).build();
 
-    let mut dispatcher = DispatcherBuilder::new()
-        .add(SysA, "sys_a", &[])
-        .finish();
+    let mut dispatcher = DispatcherBuilder::new().add(SysA, "sys_a", &[]).finish();
 
     dispatcher.dispatch(&mut world.res, ());
 }

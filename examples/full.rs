@@ -1,30 +1,170 @@
+extern crate shred;
+#[macro_use]
+extern crate shred_derive;
 extern crate specs;
 
-use specs::Join;
+use shred::{DispatcherBuilder, Fetch, Resource, System};
+use specs::{Join, ReadStorage, WriteStorage};
+use specs::entity::{Component, Entity, Entities};
+use specs::storages::{DenseVecStorage, HashMapStorage, VecStorage};
+
+// -- Components --
+// A component exists for 0..n
+// entities.
 
 #[derive(Clone, Debug)]
-struct CompInt(i8);
-impl specs::Component for CompInt {
+struct CompInt(i32);
+
+impl Component for CompInt {
     // Storage is used to store all data for components of this type
     // VecStorage is meant to be used for components that are in almost every entity
-    type Storage = specs::VecStorage<CompInt>;
+    type Storage = VecStorage<CompInt>;
 }
 
 #[derive(Clone, Debug)]
 struct CompBool(bool);
-impl specs::Component for CompBool {
-    // HashMapStorage is better for componets that are met rarely
-    type Storage = specs::HashMapStorage<CompBool>;
+
+impl Component for CompBool {
+    // HashMapStorage is better for components that are met rarely
+    type Storage = HashMapStorage<CompBool>;
 }
 
 #[derive(Clone, Debug)]
 struct CompFloat(f32);
-impl specs::Component for CompFloat {
-    type Storage = specs::DenseVecStorage<CompFloat>;
+
+impl Component for CompFloat {
+    type Storage = DenseVecStorage<CompFloat>;
 }
+
+// -- Resources --
+// Resources can be accessed
+// from systems.
 
 #[derive(Clone, Debug)]
 struct Sum(usize);
+
+impl Resource for Sum {}
+
+// -- System Data --
+// Each system has an associated
+// data type.
+
+#[derive(SystemData)]
+struct IntAndBoolData<'a> {
+    comp_int: ReadStorage<'a, CompInt>,
+    comp_bool: WriteStorage<'a, CompBool>,
+}
+
+#[derive(SystemData)]
+struct SpawnData<'a> {
+    comp_int: WriteStorage<'a, CompInt>,
+    entities: Fetch<'a, Entities>,
+}
+
+#[derive(SystemData)]
+struct StoreMaxData<'a> {
+    comp_float: ReadStorage<'a, CompFloat>,
+    comp_int: ReadStorage<'a, CompInt>,
+    entities: Fetch<'a, Entities>,
+}
+
+// -- Systems --
+
+struct SysPrintBool;
+
+impl<'a, C> System<'a, C> for SysPrintBool {
+    type SystemData = ReadStorage<'a, CompBool>;
+
+    fn work(&mut self, data: ReadStorage<CompBool>, _: C) {
+        for b in (&data).join() {
+            println!("Bool: {:?}", b);
+        }
+    }
+}
+
+struct SysCheckPositive;
+
+impl<'a, C> System<'a, C> for SysCheckPositive {
+    type SystemData = IntAndBoolData<'a>;
+
+    fn work(&mut self, mut data: IntAndBoolData, _: C) {
+        // Join merges the two component storages,
+        // so you get all (CompInt, CompBool) pairs.
+        for (ci, cb) in (&data.comp_int, &mut data.comp_bool).join() {
+            cb.0 = ci.0 > 0;
+        }
+    }
+}
+
+struct SysSpawn {
+    counter: i32,
+}
+
+impl SysSpawn {
+    fn new() -> Self {
+        SysSpawn { counter: 0 }
+    }
+}
+
+impl<'a, C> System<'a, C> for SysSpawn {
+    type SystemData = SpawnData<'a>;
+
+    fn work(&mut self, mut data: SpawnData, _: C) {
+        if self.counter == 0 {
+            let entity = data.entities.join().next().unwrap();
+            data.entities.delete(entity);
+        }
+
+        let entity = data.entities.create();
+        data.comp_int.insert(entity, CompInt(self.counter));
+
+        self.counter += 1;
+
+        if self.counter > 100 {
+            self.counter = 0;
+        }
+    }
+}
+
+/// Stores the entity with
+/// the greatest int.
+struct SysStoreMax(Option<Entity>);
+
+impl SysStoreMax {
+    fn new() -> Self {
+        SysStoreMax(None)
+    }
+}
+
+impl<'a, C> System<'a, C> for SysStoreMax {
+    type SystemData = StoreMaxData<'a>;
+
+    fn work(&mut self, data: StoreMaxData, _: C) {
+        use std::i32::MIN;
+
+        // Let's print information about
+        // last run's entity
+        if let Some(e) = self.0 {
+            if let Some(f) = data.comp_float.get(e) {
+                println!("Entity with biggest int has float value {:?}", f);
+            } else {
+                println!("Entity with biggest int has no float value");
+            }
+        }
+
+        let mut max_entity = None;
+        let mut max = MIN;
+
+        for (entity, value) in (&*data.entities, &data.comp_int).join() {
+            if value.0 >= max {
+                max = value.0;
+                max_entity = Some(entity);
+            }
+        }
+
+        self.0 = max_entity;
+    }
+}
 
 fn main() {
     let mut w = specs::World::new();
@@ -54,90 +194,17 @@ fn main() {
     // component storage does.
     w.add_resource(Sum(0xdeadbeef));
 
-    // Planner only runs closure on entities with specified components, for example:
-    // We have 5 entities and this will print only 4 of them
-    println!("Only entities with CompBool present:");
-    planner.run0w1r(|b: &CompBool| {
-                        println!("Entity {}", b.0);
-                    });
-    // wait waits for all scheduled systems to finish
-    // If wait is not called, all systems are run in parallel, waiting on locks
-    planner.wait();
+    let mut dispatcher = DispatcherBuilder::new()
+        .add(SysPrintBool, "print_bool", &[])
+        .add(SysCheckPositive, "check_positive", &["print_bool"])
+        .add(SysStoreMax::new(), "store_max", &["check_positive"])
+        .add(SysSpawn::new(), "spawn", &[])
+        .add(SysPrintBool, "print_bool2", &["check_positive"])
+        .finish();
 
-    planner.run1w1r(|b: &mut CompBool, a: &CompInt| { b.0 = a.0 > 0; });
-    // Deletes an entity instantly
-    planner.mut_world().delete_now(e);
+    dispatcher.dispatch(&mut w.res, ());
 
-    // Instead of using macros you can use run_custom() to build a system precisely
-    planner.run_custom(|arg| {
-        // fetch() borrows a world, so a system could lock necessary storages
-        // Can be called only once
-        let (mut sa, sb) = arg.fetch(|w| (w.write::<CompInt>(), w.read::<CompBool>()));
+    w.write().insert(e, CompFloat(4.0));
 
-        // Instead of using the `entities` array you can
-        // use the `Join` trait that is an optimized way of
-        // doing the `get/get_mut` across entities.
-        for (a, b) in (&mut sa, &sb).join() {
-            a.0 += if b.0 { 2 } else { 0 };
-        }
-
-        // Dynamically creating and deleting entities
-        let e0 = arg.create_pure();
-        sa.insert(e0, CompInt(-4));
-        let e1 = arg.create_pure();
-        sa.insert(e1, CompInt(-5));
-        arg.delete(e0);
-    });
-    
-    println!("Only entities with CompInt and CompBool present:");
-    planner.run0w2r(|a: &CompInt, b: &CompBool| {
-                        println!("Entity {} {}", a.0, b.0);
-                    });
-    planner.run_custom(|arg| {
-        let (mut sa, sb, entities) =
-            arg.fetch(|w| (w.write::<CompFloat>(), w.read::<CompInt>(), w.entities()));
-
-        // Insert a component for each entity in sb
-        for (eid, sb) in (&entities, &sb).join() {
-            sa.insert(eid, CompFloat(sb.0 as f32));
-        }
-
-        for (eid, sa, sb) in (&entities, &mut sa, &sb).join() {
-            assert_eq!(sa.0 as u32, sb.0 as u32);
-            println!("eid[{:?}] = {:?} {:?}", eid, sa, sb);
-        }
-    });
-    planner.run_custom(|arg| {
-                           let (ints, mut count) = arg.fetch(|w| {
-            (w.read::<CompInt>(),
-             // resources are acquired in the same way as components
-             w.write_resource::<Sum>())
-        });
-                           count.0 = (&ints,).join().count();
-                       });
-    planner.run_custom(|arg| {
-                           let count = arg.fetch(|w| w.read_resource::<Sum>());
-                           println!("count={:?}", count.0);
-                       });
-    planner.run_custom(|arg| {
-        let (entities, mut ci, cb) =
-            arg.fetch(|w| (w.entities(), w.write::<CompInt>(), w.read::<CompBool>()));
-
-        // components that have a CompInt but no CompBool
-        for (entity, mut entry, _) in (&entities, &ci.check(), !&cb).join() {
-            {
-                // This works because `.check()` isn't returning the component.
-                let compint = ci.get_mut(entity);
-                let compbool = cb.get(entity);
-                println!("{:?} {:?} {:?}", entity, compint, compbool);
-            }
-
-            {
-                // This does the same as the above,
-                // only it doesn't check again whether the storage has the component.
-                let _unchecked_compint = ci.get_mut_unchecked(&mut entry);
-            }
-        }
-    });
-    planner.wait();
+    dispatcher.dispatch(&mut w.res, ());
 }
