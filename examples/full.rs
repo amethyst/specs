@@ -27,34 +27,32 @@ impl specs::Component for CompFloat {
 struct Sum(usize);
 
 fn main() {
-    let (e, mut planner) = {
-        let mut w = specs::World::new();
-        // All components types should be registered before working with them
-        w.register::<CompInt>();
-        w.register::<CompBool>();
-        w.register::<CompFloat>();
-        // create_now() of World provides with an EntityBuilder to add components to an Entity
-        w.create_now()
-            .with(CompInt(4))
-            .with(CompBool(false))
-            .build();
-        // build() returns an entity, we will use it later to perform a deletion
-        let e = w.create_now().with(CompInt(9)).with(CompBool(true)).build();
-        w.create_now()
-            .with(CompInt(-1))
-            .with(CompBool(false))
-            .build();
-        w.create_now().with(CompInt(127)).build();
-        w.create_now().with(CompBool(false)).build();
+    let mut w = specs::World::new();
+    // All components types should be registered before working with them
+    w.register::<CompInt>();
+    w.register::<CompBool>();
+    w.register::<CompFloat>();
+    // create_entity() of World provides with an EntityBuilder to add components to an Entity
+    w.create_entity()
+        .with(CompInt(4))
+        .with(CompBool(false))
+        .build();
+    // build() returns an entity, we will use it later to perform a deletion
+    let e = w.create_entity()
+        .with(CompInt(9))
+        .with(CompBool(true))
+        .build();
+    w.create_entity()
+        .with(CompInt(-1))
+        .with(CompBool(false))
+        .build();
+    w.create_entity().with(CompInt(127)).build();
+    w.create_entity().with(CompBool(false)).build();
 
-        // resources can be installed, these are nothing fancy, but allow you
-        // to pass data to systems and follow the same sync strategy as the
-        // component storage does.
-        w.add_resource(Sum(0xdeadbeef));
-
-        // Planner is used to run systems on the specified world
-        (e, specs::Planner::<()>::new(w))
-    };
+    // resources can be installed, these are nothing fancy, but allow you
+    // to pass data to systems and follow the same sync strategy as the
+    // component storage does.
+    w.add_resource(Sum(0xdeadbeef));
 
     // Planner only runs closure on entities with specified components, for example:
     // We have 5 entities and this will print only 4 of them
@@ -90,6 +88,7 @@ fn main() {
         sa.insert(e1, CompInt(-5));
         arg.delete(e0);
     });
+    
     println!("Only entities with CompInt and CompBool present:");
     planner.run0w2r(|a: &CompInt, b: &CompBool| {
                         println!("Entity {} {}", a.0, b.0);
