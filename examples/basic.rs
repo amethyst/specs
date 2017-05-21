@@ -5,8 +5,7 @@ extern crate specs;
 
 use shred::{DispatcherBuilder, System};
 
-use specs::{ReadStorage, WriteStorage, World};
-use specs::entity::Component;
+use specs::{Component, ReadStorage, WriteStorage, World};
 use specs::storages::VecStorage;
 
 // A component contains data
