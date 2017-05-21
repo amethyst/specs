@@ -19,6 +19,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+pub use entity::{Component, Entities};
 pub use join::{Join, JoinIter};
 pub use world::World;
 pub use storage::{CheckStorage, InsertResult, ReadStorage, Storage, UnprotectedStorage,
