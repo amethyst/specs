@@ -15,7 +15,9 @@ mod map_test {
 
     #[derive(Debug)]
     struct Comp<T>(T);
-    impl<T: Any + Send + Sync> Component for Comp<T> where T: Debug {
+    impl<T: Any + Send + Sync> Component for Comp<T>
+        where T: Debug
+    {
         type Storage = VecStorage<Comp<T>>;
     }
 
@@ -217,7 +219,9 @@ mod test {
         }
 
         for i in 0..1_000 {
-            *s.get_mut(Entity::new(i, Generation::new(1))).unwrap().as_mut() -= 718;
+            *s.get_mut(Entity::new(i, Generation::new(1)))
+                 .unwrap()
+                 .as_mut() -= 718;
         }
 
         for i in 0..1_000 {
@@ -423,7 +427,7 @@ mod test {
         }
         for entry in (&s1.check()).join() {
             s2.get_unchecked(&entry); // verify that the assert fails if the storage is
-                                      // not the original.
+            // not the original.
         }
     }
 }
@@ -432,7 +436,7 @@ mod test {
 mod serialize_test {
     extern crate serde_json;
 
-    use super::{Entity, Join, VecStorage, Component, Gate, PackedData};
+    use super::{Join, VecStorage, Component, PackedData};
     use world::World;
 
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
@@ -447,51 +451,47 @@ mod serialize_test {
     #[test]
     fn serialize_storage() {
         // set up
-        let mut world = {
-            let mut world = World::<()>::new();
-            world.register::<CompTest, _>(());
-            world.create_pure();
-            world
-                .create_now()
-                .with(CompTest {
-                          field1: 0,
-                          field2: true,
-                      })
-                .build();
-            world.create_pure();
-            world.create_pure();
-            world
-                .create_now()
-                .with(CompTest {
-                          field1: 158123,
-                          field2: false,
-                      })
-                .build();
-            world
-                .create_now()
-                .with(CompTest {
-                          field1: u32::max_value(),
-                          field2: false,
-                      })
-                .build();
-            world.create_pure();
-            world
-        };
+        let mut world = World::new();
+        world.register::<CompTest>();
+        world.create_entity().build();
+        world
+            .create_entity()
+            .with(CompTest {
+                      field1: 0,
+                      field2: true,
+                  })
+            .build();
+        world.create_entity().build();
+        world.create_entity().build();
+        world
+            .create_entity()
+            .with(CompTest {
+                      field1: 158123,
+                      field2: false,
+                  })
+            .build();
+        world
+            .create_entity()
+            .with(CompTest {
+                      field1: u32::max_value(),
+                      field2: false,
+                  })
+            .build();
+        world.create_entity().build();
 
-        let storage = world.read::<CompTest>().pass();
+        let storage = world.read::<CompTest>();
         let serialized = serde_json::to_string(&storage).unwrap();
-        assert_eq!(serialized, r#"{"offsets":[1,4,5],"components":[{"field1":0,"field2":true},{"field1":158123,"field2":false},{"field1":4294967295,"field2":false}]}"#);
+        assert_eq!(serialized,
+                   r#"{"offsets":[1,4,5],"components":[{"field1":0,"field2":true},{"field1":158123,"field2":false},{"field1":4294967295,"field2":false}]}"#);
     }
 
     #[test]
     fn deserialize_storage() {
         // set up
-        let (mut world, entities) = {
-            let mut world = World::<()>::new();
-            world.register::<CompTest, _>(());
-            let entities = world.create_iter().take(10).collect::<Vec<Entity>>();
-            (world, entities)
-        };
+
+        let mut world = World::new();
+        world.register::<CompTest>();
+        let entities: Vec<_> = world.entities().create_iter().take(10).collect();
 
         let data = r#"
             {
@@ -513,7 +513,7 @@ mod serialize_test {
             }
         "#;
 
-        let mut storage = world.write::<CompTest>().pass();
+        let mut storage = world.write::<CompTest>();
         let packed: PackedData<CompTest> = serde_json::from_str(&data).unwrap();
         assert_eq!(packed.offsets, vec![3, 7, 8]);
         assert_eq!(packed.components,
@@ -530,7 +530,7 @@ mod serialize_test {
                             field2: false,
                         }]);
 
-        storage.merge(&entities.as_slice(), packed);
+        storage.merge(&entities.as_slice(), packed).expect("Failed to merge into storage");
 
         assert_eq!((&storage).join().count(), 3);
         assert_eq!((&storage).get(entities[3]),

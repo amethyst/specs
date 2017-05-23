@@ -109,7 +109,7 @@ mod s {
 
         let mut dispatcher = DispatcherBuilder::new()
             .add(SerializeSystem, "ser", &[])
-            .finish();
+            .build();
 
         dispatcher.dispatch(&mut world.res, ());
     }
