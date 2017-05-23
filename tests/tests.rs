@@ -1,158 +1,128 @@
+extern crate shred;
 extern crate specs;
 
-use specs::Entity;
-use specs::Gate;
-use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
+use specs::{Component, Entity, World};
+use specs::storages::{HashMapStorage, VecStorage};
 
 #[derive(Clone, Debug)]
 struct CompInt(i8);
-impl specs::Component for CompInt {
-    type Storage = specs::VecStorage<CompInt>;
+impl Component for CompInt {
+    type Storage = VecStorage<CompInt>;
 }
+
 #[derive(Clone, Debug)]
 struct CompBool(bool);
-impl specs::Component for CompBool {
-    type Storage = specs::HashMapStorage<CompBool>;
+impl Component for CompBool {
+    type Storage = HashMapStorage<CompBool>;
 }
 
-fn create_world() -> specs::Planner<()> {
-    let mut w = specs::World::new();
+fn create_world() -> World {
+    let mut w = World::new();
+
     w.register::<CompInt>();
     w.register::<CompBool>();
-    specs::Planner::new(w)
+
+    w
 }
 
+#[should_panic]
 #[test]
-fn wait() {
-    let mut planner = create_world();
+fn task_panics() {
+    use shred::{DispatcherBuilder, System};
 
-    for _ in 0..100 {
-        let found_ent_0 = Arc::new(AtomicBool::new(false));
-        let found_ent_1 = Arc::new(AtomicBool::new(false));
+    struct Sys;
 
-        planner
-            .mut_world()
-            .create_now()
-            .with(CompInt(7))
-            .with(CompBool(false))
-            .build();
+    impl<'a> System<'a, ()> for Sys {
+        type SystemData = ();
 
-        let marker = found_ent_0.clone();
-        planner.run1w1r(move |b: &mut CompBool, r: &CompInt| {
-                            b.0 = r.0 == 7;
-                            marker.store(true, Ordering::SeqCst);
-                        });
-        let marker = found_ent_1.clone();
-        planner.run0w2r(move |r: &CompInt, b: &CompBool| {
-                            assert_eq!(r.0, 7);
-                            assert_eq!(b.0, true);
-                            marker.store(true, Ordering::SeqCst);
-                        });
-        planner.wait();
-
-        assert_eq!(found_ent_0.load(Ordering::SeqCst), true);
-        assert_eq!(found_ent_1.load(Ordering::SeqCst), true);
+        fn work(&mut self, _: (), _: ()) {
+            panic!()
+        }
     }
-}
 
-#[ignore]
-//TODO
-#[should_panic]
-#[test]
-fn _task_panics() {
-    let mut planner = create_world();
-    planner
-        .mut_world()
-        .create_now()
+    let mut world = create_world();
+    world
+        .create_entity()
         .with(CompInt(7))
         .with(CompBool(false))
         .build();
 
-    planner.run_custom(|args| {
-                           args.fetch(|_| ());
-                           panic!();
-                       });
-    planner.wait();
-}
-
-
-#[should_panic]
-#[test]
-fn task_panics_args_captured() {
-    let mut planner = create_world();
-    planner
-        .mut_world()
-        .create_now()
-        .with(CompInt(7))
-        .with(CompBool(false))
-        .build();
-
-    planner.run_custom(|_| {
-                           panic!();
-                       });
-    planner.wait();
+    DispatcherBuilder::new()
+        .add(Sys, "s", &[])
+        .build()
+        .dispatch(&mut world.res, ());
 }
 
 #[test]
 fn dynamic_create() {
-    let mut planner = create_world();
+    use shred::{DispatcherBuilder, Fetch, System};
+    use specs::Entities;
+
+    struct Sys;
+
+    impl<'a> System<'a, ()> for Sys {
+        type SystemData = Fetch<'a, Entities>;
+
+        fn work(&mut self, entities: Self::SystemData, _: ()) {
+            entities.create();
+        }
+    }
+
+    let mut world = create_world();
+    let mut dispatcher = DispatcherBuilder::new().add(Sys, "s", &[]).build();
 
     for _ in 0..1_000 {
-        planner.run_custom(|arg| {
-                               arg.fetch(|_| ());
-                               arg.create_pure();
-                           });
-        planner.wait();
+        dispatcher.dispatch(&mut world.res, ());
     }
 }
 
 #[test]
 fn dynamic_deletion() {
-    let mut planner = create_world();
+    use shred::{DispatcherBuilder, Fetch, System};
+    use specs::Entities;
+
+    struct Sys;
+
+    impl<'a> System<'a, ()> for Sys {
+        type SystemData = Fetch<'a, Entities>;
+
+        fn work(&mut self, entities: Self::SystemData, _: ()) {
+            let e = entities.create();
+            entities.delete(e);
+        }
+    }
+
+    let mut world = create_world();
+    let mut dispatcher = DispatcherBuilder::new().add(Sys, "s", &[]).build();
 
     for _ in 0..1_000 {
-        planner.run_custom(|arg| {
-                               arg.fetch(|_| ());
-                               let e = arg.create_pure();
-                               arg.delete(e);
-                               arg.delete(e); // double free
-                           });
-        planner.wait();
+        dispatcher.dispatch(&mut world.res, ());
     }
 }
 
 #[test]
 fn dynamic_create_and_delete() {
-    use std::mem::swap;
-    let mut planner = create_world();
+    use specs::Entities;
 
-    let (mut ent0, mut ent1) = (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)));
+    let mut world = create_world();
 
-    for i in 0..1_000 {
-        let e = ent0.clone();
-        planner.run_custom(move |arg| {
-                               arg.fetch(|_| ());
-                               let mut e = e.lock().unwrap();
-                               *e = Some(arg.create_pure());
-                           });
-        if i >= 1 {
-            let e = ent1.clone();
-            planner.run_custom(move |arg| {
-                                   arg.fetch(|_| ());
-                                   let mut e = e.lock().unwrap();
-                                   arg.delete(e.take().unwrap());
-                               })
+    {
+        let entities = world.entities();
+        let entities: &Entities = &*entities;
+        let five: Vec<_> = entities.create_iter().take(5).collect();
+
+        for e in five {
+            entities.delete(e);
         }
-        planner.wait();
-        swap(&mut ent1, &mut ent0)
     }
+
+    world.maintain();
 }
 
 #[test]
 fn mixed_create_merge() {
     use std::collections::HashSet;
-    let mut planner = create_world();
+    let mut world = create_world();
     let mut set = HashSet::new();
 
     let add = |set: &mut HashSet<Entity>, e: Entity| {
@@ -160,47 +130,46 @@ fn mixed_create_merge() {
         set.insert(e);
     };
 
-    let insert = |planner: &mut specs::Planner<()>, set: &mut HashSet<Entity>, cnt: usize| {
+    let insert = |w: &mut World, set: &mut HashSet<Entity>, cnt: usize| {
         // Check to make sure there is no conflict between create_now
         // and create_pure
         for _ in 0..10 {
             for _ in 0..cnt {
-                let mut w = planner.mut_world();
-                add(set, w.create_now().build());
-                let e = w.create_now().build();
-                w.delete_now(e);
-                add(set, w.create_pure());
+                add(set, w.create_entity().build());
+                let e = w.create_entity().build();
+                w.delete_entity(e);
+                add(set, w.entities().create());
                 //  swap order
-                add(set, w.create_pure());
-                add(set, w.create_now().build());
+                add(set, w.entities().create());
+                add(set, w.create_entity().build());
             }
-            planner.wait();
+            w.maintain();
         }
     };
 
-    insert(&mut planner, &mut set, 10);
+    insert(&mut world, &mut set, 10);
     for e in set.drain() {
-        planner.mut_world().delete_later(e);
+        world.entities().delete(e);
     }
-    insert(&mut planner, &mut set, 20);
+    insert(&mut world, &mut set, 20);
     for e in set.drain() {
-        planner.mut_world().delete_now(e);
+        world.delete_entity(e);
     }
-    insert(&mut planner, &mut set, 40);
+    insert(&mut world, &mut set, 40);
 }
 
 #[test]
 fn is_alive() {
-    let mut w = specs::World::new();
+    let mut w = World::new();
 
-    let e = w.create_now().build();
+    let e = w.create_entity().build();
     assert!(w.is_alive(e));
-    w.delete_now(e);
+    w.delete_entity(e);
     assert!(!w.is_alive(e));
 
-    let e2 = w.create_now().build();
+    let e2 = w.create_entity().build();
     assert!(w.is_alive(e2));
-    w.delete_later(e2);
+    w.entities().delete(e2);
     assert!(w.is_alive(e2));
     w.maintain();
     assert!(!w.is_alive(e2));
@@ -209,6 +178,9 @@ fn is_alive() {
 // Checks whether entities are considered dead immediately after creation
 #[test]
 fn stillborn_entities() {
+    use shred::{DispatcherBuilder, Fetch, FetchMut, Resource, System};
+    use specs::{Entities, Join, ReadStorage, WriteStorage};
+
     struct LCG(u32);
     const RANDMAX: u32 = 32767;
     impl LCG {
@@ -224,62 +196,91 @@ fn stillborn_entities() {
         }
     }
 
-    let mut rng = LCG::new();
+    #[derive(Debug)]
+    struct Rand {
+        values: Vec<i8>,
+    }
 
-    // Construct a bunch of entities
-    let mut planner =
-        specs::Planner::<()>::new({
-                                      let mut world = specs::World::new();
-                                      world.register::<CompInt>();
+    impl Resource for Rand {}
 
-                                      for _ in 0..100 {
-                                          world.create_now().with(CompInt(rng.geni())).build();
-                                      }
+    struct SysRand(LCG);
 
-                                      world
-                                  });
+    impl<'a> System<'a, ()> for SysRand {
+        type SystemData = FetchMut<'a, Rand>;
 
-    for _ in 0..100 {
-        let count = (rng.gen() % 25) as usize;
-        let mut values = vec![];
-        for _ in 0..count {
-            values.push(rng.geni());
+        fn work(&mut self, mut data: Self::SystemData, _: ()) {
+            let rng = &mut self.0;
+
+            let count = (rng.gen() % 25) as usize;
+            let values: &mut Vec<i8> = &mut data.values;
+            values.clear();
+            for _ in 0..count {
+                values.push(rng.geni());
+            }
         }
+    }
 
-        // Cull the same number of entities we expect to insert
-        planner.run_custom(move |arg| {
-            use specs::Join;
+    struct Delete;
 
-            let (compint, eids) = arg.fetch(|w| (w.read::<CompInt>(), w.entities()));
+    impl<'a> System<'a, ()> for Delete {
+        type SystemData = (Fetch<'a, Entities>, ReadStorage<'a, CompInt>, Fetch<'a, Rand>);
 
-            let mut lowest = vec![];
-            for (&CompInt(k), eid) in (&compint, &eids).join() {
+        fn work(&mut self, data: Self::SystemData, _: ()) {
+            let (entities, comp_int, rand) = data;
+
+            let mut lowest = Vec::new();
+            for (&CompInt(k), entity) in (&comp_int, &*entities).join() {
                 if lowest.iter().all(|&(n, _)| n >= k) {
-                    lowest.push((k, eid));
+                    lowest.push((k, entity));
                 }
             }
 
             lowest.reverse();
-            lowest.truncate(count);
+            lowest.truncate(rand.values.len());
             for (_, eid) in lowest.into_iter() {
-                arg.delete(eid);
+                entities.delete(eid);
             }
-        });
+        }
+    }
 
-        planner.run_custom(move |arg| {
-            let mut compint = arg.fetch(|w| w.write::<CompInt>());
+    struct Insert;
 
-            for &i in values.iter() {
+    impl<'a> System<'a, ()> for Insert {
+        type SystemData = (Fetch<'a, Entities>, WriteStorage<'a, CompInt>, Fetch<'a, Rand>);
+
+        fn work(&mut self, data: Self::SystemData, _: ()) {
+            let (entities, mut comp_int, rand) = data;
+
+            for &i in rand.values.iter() {
                 use specs::InsertResult::EntityIsDead;
 
-                let result = compint.insert(arg.create_pure(), CompInt(i));
+                let result = comp_int.insert(entities.create(), CompInt(i));
                 if let EntityIsDead(_) = result {
                     panic!("Couldn't insert {} into a stillborn entity", i);
                 }
             }
-        });
+        }
+    }
 
-        planner.wait();
+    let mut rng = LCG::new();
+
+    // Construct a bunch of entities
+
+    let mut world = create_world();
+    world.add_resource(Rand { values: Vec::new() });
+
+    for _ in 0..100 {
+        world.create_entity().with(CompInt(rng.geni())).build();
+    }
+
+    let mut dispatcher = DispatcherBuilder::new()
+        .add(SysRand(rng), "rand", &[])
+        .add(Delete, "del", &["rand"])
+        .add(Insert, "insert", &["del"])
+        .build();
+
+    for _ in 0..100 {
+        dispatcher.dispatch(&mut world.res, ());
     }
 }
 
@@ -287,20 +288,20 @@ fn stillborn_entities() {
 #[test]
 fn dynamic_component() {
     // a simple test for the dynamic component feature.
-    let mut w = specs::World::<i32>::new_w_comp_id();
+    let mut w = World::new();
 
-    w.register_w_comp_id::<CompInt>(1);
-    w.register_w_comp_id::<CompBool>(2);
+    w.register_with_id::<CompInt, _>(1);
+    w.register_with_id::<CompBool, _>(2);
 
-    let e = w.create_now()
-        .with_w_comp_id::<CompInt>(1, CompInt(10))
-        .with_w_comp_id::<CompBool>(2, CompBool(true))
+    let e = w.create_entity()
+        .with_id::<CompInt, _>(CompInt(10), 1)
+        .with_id::<CompBool, _>(CompBool(true), 2)
         .build();
 
-    let i = w.read_w_comp_id::<CompInt>(1).pass().get(e).unwrap().0;
+    let i = w.read_with_id::<CompInt, _>(1).get(e).unwrap().0;
     assert_eq!(i, 10);
 
-    let c = w.read_w_comp_id::<CompBool>(2).pass().get(e).unwrap().0;
+    let c = w.read_with_id::<CompBool, _>(2).get(e).unwrap().0;
     assert_eq!(c, true);
 }
 
@@ -308,35 +309,16 @@ fn dynamic_component() {
 fn register_idempotency() {
     // Test that repeated calls to `register` do not silently
     // stomp over the existing storage, but instead silently do nothing.
-    let mut w = specs::World::new();
+    let mut w = World::new();
     w.register::<CompInt>();
 
-    let e = w.create_now().with::<CompInt>(CompInt(10)).build();
+    let e = w.create_entity().with::<CompInt>(CompInt(10)).build();
 
     // At the time this test was written, a call to `register`
     // would blindly plough ahead and stomp the existing storage, so...
     w.register::<CompInt>();
 
     // ...this would end up trying to unwrap a `None`.
-    let i = w.read::<CompInt>().pass().get(e).unwrap().0;
+    let i = w.read::<CompInt>().get(e).unwrap().0;
     assert_eq!(i, 10);
-}
-
-#[should_panic(expected = "fetch should be called once.")]
-#[test]
-fn fetch_has_to_be_called_atleast_once() {
-    let mut planner = specs::Planner::<()>::new(specs::World::new());
-    planner.run_custom(|_| {});
-}
-
-#[ignore]
-//TODO
-#[should_panic(expected = "fetch may only be called once.")]
-#[test]
-fn fetch_has_to_be_called_atmost_once() {
-    let mut planner = specs::Planner::<()>::new(specs::World::new());
-    planner.run_custom(|args| {
-                           args.fetch(|_| {});
-                           args.fetch(|_| {});
-                       });
 }

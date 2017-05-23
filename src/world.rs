@@ -428,6 +428,10 @@ impl World {
     }
 
     /// Convenience method for fetching entities.
+    ///
+    /// Creation and deletion of entities with the `Entities` struct
+    /// are atomically, so the actual changes will be applied
+    /// with the next call to `maintain()`.
     pub fn entities(&self) -> Fetch<Entities> {
         self.read_resource()
     }
@@ -468,6 +472,22 @@ impl World {
                 alloc.start_from.store(id, Ordering::Relaxed);
             }
         }
+    }
+
+    /// Checks if an entity is alive.
+    /// Please note that atomically created or deleted entities
+    /// (the ones created / deleted with the `Entities` struct)
+    /// are not handled by this method. Therefore, you
+    /// should have called `maintain()` before using this
+    /// method.
+    pub fn is_alive(&self, e: Entity) -> bool {
+        assert!(e.get_gen().is_alive(), "Generation is dead");
+
+        let alloc: &Allocator = &self.entities().alloc;
+        alloc.generations
+            .get(e.get_id() as usize)
+            .map(|&x| x == e.get_gen())
+            .unwrap_or(false)
     }
 
     /// Merges in the appendix, recording all the dynamically created

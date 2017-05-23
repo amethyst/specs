@@ -74,7 +74,7 @@ fn main() {
     // logical dependencies on other systems.
     // Since we only have one, we don't depend on anything.
     // See the `full` example for dependencies.
-    let mut dispatcher = DispatcherBuilder::new().add(SysA, "sys_a", &[]).finish();
+    let mut dispatcher = DispatcherBuilder::new().add(SysA, "sys_a", &[]).build();
 
     // We pass the resources and a context (`()`).
     // This dispatches all the systems in parallel (but blocking).

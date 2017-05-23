@@ -194,16 +194,22 @@ fn main() {
     // component storage does.
     w.add_resource(Sum(0xdeadbeef));
 
+    // This builds our dispatcher, which contains the systems.
+    // Every system has a name and can depend on other systems.
+    // "check_positive" depends on  "print_bool" for example,
+    // because we want to print the components before executing
+    // `SysCheckPositive`.
     let mut dispatcher = DispatcherBuilder::new()
         .add(SysPrintBool, "print_bool", &[])
         .add(SysCheckPositive, "check_positive", &["print_bool"])
         .add(SysStoreMax::new(), "store_max", &["check_positive"])
         .add(SysSpawn::new(), "spawn", &[])
         .add(SysPrintBool, "print_bool2", &["check_positive"])
-        .finish();
+        .build();
 
     dispatcher.dispatch(&mut w.res, ());
 
+    // Insert a component, associated with `e`.
     w.write().insert(e, CompFloat(4.0));
 
     dispatcher.dispatch(&mut w.res, ());
