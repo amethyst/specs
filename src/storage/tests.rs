@@ -5,7 +5,7 @@ use entity::{Component, Entity, Generation};
 use {Index, World};
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T> {
-    world.register::<T, _>(());
+    world.register::<T>();
 
     world.write()
 }
@@ -412,8 +412,8 @@ mod test {
     fn wrong_storage() {
         use join::Join;
         let mut w = World::new();
-        w.register::<Cvec, _>(1);
-        w.register::<Cvec, _>(2);
+        w.register_with_id::<Cvec, _>(1);
+        w.register_with_id::<Cvec, _>(2);
         let mut s1: Storage<Cvec, _> = w.write_with_id(1);
         // Possibility if the world uses dynamic components.
         let s2: Storage<Cvec, _> = w.write_with_id(2);

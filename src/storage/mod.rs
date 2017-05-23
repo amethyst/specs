@@ -173,7 +173,7 @@ impl<'a, 'e, T, D> Join for &'a CheckStorage<'e, T, D> {
 
 /// A wrapper around the masked storage and the generations vector.
 /// Can be used for safe lookup of components, insertions and removes.
-/// This is what `World::read/write` locks for the user.
+/// This is what `World::read/write` fetches for the user.
 pub struct Storage<'e, T, D> {
     data: D,
     entities: Fetch<'e, Entities>,
@@ -316,6 +316,7 @@ impl<'e, T, D> Storage<'e, T, D>
 ///
 /// [`Storage::merge`]: struct.Storage.html#method.merge
 #[cfg(feature="serialize")]
+#[derive(Debug)]
 pub enum MergeError {
     /// Returned if there is no
     /// entity matching the specified offset.

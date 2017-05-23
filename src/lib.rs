@@ -19,7 +19,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-pub use entity::{Component, Entities};
+pub use entity::{Component, Entity, Entities};
 pub use join::{Join, JoinIter};
 pub use world::World;
 pub use storage::{CheckStorage, InsertResult, ReadStorage, Storage, UnprotectedStorage,
@@ -33,11 +33,7 @@ pub mod entity {
     pub use world::{Component, CreateIter, Entity, Entities, EntityBuilder, Generation};
 }
 
-/// Different types of storages you can use for your components.
-pub mod storages {
-    pub use storage::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage,
-                                VecStorage};
-}
+pub use storage::storages;
 
 mod join;
 mod storage;

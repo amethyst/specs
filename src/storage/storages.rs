@@ -1,3 +1,5 @@
+//! Different types of storages you can use for your components.
+
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
