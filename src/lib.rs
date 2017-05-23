@@ -30,7 +30,8 @@ pub use storage::{MergeError, PackedData};
 
 /// Entity related types.
 pub mod entity {
-    pub use world::{Component, CreateIter, Entity, Entities, EntityBuilder, Generation};
+    pub use world::{Component, CreateIter, CreateIterAtomic, Entity, Entities, EntityBuilder,
+                    Generation};
 }
 
 pub use storage::storages;

@@ -131,9 +131,26 @@ pub trait Component: Any + Debug + Sized {
 /// An iterator for entity creation.
 /// Please note that you have to consume
 /// it because iterators are lazy.
-pub struct CreateIter<'a>(&'a Allocator);
+///
+/// Returned from `World::create_iter`.
+pub struct CreateIter<'a>(FetchMut<'a, Entities>);
 
 impl<'a> Iterator for CreateIter<'a> {
+    type Item = Entity;
+
+    fn next(&mut self) -> Option<Entity> {
+        Some(self.0.alloc.allocate())
+    }
+}
+
+/// An iterator for entity creation.
+/// Please note that you have to consume
+/// it because iterators are lazy.
+///
+/// Returned from `Entities::create_iter`.
+pub struct CreateIterAtomic<'a>(&'a Allocator);
+
+impl<'a> Iterator for CreateIterAtomic<'a> {
     type Item = Entity;
 
     fn next(&mut self) -> Option<Entity> {
@@ -218,8 +235,8 @@ impl Entities {
     /// new entities atomically.
     /// They will be persistent as soon
     /// as you call `World::maintain`.
-    pub fn create_iter(&self) -> CreateIter {
-        CreateIter(&self.alloc)
+    pub fn create_iter(&self) -> CreateIterAtomic {
+        CreateIterAtomic(&self.alloc)
     }
 
     /// Deletes an entity atomically.
@@ -450,6 +467,24 @@ impl World {
             entity: entity,
             world: self,
         }
+    }
+
+    /// Returns an iterator for entity creation.
+    /// This makes it easy to create a whole collection
+    /// of them.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use specs::World;
+    ///
+    /// let mut world = World::new();
+    /// let five_entities: Vec<_> = world.create_iter().take(5).collect();
+    /// #
+    /// # assert_eq!(five_entities.len(), 5);
+    /// ```
+    pub fn create_iter(&mut self) -> CreateIter {
+        CreateIter(self.entities_mut())
     }
 
     /// Deletes an entity and its components.
