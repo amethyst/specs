@@ -25,7 +25,7 @@ atom = "0.3"
 fnv = "1.0"
 hibitset = { git = "https://github.com/slide-rs/hibitset" }
 mopa = "0.2"
-shred = "0.2"
+shred = "0.3"
 shred-derive = "0.1.2"
 tuple_utils = "0.2"
 
