@@ -484,7 +484,8 @@ impl World {
         assert!(e.get_gen().is_alive(), "Generation is dead");
 
         let alloc: &Allocator = &self.entities().alloc;
-        alloc.generations
+        alloc
+            .generations
             .get(e.get_id() as usize)
             .map(|&x| x == e.get_gen())
             .unwrap_or(false)
