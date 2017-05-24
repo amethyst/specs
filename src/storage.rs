@@ -7,6 +7,7 @@ use std::ops::{Deref, DerefMut, Not};
 
 use fnv::FnvHasher;
 use hibitset::{BitSet, BitSetNot};
+use smallvec::{SmallVec, Array};
 
 use gate::Gate;
 use join::Join;
@@ -570,6 +571,61 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
     }
 }
 
+/// Small vectors in various sizes.
+/// These store a certain number of elements inline,
+/// and fall back to the heap for larger allocations.
+/// This can be a useful optimization for improving cache locality
+/// and reducing allocator traffic for workloads that fit within the inline buffer.
+/// [Read more](http://doc.servo.org/smallvec/struct.SmallVec.html)
+pub struct SmallVecStorage<A: Array>(SmallVec<A>);
+
+impl<A: Array<Item=T>, T> UnprotectedStorage<T> for SmallVecStorage<A> {
+
+    fn new() -> Self {
+        SmallVecStorage(SmallVec::new())
+    }
+
+    unsafe fn clean<F>(&mut self, has: F)
+        where F: Fn(Index) -> bool
+    {
+        use std::ptr;
+        for (i, v) in self.0.iter_mut().enumerate() {
+            if has(i as Index) {
+                ptr::drop_in_place(v);
+            }
+        }
+        self.0.set_len(0);
+    }
+
+    unsafe fn get(&self, id: Index) -> &T {
+        self.0.get_unchecked(id as usize)
+    }
+
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
+        self.0.get_unchecked_mut(id as usize)
+    }
+
+    unsafe fn insert(&mut self, id: Index, v: T) {
+        use std::ptr;
+
+        let id = id as usize;
+        if self.0.len() <= id {
+            let delta = id + 1 - self.0.len();
+            self.0.reserve(delta);
+            self.0.set_len(id + 1);
+        }
+        // Write the value without reading or dropping
+        // the (currently uninitialized) memory.
+        ptr::write(self.0.get_unchecked_mut(id), v);
+    }
+
+    unsafe fn remove(&mut self, id: Index) -> T {
+        use std::ptr;
+
+        ptr::read(self.get(id))
+    }
+}
+
 /// Dense vector storage. Has a redirection 2-way table
 /// between entities and components, allowing to leave
 /// no gaps within the data.
@@ -763,7 +819,7 @@ fn test_vec_arc() {
 mod test {
     use std::convert::AsMut;
     use std::fmt::Debug;
-    use super::{Storage, MaskedStorage, VecStorage, HashMapStorage, BTreeStorage, NullStorage};
+    use super::{Storage, MaskedStorage, VecStorage, HashMapStorage, BTreeStorage, NullStorage, SmallVecStorage};
     use world::Allocator;
     use {Component, Entity, Generation};
 
@@ -829,6 +885,22 @@ mod test {
     }
     impl Component for Cnull {
         type Storage = NullStorage<Cnull>;
+    }
+
+    #[derive(PartialEq, Eq, Debug)]
+    struct CSmallVec(u32);
+    impl From<u32> for CSmallVec {
+        fn from(v: u32) -> Self {
+            CSmallVec(v)
+        }
+    }
+    impl AsMut<u32> for CSmallVec {
+        fn as_mut(&mut self) -> &mut u32 {
+            &mut self.0
+        }
+    }
+    impl Component for CSmallVec {
+        type Storage = SmallVecStorage<[CSmallVec; 1024]>;
     }
 
     fn create<T: Component>() -> Storage<T, Box<Allocator>, Box<MaskedStorage<T>>> {
@@ -1025,6 +1097,31 @@ mod test {
     #[test]
     fn dummy_test_clear() {
         test_clear::<Cnull>();
+    }
+
+    #[test]
+    fn smallvec_test_add() {
+        test_add::<CSmallVec>();
+    }
+    #[test]
+    fn smallvec_test_sub() {
+        test_sub::<CSmallVec>();
+    }
+    #[test]
+    fn smallvec_test_get_mut() {
+        test_get_mut::<CSmallVec>();
+    }
+    #[test]
+    fn smallvec_test_add_gen() {
+        test_add_gen::<CSmallVec>();
+    }
+    #[test]
+    fn smallvec_test_sub_gen() {
+        test_sub_gen::<CSmallVec>();
+    }
+    #[test]
+    fn smallvec_test_clear() {
+        test_clear::<CSmallVec>();
     }
 
     // Check storage tests

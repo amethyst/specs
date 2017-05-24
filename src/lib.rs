@@ -13,6 +13,7 @@ extern crate hibitset;
 extern crate mopa;
 extern crate ticketed_lock;
 extern crate tuple_utils;
+extern crate smallvec;
 
 #[cfg(feature="parallel")]
 extern crate pulse;
@@ -29,7 +30,7 @@ pub use gate::Gate;
 pub use join::{Join, JoinIter};
 pub use storage::{AntiStorage, BTreeStorage, GatedStorage, HashMapStorage, InsertResult,
                   MaskedStorage, NullStorage, Storage, UnprotectedStorage, VecStorage,
-                  DenseVecStorage};
+                  DenseVecStorage, SmallVecStorage};
 pub use world::{Allocator, Component, CreateEntities, Entities, World};
 
 #[cfg(feature="parallel")]
