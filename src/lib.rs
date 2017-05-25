@@ -77,7 +77,7 @@ pub mod entity {
 }
 
 /// Reexports for very common types.
-mod prelude {
+pub mod prelude {
     pub use {Component, Dispatcher, DispatcherBuilder, Resource, System, World};
 
     pub use data::{Entities, Fetch, FetchMut, ReadStorage, WriteStorage};
