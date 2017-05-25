@@ -334,5 +334,8 @@ fn bench_parallel(b: &mut Bencher) {
         .add(Integrate, "integrate", &[])
         .build();
 
-    b.iter(|| d.dispatch(&mut w.res, ()))
+    b.iter(|| {
+        d.dispatch(&mut w.res, ());
+        w.maintain();
+    })
 }
