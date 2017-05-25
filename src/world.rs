@@ -22,7 +22,19 @@ pub struct Allocator {
 }
 
 impl Allocator {
-    fn kill(&self, e: Entity) {
+    fn kill(&mut self, delete: &[Entity]) {
+        for entity in delete {
+            self.alive.remove(entity.get_id());
+            self.raised.remove(entity.get_id());
+            let id = entity.get_id() as usize;
+            self.generations[id].die();
+            if id < self.start_from.load(Ordering::Relaxed) {
+                self.start_from.store(id, Ordering::Relaxed);
+            }
+        }
+    }
+
+    fn kill_atomic(&self, e: Entity) {
         self.killed.add_atomic(e.get_id());
     }
 
@@ -243,7 +255,7 @@ impl Entities {
     /// The associated components will be
     /// deleted as soon as you call `World::maintain`.
     pub fn delete(&self, e: Entity) {
-        self.alloc.kill(e);
+        self.alloc.kill_atomic(e);
     }
 
     /// Returns `true` if the specified entity is
@@ -495,18 +507,7 @@ impl World {
     /// Deletes the specified entities and their components.
     pub fn delete_entities(&mut self, delete: &[Entity]) {
         self.delete_components(delete);
-
-        let mut entities = self.entities_mut();
-        let alloc: &mut Allocator = &mut entities.alloc;
-        for entity in delete {
-            alloc.alive.remove(entity.get_id());
-            alloc.raised.remove(entity.get_id());
-            let id = entity.get_id() as usize;
-            alloc.generations[id].die();
-            if id < alloc.start_from.load(Ordering::Relaxed) {
-                alloc.start_from.store(id, Ordering::Relaxed);
-            }
-        }
+        self.entities_mut().alloc.kill(delete);
     }
 
     /// Checks if an entity is alive.
