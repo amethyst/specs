@@ -11,7 +11,7 @@ extern crate serde_derive;
 extern crate serde_json;
 
 #[cfg(feature="serialize")]
-mod s {
+fn main() {
     use serde::Serialize;
     use serde_json::{Serializer, from_str as json_from_str};
     use specs::prelude::*;
@@ -115,14 +115,8 @@ mod s {
 }
 
 #[cfg(not(feature="serialize"))]
-mod s {
-    pub fn main_redirect() {
-        println!("This example requires the feature \"serialize\" to be enabled.");
-        println!("You can enable it temporarily with: ");
-        println!("    cargo run --example serialize --features serialize");
-    }
-}
-
 fn main() {
-    s::main_redirect();
+    println!("This example requires the feature \"serialize\" to be enabled.");
+    println!("You can enable it temporarily with: ");
+    println!("    cargo run --example serialize --features serialize");
 }
