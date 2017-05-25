@@ -78,7 +78,7 @@ pub mod entity {
 
 /// Reexports for very common types.
 pub mod prelude {
-    pub use {Component, Dispatcher, DispatcherBuilder, Resource, System, World};
+    pub use {Component, Dispatcher, DispatcherBuilder, Entity, Resource, System, World};
 
     pub use data::{Entities, Fetch, FetchMut, ReadStorage, WriteStorage};
     pub use join::Join;
