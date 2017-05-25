@@ -24,14 +24,16 @@ impl<'a, C> System<'a, C> for SysA {
     // These are the resources required for execution.
     // You can also define a struct and `#[derive(SystemData)]`,
     // see the `full` example.
-    type SystemData = (ReadStorage<'a, Vel>, WriteStorage<'a, Pos>);
+    type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
 
-    fn work(&mut self, mut data: Data, _: C) {
+    fn work(&mut self, data: Self::SystemData, _: C) {
         // The `.join()` combines multiple components,
         // so we only access those entities which have
         // both of them.
 
-        for (pos, vel) in (&mut data.pos, &data.vel).join() {
+        let (mut pos, vel) = data;
+
+        for (pos, vel) in (&mut pos, &vel).join() {
             pos.0 += vel.0;
         }
     }
