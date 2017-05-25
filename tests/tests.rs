@@ -1,8 +1,6 @@
-extern crate shred;
 extern crate specs;
 
-use specs::{Component, Entity, World};
-use specs::storages::{HashMapStorage, VecStorage};
+use specs::prelude::*;
 
 #[derive(Clone, Debug)]
 struct CompInt(i8);
@@ -28,8 +26,6 @@ fn create_world() -> World {
 #[should_panic]
 #[test]
 fn task_panics() {
-    use shred::{DispatcherBuilder, System};
-
     struct Sys;
 
     impl<'a> System<'a, ()> for Sys {
@@ -55,13 +51,10 @@ fn task_panics() {
 
 #[test]
 fn dynamic_create() {
-    use shred::{DispatcherBuilder, Fetch, System};
-    use specs::Entities;
-
     struct Sys;
 
     impl<'a> System<'a, ()> for Sys {
-        type SystemData = Fetch<'a, Entities>;
+        type SystemData = Entities<'a>;
 
         fn work(&mut self, entities: Self::SystemData, _: ()) {
             entities.create();
@@ -78,13 +71,10 @@ fn dynamic_create() {
 
 #[test]
 fn dynamic_deletion() {
-    use shred::{DispatcherBuilder, Fetch, System};
-    use specs::Entities;
-
     struct Sys;
 
     impl<'a> System<'a, ()> for Sys {
-        type SystemData = Fetch<'a, Entities>;
+        type SystemData = Entities<'a>;
 
         fn work(&mut self, entities: Self::SystemData, _: ()) {
             let e = entities.create();
@@ -122,6 +112,7 @@ fn dynamic_create_and_delete() {
 #[test]
 fn mixed_create_merge() {
     use std::collections::HashSet;
+
     let mut world = create_world();
     let mut set = HashSet::new();
 
@@ -178,9 +169,6 @@ fn is_alive() {
 // Checks whether entities are considered dead immediately after creation
 #[test]
 fn stillborn_entities() {
-    use shred::{DispatcherBuilder, Fetch, FetchMut, Resource, System};
-    use specs::{Entities, Join, ReadStorage, WriteStorage};
-
     struct LCG(u32);
     const RANDMAX: u32 = 32767;
     impl LCG {
@@ -223,7 +211,7 @@ fn stillborn_entities() {
     struct Delete;
 
     impl<'a> System<'a, ()> for Delete {
-        type SystemData = (Fetch<'a, Entities>, ReadStorage<'a, CompInt>, Fetch<'a, Rand>);
+        type SystemData = (Entities<'a>, ReadStorage<'a, CompInt>, Fetch<'a, Rand>);
 
         fn work(&mut self, data: Self::SystemData, _: ()) {
             let (entities, comp_int, rand) = data;
@@ -246,7 +234,7 @@ fn stillborn_entities() {
     struct Insert;
 
     impl<'a> System<'a, ()> for Insert {
-        type SystemData = (Fetch<'a, Entities>, WriteStorage<'a, CompInt>, Fetch<'a, Rand>);
+        type SystemData = (Entities<'a>, WriteStorage<'a, CompInt>, Fetch<'a, Rand>);
 
         fn work(&mut self, data: Self::SystemData, _: ()) {
             let (entities, mut comp_int, rand) = data;
