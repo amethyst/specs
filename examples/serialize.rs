@@ -12,11 +12,10 @@ extern crate serde_json;
 
 #[cfg(feature="serialize")]
 mod s {
-    use shred::{DispatcherBuilder, Fetch, System};
     use serde::Serialize;
     use serde_json::{Serializer, from_str as json_from_str};
-    use specs::{Component, Entities, Join, PackedData, World, WriteStorage};
-    use specs::storages::VecStorage;
+    use specs::prelude::*;
+    use specs::PackedData;
 
     #[derive(Debug, Serialize, Deserialize)]
     struct CompSerialize {
@@ -29,7 +28,7 @@ mod s {
 
     #[derive(SystemData)]
     struct Data<'a> {
-        entities: Fetch<'a, Entities>,
+        entities: Entities<'a>,
         comp: WriteStorage<'a, CompSerialize>,
     }
 
