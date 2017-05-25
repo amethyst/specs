@@ -36,4 +36,6 @@ serde_derive = { version = "0.9.11", optional = true }
 serialize = ["serde", "serde_derive"]
 
 [dev-dependencies]
+cgmath =  { version = "0.14", features = ["eders"] }
+rand = "0.3"
 serde_json = "0.9.9"

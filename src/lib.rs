@@ -39,7 +39,8 @@ pub use storage::{MergeError, PackedData};
 /// # use specs::Resource;
 /// use specs::prelude::*;
 ///
-/// # #[derive(Debug)] struct MyComp; impl Component for MyComp { type Storage = VecStorage<MyComp>; }
+/// # #[derive(Debug)] struct MyComp;
+/// # impl Component for MyComp { type Storage = VecStorage<MyComp>; }
 /// # #[derive(Debug)] struct MyRes; impl Resource for MyRes {}
 ///
 /// struct MySys;
