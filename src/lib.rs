@@ -91,9 +91,6 @@ mod join;
 mod storage;
 mod world;
 
-#[cfg(feature="parallel")]
-mod planner;
-
 /// `Index` type is arbitrary. It doesn't show up in any interfaces.
 /// Keeping it 32bit allows for a single 64bit word per entity.
 pub type Index = u32;
