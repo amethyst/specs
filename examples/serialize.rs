@@ -33,6 +33,7 @@ fn main() {
     }
 
     struct SerializeSystem;
+
     impl<'a, C> System<'a, C> for SerializeSystem {
         type SystemData = Data<'a>;
 
@@ -68,50 +69,48 @@ fn main() {
         }
     }
 
-    pub fn main_redirect() {
-        let mut world = World::new();
-        world.register::<CompSerialize>();
+    let mut world = World::new();
+    world.register::<CompSerialize>();
 
-        world.create_entity().build();
-        world.create_entity().build();
-        world
-            .create_entity()
-            .with(CompSerialize {
-                      field: 5,
-                      other: true,
-                  })
-            .build();
-        world.create_entity().build();
-        world.create_entity().build();
-        world
-            .create_entity()
-            .with(CompSerialize {
-                      field: 5,
-                      other: true,
-                  })
-            .build();
-        world
-            .create_entity()
-            .with(CompSerialize {
-                      field: 10,
-                      other: false,
-                  })
-            .build();
-        world.create_entity().build();
-        world
-            .create_entity()
-            .with(CompSerialize {
-                      field: 0,
-                      other: false,
-                  })
-            .build();
+    world.create_entity().build();
+    world.create_entity().build();
+    world
+        .create_entity()
+        .with(CompSerialize {
+                  field: 5,
+                  other: true,
+              })
+        .build();
+    world.create_entity().build();
+    world.create_entity().build();
+    world
+        .create_entity()
+        .with(CompSerialize {
+                  field: 5,
+                  other: true,
+              })
+        .build();
+    world
+        .create_entity()
+        .with(CompSerialize {
+                  field: 10,
+                  other: false,
+              })
+        .build();
+    world.create_entity().build();
+    world
+        .create_entity()
+        .with(CompSerialize {
+                  field: 0,
+                  other: false,
+              })
+        .build();
 
-        let mut dispatcher = DispatcherBuilder::new()
-            .add(SerializeSystem, "ser", &[])
-            .build();
+    let mut dispatcher = DispatcherBuilder::new()
+        .add(SerializeSystem, "ser", &[])
+        .build();
 
-        dispatcher.dispatch(&mut world.res, ());
-    }
+    dispatcher.dispatch(&mut world.res, ());
 }
 
 #[cfg(not(feature="serialize"))]
