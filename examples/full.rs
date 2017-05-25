@@ -3,10 +3,8 @@ extern crate shred;
 extern crate shred_derive;
 extern crate specs;
 
-use shred::{DispatcherBuilder, Fetch, Resource, System};
-use specs::{Join, ReadStorage, WriteStorage};
-use specs::entity::{Component, Entity, Entities};
-use specs::storages::{DenseVecStorage, HashMapStorage, VecStorage};
+use specs::prelude::*;
+use specs::entity::Entity;
 
 // -- Components --
 // A component exists for 0..n
@@ -58,14 +56,14 @@ struct IntAndBoolData<'a> {
 #[derive(SystemData)]
 struct SpawnData<'a> {
     comp_int: WriteStorage<'a, CompInt>,
-    entities: Fetch<'a, Entities>,
+    entities: Entities<'a>,
 }
 
 #[derive(SystemData)]
 struct StoreMaxData<'a> {
     comp_float: ReadStorage<'a, CompFloat>,
     comp_int: ReadStorage<'a, CompInt>,
-    entities: Fetch<'a, Entities>,
+    entities: Entities<'a>,
 }
 
 // -- Systems --

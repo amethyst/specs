@@ -1,12 +1,6 @@
-extern crate shred;
-#[macro_use]
-extern crate shred_derive;
 extern crate specs;
 
-use shred::{DispatcherBuilder, System};
-
-use specs::{Component, ReadStorage, WriteStorage, World};
-use specs::storages::VecStorage;
+use specs::prelude::*;
 
 // A component contains data
 // which is associated with an entity.
@@ -24,23 +18,15 @@ impl Component for Pos {
     type Storage = VecStorage<Pos>;
 }
 
-// Here we define the required storages
-// for executing `SysA`.
-
-#[derive(SystemData)]
-struct Data<'a> {
-    vel: ReadStorage<'a, Vel>,
-    pos: WriteStorage<'a, Pos>,
-}
-
 struct SysA;
 
 impl<'a, C> System<'a, C> for SysA {
-    type SystemData = Data<'a>;
+    // These are the resources required for execution.
+    // You can also define a struct and `#[derive(SystemData)]`,
+    // see the `full` example.
+    type SystemData = (ReadStorage<'a, Vel>, WriteStorage<'a, Pos>);
 
     fn work(&mut self, mut data: Data, _: C) {
-        use specs::Join;
-
         // The `.join()` combines multiple components,
         // so we only access those entities which have
         // both of them.
