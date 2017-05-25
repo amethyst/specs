@@ -37,10 +37,9 @@ pub use storage::{MergeError, PackedData};
 ///
 /// ```
 /// # use specs::Resource;
-/// use specs::System;
-/// use specs::data::{Entities, FetchMut, WriteStorage}:
+/// use specs::prelude::*;
 ///
-/// # #[derive(Debug)] struct MyComp;
+/// # #[derive(Debug)] struct MyComp; impl Component for MyComp { type Storage = VecStorage<MyComp>; }
 /// # #[derive(Debug)] struct MyRes; impl Resource for MyRes {}
 ///
 /// struct MySys;
@@ -64,7 +63,7 @@ pub mod data {
     /// Note that this is just `Fetch<Entities>`, so
     /// you can easily use it in your system:
     ///
-    /// ```
+    /// ```ignore
     /// type SystemData = (Entities<'a>, ...);
     /// ```
     pub type Entities<'a> = Fetch<'a, ::entity::Entities>;
