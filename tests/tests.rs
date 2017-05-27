@@ -189,8 +189,6 @@ fn stillborn_entities() {
         values: Vec<i8>,
     }
 
-    impl Resource for Rand {}
-
     struct SysRand(LCG);
 
     impl<'a> System<'a, ()> for SysRand {

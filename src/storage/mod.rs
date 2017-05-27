@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut, Not};
 
 use hibitset::{BitSet, BitSetNot};
 use mopa::Any;
-use shred::{Fetch, FetchMut, Resource, ResourceId, Resources, SystemData};
+use shred::{Fetch, FetchMut, ResourceId, Resources, SystemData};
 
 use join::Join;
 use world::{Component, Entity, Entities};
@@ -109,8 +109,6 @@ impl<T: Component> MaskedStorage<T> {
         }
     }
 }
-
-impl<T> Resource for MaskedStorage<T> where T: Component + Debug {}
 
 impl<T: Component> Drop for MaskedStorage<T> {
     fn drop(&mut self) {
