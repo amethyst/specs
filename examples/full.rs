@@ -41,8 +41,6 @@ impl Component for CompFloat {
 #[derive(Clone, Debug)]
 struct Sum(usize);
 
-impl Resource for Sum {}
-
 // -- System Data --
 // Each system has an associated
 // data type.

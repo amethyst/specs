@@ -131,8 +131,6 @@ impl Component for KillsEnemy {
 #[derive(Clone, Copy, Debug)]
 struct DeltaTime(f32);
 
-impl Resource for DeltaTime {}
-
 // -- Systems --
 
 struct Integrate;
