@@ -24,9 +24,9 @@ pub struct Allocator {
 impl Allocator {
     fn kill(&mut self, delete: &[Entity]) {
         for entity in delete {
-            self.alive.remove(entity.get_id());
-            self.raised.remove(entity.get_id());
-            let id = entity.get_id() as usize;
+            self.alive.remove(entity.id());
+            self.raised.remove(entity.id());
+            let id = entity.id() as usize;
             self.generations[id].die();
             if id < self.start_from.load(Ordering::Relaxed) {
                 self.start_from.store(id, Ordering::Relaxed);
@@ -35,14 +35,14 @@ impl Allocator {
     }
 
     fn kill_atomic(&self, e: Entity) {
-        self.killed.add_atomic(e.get_id());
+        self.killed.add_atomic(e.id());
     }
 
     /// Return `true` if the entity is alive.
     fn is_alive(&self, e: Entity) -> bool {
-        e.get_gen() ==
-        match self.generations.get(e.get_id() as usize) {
-            Some(g) if !g.is_alive() && self.raised.contains(e.get_id()) => g.raised(),
+        e.gen() ==
+        match self.generations.get(e.id() as usize) {
+            Some(g) if !g.is_alive() && self.raised.contains(e.id()) => g.raised(),
             Some(g) => *g,
             None => Generation(1),
         }
@@ -183,13 +183,13 @@ impl Entity {
 
     /// Returns the index of the `Entity`.
     #[inline]
-    pub fn get_id(&self) -> Index {
+    pub fn id(&self) -> Index {
         self.0
     }
 
     /// Returns the `Generation` of the `Entity`.
     #[inline]
-    pub fn get_gen(&self) -> Generation {
+    pub fn gen(&self) -> Generation {
         self.1
     }
 }
@@ -295,6 +295,12 @@ impl Generation {
     #[cfg(test)]
     pub fn new(v: i32) -> Self {
         Generation(v)
+    }
+
+    /// Returns the id of the generation.
+    #[inline]
+    pub fn id(&self) -> i32 {
+        self.0
     }
 
     /// Returns `true` if entities of this `Generation` are alive.
@@ -515,13 +521,13 @@ impl World {
     /// should have called `maintain()` before using this
     /// method.
     pub fn is_alive(&self, e: Entity) -> bool {
-        assert!(e.get_gen().is_alive(), "Generation is dead");
+        assert!(e.gen().is_alive(), "Generation is dead");
 
         let alloc: &Allocator = &self.entities().alloc;
         alloc
             .generations
-            .get(e.get_id() as usize)
-            .map(|&x| x == e.get_gen())
+            .get(e.id() as usize)
+            .map(|&x| x == e.gen())
             .unwrap_or(false)
     }
 
@@ -538,7 +544,7 @@ impl World {
             let storage: &mut AnyStorage = unsafe { &mut **storage };
 
             for entity in delete {
-                storage.remove(entity.get_id());
+                storage.remove(entity.id());
             }
         }
     }
