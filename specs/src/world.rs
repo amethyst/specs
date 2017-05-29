@@ -1,6 +1,20 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+<<<<<<< HEAD
 use crossbeam::sync::TreiberStack;
+=======
+#[cfg(feature="serialize")]
+use std::marker::PhantomData;
+#[cfg(feature="serialize")]
+use serde::de::DeserializeSeed;
+#[cfg(feature="serialize")]
+use serde::{Serialize, Serializer, Deserializer};
+#[cfg(feature="serialize")]
+use group::SerializeGroup;
+
+use group::ComponentGroup;
+
+>>>>>>> e7d508b... World serialization and deserialization
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use mopa::Any;
 use shred::{Fetch, FetchMut, Resource, Resources};
@@ -519,6 +533,11 @@ impl World {
         self.storages.push(&mut *storage as *mut AnyStorage);
     }
 
+    /// Registers a `ComponentGroup` into the world.
+    pub fn register_group<G: ComponentGroup>(&mut self) {
+        G::register(self);
+    }
+
     /// Adds a resource with the default ID (`0`).
     ///
     /// If the resource already exists it will be overwritten.
@@ -751,6 +770,7 @@ impl Default for World {
     }
 }
 
+<<<<<<< HEAD
 #[cfg(test)]
 mod tests {
     use storage::VecStorage;
@@ -774,6 +794,55 @@ mod tests {
 
             e = entities.create();
             lazy.add((e, Pos));
+=======
+#[cfg(feature="serialize")]
+/// Structure used to serialize a world using a component group.
+pub struct WorldSerializer<'a, G> {
+    world: &'a World,
+    phantom: PhantomData<G>,
+}
+
+#[cfg(feature="serialize")]
+impl<'a, G> WorldSerializer<'a, G> {
+    /// Creates a new world serializer out of a world.
+    pub fn new(world: &'a World) -> WorldSerializer<'a, G> {
+        WorldSerializer {
+            world: world,
+            phantom: PhantomData,
+        }
+    }
+}
+
+#[cfg(feature="serialize")]
+impl<'a, G> Serialize for WorldSerializer<'a, G>
+    where G: ComponentGroup + SerializeGroup
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer 
+    {
+        G::serialize_group(self.world, serializer)
+    }
+}
+
+#[cfg(feature="serialize")]
+/// Structure used for stateful deserialization into the world using a component group.
+pub struct WorldDeserializer<'a, G> {
+    world: &'a mut World,
+    entities: &'a [Entity],
+    phantom: PhantomData<G>,
+}
+
+#[cfg(feature="serialize")]
+impl<'a, G> WorldDeserializer<'a, G> {
+    /// Creates a new world deserializer out of a world and a list of entities.
+    ///
+    /// The list of entities will be used to merge into the component storages.
+    pub fn new(world: &'a mut World, entities: &'a [Entity]) -> WorldDeserializer<'a, G> {
+        WorldDeserializer {
+            world: world,
+            entities: entities,
+            phantom: PhantomData,
+>>>>>>> e7d508b... World serialization and deserialization
         }
 
         world.maintain();
@@ -782,6 +851,7 @@ mod tests {
 }
 
 #[cfg(feature="serialize")]
+<<<<<<< HEAD
 /// Structure used to deserialize into the world.
 pub struct WorldDeserializer<'a, G, C>
     where G: ComponentGroup,
@@ -791,3 +861,16 @@ pub struct WorldDeserializer<'a, G, C>
     entities: &'a [Entity],
     phantom: PhantomData<G>,
 }
+=======
+impl<'a, G> DeserializeSeed for WorldDeserializer<'a, G>
+    where G: ComponentGroup + SerializeGroup,
+{
+    type Value = ();
+    fn deserialize<D>(self, deserializer: D) -> Result<(), D::Error>
+        where D: Deserializer
+    {
+        G::deserialize_group(self.world, self.entities, deserializer)
+    }
+}
+
+>>>>>>> e7d508b... World serialization and deserialization

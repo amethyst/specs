@@ -13,6 +13,8 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     // Duplicate references to the components.
     // `quote` currently doesn't support using the same variable binding twice in a repetition.
 
+    let items = items.iter().filter(|item| !item.parameter.ignore).collect::<Vec<_>>();
+
     // Component fields
     let ref component = items.iter().filter(|item| item.parameter.option.is_component()).collect::<Vec<_>>();
     let component2 = component;
@@ -21,15 +23,12 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     // Serializable components
     let ref component_serialize = component.iter().filter(|item| item.parameter.serialize).collect::<Vec<_>>();
     let component_serialize2 = component_serialize;
-    let component_serialize3 = component_serialize;
+
+    // Serializable component names
+    let ref component_serialize_field = component_serialize.iter().map(|item| item.field.ident.as_ref().unwrap() ).collect::<Vec<_>>();
 
     // Subgroup fields
     let ref subgroup = items.iter().filter(|item| item.parameter.option.is_subgroup()).collect::<Vec<_>>();
-
-    // Serializable fields
-    let ref subgroup_serialize = subgroup.iter().filter(|item| item.parameter.serialize).collect::<Vec<_>>();
-    let subgroup_serialize2 = subgroup_serialize;
-    let subgroup_serialize3 = subgroup_serialize;
 
     // Normal group methods.
     let default = quote! {
@@ -38,9 +37,9 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
         }
         #[allow(unused_mut)]
         fn components() -> Vec<&'static str> {
-            let mut list = <#name as _specs::ComponentGroup>::local_components();
+            let mut list = #name::local_components();
             #(
-                for component in <#subgroup as _specs::ComponentGroup>::components() {
+                for component in #subgroup::components() {
                     list.push(component);
                 }
             )*
@@ -48,6 +47,15 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
         }
         fn subgroups() -> Vec<&'static str> {
             vec![ #( stringify!(#subgroup), )* ]
+        }
+        fn register(world: &mut _specs::World) {
+            #(
+                world.register::<#component>();
+            )*
+
+            #(
+                #subgroup::register(world);
+            )*
         }
     };
 
@@ -57,12 +65,12 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
         fn serialize_group<S: _serde::Serializer>(world: &_specs::World, serializer: S) -> Result<S::Ok, S::Error> {
             let mut map = serializer.serialize_map(None)?;
             #(
-                let storage = world.read::<#component_serialize>().pass();
-                _serde::ser::SerializeMap::serialize_entry(&mut map, stringify!(#component_serialize2), &storage)?;
+                let storage = world.read::<#component_serialize>();
+                _serde::ser::SerializeMap::serialize_entry(&mut map, stringify!(#component_serialize_field), &storage)?;
             )*
 
             #(
-                <#subgroup_serialize as _specs::ComponentGroup>::serialize_subgroup::<S>(world, &mut map)?;
+                #subgroup::serialize_subgroup::<S>(world, &mut map)?;
             )*
 
             _serde::ser::SerializeMap::end(map)
@@ -70,12 +78,12 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
 
         fn serialize_subgroup<S: _serde::Serializer>(world: &_specs::World, map: &mut S::SerializeMap) -> Result<(), S::Error> {
             #(
-                let storage = world.read::<#component_serialize>().pass();
-                _serde::ser::SerializeMap::serialize_entry(map, stringify!(#component_serialize2), &storage)?;
+                let storage = world.read::<#component_serialize>();
+                _serde::ser::SerializeMap::serialize_entry(map, stringify!(#component_serialize_field), &storage)?;
             )*
 
             #(
-                <#subgroup_serialize as _specs::ComponentGroup>::serialize_subgroup::<S>(world, map)?;
+                #subgroup::serialize_subgroup::<S>(world, map)?;
             )*
 
             Ok(())
@@ -98,15 +106,15 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
                         #[allow(unused_variables)]
                         match &*key {
                             #(
-                                stringify!(#component_serialize) => {
-                                    let mut storage = self.0.write::<#component_serialize2>().pass();
-                                    let packed = visitor.visit_value::<_specs::PackedData<#component_serialize3>>()?;
+                                stringify!(#component_serialize_field) => {
+                                    let mut storage = self.0.write::<#component_serialize>();
+                                    let packed = visitor.visit_value::<_specs::PackedData<#component_serialize2>>()?;
                                     let _ = storage.merge(self.1, packed);
                                 },
                             )*
                             key @ _ => {
                                 #(
-                                    if let Some(()) = <#subgroup_serialize as _specs::ComponentGroup>::deserialize_subgroup(self.0, self.1, key.to_owned(), &mut visitor)? {
+                                    if let Some(()) = <#subgroup as _specs::entity::SerializeGroup>::deserialize_subgroup(self.0, self.1, key.to_owned(), &mut visitor)? {
                                         continue; // subgroup deserialized the components
                                     }
                                 )*
@@ -128,16 +136,16 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
             #[allow(unused_variables)]
             match &*key {
                 #(
-                    stringify!(#component_serialize) => {
-                        let mut storage = world.write::<#component_serialize2>().pass();
-                        let packed = visitor.visit_value::<_specs::PackedData<#component_serialize3>>()?;
+                    stringify!(#component_serialize_field) => {
+                        let mut storage = world.write::<#component_serialize>();
+                        let packed = visitor.visit_value::<_specs::PackedData<#component_serialize2>>()?;
                         let _ = storage.merge(entities, packed);
                         Ok(Some(()))
                     },
                 )*
                 key @ _ => {
                     #(
-                        if let Some(()) = <#subgroup_serialize as _specs::ComponentGroup>::deserialize_subgroup(world, entities, key.to_owned(), visitor)? {
+                        if let Some(()) = #subgroup::deserialize_subgroup(world, entities, key.to_owned(), visitor)? {
                             return Ok(Some(()));
                         }
                     )*
@@ -150,7 +158,7 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     // Normal expand (no serialization)
     let expanded = quote! {
         #[automatically_derived]
-        impl _specs::ComponentGroup for #name {
+        impl _specs::entity::ComponentGroup for #name {
             #default
         }
     };
@@ -211,6 +219,9 @@ pub struct Parameter {
 
     // Serialize this field
     pub serialize: bool,
+
+    // Ignore this field completely
+    pub ignore: bool,
 }
 
 impl Parameter {
@@ -220,12 +231,14 @@ impl Parameter {
 
         let mut subgroup = false;
         let mut serialize = false;
+        let mut ignore = false;
 
         for meta_items in input.iter().filter_map(filter_group) {
             for meta_item in meta_items {
                 match meta_item {
                     MetaItem(Word(ref name)) if name == "serialize" => serialize = true,
                     MetaItem(Word(ref name)) if name == "subgroup" => subgroup = true,
+                    MetaItem(Word(ref name)) if name == "ignore" => ignore = true,
                     _ => println!("Unused attribute: {:?}", meta_item),
                 }
             }
@@ -241,6 +254,7 @@ impl Parameter {
         Parameter {
             option: parameter_type,
             serialize: serialize,
+            ignore: ignore,
         }
     }
 }

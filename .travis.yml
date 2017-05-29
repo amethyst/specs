@@ -10,15 +10,12 @@ branches:
     - master
 
 script:
-- cd specs/ # enter normal specs directory
-- cargo build --verbose
-- cargo test --verbose
-- cargo build --verbose --no-default-features
-- cargo test --verbose --no-default-features
-- cargo build --verbose --features serialize
-- cargo test --verbose --features serialize
+- cargo build --all --verbose
+- cargo test --all --verbose
+- cargo build -all --verbose --features serialize
+- cargo test --all --verbose --features serialize
 - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
-    cargo bench --verbose --no-run;
+    cargo bench --all --verbose --no-run;
   fi
 
 after_success: |

@@ -1,7 +1,8 @@
 
-#[cfg(feature="serialize")]
-use prelude::{World, Entity};
+use prelude::World;
 
+#[cfg(feature="serialize")]
+use prelude::Entity;
 #[cfg(feature="serialize")]
 use serde::{self, Serializer, Deserializer};
 
@@ -13,6 +14,8 @@ pub trait ComponentGroup {
     fn components() -> Vec<&'static str>;
     /// Subgroups included in this group.
     fn subgroups() -> Vec<&'static str>;
+    /// Registers the components into the world.
+    fn register(&mut World);
 }
 
 /// Group of serializable components.
