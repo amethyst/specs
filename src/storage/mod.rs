@@ -206,8 +206,8 @@ impl<'e, T, D> Storage<'e, T, D>
 {
     /// Tries to read the data associated with an `Entity`.
     pub fn get(&self, e: Entity) -> Option<&T> {
-        if self.data.mask.contains(e.get_id()) && self.entities.is_alive(e) {
-            Some(unsafe { self.data.inner.get(e.get_id()) })
+        if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
+            Some(unsafe { self.data.inner.get(e.id()) })
         } else {
             None
         }
@@ -256,8 +256,8 @@ impl<'e, T, D> Storage<'e, T, D>
 {
     /// Tries to mutate the data associated with an `Entity`.
     pub fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
-        if self.data.mask.contains(e.get_id()) && self.entities.is_alive(e) {
-            Some(unsafe { self.data.inner.get_mut(e.get_id()) })
+        if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
+            Some(unsafe { self.data.inner.get_mut(e.id()) })
         } else {
             None
         }
@@ -280,7 +280,7 @@ impl<'e, T, D> Storage<'e, T, D>
     /// Returns the result of the operation as a `InsertResult<T>`
     pub fn insert(&mut self, e: Entity, mut v: T) -> InsertResult<T> {
         if self.entities.is_alive(e) {
-            let id = e.get_id();
+            let id = e.id();
             if self.data.mask.contains(id) {
                 std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id) });
                 InsertResult::Updated(v)
@@ -297,7 +297,7 @@ impl<'e, T, D> Storage<'e, T, D>
     /// Removes the data associated with an `Entity`.
     pub fn remove(&mut self, e: Entity) -> Option<T> {
         if self.entities.is_alive(e) {
-            self.data.remove(e.get_id())
+            self.data.remove(e.id())
         } else {
             None
         }
