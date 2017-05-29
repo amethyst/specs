@@ -23,9 +23,9 @@ exclude = ["doc", ".travis.yml"]
 [dependencies]
 atom = "0.3"
 fnv = "1.0"
-hibitset = { git = "https://github.com/slide-rs/hibitset" }
+hibitset = "0.1.1"
 mopa = "0.2"
-shred = { git = "https://github.com/torkleyy/shred" }
+shred = { git = "https://github.com/torkleyy/shred", rev = "9651382c08d3023db7787a2df751f41403190f71" }
 shred-derive = "0.1.2"
 tuple_utils = "0.2"
 
