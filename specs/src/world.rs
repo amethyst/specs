@@ -1,5 +1,4 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::marker::PhantomData;
 
 use crossbeam::sync::TreiberStack;
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
@@ -206,13 +205,13 @@ impl Entity {
 
     /// Returns the index of the `Entity`.
     #[inline]
-    pub fn id(&self) -> Index {
+    pub fn get_id(&self) -> Index {
         self.0
     }
 
     /// Returns the `Generation` of the `Entity`.
     #[inline]
-    pub fn gen(&self) -> Generation {
+    pub fn get_gen(&self) -> Generation {
         self.1
     }
 }
@@ -791,17 +790,4 @@ pub struct WorldDeserializer<'a, G, C>
     world: &'a mut World<C>,
     entities: &'a [Entity],
     phantom: PhantomData<G>,
-}
-
-#[cfg(feature="serialize")]
-impl<'a, G, C> serde::de::DeserializeSeed for WorldDeserializer<'a, G, C>
-    where G: ComponentGroup,
-          C: PartialEq + Eq + Hash + 'a,
-{
-    type Value = ();
-    fn deserialize<D>(self, deserializer: D) -> Result<(), D::Error>
-        where D: serde::Deserializer
-    {
-        <G as ComponentGroup>::deserialize_group(self.world, self.entities, deserializer)
-    }
 }

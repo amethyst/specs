@@ -1,7 +1,8 @@
 
-use syn::{Ident, VariantData, Attribute, NestedMetaItem, MetaItem, Body, DeriveInput, Field, Ty};
+use syn::{Ident, VariantData, Attribute, NestedMetaItem, MetaItem, Body, DeriveInput, Field};
 use quote::{ToTokens, Tokens};
 
+/// Expands the `ComponentGroup` derive implementation.
 #[allow(unused_variables)]
 pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     let name = &input.ident;
@@ -147,7 +148,6 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     };
 
     // Normal expand (no serialization)
-    #[cfg(not(feature="serialize"))]
     let expanded = quote! {
         #[automatically_derived]
         impl _specs::ComponentGroup for #name {
@@ -159,9 +159,8 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     #[cfg(feature="serialize")]
     let expanded = quote! {
         extern crate serde as _serde;
-        #[automatically_derived]
-        impl _specs::ComponentGroup for #name {
-            #default
+        #expanded
+        impl _specs::entity::SerializeGroup for #name {
             #serialize
         }
     };
@@ -220,12 +219,12 @@ impl Parameter {
         use syn::MetaItem::Word;
 
         let mut subgroup = false;
-        let mut serialize = true;            
+        let mut serialize = false;
 
         for meta_items in input.iter().filter_map(filter_group) {
             for meta_item in meta_items {
                 match meta_item {
-                    MetaItem(Word(ref name)) if name == "no_serialize" => serialize = false,
+                    MetaItem(Word(ref name)) if name == "serialize" => serialize = true,
                     MetaItem(Word(ref name)) if name == "subgroup" => subgroup = true,
                     _ => println!("Unused attribute: {:?}", meta_item),
                 }
@@ -246,7 +245,7 @@ impl Parameter {
     }
 }
 
-pub fn filter_group(attr: &Attribute) -> Option<Vec<NestedMetaItem>> {
+fn filter_group(attr: &Attribute) -> Option<Vec<NestedMetaItem>> {
     match attr.value {
         MetaItem::List(ref name, ref items) if name == "group" => Some(items.iter().cloned().collect()),
         _ => None,
@@ -273,14 +272,14 @@ fn get_items(input: &DeriveInput) -> Vec<Item> {
         .collect::<Vec<Item>>()
 }
 
-pub struct Item<'a> {
+struct Item<'a> {
     pub parameter: Parameter,
     pub field: &'a Field,
 }
 
 impl<'a> ToTokens for Item<'a> {
     fn to_tokens(&self, tokens: &mut Tokens) {
-        self.field.to_tokens(tokens);
+        self.field.ty.to_tokens(tokens);
     }
 }
 
