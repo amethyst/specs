@@ -1,3 +1,6 @@
+
+#![recursion_limit="256"]
+
 extern crate specs;
 #[macro_use]
 extern crate specs_derive;
@@ -10,10 +13,76 @@ extern crate serde_derive;
 #[cfg(feature="serialize")]
 extern crate serde_json;
 
+macro_rules! tokens { // possible idea here for feeding the call macro for iterations.
+    () => { // 64 tokens
+        A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+        A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+    }
+}
+
+macro_rules! call {
+    // Top level calls
+    /*
+    ( $type:ident : $group:ty =>
+        fn $method:ident
+        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
+        ( $( $args:expr ),* )
+    ) => {
+        call!( $type : $group =>
+            fn $method
+            [ $( $before ),* ] in [ $( $after ),* ]
+            ( $( $args ),* );
+    }
+    */
+    ( local: $group:ty => 
+        fn $method:ident
+        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
+        ( $( $args:expr ),* )
+    ) => {
+        call!(
+            Iter :: $group : Locals =>
+            fn $method
+            [ $( $before ),* ] in [ $( $after ),* ]
+            ( $( $args ),* )
+        );
+    };
+
+    // Helper methods
+    (Iter :: { $( $group:tt )* } [ $( $token:tt )* ] =>
+        fn $method:ident
+        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
+        ( $( $args:expr ),* )
+    ) => {
+        $method::<$( $before, )* <$( $group )* as Split>::This $( , $after )*>( $( $args ),* );
+
+        if <$( $group )* as Split>::next() {
+            call!(
+                Iter :: { <$( $group )* as Split>::Next } =>
+                    fn $method
+                    [ $( $before ),* ] in [ $( $after ),* ]
+                    ( $( $args ),* )
+            );
+        }
+    };
+    (Iter :: $group:ty : $at:ident =>
+        fn $method:ident
+        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
+        ( $( $args:expr ),* )
+    ) => {
+        call!(
+            Iter :: { <$group as DeconstructedGroup>::$at } [ tokens!() ] =>
+            fn $method
+            [ $( $before ),* ] in [ $( $after ),* ]
+            ( $( $args ),* )
+        );
+    };
+}
+
 #[cfg(feature="serialize")]
 fn main() {
     use specs::prelude::*;
     use specs::{WorldDeserializer, WorldSerializer};
+    use specs::entity::{ComponentGroup, SerializeGroup, DeconstructedGroup, Split};
     use serde::{Deserialize, Serialize};
     use serde::de::DeserializeSeed;
 
@@ -161,10 +230,26 @@ fn main() {
             println!("{}", element);
         }
         println!("subgroups:");
-        for subgroup in SomeGroup::subgroups() {
+        for subgroup in <SomeGroup as ComponentGroup>::subgroups() {
             println!("{}", subgroup);
         }
     }
+
+    fn call_method<T>(s: &str) -> u32 {
+        println!("Nice {}", s);
+        42
+    }
+    
+    fn call_other<T>(s: &str) -> u32 {
+        println!("Static {}", s);
+        3
+    }
+
+    let s = "test";
+
+    call!(local: SomeGroup =>
+        fn call_method [ ] in [ ] (s)
+    );
 }
 
 #[cfg(not(feature="serialize"))]

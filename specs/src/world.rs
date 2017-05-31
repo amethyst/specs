@@ -219,13 +219,13 @@ impl Entity {
 
     /// Returns the index of the `Entity`.
     #[inline]
-    pub fn get_id(&self) -> Index {
+    pub fn id(&self) -> Index {
         self.0
     }
 
     /// Returns the `Generation` of the `Entity`.
     #[inline]
-    pub fn get_gen(&self) -> Generation {
+    pub fn gen(&self) -> Generation {
         self.1
     }
 }

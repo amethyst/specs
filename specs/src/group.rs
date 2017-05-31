@@ -31,3 +31,51 @@ pub trait SerializeGroup: ComponentGroup {
     fn deserialize_subgroup<V>(world: &mut World, entities: &[Entity], key: String, visitor: &mut V) -> Result<Option<()>, V::Error>
         where V: serde::de::MapVisitor;
 }
+
+macro_rules! deconstruct {
+    ( $( $associated:tt )* ) => {
+        $( #[doc(hidden)] type $associated; )*
+    }
+}
+
+/// Splits a tuple with recursive associated types.
+pub trait Split {
+    /// The type split off from the tuple.
+    type This;
+    /// The rest of the tuple aside from the split off associated type.
+    type Next: Split;
+    /// Is there another split possible.
+    fn next() -> bool;
+}
+
+/// Deconstructs the group.
+pub trait DeconstructedGroup: ComponentGroup {
+    //type All: Split;
+    /// Locals of the group.
+    type Locals: Split;
+    /// Subgroups of the group.
+    type Subgroups: Split;
+    //fn all() -> usize;
+    /// Amount of local components there are in this group.
+    fn locals() -> usize;
+    /// Amount of subgroups there are in this group.
+    fn subgroups() -> usize;
+}
+
+impl<A, B: Split> Split for (A, B) {
+    type This = A;
+    type Next = B;
+    fn next() -> bool { true }
+}
+
+impl<A> Split for (A,) {
+    type This = A;
+    type Next = ();
+    fn next() -> bool { false }
+}
+
+impl Split for () {
+    type This = ();
+    type Next = ();
+    fn next() -> bool { false }
+}
