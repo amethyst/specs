@@ -1,4 +1,4 @@
-# Summary
+# The Specs Book
 
 - [Introduction](01_intro.md)
 - [Hello World](02_hello_world.md)

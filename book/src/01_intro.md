@@ -1,6 +1,6 @@
 # Introduction
 
-Welcome to the Specs book, an introduction into ECS and the Specs API.
+Welcome to The Specs Book, an introduction into ECS and the Specs API.
 This book is targeted to beginners, taking you through all the difficulties
 from setting up to building and structuring a game with an ECS.
 
