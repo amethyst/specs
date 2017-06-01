@@ -1,7 +1,7 @@
 # Introduction
 
 Welcome to The Specs Book, an introduction into ECS and the Specs API.
-This book is targeted to beginners, taking you through all the difficulties
+This book is targeted at beginners, taking you through all the difficulties
 from setting up to building and structuring a game with an ECS.
 
 Specs is an ECS library allowing parallel system execution, with both low
@@ -21,11 +21,11 @@ groups components, so a `Velocity` is applied to the `Position` of the
 same entity.
 
 ECS is sometimes seen as a counterpart to Object-Oriented Programming. I wouldn't
-say that's a hundred percent true, but let me give you some comparision here.
+say that's a hundred percent true, but let me give you some comparison here.
 
 In OOP, your player might look like this (I've used Java for the example):
 
-```java,ignore
+```java
 public class Player extends Character {
     private final Transform transform;
     private final Inventory inventory;
@@ -34,14 +34,15 @@ public class Player extends Character {
 
 There are several limitations here:
 
-* There is no multiple inheritance, therefore OOP programming is limited to
-  extending just `Character`; moreover, you have to think about "*Is* the player
+* There is either no multiple inheritance or it brings other problems with it,
+  like [the diamond problem][dp]; moreover, you have to think about "*is* the player
   a collider or *has* it a collider?"
-* You cannot easily extend the player with modding; all the
-  attributes are hardcoded
+* You cannot easily extend the player with modding; all the attributes are hardcoded.
 * Imagine you want to add a NPC, which looks like this:
 
-```java,ignore
+[dp]: https://en.wikipedia.org/wiki/Multiple_inheritance#The_diamond_problem
+
+```java
 public class Npc extends Character {
     private final Transform transform;
     private final Inventory inventory;
@@ -62,14 +63,19 @@ In fact, an entity does not even own the components; it's just
 struct Entity(u32, Generation);
 ```
 
-where the first field is the id and the second one a generation, used to validate
+where the first field is the id and the second one is the generation, used to validate
 if the entity hasn't been deleted. The components are stored separately, which
 also has the advantage of being more cache efficient.
+
+Another way you can think of an entity is that it just
+groups together a group of components. We'll see how this works
+in practice later - it allows us to just pick sets of components
+which include both `A` and `B`.
 
 ## Where to use an ECS?
 
 In case you were looking for a general-purpose library for doing it
-the data-oriented way, I have to disappoint you; it's not.
+the data-oriented way, I have to disappoint you; there is none.
 ECS libraries are best-suited for creating games; in fact, I've never
 heard of anybody using an ECS for something else.
 

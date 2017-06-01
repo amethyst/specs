@@ -35,7 +35,7 @@ to the corresponding heading.
 | [`BTreeStorage`]    | Works with a `BTreeMap`  | no particular case           |
 | [`DenseVecStorage`] | Uses a redirection table | fairly often used components |
 | [`HashMapStorage`]  | Uses a `HashMap`         | rare components              |
-| [`NullStorage`]     | Can flag entities        | universally applicable       |
+| [`NullStorage`]     | Can flag entities        | doesn't depend on rarity     |
 | [`VecStorage`]      | Uses a sparse `Vec`      | commonly used components     |
 
 [`BTreeStorage`]: #btreestorage
@@ -66,8 +66,12 @@ components, because the hashing cost would definitely be noticeable.
 ## `NullStorage`
 
 As already described in the overview, the `NullStorage` does itself
-only contain a user-defined ZST. Because a mask is added when iterating,
-it can be used for flagging entities.
+only contain a user-defined ZST (=Zero Sized Type; a struct with no data in it,
+like `struct Synced;`).
+Because it's wrapped in a so-called `MaskedStorage`, insertions and deletions
+modify the mask, so it can be used for flagging entities (like in this example
+for marking an entity as `Synced`, which could be used to only synchronize
+some of the entities over the network).
 
 ## `VecStorage`
 

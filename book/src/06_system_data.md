@@ -11,7 +11,7 @@ good news for you. You can just use `specs::data::Entities`
   While the latter one is the actual resource, the first one is a type
   definition for `Fetch<entity::Entities>`.
 
-Please not that you may never write to these `Entities`, so only
+Please note that you may never write to these `Entities`, so only
 use `Fetch`. Even though it's immutable, you can atomically create
 and delete entities with it. Just use the `.create()` and `.delete()`
 methods, respectively. You cannot, however, easily build an entity
