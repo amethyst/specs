@@ -3,10 +3,13 @@
 ## When to use a `Dispatcher`
 
 The `Dispatcher` allows you to automatically parallelize
-system execution where possible. It requires a bit more planning
+system execution where possible, using the [fork-join model][fj] to split up the 
+work and merge the result at the end. It requires a bit more planning
 and may have a little bit more overhead, but it's pretty convenient,
-especially when you're building a pretty big game where you don't
+especially when you're building a big game where you don't
 want to do this manually.
+
+[fj]: https://en.wikipedia.org/wiki/Fork–join_model
 
 ## Building a dispatcher
 
@@ -47,10 +50,10 @@ is a **tuple**, which we are using as our `SystemData`.
 In fact, `SystemData` is implemented for all tuples
 with up to 26 other types implementing `SystemData` in it. 
 
-> Notice that `ReadStorage` and `WriteStorage` *are* implementors of `SystemData` themselves,
-that's why we could use the first one for our `HelloWorld` system
-without wrapping it in a tuple; for more information see [the Chapter about
-system data][cs].
+> Notice that `ReadStorage` and `WriteStorage` *are* implementors of `SystemData`
+  themselves, that's why we could use the first one for our `HelloWorld` system
+  without wrapping it in a tuple; for more information see 
+  [the Chapter about system data][cs].
 
 [cs]: ./06_system_data.html
 
@@ -74,7 +77,7 @@ storages, so that you either get no new element or a new element with
 both components, meaning that entities with only a `Position`, only
 a `Velocity` or none of them will be skipped. The `0.05` fakes the
 so called **delta time** which is the time needed for one frame.
-We have to hardcode it right now, because it's no component (it's the
+We have to hardcode it right now, because it's not a component (it's the
 same for every entity). The solution to this are `Resource`s, see
 [the next Chapter][c4].
 
@@ -147,14 +150,14 @@ impl<'a> System<'a> for UpdatePos {
                        WriteStorage<'a, Position>);
                        
     fn run(&mut self, data: Self::SystemData) {
-            use specs::Join;
-            
-            let (vel, mut pos) = data;
-            
-            for (vel, pos) in (&vel, &mut pos).join() {
-                pos.x += vel.x * 0.05;
-                pos.y += vel.y * 0.05;
-            }
+        use specs::Join;
+        
+        let (vel, mut pos) = data;
+        
+        for (vel, pos) in (&vel, &mut pos).join() {
+            pos.x += vel.x * 0.05;
+            pos.y += vel.y * 0.05;
+        }
     }
 }
 
@@ -183,5 +186,5 @@ fn main() {
 ---
 
 [The next chapter][c4] will be a really short chapter about `Resource`s,
-a way to share data between systems which do only exist once
-(as opposed to 0..1 times per entity).
+a way to share data between systems which do only exist independent of
+entities (as opposed to 0..1 times per entity).

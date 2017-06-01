@@ -4,8 +4,10 @@ This (short) chapter will explain the concept of resources, data
 which is shared between systems.
 
 First of all, when would you need resources? There's actually a great
-example in chapter 3, where we just faked the delta time when applying
+example in [chapter 3][c3], where we just faked the delta time when applying
 the velocity. Let's see how we can do this the right way.
+
+[c3]: ./03_dispatcher.html
 
 ```rust,ignore
 struct DeltaTime(f32);
