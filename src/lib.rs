@@ -19,7 +19,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-pub use shred::{AsyncDispatcher, Dispatcher, DispatcherBuilder, Resource, System};
+pub use shred::{AsyncDispatcher, Dispatcher, DispatcherBuilder, Resource, System, run_now};
 
 pub use entity::{Component, Entity, Entities};
 pub use join::{Join, JoinIter};
