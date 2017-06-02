@@ -81,7 +81,7 @@ pub trait Join {
     fn open(self) -> (Self::Mask, Self::Value);
 
     /// Get a joined component value by a given index.
-    unsafe fn get(&mut Self::Value, Index) -> Self::Type;
+    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type;
 }
 
 
