@@ -323,7 +323,7 @@ pub enum MergeError {
 
 #[cfg(feature="serialize")]
 impl<'e, T, D> Storage<'e, T, D>
-    where T: Component + serde::Deserialize,
+    where T: Component + serde::Deserialize<'e>,
           D: DerefMut<Target = MaskedStorage<T>>
 {
     /// Merges a list of components into the storage.
