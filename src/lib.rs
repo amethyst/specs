@@ -36,7 +36,6 @@ pub use storage::{MergeError, PackedData};
 /// These can be used in a `System` implementation
 ///
 /// ```
-/// # use specs::Resource;
 /// use specs::prelude::*;
 ///
 /// # #[derive(Debug)] struct MyComp;
@@ -45,10 +44,10 @@ pub use storage::{MergeError, PackedData};
 ///
 /// struct MySys;
 ///
-/// impl<'a, C> System<'a, C> for MySys {
+/// impl<'a> System<'a> for MySys {
 ///     type SystemData = (Entities<'a>, FetchMut<'a, MyRes>, WriteStorage<'a, MyComp>);
 ///
-///     fn work(&mut self, data: Self::SystemData, _: C) {
+///     fn run(&mut self, data: Self::SystemData) {
 ///         // ..
 ///
 ///         # let _ = data;

@@ -25,8 +25,8 @@ atom = "0.3"
 fnv = "1.0"
 hibitset = "0.1.1"
 mopa = "0.2"
-shred = { git = "https://github.com/torkleyy/shred", rev = "9651382c08d3023db7787a2df751f41403190f71" }
-shred-derive = "0.1.2"
+shred = { git = "https://github.com/slide-rs/shred", rev = "a50fe15104cd4b21d094f5aaade41795e7a897ea" }
+shred-derive = "0.2"
 tuple_utils = "0.2"
 
 serde = { version = "1.0", optional = true }

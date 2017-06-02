@@ -20,13 +20,13 @@ impl Component for Pos {
 
 struct SysA;
 
-impl<'a, C> System<'a, C> for SysA {
+impl<'a> System<'a> for SysA {
     // These are the resources required for execution.
     // You can also define a struct and `#[derive(SystemData)]`,
     // see the `full` example.
     type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
 
-    fn work(&mut self, data: Self::SystemData, _: C) {
+    fn run(&mut self, data: Self::SystemData) {
         // The `.join()` combines multiple components,
         // so we only access those entities which have
         // both of them.
@@ -64,7 +64,6 @@ fn main() {
     // See the `full` example for dependencies.
     let mut dispatcher = DispatcherBuilder::new().add(SysA, "sys_a", &[]).build();
 
-    // We pass the resources and a context (`()`).
     // This dispatches all the systems in parallel (but blocking).
-    dispatcher.dispatch(&mut world.res, ());
+    dispatcher.dispatch(&mut world.res);
 }

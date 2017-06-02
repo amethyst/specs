@@ -28,10 +28,10 @@ fn create_world() -> World {
 fn task_panics() {
     struct Sys;
 
-    impl<'a> System<'a, ()> for Sys {
+    impl<'a> System<'a> for Sys {
         type SystemData = ();
 
-        fn work(&mut self, _: (), _: ()) {
+        fn run(&mut self, _: ()) {
             panic!()
         }
     }
@@ -46,17 +46,17 @@ fn task_panics() {
     DispatcherBuilder::new()
         .add(Sys, "s", &[])
         .build()
-        .dispatch(&mut world.res, ());
+        .dispatch(&mut world.res);
 }
 
 #[test]
 fn dynamic_create() {
     struct Sys;
 
-    impl<'a> System<'a, ()> for Sys {
+    impl<'a> System<'a> for Sys {
         type SystemData = Entities<'a>;
 
-        fn work(&mut self, entities: Self::SystemData, _: ()) {
+        fn run(&mut self, entities: Self::SystemData) {
             entities.create();
         }
     }
@@ -65,7 +65,7 @@ fn dynamic_create() {
     let mut dispatcher = DispatcherBuilder::new().add(Sys, "s", &[]).build();
 
     for _ in 0..1_000 {
-        dispatcher.dispatch(&mut world.res, ());
+        dispatcher.dispatch(&mut world.res);
     }
 }
 
@@ -73,10 +73,10 @@ fn dynamic_create() {
 fn dynamic_deletion() {
     struct Sys;
 
-    impl<'a> System<'a, ()> for Sys {
+    impl<'a> System<'a> for Sys {
         type SystemData = Entities<'a>;
 
-        fn work(&mut self, entities: Self::SystemData, _: ()) {
+        fn run(&mut self, entities: Self::SystemData) {
             let e = entities.create();
             entities.delete(e);
         }
@@ -86,7 +86,7 @@ fn dynamic_deletion() {
     let mut dispatcher = DispatcherBuilder::new().add(Sys, "s", &[]).build();
 
     for _ in 0..1_000 {
-        dispatcher.dispatch(&mut world.res, ());
+        dispatcher.dispatch(&mut world.res);
     }
 }
 
@@ -191,10 +191,10 @@ fn stillborn_entities() {
 
     struct SysRand(LCG);
 
-    impl<'a> System<'a, ()> for SysRand {
+    impl<'a> System<'a> for SysRand {
         type SystemData = FetchMut<'a, Rand>;
 
-        fn work(&mut self, mut data: Self::SystemData, _: ()) {
+        fn run(&mut self, mut data: Self::SystemData) {
             let rng = &mut self.0;
 
             let count = (rng.gen() % 25) as usize;
@@ -208,10 +208,10 @@ fn stillborn_entities() {
 
     struct Delete;
 
-    impl<'a> System<'a, ()> for Delete {
+    impl<'a> System<'a> for Delete {
         type SystemData = (Entities<'a>, ReadStorage<'a, CompInt>, Fetch<'a, Rand>);
 
-        fn work(&mut self, data: Self::SystemData, _: ()) {
+        fn run(&mut self, data: Self::SystemData) {
             let (entities, comp_int, rand) = data;
 
             let mut lowest = Vec::new();
@@ -231,10 +231,10 @@ fn stillborn_entities() {
 
     struct Insert;
 
-    impl<'a> System<'a, ()> for Insert {
+    impl<'a> System<'a> for Insert {
         type SystemData = (Entities<'a>, WriteStorage<'a, CompInt>, Fetch<'a, Rand>);
 
-        fn work(&mut self, data: Self::SystemData, _: ()) {
+        fn run(&mut self, data: Self::SystemData) {
             let (entities, mut comp_int, rand) = data;
 
             for &i in rand.values.iter() {
@@ -266,7 +266,7 @@ fn stillborn_entities() {
         .build();
 
     for _ in 0..100 {
-        dispatcher.dispatch(&mut world.res, ());
+        dispatcher.dispatch(&mut world.res);
     }
 }
 
@@ -276,18 +276,18 @@ fn dynamic_component() {
     // a simple test for the dynamic component feature.
     let mut w = World::new();
 
-    w.register_with_id::<CompInt, _>(1);
-    w.register_with_id::<CompBool, _>(2);
+    w.register_with_id::<CompInt>(1);
+    w.register_with_id::<CompBool>(2);
 
     let e = w.create_entity()
-        .with_id::<CompInt, _>(CompInt(10), 1)
-        .with_id::<CompBool, _>(CompBool(true), 2)
+        .with_id(CompInt(10), 1)
+        .with_id(CompBool(true), 2)
         .build();
 
-    let i = w.read_with_id::<CompInt, _>(1).get(e).unwrap().0;
+    let i = w.read_with_id::<CompInt>(1).get(e).unwrap().0;
     assert_eq!(i, 10);
 
-    let c = w.read_with_id::<CompBool, _>(2).get(e).unwrap().0;
+    let c = w.read_with_id::<CompBool>(2).get(e).unwrap().0;
     assert_eq!(c, true);
 }
 
