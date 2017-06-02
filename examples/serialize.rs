@@ -34,10 +34,10 @@ fn main() {
 
     struct SerializeSystem;
 
-    impl<'a, C> System<'a, C> for SerializeSystem {
+    impl<'a> System<'a> for SerializeSystem {
         type SystemData = Data<'a>;
 
-        fn work(&mut self, mut data: Data, _: C) {
+        fn run(&mut self, mut data: Data) {
             // Serialize the storage into JSON
             let mut serializer = Serializer::pretty(Vec::new());
             data.comp.serialize(&mut serializer).unwrap();
@@ -110,7 +110,7 @@ fn main() {
         .add(SerializeSystem, "ser", &[])
         .build();
 
-    dispatcher.dispatch(&mut world.res, ());
+    dispatcher.dispatch(&mut world.res);
 }
 
 #[cfg(not(feature="serialize"))]

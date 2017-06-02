@@ -24,16 +24,19 @@ mod tests;
 /// A storage with read access.
 pub type ReadStorage<'a, T> = Storage<'a, T, Fetch<'a, MaskedStorage<T>>>;
 
-impl<'a, T> SystemData<'a> for ReadStorage<'a, T> where T: Component {
-    fn fetch(res: &'a Resources) -> Self {
-        Storage::new(res.fetch(()), res.fetch(()))
+impl<'a, T> SystemData<'a> for ReadStorage<'a, T>
+    where T: Component
+{
+    fn fetch(res: &'a Resources, id: usize) -> Self {
+        Storage::new(res.fetch(0), res.fetch(id))
     }
 
-    unsafe fn reads() -> Vec<ResourceId> {
-        vec![ResourceId::new::<Entities>(), ResourceId::new::<MaskedStorage<T>>()]
+    unsafe fn reads(id: usize) -> Vec<ResourceId> {
+        vec![ResourceId::new::<Entities>(),
+             ResourceId::new_with_id::<MaskedStorage<T>>(id)]
     }
 
-    unsafe fn writes() -> Vec<ResourceId> {
+    unsafe fn writes(_: usize) -> Vec<ResourceId> {
         vec![]
     }
 }
@@ -41,17 +44,19 @@ impl<'a, T> SystemData<'a> for ReadStorage<'a, T> where T: Component {
 /// A storage with read and write access.
 pub type WriteStorage<'a, T> = Storage<'a, T, FetchMut<'a, MaskedStorage<T>>>;
 
-impl<'a, T> SystemData<'a> for WriteStorage<'a, T> where T: Component {
-    fn fetch(res: &'a Resources) -> Self {
-        Storage::new(res.fetch(()), res.fetch_mut(()))
+impl<'a, T> SystemData<'a> for WriteStorage<'a, T>
+    where T: Component
+{
+    fn fetch(res: &'a Resources, id: usize) -> Self {
+        Storage::new(res.fetch(0), res.fetch_mut(id))
     }
 
-    unsafe fn reads() -> Vec<ResourceId> {
+    unsafe fn reads(_: usize) -> Vec<ResourceId> {
         vec![ResourceId::new::<Entities>()]
     }
 
-    unsafe fn writes() -> Vec<ResourceId> {
-        vec![ResourceId::new::<MaskedStorage<T>>()]
+    unsafe fn writes(id: usize) -> Vec<ResourceId> {
+        vec![ResourceId::new_with_id::<MaskedStorage<T>>(id)]
     }
 }
 

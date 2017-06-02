@@ -135,14 +135,14 @@ struct DeltaTime(f32);
 
 struct Integrate;
 
-impl<'a> System<'a, ()> for Integrate {
+impl<'a> System<'a> for Integrate {
     type SystemData = (WriteStorage<'a, Pos>,
      WriteStorage<'a, Vel>,
      WriteStorage<'a, Force>,
      ReadStorage<'a, InvMass>,
      Fetch<'a, DeltaTime>);
 
-    fn work(&mut self, data: Self::SystemData, _: ()) {
+    fn run(&mut self, data: Self::SystemData) {
         use cgmath::Zero;
 
         let (mut pos, mut vel, mut force, inv_mass, delta) = data;
@@ -163,7 +163,7 @@ impl<'a> System<'a, ()> for Integrate {
 
 struct Spawn;
 
-impl<'a> System<'a, ()> for Spawn {
+impl<'a> System<'a> for Spawn {
     type SystemData = (Entities<'a>,
      ReadStorage<'a, Spawner>,
      WriteStorage<'a, Pos>,
@@ -175,7 +175,7 @@ impl<'a> System<'a, ()> for Spawn {
      WriteStorage<'a, Color>,
      WriteStorage<'a, SpawnRequests>);
 
-    fn work(&mut self, data: Self::SystemData, _: ()) {
+    fn run(&mut self, data: Self::SystemData) {
         use cgmath::Zero;
         use rand::Rng;
 
@@ -234,10 +234,10 @@ impl<'a> System<'a, ()> for Spawn {
 
 struct RequestSpawns;
 
-impl<'a> System<'a, ()> for RequestSpawns {
+impl<'a> System<'a> for RequestSpawns {
     type SystemData = WriteStorage<'a, SpawnRequests>;
 
-    fn work(&mut self, mut data: Self::SystemData, _: ()) {
+    fn run(&mut self, mut data: Self::SystemData) {
         use rand::Rng;
 
         let mut rng = thread_rng();
@@ -253,13 +253,13 @@ impl<'a> System<'a, ()> for RequestSpawns {
 
 struct GenCollisions;
 
-impl<'a> System<'a, ()> for GenCollisions {
+impl<'a> System<'a> for GenCollisions {
     type SystemData = (ReadStorage<'a, Pos>,
      ReadStorage<'a, Ball>,
      ReadStorage<'a, Rect>,
      WriteStorage<'a, Collision>);
 
-    fn work(&mut self, _: Self::SystemData, _: ()) {
+    fn run(&mut self, _: Self::SystemData) {
         // TODO
     }
 }
@@ -333,7 +333,7 @@ fn bench_parallel(b: &mut Bencher) {
         .build();
 
     b.iter(|| {
-        d.dispatch(&mut w.res, ());
-        w.maintain();
-    })
+               d.dispatch(&mut w.res);
+               w.maintain();
+           })
 }

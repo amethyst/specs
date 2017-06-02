@@ -68,10 +68,10 @@ struct StoreMaxData<'a> {
 
 struct SysPrintBool;
 
-impl<'a, C> System<'a, C> for SysPrintBool {
+impl<'a> System<'a> for SysPrintBool {
     type SystemData = ReadStorage<'a, CompBool>;
 
-    fn work(&mut self, data: ReadStorage<CompBool>, _: C) {
+    fn run(&mut self, data: ReadStorage<CompBool>) {
         for b in (&data).join() {
             println!("Bool: {:?}", b);
         }
@@ -80,10 +80,10 @@ impl<'a, C> System<'a, C> for SysPrintBool {
 
 struct SysCheckPositive;
 
-impl<'a, C> System<'a, C> for SysCheckPositive {
+impl<'a> System<'a> for SysCheckPositive {
     type SystemData = IntAndBoolData<'a>;
 
-    fn work(&mut self, mut data: IntAndBoolData, _: C) {
+    fn run(&mut self, mut data: IntAndBoolData) {
         // Join merges the two component storages,
         // so you get all (CompInt, CompBool) pairs.
         for (ci, cb) in (&data.comp_int, &mut data.comp_bool).join() {
@@ -102,10 +102,10 @@ impl SysSpawn {
     }
 }
 
-impl<'a, C> System<'a, C> for SysSpawn {
+impl<'a> System<'a> for SysSpawn {
     type SystemData = SpawnData<'a>;
 
-    fn work(&mut self, mut data: SpawnData, _: C) {
+    fn run(&mut self, mut data: SpawnData) {
         if self.counter == 0 {
             let entity = data.entities.join().next().unwrap();
             data.entities.delete(entity);
@@ -132,10 +132,10 @@ impl SysStoreMax {
     }
 }
 
-impl<'a, C> System<'a, C> for SysStoreMax {
+impl<'a> System<'a> for SysStoreMax {
     type SystemData = StoreMaxData<'a>;
 
-    fn work(&mut self, data: StoreMaxData, _: C) {
+    fn run(&mut self, data: StoreMaxData) {
         use std::i32::MIN;
 
         // Let's print information about
@@ -203,10 +203,10 @@ fn main() {
         .add(SysPrintBool, "print_bool2", &["check_positive"])
         .build();
 
-    dispatcher.dispatch(&mut w.res, ());
+    dispatcher.dispatch(&mut w.res);
 
     // Insert a component, associated with `e`.
     w.write().insert(e, CompFloat(4.0));
 
-    dispatcher.dispatch(&mut w.res, ());
+    dispatcher.dispatch(&mut w.res);
 }

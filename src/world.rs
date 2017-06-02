@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-use std::hash::Hash;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
@@ -196,7 +195,6 @@ impl Entity {
 
 /// The entity builder, allowing to
 /// build an entity together with its components.
-#[derive(Debug)]
 pub struct EntityBuilder<'a> {
     entity: Entity,
     world: &'a mut World,
@@ -205,11 +203,11 @@ pub struct EntityBuilder<'a> {
 impl<'a> EntityBuilder<'a> {
     /// Appends a component with the default component id.
     pub fn with<T: Component>(self, c: T) -> Self {
-        self.with_id(c, ())
+        self.with_id(c, 0)
     }
 
     /// Appends a component with a component id.
-    pub fn with_id<T: Component, ID: Hash + Eq>(self, c: T, id: ID) -> Self {
+    pub fn with_id<T: Component>(self, c: T, id: usize) -> Self {
         {
             let mut storage = self.world.write_with_id(id);
             storage.insert(self.entity, c);
@@ -321,10 +319,19 @@ impl Generation {
     }
 }
 
-/// The `World` struct contains all the data, which is entities and their components.
-/// All methods are supposed to be valid for any context they are available in.
-/// The type parameter C is for component identification in addition of their types.
-#[derive(Debug)]
+/// The `World` struct contains the component storages and
+/// other resources.
+///
+/// Many methods take `&self` which works because everything
+/// is stored with **interior mutability**. In case you violate
+/// the borrowing rules of Rust (multiple reads xor one write),
+/// you will get a panic.
+///
+/// # Component / Resource ids
+///
+/// Components and resources may, in addition to their type, be identified
+/// by an id of type `usize`. The convenience methods dealing
+/// with components assume that it's `0`.
 pub struct World {
     /// The resources used for this world.
     pub res: Resources,
@@ -339,67 +346,76 @@ impl World {
 
     /// Registers a new component.
     ///
+    /// Calls `register_with_id` with id `0`, which
+    /// is the default for component ids.
+    ///
     /// Does nothing if the component was already
     /// registered.
     pub fn register<T: Component>(&mut self) {
-        self.register_with_id::<T, ()>(());
+        self.register_with_id::<T>(0);
     }
 
     /// Registers a new component with a given id.
     ///
     /// Does nothing if the component was already
     /// registered.
-    pub fn register_with_id<T: Component, ID: Clone + Hash + Eq>(&mut self, id: ID) {
+    pub fn register_with_id<T: Component>(&mut self, id: usize) {
         use shred::ResourceId;
 
         if self.res
-               .has_value(ResourceId::new_with_id::<MaskedStorage<T>, ID>(id.clone())) {
+               .has_value(ResourceId::new_with_id::<MaskedStorage<T>>(id)) {
             return;
         }
 
-        self.res.add(MaskedStorage::<T>::new(), id.clone());
+        self.res.add_with_id(MaskedStorage::<T>::new(), id);
 
-        let mut storage = self.res.fetch_mut::<MaskedStorage<T>, _>(id);
+        let mut storage = self.res.fetch_mut::<MaskedStorage<T>>(id);
         self.storages.push(&mut *storage as *mut AnyStorage);
     }
 
-    /// Adds a resource with the default ID.
+    /// Adds a resource with the default ID (`0`).
     ///
     /// If the resource already exists it will be overwritten.
     pub fn add_resource<T: Resource>(&mut self, res: T) {
-        self.add_resource_with_id(res, ());
+        self.add_resource_with_id(res, 0);
     }
 
     /// Adds a resource with a given ID.
     ///
     /// If the resource already exists it will be overwritten.
-    pub fn add_resource_with_id<T: Resource, ID: Clone + Hash + Eq>(&mut self, res: T, id: ID) {
+    pub fn add_resource_with_id<T: Resource>(&mut self, res: T, id: usize) {
         use shred::ResourceId;
 
         if self.res
-               .has_value(ResourceId::new_with_id::<T, ID>(id.clone())) {
+               .has_value(ResourceId::new_with_id::<T>(id)) {
             *self.write_resource_with_id(id) = res;
         } else {
-            self.res.add(res, id);
+            self.res.add_with_id(res, id);
         }
     }
 
     /// Fetches a component's storage with the default id for reading.
     ///
+    /// Convenience method for `read_with_id`, using the default component
+    /// id (`0`).
+    ///
     /// # Panics
     ///
     /// Panics if it is already borrowed mutably.
     pub fn read<T: Component>(&self) -> ReadStorage<T> {
-        self.read_with_id(())
+        self.read_with_id(0)
     }
 
     /// Fetches a component's storage with the default id for writing.
+    ///
+    /// Convenience method for `write_with_id`, using the default component
+    /// id (`0`).
     ///
     /// # Panics
     ///
     /// Panics if it is already borrowed.
     pub fn write<T: Component>(&self) -> WriteStorage<T> {
-        self.write_with_id(())
+        self.write_with_id(0)
     }
 
     /// Fetches a component's storage with a specified id for reading.
@@ -407,7 +423,7 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed mutably.
-    pub fn read_with_id<T: Component, ID: Hash + Eq>(&self, id: ID) -> ReadStorage<T> {
+    pub fn read_with_id<T: Component>(&self, id: usize) -> ReadStorage<T> {
         let entities = self.entities();
 
         Storage::new(entities, self.res.fetch(id))
@@ -418,7 +434,7 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed.
-    pub fn write_with_id<T: Component, ID: Hash + Eq>(&self, id: ID) -> WriteStorage<T> {
+    pub fn write_with_id<T: Component>(&self, id: usize) -> WriteStorage<T> {
         let entities = self.entities();
 
         Storage::new(entities, self.res.fetch_mut(id))
@@ -429,7 +445,7 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed mutably.
-    pub fn read_resource_with_id<T: Resource, ID: Hash + Eq>(&self, id: ID) -> Fetch<T> {
+    pub fn read_resource_with_id<T: Resource>(&self, id: usize) -> Fetch<T> {
         self.res.fetch(id)
     }
 
@@ -438,26 +454,32 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed.
-    pub fn write_resource_with_id<T: Resource, ID: Hash + Eq>(&self, id: ID) -> FetchMut<T> {
+    pub fn write_resource_with_id<T: Resource>(&self, id: usize) -> FetchMut<T> {
         self.res.fetch_mut(id)
     }
 
     /// Fetches a resource with the default id for reading.
     ///
+    /// Convenience method for `read_resource_with_id`, using the default component
+    /// id (`0`).
+    ///
     /// # Panics
     ///
     /// Panics if it is already borrowed mutably.
     pub fn read_resource<T: Resource>(&self) -> Fetch<T> {
-        self.read_resource_with_id(())
+        self.read_resource_with_id(0)
     }
 
     /// Fetches a resource with the default id for writing.
+    ///
+    /// Convenience method for `write_resource_with_id`, using the default component
+    /// id (`0`).
     ///
     /// # Panics
     ///
     /// Panics if it is already borrowed.
     pub fn write_resource<T: Resource>(&self) -> FetchMut<T> {
-        self.write_resource_with_id(())
+        self.write_resource_with_id(0)
     }
 
     /// Convenience method for fetching entities.
@@ -553,7 +575,7 @@ impl World {
 impl Default for World {
     fn default() -> Self {
         let mut res = Resources::new();
-        res.add(Entities::default(), ());
+        res.add(Entities::default());
 
         World {
             res: res,
