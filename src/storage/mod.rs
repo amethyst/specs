@@ -461,7 +461,7 @@ impl<T> PackedData<T> {
     }
 }
 
-/// Used by the framework to quickly join componets
+/// Used by the framework to quickly join components.
 pub trait UnprotectedStorage<T>: Debug + Sized {
     /// Creates a new `Storage<T>`. This is called when you register a new
     /// component type within the world.
@@ -469,7 +469,7 @@ pub trait UnprotectedStorage<T>: Debug + Sized {
 
     /// Clean the storage given a check to figure out if an index
     /// is valid or not. Allows us to safely drop the storage.
-    unsafe fn clean<F>(&mut self, F) where F: Fn(Index) -> bool;
+    unsafe fn clean<F>(&mut self, f: F) where F: Fn(Index) -> bool;
 
     /// Tries reading the data associated with an `Index`.
     /// This is unsafe because the external set used
@@ -482,8 +482,8 @@ pub trait UnprotectedStorage<T>: Debug + Sized {
     unsafe fn get_mut(&mut self, id: Index) -> &mut T;
 
     /// Inserts new data for a given `Index`.
-    unsafe fn insert(&mut self, Index, T);
+    unsafe fn insert(&mut self, id: Index, value: T);
 
     /// Removes the data associated with an `Index`.
-    unsafe fn remove(&mut self, Index) -> T;
+    unsafe fn remove(&mut self, id: Index) -> T;
 }
