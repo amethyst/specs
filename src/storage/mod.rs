@@ -231,6 +231,10 @@ impl<'e, T, D> Storage<'e, T, D>
     /// Reads the data associated with the entry.
     ///
     /// `Entry`s are returned from a `CheckStorage` to remove unnecessary checks.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the entry was retrieved from another storage.
     pub fn get_unchecked<'a>(&'a self, entry: &'a Entry<'a, 'e, T, D>) -> &'a T {
         assert_eq!(entry.original,
                    self as *const Storage<'e, T, D>,

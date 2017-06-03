@@ -201,11 +201,21 @@ pub struct EntityBuilder<'a> {
 
 impl<'a> EntityBuilder<'a> {
     /// Appends a component with the default component id.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the component hasn't been `register()`ed in the
+    /// `World`.
     pub fn with<T: Component>(self, c: T) -> Self {
         self.with_id(c, 0)
     }
 
     /// Appends a component with a component id.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the component hasn't been `register_with_id()`ed in the
+    /// `World`.
     pub fn with_id<T: Component>(self, c: T, id: usize) -> Self {
         {
             let mut storage = self.world.write_with_id(id);
@@ -306,12 +316,20 @@ impl Generation {
     }
 
     /// Kills this `Generation`.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug mode if it's not alive.
     fn die(&mut self) {
         debug_assert!(self.is_alive());
         self.0 = -self.0;
     }
 
     /// Revives and increments a dead `Generation`.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug mode if it is alive.
     fn raised(self) -> Generation {
         debug_assert!(!self.is_alive());
         Generation(1 - self.0)
@@ -541,6 +559,10 @@ impl World {
     /// are not handled by this method. Therefore, you
     /// should have called `maintain()` before using this
     /// method.
+    ///
+    /// # Panics
+    ///
+    /// Panics if generation is dead.
     pub fn is_alive(&self, e: Entity) -> bool {
         assert!(e.gen().is_alive(), "Generation is dead");
 
