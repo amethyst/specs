@@ -13,12 +13,16 @@ Objectives:
 - Place no constraints onto the component types themselves, allow defining them in user modules.
 - Have low overhead, high safety, and optimal ergonomics.
 """
-documentation = "https://slide-rs.github.io/specs/"
+documentation = "https://docs.rs/specs/"
 repository = "https://github.com/slide-rs/specs"
 keywords = ["gamedev"]
+categories = ["concurrency"]
 license = "Apache-2.0"
 authors = ["slide-rs hackers"]
 exclude = ["doc", ".travis.yml"]
+
+[badges]
+travis-ci = { repository = "slide-rs/specs" }
 
 [dependencies]
 atom = "0.3"
