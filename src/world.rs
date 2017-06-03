@@ -1,4 +1,3 @@
-use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
@@ -134,7 +133,7 @@ impl Allocator {
 }
 
 /// Abstract component type. Doesn't have to be Copy or even Clone.
-pub trait Component: Any + Debug + Sized {
+pub trait Component: Any + Sized {
     /// Associated storage type for this component.
     type Storage: UnprotectedStorage<Self> + Any + Send + Sync;
 }

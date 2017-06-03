@@ -1,7 +1,6 @@
 //! Storage types
 
 use std;
-use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
 
@@ -76,7 +75,6 @@ impl<T> AnyStorage for MaskedStorage<T>
 
 /// The `UnprotectedStorage` together with the `BitSet` that knows
 /// about which elements are stored, and which are not.
-#[derive(Debug)]
 pub struct MaskedStorage<T: Component> {
     mask: BitSet,
     inner: T::Storage,
@@ -467,7 +465,7 @@ impl<T> PackedData<T> {
 }
 
 /// Used by the framework to quickly join components.
-pub trait UnprotectedStorage<T>: Debug + Sized {
+pub trait UnprotectedStorage<T>: Sized {
     /// Creates a new `Storage<T>`. This is called when you register a new
     /// component type within the world.
     fn new() -> Self;
