@@ -14,6 +14,10 @@ good news for you. You can just use `specs::data::Entities`
 Please note that you may never write to these `Entities`, so only
 use `Fetch`. Even though it's immutable, you can atomically create
 and delete entities with it. Just use the `.create()` and `.delete()`
-methods, respectively. You cannot, however, easily build an entity
+methods, respectively. After dynamic entity creation / deletion,
+a call `World::maintain` is necessary in order to make the changes
+persistent and delete associated components.
+
+You cannot, however, easily build an entity
 with associated components. For that, you have to write these component
 storages and insert a component for your entity.
