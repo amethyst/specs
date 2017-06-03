@@ -66,6 +66,9 @@ pub mod data {
     /// ```ignore
     /// type SystemData = (Entities<'a>, ...);
     /// ```
+    ///
+    /// Please note that you should call `World::maintain`
+    /// after creating / deleting entities with this resource.
     pub type Entities<'a> = Fetch<'a, ::entity::Entities>;
 }
 

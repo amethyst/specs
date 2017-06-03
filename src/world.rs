@@ -228,6 +228,9 @@ impl<'a> EntityBuilder<'a> {
 /// **Please note that you should never fetch
 /// this mutably in a system, because it would
 /// block all the other systems.**
+///
+/// You need to call `World::maintain` after creating / deleting
+/// entities with this struct.
 #[derive(Debug, Default)]
 pub struct Entities {
     alloc: Allocator,
