@@ -15,9 +15,7 @@ mod map_test {
 
     #[derive(Debug)]
     struct Comp<T>(T);
-    impl<T: Any + Send + Sync> Component for Comp<T>
-        where T: Debug
-    {
+    impl<T: Any + Send + Sync> Component for Comp<T> {
         type Storage = VecStorage<Comp<T>>;
     }
 
@@ -530,7 +528,9 @@ mod serialize_test {
                             field2: false,
                         }]);
 
-        storage.merge(&entities.as_slice(), packed).expect("Failed to merge into storage");
+        storage
+            .merge(&entities.as_slice(), packed)
+            .expect("Failed to merge into storage");
 
         assert_eq!((&storage).join().count(), 3);
         assert_eq!((&storage).get(entities[3]),

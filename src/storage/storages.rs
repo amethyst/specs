@@ -1,7 +1,6 @@
 //! Different types of storages you can use for your components.
 
 use std::collections::BTreeMap;
-use std::fmt::Debug;
 
 use fnv::FnvHashMap;
 
@@ -9,12 +8,9 @@ use storage::UnprotectedStorage;
 use Index;
 
 /// HashMap-based storage. Best suited for rare components.
-#[derive(Debug)]
 pub struct HashMapStorage<T>(FnvHashMap<Index, T>);
 
-impl<T> UnprotectedStorage<T> for HashMapStorage<T>
-    where T: Debug
-{
+impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     fn new() -> Self {
         HashMapStorage(Default::default())
     }
@@ -43,12 +39,9 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T>
 }
 
 /// BTreeMap-based storage.
-#[derive(Debug)]
 pub struct BTreeStorage<T>(BTreeMap<Index, T>);
 
-impl<T> UnprotectedStorage<T> for BTreeStorage<T>
-    where T: Debug
-{
+impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
     fn new() -> Self {
         BTreeStorage(Default::default())
     }
@@ -78,12 +71,9 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T>
 
 /// Vector storage. Uses a simple `Vec`. Supposed to have maximum
 /// performance for the components mostly present in entities.
-#[derive(Debug)]
 pub struct VecStorage<T>(Vec<T>);
 
-impl<T> UnprotectedStorage<T> for VecStorage<T>
-    where T: Debug
-{
+impl<T> UnprotectedStorage<T> for VecStorage<T> {
     fn new() -> Self {
         VecStorage(Vec::new())
     }
@@ -132,16 +122,13 @@ impl<T> UnprotectedStorage<T> for VecStorage<T>
 /// Dense vector storage. Has a redirection 2-way table
 /// between entities and components, allowing to leave
 /// no gaps within the data.
-#[derive(Debug)]
 pub struct DenseVecStorage<T> {
     data: Vec<T>,
     entity_id: Vec<Index>,
     data_id: Vec<Index>,
 }
 
-impl<T> UnprotectedStorage<T> for DenseVecStorage<T>
-    where T: Debug
-{
+impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
     fn new() -> Self {
         DenseVecStorage {
             data: Vec::new(),
@@ -189,12 +176,9 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T>
 
 /// A null storage type, used for cases where the component
 /// doesn't contain any data and instead works as a simple flag.
-#[derive(Debug)]
 pub struct NullStorage<T>(T);
 
-impl<T: Default> UnprotectedStorage<T> for NullStorage<T>
-    where T: Debug
-{
+impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
     fn new() -> Self {
         NullStorage(Default::default())
     }
