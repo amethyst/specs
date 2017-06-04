@@ -391,7 +391,6 @@ fn par_join_two_components() {
 #[cfg(feature="parallel")]
 fn par_join_many_entities_and_systems() {
     use std::sync::{Arc, Mutex};
-    use specs::Join;
     use rayon::iter::ParallelIterator;
     let mut world = create_world();
     for _ in 0..1000 {

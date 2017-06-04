@@ -77,13 +77,7 @@ pub trait Join {
     {
         JoinIter::new(self)
     }
-    /// Create a joined parallel iterator over the contents.
-    #[cfg(feature="parallel")]
-    fn par_join(self) -> JoinParIter<Self>
-        where Self: Sized
-    {
-        JoinParIter(self)
-    }
+
     /// Open this join by returning the mask and the storages.
     fn open(self) -> (Self::Mask, Self::Value);
 
@@ -91,6 +85,18 @@ pub trait Join {
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type;
 }
 
+/// The purpose of the `ParJoin` trait is to provide a way
+/// to access multiple storages in parallel at the same time with
+/// the merged bit set.
+#[cfg(feature="parallel")]
+pub trait ParJoin: Join {
+    /// Create a joined parallel iterator over the contents.
+    fn par_join(self) -> JoinParIter<Self>
+        where Self: Sized
+    {
+        JoinParIter(self)
+    }
+}
 
 /// `JoinIter` is an `Iterator` over a group of `Storages`.
 #[must_use]
@@ -183,6 +189,8 @@ mod par_join {
         }
     }
 
+    // TODO: This is required so that there isn't lock for values (which would make the whole parallel iterator pointless).
+    // Is this nessary/correct? The way the splits happen should guarantee that the values are accessed only in one thread.
     unsafe impl<'a, 'b, J> Send for JoinProducer<'a, 'b, J>
       where
         J: Join + Send,
@@ -212,6 +220,15 @@ mod par_join {
         {
             let JoinProducer {values, keys, ..} = self;
             let iter = keys.0.map(|idx| unsafe {
+                // This unsafe block should be safe if the `J::get`
+                // can be safely called from different threads with distinct indices.
+
+                // The `idx` is distinct with indices in other threads because there either is no splits
+                // and thus it goes through all entities in one thread or it's one of the splitted parts.
+                // If it's one of the splitted part then it shouldn't overlap with other splitted parts
+                // as the splits are produced with `BitProducer::split` which should guarantee that
+                // the splitted parts are distinct with each other.
+
                 // TODO: There can be multiple mutable references to storage and thus this is not safe, right?
                 J::get(&mut *values.get(), idx)
             });
@@ -246,6 +263,11 @@ macro_rules! define_open {
                 ($($from::get($from, i),)*)
             }
         }
+        #[cfg(feature="parallel")]
+        impl<'a, $($from,)*> ParJoin for ($($from),*,)
+            where $($from: ParJoin),*,
+                  ($(<$from as Join>::Mask,)*): BitAnd,
+        {}
     }
 }
 

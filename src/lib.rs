@@ -207,6 +207,8 @@ pub mod prelude {
 
     pub use data::{Entities, Fetch, FetchMut, ReadStorage, WriteStorage};
     pub use join::Join;
+    #[cfg(feature="parallel")]
+    pub use join::ParJoin;
     pub use storages::{DenseVecStorage, HashMapStorage, VecStorage, FlaggedStorage};
 }
 
