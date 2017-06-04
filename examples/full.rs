@@ -204,9 +204,11 @@ fn main() {
         .build();
 
     dispatcher.dispatch(&mut w.res);
+    w.maintain();
 
     // Insert a component, associated with `e`.
     w.write().insert(e, CompFloat(4.0));
 
     dispatcher.dispatch(&mut w.res);
+    w.maintain();
 }
