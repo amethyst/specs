@@ -3,6 +3,12 @@ rust:
 - nightly
 - stable
 
+branches:
+  only:
+    - staging
+    - trying
+    - master
+
 script:
 - cargo build --verbose
 - cargo test --verbose

@@ -19,7 +19,7 @@ keywords = ["gamedev"]
 categories = ["concurrency"]
 license = "Apache-2.0"
 authors = ["slide-rs hackers"]
-exclude = ["doc", ".travis.yml"]
+exclude = ["bors.toml", ".travis.yml"]
 
 [badges]
 travis-ci = { repository = "slide-rs/specs" }
