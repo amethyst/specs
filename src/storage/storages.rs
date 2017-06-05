@@ -1,11 +1,14 @@
 //! Different types of storages you can use for your components.
 
 use std::collections::BTreeMap;
+use std::marker::PhantomData;
 
 use fnv::FnvHashMap;
+use hibitset::BitSet;
 
 use storage::UnprotectedStorage;
-use Index;
+use world::EntityIndex;
+use {Join, Index};
 
 /// HashMap-based storage. Best suited for rare components.
 pub struct HashMapStorage<T>(FnvHashMap<Index, T>);
@@ -199,11 +202,11 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
 ///
 /// **Note: Never use `.iter()` on a mutable component storage that uses this.**
 ///
-/// #Example Usage:
+///# Example Usage:
 /// 
-/// ```rust,ignore
-///# extern crate specs;
-///# use specs::{Planner, World, RunArg, Component, TrackedStorage, VecStorage, System, Join};
+/// ```rust
+/// extern crate specs;
+/// use specs::prelude::*;
 /// 
 /// pub struct Comp(u32);
 /// impl Component for Comp {
@@ -213,50 +216,47 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
 /// }
 /// 
 /// pub struct CompSystem;
-/// impl System<()> for CompSystem {
-///     fn run(&mut self, arg: RunArg, _: ()) {
-///         let (entities, mut comps) = arg.fetch(|w| {
-///             (w.entities(), w.write::<Comp>()) 
-///         });
-/// 
+/// impl<'a> System<'a> for CompSystem {
+///     type SystemData = WriteStorage<'a, Comp>;
+///     fn run(&mut self, mut comps: WriteStorage<'a, Comp>) {
 ///         // Iterates over all components like normal.
-///         for (entity, comp) in (&entities, &comps).iter() {
+///         for comp in (&comps).join() {
 ///             // ...
 ///         }
 /// 
 ///         // **Never do this**
 ///         // This will flag all components as modified regardless of whether the inner loop
 ///         // did modify their data.
-///         for (entity, comp) in (&entities, &mut comps).iter() {
+///         for comp in (&mut comps).join() {
 ///             // ...
 ///         }
 /// 
 ///         // Instead do something like:
-///         for (entity, comp) in (&entities, &comps.check()).iter() {
-///             if true { // check whether you should modify this component or not.
-///                 let mut comp = comps.get_mut(entity);
+///         for mut entry in (&comps.check()).join() {
+///             if true { // check whether this component should be modified.
+///                 let mut comp = comps.get_mut_unchecked(&mut entry);
 ///                 // ...
 ///             }
 ///         }
 /// 
 ///         // To iterate over the flagged/modified components:
-///         for (entity, flagged_comp) in (&entities, (&comps).open().1).iter() {
+///         for flagged_comp in ((&comps).open().1).join() {
 ///             // ...
 ///         }
 /// 
 ///         // Clears the tracked storage every frame with this system.
-///         (&mut comps).open().1.clear();
+///         (&mut comps).open().1.clear_flags();
 ///     }
 /// }
 ///# fn main() { }
 /// ```
-pub struct TrackedStorage<C: Component, T: UnprotectedStorage<C>> {
+pub struct TrackedStorage<C, T> {
     mask: BitSet,
     storage: T,
     phantom: PhantomData<C>,
 }
 
-impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for TrackedStorage<C, T> {
+impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for TrackedStorage<C, T> {
     fn new() -> Self {
         TrackedStorage {
             mask: BitSet::new(),
@@ -272,7 +272,7 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for TrackedSt
         self.storage.get(id)
     }
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
-        // calling `.iter()` on a mutable reference to the storage will flag everything
+        // calling `.iter()` on an unconstrained mutable storage will flag everything
         self.mask.add(id);
         self.storage.get_mut(id)
     }
@@ -286,22 +286,26 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for TrackedSt
     }
 }
 
-impl<C: Component, T: UnprotectedStorage<C>> TrackedStorage<C, T> {
+impl<C, T: UnprotectedStorage<C>> TrackedStorage<C, T> {
+    /// Whether the component related to the entity was flagged or not.
+    pub fn flagged<E: EntityIndex>(&self, entity: E) -> bool {
+        self.mask.contains(entity.index())
+    }
     /// All components will be cleared of being flagged.
-    pub fn clear(&mut self) {
+    pub fn clear_flags(&mut self) {
         self.mask.clear();
     }
     /// Flags a single component as not flagged.
-    pub fn unflag(&mut self, entity: Entity) {
-        self.mask.remove(entity.get_id());
+    pub fn unflag<E: EntityIndex>(&mut self, entity: E) {
+        self.mask.remove(entity.index());
     }
     /// Flags a single component as flagged.
-    pub fn flag(&mut self, entity: Entity) {
-        self.mask.add(entity.get_id());
+    pub fn flag<E: EntityIndex>(&mut self, entity: E) {
+        self.mask.add(entity.index());
     }
 }
 
-impl<'a, C: Component, T: UnprotectedStorage<C>> Join for &'a TrackedStorage<C, T> {
+impl<'a, C, T: UnprotectedStorage<C>> Join for &'a TrackedStorage<C, T> {
     type Type = &'a C;
     type Value = &'a T;
     type Mask = &'a BitSet;
@@ -313,7 +317,7 @@ impl<'a, C: Component, T: UnprotectedStorage<C>> Join for &'a TrackedStorage<C, 
     }
 }
 
-impl<'a, C: Component, T: UnprotectedStorage<C>> Join for &'a mut TrackedStorage<C, T> {
+impl<'a, C, T: UnprotectedStorage<C>> Join for &'a mut TrackedStorage<C, T> {
     type Type = &'a mut C;
     type Value = &'a mut T;
     type Mask = &'a BitSet;

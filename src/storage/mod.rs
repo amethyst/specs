@@ -9,7 +9,7 @@ use mopa::Any;
 use shred::{Fetch, FetchMut, ResourceId, Resources, SystemData};
 
 use join::Join;
-use world::{Component, Entity, Entities};
+use world::{Component, Entity, EntityIndex, Entities};
 use Index;
 
 #[cfg(feature="serialize")]
@@ -143,6 +143,12 @@ pub struct Entry<'a, 'e, T, D> {
     // Pointer for comparison when attempting to check against a storage.
     original: *const Storage<'e, T, D>,
     phantom: PhantomData<&'a ()>,
+}
+
+impl<'a, 'e, T, D> EntityIndex for Entry<'a, 'e, T, D> {
+    fn index(&self) -> Index {
+        self.id
+    }
 }
 
 /// A storage type that iterates entities that have

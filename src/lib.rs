@@ -131,7 +131,6 @@ extern crate mopa;
 extern crate shred;
 extern crate tuple_utils;
 
-<<<<<<< HEAD
 #[cfg(feature="serialize")]
 extern crate serde;
 #[cfg(feature="serialize")]
@@ -141,13 +140,6 @@ extern crate serde_derive;
 pub use shred::{AsyncDispatcher, Dispatcher, DispatcherBuilder, Resource, System, run_now};
 
 pub use entity::{Component, Entity, Entities};
-=======
-pub use storage::{Storage, UnprotectedStorage, AntiStorage,
-                  VecStorage, HashMapStorage, NullStorage, InsertResult,
-                  MaskedStorage, TrackedStorage};
-pub use world::{Component, World, EntityBuilder, Entities, CreateEntities,
-                Allocator};
->>>>>>> 700efc8... Join implementations for TrackedStorage, some documentation
 pub use join::{Join, JoinIter};
 pub use world::World;
 pub use storage::{CheckStorage, InsertResult, UnprotectedStorage};
@@ -210,7 +202,7 @@ pub mod prelude {
 
     pub use data::{Entities, Fetch, FetchMut, ReadStorage, WriteStorage};
     pub use join::Join;
-    pub use storages::{DenseVecStorage, HashMapStorage, VecStorage};
+    pub use storages::{DenseVecStorage, HashMapStorage, VecStorage, TrackedStorage};
 }
 
 pub use storage::storages;
