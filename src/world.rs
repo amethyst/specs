@@ -4,9 +4,7 @@ use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use mopa::Any;
 use shred::{Fetch, FetchMut, Resource, Resources};
 
-use join::Join;
-#[cfg(feature="parallel")]
-use join::ParJoin;
+use join::{Join, ParJoin};
 use storage::{AnyStorage, MaskedStorage, ReadStorage, Storage, UnprotectedStorage, WriteStorage};
 use Index;
 
@@ -316,8 +314,6 @@ impl<'a> Join for &'a Entities {
     }
 }
 
-// TODO: Is this correct?
-#[cfg(feature="parallel")]
 impl<'a> ParJoin for &'a Entities {}
 
 /// Index generation. When a new entity is placed at an old index,

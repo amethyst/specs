@@ -8,9 +8,7 @@ use hibitset::{BitSet, BitSetNot};
 use mopa::Any;
 use shred::{Fetch, FetchMut, ResourceId, Resources, SystemData};
 
-use join::Join;
-#[cfg(feature="parallel")]
-use join::ParJoin;
+use join::{Join, ParJoin};
 use world::{Component, Entity, EntityIndex, Entities};
 use Index;
 
@@ -405,7 +403,6 @@ impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
 }
 
 // TODO: This implements it for all storages and doesn't make sure that distinct indices can be accessed in parallel.
-#[cfg(feature="parallel")]
 impl<'a, 'e, T, D> ParJoin for &'a Storage<'e, T, D>
     where T: Component,
           D: Deref<Target = MaskedStorage<T>>,
@@ -436,7 +433,6 @@ impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
 }
 
 // TODO: This implements it for all storages and doesn't make sure that distinct indices can be accessed in parallel.
-#[cfg(feature="parallel")]
 impl<'a, 'e, T, D> ParJoin for &'a mut Storage<'e, T, D>
     where T: Component,
           D: DerefMut<Target = MaskedStorage<T>>,

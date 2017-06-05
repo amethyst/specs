@@ -1,5 +1,4 @@
 extern crate specs;
-#[cfg(feature="parallel")]
 extern crate rayon;
 
 use specs::prelude::*;
@@ -345,7 +344,6 @@ fn join_two_components() {
 }
 
 #[test]
-#[cfg(feature="parallel")]
 fn par_join_two_components() {
     use std::sync::{Arc, Mutex};
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -362,7 +360,6 @@ fn par_join_two_components() {
             use rayon::iter::ParallelIterator;
             let (ref int, ref boolean) = data;
             let (ref first, ref second, ref error) = *self.0;
-            // TODO: Because Allocator is inside RwLockReadGuard this fails as it doesn't implement Send.
             (int, boolean).par_join().for_each(|(int, boolean)| {
                 if !first.load(Ordering::SeqCst) && int.0 == 1 && !boolean.0 {
                     first.store(true, Ordering::SeqCst);
@@ -388,7 +385,6 @@ fn par_join_two_components() {
 }
 
 #[test]
-#[cfg(feature="parallel")]
 fn par_join_many_entities_and_systems() {
     use std::sync::{Arc, Mutex};
     use rayon::iter::ParallelIterator;

@@ -1,6 +1,12 @@
 use std;
+use std::marker::PhantomData;
+use std::sync::Arc;
+use std::cell::UnsafeCell;
 
-use hibitset::{BitSetAnd, BitIter, BitSetLike};
+use hibitset::{BitSetAnd, BitIter, BitSetLike, BitProducer};
+
+use rayon::iter::ParallelIterator;
+use rayon::iter::internal::{UnindexedProducer, UnindexedConsumer, Folder, bridge_unindexed};
 
 use tuple_utils::Split;
 
@@ -88,7 +94,6 @@ pub trait Join {
 /// The purpose of the `ParJoin` trait is to provide a way
 /// to access multiple storages in parallel at the same time with
 /// the merged bit set.
-#[cfg(feature="parallel")]
 pub trait ParJoin: Join {
     /// Create a joined parallel iterator over the contents.
     fn par_join(self) -> JoinParIter<Self>
@@ -126,114 +131,101 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
     }
 }
 
-#[cfg(feature="parallel")]
-pub use self::par_join::*;
 /// `JoinParIter` is an `ParallelIterator` over a group of `Storages`.
 #[must_use]
-#[cfg(feature="parallel")]
 pub struct JoinParIter<J: Join>(J);
-#[cfg(feature="parallel")]
-mod par_join {
-    use std::marker::PhantomData;
-    use std::sync::Arc;
-    use std::cell::UnsafeCell;
-    use rayon::iter::ParallelIterator;
-    use rayon::iter::internal::{UnindexedProducer, UnindexedConsumer, Folder, bridge_unindexed};
-    use super::*;
-    use hibitset::BitProducer;
 
-    impl<J> ParallelIterator for JoinParIter<J>
-      where
-        J: Join + Send,
-        J::Type: Send,
-        J::Value: Split + Send,
-        J::Mask: Send + Sync,
+impl<J> ParallelIterator for JoinParIter<J>
+  where
+    J: Join + Send,
+    J::Type: Send,
+    J::Value: Split + Send,
+    J::Mask: Send + Sync,
+{
+    type Item = J::Type;
+
+    fn drive_unindexed<C>(self, consumer: C) -> C::Result
+        where C: UnindexedConsumer<Self::Item>
     {
-        type Item = J::Type;
+        let (keys, values) = self.0.open();
+        let producer = BitProducer((&keys).iter());
+        let values = Arc::new(UnsafeCell::new(values));
+        bridge_unindexed(JoinProducer::<J>::new(producer, values), consumer)
+    }
+}
 
-        fn drive_unindexed<C>(self, consumer: C) -> C::Result
-            where C: UnindexedConsumer<Self::Item>
-        {
-            let (keys, values) = self.0.open();
-            let producer = BitProducer((&keys).iter());
-            let values = Arc::new(UnsafeCell::new(values));
-            bridge_unindexed(JoinProducer::<J>::new(producer, values), consumer)
+struct JoinProducer<'a, 'b, J>
+  where
+    J: Join + Send,
+    J::Type: Send,
+    J::Value: 'a + Send,
+    J::Mask: 'b + Send + Sync,
+{
+    keys: BitProducer<'b, J::Mask>,
+    values: Arc<UnsafeCell<J::Value>>,
+    _marker: PhantomData<&'a J::Value>,
+}
+
+impl<'a, 'b, J> JoinProducer<'a, 'b, J>
+  where
+    J: Join + Send,
+    J::Type: Send,
+    J::Value: 'a + Send,
+    J::Mask: 'b + Send + Sync,
+{
+    fn new(keys: BitProducer<'b, J::Mask>, values: Arc<UnsafeCell<J::Value>>) -> Self {
+        JoinProducer {
+            keys: keys,
+            values: values,
+            _marker: PhantomData,
         }
     }
+}
 
-    struct JoinProducer<'a, 'b, J>
-      where
-        J: Join + Send,
-        J::Type: Send,
-        J::Value: 'a + Send,
-        J::Mask: 'b + Send + Sync,
-    {
-        keys: BitProducer<'b, J::Mask>,
-        values: Arc<UnsafeCell<J::Value>>,
-        _marker: PhantomData<&'a J::Value>,
+// TODO: This is required so that there isn't lock for values (which would make the whole parallel iterator pointless).
+// Is this nessary/correct? The way the splits happen should guarantee that the values are accessed only in one thread.
+unsafe impl<'a, 'b, J> Send for JoinProducer<'a, 'b, J>
+  where
+    J: Join + Send,
+    J::Type: Send,
+    J::Value: 'a + Send,
+    J::Mask: 'b + Send + Sync,
+{}
+
+impl<'a, 'b, J> UnindexedProducer for JoinProducer<'a, 'b, J>
+  where
+    J: Join + Send,
+    J::Type: Send,
+    J::Value: 'a + Send,
+    J::Mask: 'b + Send + Sync,
+{
+    type Item = J::Type;
+    fn split(self) -> (Self, Option<Self>) {
+        let (cur, other) = self.keys.split();
+        let prod = JoinProducer::new;
+        let values = self.values;
+        (prod(cur, values.clone()), other.map(|o| prod(o, values)))
     }
 
-    impl<'a, 'b, J> JoinProducer<'a, 'b, J>
+    fn fold_with<F>(self, folder: F) -> F
       where
-        J: Join + Send,
-        J::Type: Send,
-        J::Value: 'a + Send,
-        J::Mask: 'b + Send + Sync,
+        F: Folder<Self::Item>
     {
-        fn new(keys: BitProducer<'b, J::Mask>, values: Arc<UnsafeCell<J::Value>>) -> Self {
-            JoinProducer {
-                keys: keys,
-                values: values,
-                _marker: PhantomData,
-            }
-        }
-    }
+        let JoinProducer {values, keys, ..} = self;
+        let iter = keys.0.map(|idx| unsafe {
+            // This unsafe block should be safe if the `J::get`
+            // can be safely called from different threads with distinct indices.
 
-    // TODO: This is required so that there isn't lock for values (which would make the whole parallel iterator pointless).
-    // Is this nessary/correct? The way the splits happen should guarantee that the values are accessed only in one thread.
-    unsafe impl<'a, 'b, J> Send for JoinProducer<'a, 'b, J>
-      where
-        J: Join + Send,
-        J::Type: Send,
-        J::Value: 'a + Send,
-        J::Mask: 'b + Send + Sync,
-    {}
+            // The `idx` is distinct with indices in other threads because there either is no splits
+            // and thus it goes through all entities in one thread or it's one of the splitted parts.
+            // If it's one of the splitted part then it shouldn't overlap with other splitted parts
+            // as the splits are produced with `BitProducer::split` which should guarantee that
+            // the splitted parts are distinct with each other.
 
-    impl<'a, 'b, J> UnindexedProducer for JoinProducer<'a, 'b, J>
-      where
-        J: Join + Send,
-        J::Type: Send,
-        J::Value: 'a + Send,
-        J::Mask: 'b + Send + Sync,
-    {
-        type Item = J::Type;
-        fn split(self) -> (Self, Option<Self>) {
-            let (cur, other) = self.keys.split();
-            let prod = JoinProducer::new;
-            let values = self.values;
-            (prod(cur, values.clone()), other.map(|o| prod(o, values)))
-        }
-
-        fn fold_with<F>(self, folder: F) -> F
-          where
-            F: Folder<Self::Item>
-        {
-            let JoinProducer {values, keys, ..} = self;
-            let iter = keys.0.map(|idx| unsafe {
-                // This unsafe block should be safe if the `J::get`
-                // can be safely called from different threads with distinct indices.
-
-                // The `idx` is distinct with indices in other threads because there either is no splits
-                // and thus it goes through all entities in one thread or it's one of the splitted parts.
-                // If it's one of the splitted part then it shouldn't overlap with other splitted parts
-                // as the splits are produced with `BitProducer::split` which should guarantee that
-                // the splitted parts are distinct with each other.
-
-                // TODO: There can be multiple mutable references to storage and thus this is not safe, right?
-                J::get(&mut *values.get(), idx)
-            });
-            folder.consume_iter(iter)
-        }
+            // TODO: There can be multiple mutable references to storage and thus this is not safe, right?
+            J::get(&mut *values.get(), idx)
+        });
+        folder.consume_iter(iter)
     }
 }
 
@@ -263,7 +255,6 @@ macro_rules! define_open {
                 ($($from::get($from, i),)*)
             }
         }
-        #[cfg(feature="parallel")]
         impl<'a, $($from,)*> ParJoin for ($($from),*,)
             where $($from: ParJoin),*,
                   ($(<$from as Join>::Mask,)*): BitAnd,
