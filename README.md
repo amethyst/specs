@@ -1,71 +1,113 @@
-# specs
-[![Build Status](https://travis-ci.org/slide-rs/specs.svg)](https://travis-ci.org/slide-rs/specs)
-[![Crates.io](https://img.shields.io/crates/v/specs.svg?maxAge=2592000)](https://crates.io/crates/specs)
-[![Gitter](https://badges.gitter.im/slide-rs/specs.svg)](https://gitter.im/slide-rs/specs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+# Specs
 
-Specs is an Entity-Component System written in Rust. It aims for parallel systems execution with high ergonomics and flexibility. The name can be interpret in a number of ways:
-- "SPECS Parallel ECS"
-- "Super Powerful ECS"
-- "Special ECS"
+> **S**pecs **P**arallel **ECS**
 
+[![Build Status][bi]][bl] [![Crates.io][ci]][cl] [![Gitter][gi]][gl] ![MIT/Apache][li] [![Docs.rs][di]][dl]
 
-#### Classification
-According to [ECS Design Crossroads](https://github.com/amethyst/amethyst/wiki/ECS-Design-Crossroads), `specs` fulfills all the requirements, has _In-place modification_ updates, and _Generational ID_ entities.
+[bi]: https://travis-ci.org/slide-rs/specs.svg?branch=master
+[bl]: https://travis-ci.org/slide-rs/specs
 
-#### Features
-- Automatic execution of the systems in parallel. Follows Rust ownership rules, where each component storage behaves as a variable. Depends on the order, in which systems are started.
-- Component storage is abstract behind the trait. One can use vectors, hashmaps, trees, or whatever else.
-- New components can be registered at any point from user modules. They don't have to be POD.
-- No virtual calls, low overhead.
+[ci]: https://img.shields.io/crates/v/specs.svg
+[cl]: https://crates.io/crates/specs/
 
-#### Why is it fast
-- Do you know many other natively parallel ECS in Rust?
-- Abstract storage means you can choose the most efficient one according to your needs. You can even roll in your own.
-- No virtual calls during systems processing means you work with the data directly.
+[li]: https://img.shields.io/badge/license-Apache%202.0-blue.svg
 
-See [ecs_bench](https://github.com/lschmierer/ecs_bench) for single- and multi-threaded performance comparisons.
+[di]: https://docs.rs/specs/badge.svg
+[dl]: https://docs.rs/specs/
 
-#### Why is it cool
-- Your system can be as simple as a closure working on some components, no redundant info or boilerplate is needed. At the same time, you can manually fiddle with entities and components, and it would still be safe and convenient.
-- Your components can be anything (as long as they implement `Component`)! Neither `Copy` or even `Clone` bounds are needed.
-- Your component storages can be anything. Consider crazy stuff like a BSP tree, or a database over the network. Some storages can safely allow sharing their components between entities, some can not - but it's up to you to choose.
+[gi]: https://badges.gitter.im/slide-rs/specs.svg
+[gl]: https://gitter.im/slide-rs/specs
 
-## Examples
+Specs is an Entity-Component System written in Rust. 
+Unlike most other ECS libraries out there, it provides
 
-#### Entity creation
-```rust
-let mut planner = {
-    let mut w = specs::World::new();
-    // All components types should be registered before working with them
-    w.register::<Position>();
-    w.register::<Speed>();
-    // create_now() of World provides with an EntityBuilder to add components to an Entity
-    w.create_now().with(Position(0)).with(Speed(2)).build();
-    w.create_now().with(Position(-1)).with(Speed(100)).build();
-    w.create_now().with(Position(127)).build();
-    // Planner is used to run systems on the specified world with as many
-    // threads as virtual cpus
-    specs::Planner::new(w)
-};
-```
+* easy parallelism
+* high flexibility
+    * contains 5 different storages for components, which can be extended by the user
+    * it's types are mostly not coupled, so you can easily write some part yourself and
+      still use Specs
+    * `System`s may read from and write to components and resources, can depend on each
+      other and you can use barriers to force several stages in system execution
+* high performance for real-world applications
 
-#### System run
-In order to run a system, you can either use a convenience-function (`runXwYr`) or a custom one (see below in the section "Custom system" and the examples in the `/examples` directory). Convencience-functions are used to request a defined number of mutable and immutable components on an entity. X and Y stand for the number of parameters respectively. `run1w1r` will allow you to use one mutable and one immutable component requirement respectively, as you can see below. Run-functions always iterate over all entities of a world with the requested components.
+## Example
 
 ```rust
-planner.run1w1r(|p: &mut Position, s: &Speed| {
-    *p += *s;
-});
-```
+extern crate specs;
 
-#### Custom system
-```rust
-impl System<u32> for MySystem {
-    fn run(&mut self, arg: RunArg, context: u32) {
-        let mut numbers = arg.fetch(|w| w.write::<u32>());
-        for n in (&numbers).join() {
-            *n += context;
+use specs::prelude::*;
+
+// A component contains data
+// which is associated with an entity.
+
+#[derive(Debug)]
+struct Vel(f32);
+#[derive(Debug)]
+struct Pos(f32);
+
+impl Component for Vel {
+    type Storage = VecStorage<Vel>;
+}
+
+impl Component for Pos {
+    type Storage = VecStorage<Pos>;
+}
+
+struct SysA;
+
+impl<'a> System<'a> for SysA {
+    // These are the resources required for execution.
+    // You can also define a struct and `#[derive(SystemData)]`,
+    // see the `full` example.
+    type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
+
+    fn run(&mut self, data: Self::SystemData) {
+        // The `.join()` combines multiple components,
+        // so we only access those entities which have
+        // both of them.
+
+        let (mut pos, vel) = data;
+
+        for (pos, vel) in (&mut pos, &vel).join() {
+            pos.0 += vel.0;
         }
     }
 }
+
+fn main() {
+    // The `World` is our
+    // container for components
+    // and other resources.
+
+    let mut world = World::new();
+    world.register::<Pos>();
+    world.register::<Vel>();
+
+    // An entity may or may not contain some component.
+
+    world.create_entity().with(Vel(2.0)).with(Pos(0.0)).build();
+    world.create_entity().with(Vel(4.0)).with(Pos(1.6)).build();
+    world.create_entity().with(Vel(1.5)).with(Pos(5.4)).build();
+
+    // This entity does not have `Vel`, so it won't be dispatched.
+    world.create_entity().with(Pos(2.0)).build();
+
+    // This builds a dispatcher.
+    // The third parameter of `add` specifies
+    // logical dependencies on other systems.
+    // Since we only have one, we don't depend on anything.
+    // See the `full` example for dependencies.
+    let mut dispatcher = DispatcherBuilder::new().add(SysA, "sys_a", &[]).build();
+
+    // This dispatches all the systems in parallel (but blocking).
+    dispatcher.dispatch(&mut world.res);
+}
 ```
+
+Please look into [the examples directory](examples) for more.
+
+## Contribution
+
+Contribution is very welcome! If you didn't contribute before, just
+filter for issues with "easy" label. Please note that your contributions
+are assumed to be dual-licensed under Apache-2.0/MIT.
