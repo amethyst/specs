@@ -30,12 +30,12 @@ impl<'a, T> SystemData<'a> for ReadStorage<'a, T>
         Storage::new(res.fetch(0), res.fetch(id))
     }
 
-    unsafe fn reads(id: usize) -> Vec<ResourceId> {
+    fn reads(id: usize) -> Vec<ResourceId> {
         vec![ResourceId::new::<Entities>(),
              ResourceId::new_with_id::<MaskedStorage<T>>(id)]
     }
 
-    unsafe fn writes(_: usize) -> Vec<ResourceId> {
+    fn writes(_: usize) -> Vec<ResourceId> {
         vec![]
     }
 }
@@ -50,11 +50,11 @@ impl<'a, T> SystemData<'a> for WriteStorage<'a, T>
         Storage::new(res.fetch(0), res.fetch_mut(id))
     }
 
-    unsafe fn reads(_: usize) -> Vec<ResourceId> {
+    fn reads(_: usize) -> Vec<ResourceId> {
         vec![ResourceId::new::<Entities>()]
     }
 
-    unsafe fn writes(id: usize) -> Vec<ResourceId> {
+    fn writes(id: usize) -> Vec<ResourceId> {
         vec![ResourceId::new_with_id::<MaskedStorage<T>>(id)]
     }
 }

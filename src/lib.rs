@@ -137,7 +137,8 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-pub use shred::{AsyncDispatcher, Dispatcher, DispatcherBuilder, Resource, System, run_now};
+pub use shred::{AsyncDispatcher, Dispatcher, DispatcherBuilder, Resource, RunNow, RunningTime,
+                System};
 
 pub use entity::{Component, Entity, Entities};
 pub use join::{Join, JoinIter};
@@ -198,7 +199,8 @@ pub mod entity {
 
 /// Reexports for very common types.
 pub mod prelude {
-    pub use {Component, Dispatcher, DispatcherBuilder, Entity, Resource, System, World};
+    pub use {Component, Dispatcher, DispatcherBuilder, Entity, Resource, RunningTime, System,
+             World};
 
     pub use data::{Entities, Fetch, FetchMut, ReadStorage, WriteStorage};
     pub use join::Join;

@@ -262,6 +262,10 @@ impl<'a> System<'a> for GenCollisions {
     fn run(&mut self, _: Self::SystemData) {
         // TODO
     }
+
+    fn running_time(&self) -> RunningTime {
+        RunningTime::VeryShort
+    }
 }
 
 #[bench]
