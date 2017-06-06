@@ -119,13 +119,13 @@ impl<'a> System<'a> for HelloWorld {
 ## Running the system
 
 This just iterates through all the components and prints
-them. To execute the system, you can use `run_now` like this:
+them. To execute the system, you can use `RunNow` like this:
 
 ```rust,ignore
-use specs::run_now;
+use specs::RunNow;
 
 let hello_world = HelloWorld;
-run_now(hello_world, &mut world.res);
+hello_world.run_now(&world.res);
 ```
 
 ## Full example code
@@ -176,7 +176,7 @@ fn main() {
     world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
     
     let hello_world = HelloWorld;
-    run_now(hello_world, &mut world.res);
+    hell_world.run_now(&world.res);
 }
 ```
 
