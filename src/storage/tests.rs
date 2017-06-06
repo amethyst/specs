@@ -130,6 +130,22 @@ mod test {
     impl Component for Cvec {
         type Storage = VecStorage<Cvec>;
     }
+    
+    #[derive(PartialEq, Eq, Debug)]
+    struct FlaggedCvec(u32);
+    impl From<u32> for FlaggedCvec {
+        fn from(v: u32) -> FlaggedCvec {
+            FlaggedCvec(v)
+        }
+    }
+    impl AsMut<u32> for FlaggedCvec {
+        fn as_mut(&mut self) -> &mut u32 {
+            &mut self.0
+        }
+    }
+    impl Component for FlaggedCvec {
+        type Storage = FlaggedStorage<FlaggedCvec, VecStorage<FlaggedCvec>>;
+    }
 
     #[derive(PartialEq, Eq, Debug)]
     struct Cmap(u32);
@@ -426,6 +442,56 @@ mod test {
         for entry in (&s1.check()).join() {
             s2.get_unchecked(&entry); // verify that the assert fails if the storage is
             // not the original.
+        }
+    }
+
+    #[test]
+    fn flagged() {
+        use join::Join;
+        let mut w = World::new();
+        w.register_with_id::<FlaggedCvec>(1);
+        w.register_with_id::<FlaggedCvec>(2);
+        let mut s1: Storage<FlaggedCvec, _> = w.write_with_id(1);
+        let mut s2: Storage<FlaggedCvec, _> = w.write_with_id(2);
+
+        for i in 0..15 {
+            // Test insertion flagging
+            s1.insert(Entity::new(i, Generation::new(1)), i.into());
+            assert!(s1.open().1.flagged(Entity::new(i, Generation::new(1))));
+
+            if i % 2 == 0 {
+                s2.insert(Entity::new(i, Generation::new(1)), i.into());
+                assert!(s2.open().1.flagged(Entity::new(i, Generation::new(1))));
+            }
+        }
+
+        (&mut s1).open().1.clear_flags();
+
+        // Cleared flags
+        for c1 in ((&s1).check()).join() {
+            assert!(!s1.open().1.flagged(&c1));
+        }
+
+        // Modify components to flag.
+        for (c1, c2) in (&mut s1, &s2).join() {
+            println!("{:?} {:?}", c1, c2);
+            c1.0 += c2.0;
+        }
+
+        for c1 in (s1.check()).join() {
+            // Should only be modified if the entity had both components
+            // Which means only half of them should have it.
+            if s1.open().1.flagged(&c1) {
+                println!("Flagged: {:?}", c1.index());
+                // Only every other component was flagged.
+                assert!(c1.index() % 2 == 0);
+            }
+        }
+
+        // Iterate over all flagged entities.
+        for (entity, _) in (&*w.entities(), s1.open().1).join() {
+            // All entities in here should be flagged.
+            assert!(s1.open().1.flagged(&entity));
         }
     }
 }

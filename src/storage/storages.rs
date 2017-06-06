@@ -210,9 +210,9 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
 /// 
 /// pub struct Comp(u32);
 /// impl Component for Comp {
-///     // `TrackedStorage` acts as a wrapper around another storage.
+///     // `FlaggedStorage` acts as a wrapper around another storage.
 ///     // You can put any store inside of here (e.g. HashMapStorage, VecStorage, etc.)
-///     type Storage = TrackedStorage<Comp, VecStorage<Comp>>;
+///     type Storage = FlaggedStorage<Comp, VecStorage<Comp>>;
 /// }
 /// 
 /// pub struct CompSystem;
@@ -243,22 +243,22 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
 ///         for flagged_comp in ((&comps).open().1).join() {
 ///             // ...
 ///         }
-/// 
+///
 ///         // Clears the tracked storage every frame with this system.
 ///         (&mut comps).open().1.clear_flags();
 ///     }
 /// }
 ///# fn main() { }
 /// ```
-pub struct TrackedStorage<C, T> {
+pub struct FlaggedStorage<C, T> {
     mask: BitSet,
     storage: T,
     phantom: PhantomData<C>,
 }
 
-impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for TrackedStorage<C, T> {
+impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
     fn new() -> Self {
-        TrackedStorage {
+        FlaggedStorage {
             mask: BitSet::new(),
             storage: T::new(),
             phantom: PhantomData,
@@ -286,7 +286,7 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for TrackedStorage<C, T>
     }
 }
 
-impl<C, T: UnprotectedStorage<C>> TrackedStorage<C, T> {
+impl<C, T: UnprotectedStorage<C>> FlaggedStorage<C, T> {
     /// Whether the component related to the entity was flagged or not.
     pub fn flagged<E: EntityIndex>(&self, entity: E) -> bool {
         self.mask.contains(entity.index())
@@ -305,7 +305,7 @@ impl<C, T: UnprotectedStorage<C>> TrackedStorage<C, T> {
     }
 }
 
-impl<'a, C, T: UnprotectedStorage<C>> Join for &'a TrackedStorage<C, T> {
+impl<'a, C, T: UnprotectedStorage<C>> Join for &'a FlaggedStorage<C, T> {
     type Type = &'a C;
     type Value = &'a T;
     type Mask = &'a BitSet;
@@ -317,7 +317,7 @@ impl<'a, C, T: UnprotectedStorage<C>> Join for &'a TrackedStorage<C, T> {
     }
 }
 
-impl<'a, C, T: UnprotectedStorage<C>> Join for &'a mut TrackedStorage<C, T> {
+impl<'a, C, T: UnprotectedStorage<C>> Join for &'a mut FlaggedStorage<C, T> {
     type Type = &'a mut C;
     type Value = &'a mut T;
     type Mask = &'a BitSet;
@@ -331,3 +331,4 @@ impl<'a, C, T: UnprotectedStorage<C>> Join for &'a mut TrackedStorage<C, T> {
         value.get_mut(id)
     }
 }
+

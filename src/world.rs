@@ -181,6 +181,12 @@ impl EntityIndex for Entity {
     }
 }
 
+impl<'a> EntityIndex for &'a Entity {
+    fn index(&self) -> Index {
+        (*self).index()
+    }
+}
+
 /// `Entity` type, as seen by the user.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Entity(Index, Generation);

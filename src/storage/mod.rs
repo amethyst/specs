@@ -151,6 +151,12 @@ impl<'a, 'e, T, D> EntityIndex for Entry<'a, 'e, T, D> {
     }
 }
 
+impl<'a, 'b, 'e, T, D> EntityIndex for &'b Entry<'a, 'e, T, D> {
+    fn index(&self) -> Index {
+        (*self).index()
+    }
+}
+
 /// A storage type that iterates entities that have
 /// a particular component type, but does not return the
 /// component.

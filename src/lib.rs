@@ -202,7 +202,7 @@ pub mod prelude {
 
     pub use data::{Entities, Fetch, FetchMut, ReadStorage, WriteStorage};
     pub use join::Join;
-    pub use storages::{DenseVecStorage, HashMapStorage, VecStorage, TrackedStorage};
+    pub use storages::{DenseVecStorage, HashMapStorage, VecStorage, FlaggedStorage};
 }
 
 pub use storage::storages;
