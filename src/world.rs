@@ -174,6 +174,12 @@ pub trait EntityIndex {
     fn index(&self) -> Index;
 }
 
+impl EntityIndex for Index {
+    fn index(&self) -> Index {
+        *self
+    }
+}
+
 impl EntityIndex for Entity {
     fn index(&self) -> Index {
         self.id()

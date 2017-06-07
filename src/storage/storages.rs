@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 
 use fnv::FnvHashMap;
 use hibitset::BitSet;
@@ -181,7 +182,6 @@ impl<'a, C, T: UnprotectedStorage<C>> Join for &'a mut FlaggedStorage<C, T> {
     }
 }
 
-
 /// HashMap-based storage. Best suited for rare components.
 pub struct HashMapStorage<T>(FnvHashMap<Index, T>);
 
@@ -347,3 +347,54 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
 }
 
 unsafe impl<T> DistinctStorage for VecStorage<T> {}
+
+/// Similar to a `TrackedStorage`, a `ChangedStorage` will check
+/// for modifications to the components. It also adds another layer to the
+/// checks for modifications however, by checking for equality between the two
+/// components.
+pub struct ChangedStorage<C, U> {
+    inner: FlaggedStorage<C, U>,
+    cache: U,
+}
+
+// Forwarding of tracked storages methods, e.g. `clear_flags`.
+impl<C, U> Deref for ChangedStorage<C, U> {
+    type Target = FlaggedStorage<C, U>;
+    fn deref(&self) -> &FlaggedStorage<C, U> {
+        &self.inner
+    }
+}
+
+impl<C, U> DerefMut for ChangedStorage<C, U> {
+    fn deref_mut(&mut self) -> &mut FlaggedStorage<C, U> {
+        &mut self.inner
+    }
+}
+
+impl<C, U> UnprotectedStorage<C> for ChangedStorage<C, U>
+    where C: PartialEq,
+          U: UnprotectedStorage<C>,
+{
+    fn new() -> Self {
+        ChangedStorage {
+            inner: FlaggedStorage::<C, U>::new(),
+            cache: U::new(),
+        }
+    }
+    unsafe fn clean<F>(&mut self, has: F) where F: Fn(Index) -> bool {
+        self.inner.clean(&has);
+        self.cache.clean(&has);
+    }
+    unsafe fn get(&self, id: Index) -> &C {
+        self.inner.get(id)
+    }
+    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
+        self.inner.get_mut(id)
+    }
+    unsafe fn insert(&mut self, id: Index, comp: C) {
+        self.inner.insert(id, comp);
+    }
+    unsafe fn remove(&mut self, id: Index) -> C {
+        self.inner.remove(id)
+    }
+}

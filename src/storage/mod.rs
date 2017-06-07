@@ -4,8 +4,8 @@ pub use self::check::{CheckStorage, Entry};
 pub use self::data::{ReadStorage, WriteStorage};
 #[cfg(feature = "serialize")]
 pub use self::ser::{MergeError, PackedData};
-pub use self::storages::{BTreeStorage, DenseVecStorage, FlaggedStorage, HashMapStorage,
-                         NullStorage, VecStorage};
+pub use self::storages::{BTreeStorage, ChangedStorage, DenseVecStorage, 
+                         FlaggedStorage, HashMapStorage, NullStorage, VecStorage};
 
 use std;
 use std::marker::PhantomData;
