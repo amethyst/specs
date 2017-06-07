@@ -92,7 +92,7 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 ///             // ...
 ///         }
 ///
-///         // Clears the tracked storage every frame with this system.
+///         // Clears the flagged storage every frame with this system.
 ///         (&mut comps).open().1.clear_flags();
 ///     }
 /// }
@@ -141,7 +141,9 @@ impl<C, T: UnprotectedStorage<C>> FlaggedStorage<C, T> {
     pub fn flagged<E: EntityIndex>(&self, entity: E) -> bool {
         self.mask.contains(entity.index())
     }
-    /// All components will be cleared of being flagged.
+    /// Clears the bitset for flagged components.
+    ///
+    /// Should be called at least once depending on where you want to reset the flags.
     pub fn clear_flags(&mut self) {
         self.mask.clear();
     }
@@ -348,16 +350,60 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
 
 unsafe impl<T> DistinctStorage for VecStorage<T> {}
 
-/// Similar to a `TrackedStorage`, a `ChangedStorage` will check
-/// for modifications to the components. It also adds another layer to the
-/// checks for modifications however, by checking for equality between the two
-/// components.
+/// Wrapper storage that stores modifications to components with a bitset along with
+/// comparing equality to a cached version.
+///
+/// `ChangedStorage::maintain()` should be called after every modification of the storage
+/// to *maintain* the cache and flagging correctly. 
+///
+///# Example Usage:
+/// 
+/// ```rust
+/// extern crate specs;
+/// use specs::prelude::*;
+/// 
+/// #[derive(PartialEq, Clone)]
+/// pub struct Comp(u32);
+/// impl Component for Comp {
+///     // `ChangedStorage` acts as a wrapper around another storage.
+///     // You can put any store inside of here (e.g. HashMapStorage, VecStorage, etc.)
+///     type Storage = ChangedStorage<Comp, VecStorage<Comp>>;
+/// }
+/// 
+/// pub struct CompSystem;
+/// impl<'a> System<'a> for CompSystem {
+///     type SystemData = WriteStorage<'a, Comp>;
+///     fn run(&mut self, mut comps: WriteStorage<'a, Comp>) {
+///         // Iterates over all components like normal.
+///         for comp in (&comps).join() {
+///             // ...
+///         }
+/// 
+///         // To iterate over the flagged/modified components:
+///         for flagged_comp in ((&comps).open().1).join() {
+///             // ...
+///         }
+/// 
+///         // Modify the components in some way.
+///         for comp in (&mut comps).join() {
+///             // ...
+///         }
+///         // `maintain` checks for equality between the cache and the actual components 
+///         // and filters out the components that did not change from the flagged ones.
+///         (&mut comps).open().1.maintain();
+///
+///         // Clears the changed storage every frame with this system.
+///         (&mut comps).open().1.clear_flags();
+///     }
+/// }
+///# fn main() { }
+/// ```
 pub struct ChangedStorage<C, U> {
     inner: FlaggedStorage<C, U>,
     cache: U,
 }
 
-// Forwarding of tracked storages methods, e.g. `clear_flags`.
+// Forwarding of the flagged storage's methods, e.g. `clear_flags`.
 impl<C, U> Deref for ChangedStorage<C, U> {
     type Target = FlaggedStorage<C, U>;
     fn deref(&self) -> &FlaggedStorage<C, U> {
@@ -398,3 +444,4 @@ impl<C, U> UnprotectedStorage<C> for ChangedStorage<C, U>
         self.inner.remove(id)
     }
 }
+
