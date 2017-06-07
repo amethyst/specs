@@ -314,7 +314,7 @@ impl<'a> Join for &'a Entities {
     }
 }
 
-impl<'a> ParJoin for &'a Entities {}
+unsafe impl<'a> ParJoin for &'a Entities {}
 
 /// Index generation. When a new entity is placed at an old index,
 /// it bumps the `Generation` by 1. This allows to avoid using components

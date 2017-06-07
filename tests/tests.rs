@@ -405,6 +405,7 @@ fn par_join_many_entities_and_systems() {
     }
     let mut builder = DispatcherBuilder::new();
     for i in 0..255 {
+        // TODO: Remove allocation by using ""
         builder = builder.add(Incr, &i.to_string(), &[]);
     }
     let failed = Arc::new(Mutex::new(vec![]));

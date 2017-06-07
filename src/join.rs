@@ -94,7 +94,7 @@ pub trait Join {
 /// The purpose of the `ParJoin` trait is to provide a way
 /// to access multiple storages in parallel at the same time with
 /// the merged bit set.
-pub trait ParJoin: Join {
+pub unsafe trait ParJoin: Join {
     /// Create a joined parallel iterator over the contents.
     fn par_join(self) -> JoinParIter<Self>
         where Self: Sized
@@ -255,7 +255,7 @@ macro_rules! define_open {
                 ($($from::get($from, i),)*)
             }
         }
-        impl<'a, $($from,)*> ParJoin for ($($from),*,)
+        unsafe impl<'a, $($from,)*> ParJoin for ($($from),*,)
             where $($from: ParJoin),*,
                   ($(<$from as Join>::Mask,)*): BitAnd,
         {}

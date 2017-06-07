@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 use fnv::FnvHashMap;
 use hibitset::BitSet;
 
-use storage::UnprotectedStorage;
+use storage::{UnprotectedStorage, DistinctStorage};
 use world::EntityIndex;
 use {Join, Index};
 
@@ -41,6 +41,8 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     }
 }
 
+unsafe impl<T> DistinctStorage for HashMapStorage<T> {}
+
 /// BTreeMap-based storage.
 pub struct BTreeStorage<T>(BTreeMap<Index, T>);
 
@@ -71,6 +73,8 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
         self.0.remove(&id).unwrap()
     }
 }
+
+unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 
 /// Vector storage. Uses a simple `Vec`. Supposed to have maximum
 /// performance for the components mostly present in entities.
@@ -121,6 +125,8 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         ptr::read(self.get(id))
     }
 }
+
+unsafe impl<T> DistinctStorage for VecStorage<T> {}
 
 /// Dense vector storage. Has a redirection 2-way table
 /// between entities and components, allowing to leave
@@ -177,6 +183,8 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
     }
 }
 
+unsafe impl<T> DistinctStorage for DenseVecStorage<T> {}
+
 /// A null storage type, used for cases where the component
 /// doesn't contain any data and instead works as a simple flag.
 pub struct NullStorage<T>(T);
@@ -198,23 +206,26 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
     }
 }
 
+/// This is safe because mutating doesn't work and panics instead
+unsafe impl<T> DistinctStorage for NullStorage<T> {}
+
 /// Wrapper storage that stores modifications to components in a bitset.
 ///
 /// **Note: Never use `.iter()` on a mutable component storage that uses this.**
 ///
 ///# Example Usage:
-/// 
+///
 /// ```rust
 /// extern crate specs;
 /// use specs::prelude::*;
-/// 
+///
 /// pub struct Comp(u32);
 /// impl Component for Comp {
 ///     // `FlaggedStorage` acts as a wrapper around another storage.
 ///     // You can put any store inside of here (e.g. HashMapStorage, VecStorage, etc.)
 ///     type Storage = FlaggedStorage<Comp, VecStorage<Comp>>;
 /// }
-/// 
+///
 /// pub struct CompSystem;
 /// impl<'a> System<'a> for CompSystem {
 ///     type SystemData = WriteStorage<'a, Comp>;
@@ -223,14 +234,14 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
 ///         for comp in (&comps).join() {
 ///             // ...
 ///         }
-/// 
+///
 ///         // **Never do this**
 ///         // This will flag all components as modified regardless of whether the inner loop
 ///         // did modify their data.
 ///         for comp in (&mut comps).join() {
 ///             // ...
 ///         }
-/// 
+///
 ///         // Instead do something like:
 ///         for mut entry in (&comps.check()).join() {
 ///             if true { // check whether this component should be modified.
@@ -238,7 +249,7 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
 ///                 // ...
 ///             }
 ///         }
-/// 
+///
 ///         // To iterate over the flagged/modified components:
 ///         for flagged_comp in ((&comps).open().1).join() {
 ///             // ...
@@ -331,4 +342,3 @@ impl<'a, C, T: UnprotectedStorage<C>> Join for &'a mut FlaggedStorage<C, T> {
         value.get_mut(id)
     }
 }
-
