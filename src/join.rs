@@ -1,6 +1,4 @@
 use std;
-use std::marker::PhantomData;
-use std::sync::Arc;
 use std::cell::UnsafeCell;
 
 use hibitset::{BitSetAnd, BitIter, BitSetLike, BitProducer};
@@ -131,7 +129,7 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
     }
 }
 
-/// `JoinParIter` is an `ParallelIterator` over a group of `Storages`.
+/// `JoinParIter` is a `ParallelIterator` over a group of `Storages`.
 #[must_use]
 pub struct JoinParIter<J: Join>(J);
 
@@ -149,62 +147,58 @@ impl<J> ParallelIterator for JoinParIter<J>
     {
         let (keys, values) = self.0.open();
         let producer = BitProducer((&keys).iter());
-        let values = Arc::new(UnsafeCell::new(values));
-        bridge_unindexed(JoinProducer::<J>::new(producer, values), consumer)
+        let values = UnsafeCell::new(values);
+        bridge_unindexed(JoinProducer::<J>::new(producer, &values), consumer)
     }
 }
 
-struct JoinProducer<'a, 'b, J>
+struct JoinProducer<'a, J>
   where
     J: Join + Send,
     J::Type: Send,
     J::Value: 'a + Send,
-    J::Mask: 'b + Send + Sync,
+    J::Mask: 'a + Send + Sync,
 {
-    keys: BitProducer<'b, J::Mask>,
-    values: Arc<UnsafeCell<J::Value>>,
-    _marker: PhantomData<&'a J::Value>,
+    keys: BitProducer<'a, J::Mask>,
+    values: &'a UnsafeCell<J::Value>,
 }
 
-impl<'a, 'b, J> JoinProducer<'a, 'b, J>
+impl<'a, J> JoinProducer<'a, J>
   where
     J: Join + Send,
     J::Type: Send,
     J::Value: 'a + Send,
-    J::Mask: 'b + Send + Sync,
+    J::Mask: 'a + Send + Sync,
 {
-    fn new(keys: BitProducer<'b, J::Mask>, values: Arc<UnsafeCell<J::Value>>) -> Self {
+    fn new(keys: BitProducer<'a, J::Mask>, values: &'a UnsafeCell<J::Value>) -> Self {
         JoinProducer {
             keys: keys,
             values: values,
-            _marker: PhantomData,
         }
     }
 }
 
-// TODO: This is required so that there isn't lock for values (which would make the whole parallel iterator pointless).
-// Is this nessary/correct? The way the splits happen should guarantee that the values are accessed only in one thread.
-unsafe impl<'a, 'b, J> Send for JoinProducer<'a, 'b, J>
+unsafe impl<'a, J> Send for JoinProducer<'a, J>
   where
     J: Join + Send,
     J::Type: Send,
     J::Value: 'a + Send,
-    J::Mask: 'b + Send + Sync,
+    J::Mask: 'a + Send + Sync,
 {}
 
-impl<'a, 'b, J> UnindexedProducer for JoinProducer<'a, 'b, J>
+impl<'a, J> UnindexedProducer for JoinProducer<'a, J>
   where
     J: Join + Send,
     J::Type: Send,
     J::Value: 'a + Send,
-    J::Mask: 'b + Send + Sync,
+    J::Mask: 'a + Send + Sync,
 {
     type Item = J::Type;
     fn split(self) -> (Self, Option<Self>) {
         let (cur, other) = self.keys.split();
         let prod = JoinProducer::new;
         let values = self.values;
-        (prod(cur, values.clone()), other.map(|o| prod(o, values)))
+        (prod(cur, self.values), other.map(|o| prod(o, values)))
     }
 
     fn fold_with<F>(self, folder: F) -> F
@@ -216,11 +210,8 @@ impl<'a, 'b, J> UnindexedProducer for JoinProducer<'a, 'b, J>
             // This unsafe block should be safe if the `J::get`
             // can be safely called from different threads with distinct indices.
 
-            // The `idx` is distinct with indices in other threads because there either is no splits
-            // and thus it goes through all entities in one thread or it's one of the splitted parts.
-            // If it's one of the splitted part then it shouldn't overlap with other splitted parts
-            // as the splits are produced with `BitProducer::split` which should guarantee that
-            // the splitted parts are distinct with each other.
+            // The `J::get` gets called for distinct indices because splitting happens by `BitProducer::split`
+            // which should ensure that all splitted parts are distinct.
 
             // TODO: There can be multiple mutable references to storage and thus this is not safe, right?
             J::get(&mut *values.get(), idx)
