@@ -404,8 +404,8 @@ fn par_join_many_entities_and_systems() {
         }
     }
     let mut builder = DispatcherBuilder::new();
-    for _ in 0..255 {
-        builder = builder.add(Incr, "increment", &[]);
+    for i in 0..255 {
+        builder = builder.add(Incr, &i.to_string(), &[]);
     }
     let failed = Arc::new(Mutex::new(vec![]));
     struct FindFailed(Arc<Mutex<Vec<(u32, i8)>>>);
@@ -421,8 +421,10 @@ fn par_join_many_entities_and_systems() {
             });
         }
     }
-    builder = builder.add(FindFailed(failed.clone()), "find_failed", &["increment"]);
-    let mut dispatcher = builder.build();
+    let mut dispatcher = builder
+        .add_barrier()
+        .add(FindFailed(failed.clone()), "find_failed", &[])
+        .build();
     dispatcher.dispatch(&mut world.res);
     for &(id, n) in &*failed.lock().unwrap() {
         panic!("Entity with id {} failed to count to 127. Count was {}", id, n);
