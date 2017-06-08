@@ -4,7 +4,7 @@ use std::cell::UnsafeCell;
 use hibitset::{BitSetAnd, BitIter, BitSetLike, BitProducer};
 
 use rayon::iter::ParallelIterator;
-use rayon::iter::internal::{UnindexedProducer, UnindexedConsumer, Folder, bridge_unindexed};
+use rayon::iter::internal::{Folder, UnindexedConsumer, UnindexedProducer, bridge_unindexed};
 
 use tuple_utils::Split;
 
@@ -131,7 +131,7 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
 
 /// `JoinParIter` is a `ParallelIterator` over a group of `Storages`.
 #[must_use]
-pub struct JoinParIter<J: Join>(J);
+pub struct JoinParIter<J>(J);
 
 impl<J> ParallelIterator for JoinParIter<J>
   where
@@ -196,9 +196,10 @@ impl<'a, J> UnindexedProducer for JoinProducer<'a, J>
     type Item = J::Type;
     fn split(self) -> (Self, Option<Self>) {
         let (cur, other) = self.keys.split();
-        let prod = JoinProducer::new;
         let values = self.values;
-        (prod(cur, self.values), other.map(|o| prod(o, values)))
+        let first = JoinProducer::new(cur, values);
+        let second = other.map(|o| JoinProducer::new(o, values));
+        (first, second)
     }
 
     fn fold_with<F>(self, folder: F) -> F
