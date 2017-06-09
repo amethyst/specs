@@ -425,7 +425,7 @@ fn par_join_many_entities_and_systems() {
         }
     }
     let mut builder = DispatcherBuilder::new();
-    for i in 0..255 {
+    for _ in 0..255 {
         builder = builder.add(Incr, "", &[]);
     }
     struct FindFailed<'a>(&'a Mutex<Vec<(u32, i8)>>);
