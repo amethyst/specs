@@ -427,8 +427,7 @@ impl World {
     pub fn add_resource_with_id<T: Resource>(&mut self, res: T, id: usize) {
         use shred::ResourceId;
 
-        if self.res
-               .has_value(ResourceId::new_with_id::<T>(id)) {
+        if self.res.has_value(ResourceId::new_with_id::<T>(id)) {
             *self.write_resource_with_id(id) = res;
         } else {
             self.res.add_with_id(res, id);

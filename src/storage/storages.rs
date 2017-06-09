@@ -211,9 +211,11 @@ unsafe impl<T> DistinctStorage for NullStorage<T> {}
 
 /// Wrapper storage that stores modifications to components in a bitset.
 ///
-/// **Note: Never use `.iter()` on a mutable component storage that uses this.**
+/// **Note:** Joining over all components of a `FlaggedStorage` mutably will flag all components.**
+/// What you want to instead is to use `check()` to first get the entities which contain
+/// the component, and then conditionally set the component after a call to `get_mut_unchecked()`.
 ///
-///# Example Usage:
+/// # Examples
 ///
 /// ```rust
 /// extern crate specs;
@@ -275,7 +277,9 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
             phantom: PhantomData,
         }
     }
-    unsafe fn clean<F>(&mut self, has: F) where F: Fn(Index) -> bool {
+    unsafe fn clean<F>(&mut self, has: F)
+        where F: Fn(Index) -> bool
+    {
         self.mask.clear();
         self.storage.clean(has);
     }
@@ -298,7 +302,7 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
 }
 
 impl<C, T: UnprotectedStorage<C>> FlaggedStorage<C, T> {
-    /// Whether the component related to the entity was flagged or not.
+    /// Whether the component that belongs to the given entity was flagged or not.
     pub fn flagged<E: EntityIndex>(&self, entity: E) -> bool {
         self.mask.contains(entity.index())
     }
@@ -306,11 +310,11 @@ impl<C, T: UnprotectedStorage<C>> FlaggedStorage<C, T> {
     pub fn clear_flags(&mut self) {
         self.mask.clear();
     }
-    /// Flags a single component as not flagged.
+    /// Removes the flag for the component of the given entity.
     pub fn unflag<E: EntityIndex>(&mut self, entity: E) {
         self.mask.remove(entity.index());
     }
-    /// Flags a single component as flagged.
+    /// Flags a single component.
     pub fn flag<E: EntityIndex>(&mut self, entity: E) {
         self.mask.add(entity.index());
     }

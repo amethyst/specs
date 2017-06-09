@@ -313,8 +313,16 @@ fn register_idempotency() {
 #[test]
 fn join_two_components() {
     let mut world = create_world();
-    world.create_entity().with(CompInt(1)).with(CompBool(false)).build();
-    world.create_entity().with(CompInt(2)).with(CompBool(true)).build();
+    world
+        .create_entity()
+        .with(CompInt(1))
+        .with(CompBool(false))
+        .build();
+    world
+        .create_entity()
+        .with(CompInt(2))
+        .with(CompBool(true))
+        .build();
     world.create_entity().with(CompInt(3)).build();
 
     struct Iter;
@@ -330,16 +338,18 @@ fn join_two_components() {
                 } else if int.0 == 2 && boolean.0 {
                     second = true;
                 } else {
-                    panic!("Entity with compent values that shouldn't be: {:?} {:?}", int, boolean);
+                    panic!("Entity with compent values that shouldn't be: {:?} {:?}",
+                           int,
+                           boolean);
                 }
             }
-            assert!(first, "There should be entity with CompInt(1) and CompBool(false)");
-            assert!(second, "There should be entity with CompInt(2) and CompBool(true)");
+            assert!(first,
+                    "There should be entity with CompInt(1) and CompBool(false)");
+            assert!(second,
+                    "There should be entity with CompInt(2) and CompBool(true)");
         }
     }
-    let mut dispatcher = DispatcherBuilder::new()
-        .add(Iter, "iter", &[])
-        .build();
+    let mut dispatcher = DispatcherBuilder::new().add(Iter, "iter", &[]).build();
     dispatcher.dispatch(&mut world.res);
 }
 
@@ -348,8 +358,16 @@ fn par_join_two_components() {
     use std::sync::Mutex;
     use std::sync::atomic::{AtomicBool, Ordering};
     let mut world = create_world();
-    world.create_entity().with(CompInt(1)).with(CompBool(false)).build();
-    world.create_entity().with(CompInt(2)).with(CompBool(true)).build();
+    world
+        .create_entity()
+        .with(CompInt(1))
+        .with(CompBool(false))
+        .build();
+    world
+        .create_entity()
+        .with(CompInt(2))
+        .with(CompBool(true))
+        .build();
     world.create_entity().with(CompInt(3)).build();
     let first = AtomicBool::new(false);
     let second = AtomicBool::new(false);
@@ -362,15 +380,17 @@ fn par_join_two_components() {
             use rayon::iter::ParallelIterator;
             let (int, boolean) = data;
             let Iter(ref first, ref second, ref error) = *self;
-            (&int, &boolean).par_join().for_each(|(int, boolean)| {
-                if !first.load(Ordering::SeqCst) && int.0 == 1 && !boolean.0 {
-                    first.store(true, Ordering::SeqCst);
-                } else if !second.load(Ordering::SeqCst) && int.0 == 2 && boolean.0 {
-                    second.store(true, Ordering::SeqCst);
-                } else {
-                    *error.lock().unwrap() = Some((int.0, boolean.0));
-                }
-            });
+            (&int, &boolean)
+                .par_join()
+                .for_each(|(int, boolean)| if !first.load(Ordering::SeqCst) && int.0 == 1 &&
+                                              !boolean.0 {
+                              first.store(true, Ordering::SeqCst);
+                          } else if !second.load(Ordering::SeqCst) && int.0 == 2 &&
+                                    boolean.0 {
+                              second.store(true, Ordering::SeqCst);
+                          } else {
+                              *error.lock().unwrap() = Some((int.0, boolean.0));
+                          });
         }
     }
     let mut dispatcher = DispatcherBuilder::new()
@@ -378,8 +398,10 @@ fn par_join_two_components() {
         .build();
     dispatcher.dispatch(&mut world.res);
     assert_eq!(*error.lock().unwrap(), None, "Entity shouldn't be in the join", );
-    assert!(first.load(Ordering::SeqCst), "There should be entity with CompInt(1) and CompBool(false)");
-    assert!(second.load(Ordering::SeqCst), "There should be entity with CompInt(2) and CompBool(true)");
+    assert!(first.load(Ordering::SeqCst),
+            "There should be entity with CompInt(1) and CompBool(false)");
+    assert!(second.load(Ordering::SeqCst),
+            "There should be entity with CompInt(2) and CompBool(true)");
 }
 
 #[test]
@@ -397,15 +419,14 @@ fn par_join_many_entities_and_systems() {
 
         fn run(&mut self, data: Self::SystemData) {
             let (entities, mut ints) = data;
-            (&mut ints, &*entities).par_join().for_each(|(int, _)| {
-                int.0 += 1;
-            });
+            (&mut ints, &*entities)
+                .par_join()
+                .for_each(|(int, _)| { int.0 += 1; });
         }
     }
     let mut builder = DispatcherBuilder::new();
     for i in 0..255 {
-        // TODO: Remove allocation by using ""
-        builder = builder.add(Incr, &i.to_string(), &[]);
+        builder = builder.add(Incr, "", &[]);
     }
     struct FindFailed<'a>(&'a Mutex<Vec<(u32, i8)>>);
     impl<'a, 'b> System<'a> for FindFailed<'b> {
@@ -413,11 +434,11 @@ fn par_join_many_entities_and_systems() {
 
         fn run(&mut self, data: Self::SystemData) {
             let (entities, ints) = data;
-            (&ints, &*entities).par_join().for_each(|(int, entity)| {
-                if int.0 != 127 {
-                    self.0.lock().unwrap().push((entity.id(), int.0));
-                }
-            });
+            (&ints, &*entities)
+                .par_join()
+                .for_each(|(int, entity)| if int.0 != 127 {
+                              self.0.lock().unwrap().push((entity.id(), int.0));
+                          });
         }
     }
     let mut dispatcher = builder

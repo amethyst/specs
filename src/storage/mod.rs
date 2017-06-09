@@ -20,7 +20,26 @@ pub mod storages;
 #[cfg(test)]
 mod tests;
 
-/// A trait that guarantees that mutable storage getter can be used on distinct indices from different threads.
+/// This is a marker trait which requires you to uphold the following guarantee:
+///
+/// > Multiple threads may call `get_mut()` with distinct indices without causing
+/// > undefined behavior.
+///
+/// This for example valid for `Vec`:
+///
+/// ```rust
+/// vec![1, 2, 3];
+/// ```
+///
+/// We may modify both element 1 and 2 at the same time; indexing the vector mutably
+/// does not modify anything else than the appropriate elements.
+///
+/// As a counter example, we may have some kind of cached storage; it caches
+/// elements when they're retrieved, so pushes a new element to some cache-vector.
+/// This storage is not allowed to implement `DistinctStorage`.
+///
+/// Implementing this trait marks the storage safe for concurrent mutation (of distinct
+/// elements), thus allows `join_par()`.
 pub unsafe trait DistinctStorage {}
 
 /// A storage with read access.
@@ -260,11 +279,13 @@ impl<'e, T, D> Storage<'e, T, D>
                    "Attempt to get an unchecked entry from a storage: {:?} {:?}",
                    entry.original,
                    self as *const Storage<'e, T, D>);
+
         unsafe { self.data.inner.get(entry.id) }
     }
 }
 
-/// The status of an insert operation
+/// The status of an `insert()`ion into a storage operation.
+#[derive(Debug)]
 pub enum InsertResult<T> {
     /// The value was inserted and there was no value before
     Inserted,
@@ -393,7 +414,8 @@ impl<'e, T, D> Storage<'e, T, D>
 }
 unsafe impl<'a, T: Component, D> DistinctStorage for Storage<'a, T, D>
     where T::Storage: DistinctStorage
-{}
+{
+}
 
 impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
     where T: Component,
@@ -415,8 +437,9 @@ impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
 unsafe impl<'a, 'e, T, D> ParJoin for &'a Storage<'e, T, D>
     where T: Component,
           D: Deref<Target = MaskedStorage<T>>,
-          T::Storage: Sync,
-{}
+          T::Storage: Sync
+{
+}
 
 impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
     where T: Component,
@@ -444,8 +467,9 @@ impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
 unsafe impl<'a, 'e, T, D> ParJoin for &'a mut Storage<'e, T, D>
     where T: Component,
           D: DerefMut<Target = MaskedStorage<T>>,
-          T::Storage: Sync + DistinctStorage,
-{}
+          T::Storage: Sync + DistinctStorage
+{
+}
 
 #[cfg(feature="serialize")]
 impl<'e, T, D> serde::Serialize for Storage<'e, T, D>
@@ -474,14 +498,14 @@ impl<'e, T, D> serde::Serialize for Storage<'e, T, D>
     }
 }
 
-#[cfg(feature="serialize")]
-#[derive(Debug, Serialize, Deserialize)]
 /// Structure of packed components with offsets of which entities they belong to.
 /// Offsets define which entities the components correspond to, based on a list of entities
 /// the packed data is sent in with.
 ///
 /// If the list of entities is all entities in the world, then the offsets in the
 /// packed data are the indices of the entities.
+#[cfg(feature="serialize")]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PackedData<T> {
     /// List of components.
     pub components: Vec<T>,
