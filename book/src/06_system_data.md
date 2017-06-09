@@ -1,4 +1,4 @@
-# System Data
+# [DRAFT] System Data
 
 ## Accessing Entities
 
@@ -21,3 +21,5 @@ persistent and delete associated components.
 You cannot, however, easily build an entity
 with associated components. For that, you have to write these component
 storages and insert a component for your entity.
+
+
