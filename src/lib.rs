@@ -85,6 +85,10 @@
 //!
 //!         let (mut pos, vel) = data;
 //!
+//!         // This joins the component storages for Position
+//!         // and Velocity together; it's also possible to do this
+//!         // in parallel using rayon's `ParallelIterator`s.
+//!         // See `ParJoin` for more.
 //!         for (pos, vel) in (&mut pos, &vel).join() {
 //!             pos.0 += vel.0;
 //!         }
@@ -142,7 +146,7 @@ pub use shred::{AsyncDispatcher, Dispatcher, DispatcherBuilder, Resource, RunNow
                 System};
 
 pub use entity::{Component, Entity, Entities};
-pub use join::{Join, JoinIter};
+pub use join::{Join, JoinIter, JoinParIter, ParJoin};
 pub use world::World;
 pub use storage::{CheckStorage, InsertResult, UnprotectedStorage};
 

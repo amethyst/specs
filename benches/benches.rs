@@ -1,5 +1,6 @@
 #![feature(test)]
 extern crate test;
+extern crate rayon;
 extern crate specs;
 
 mod world {
@@ -105,5 +106,54 @@ mod world {
                    }
                    w.maintain();
                });
+    }
+
+    #[bench]
+    fn join_single_threaded(b: &mut test::Bencher) {
+        use specs::Join;
+        use test::black_box;
+
+        let mut world = World::new();
+        world.register::<CompInt>();
+
+        {
+            let entities: Vec<_> = world.create_iter().take(50_000).collect();
+            let mut comp_int = world.write();
+            for (i, e) in entities.iter().enumerate() {
+                comp_int.insert(*e, CompInt(i as i32));
+
+            }
+        }
+
+        b.iter(|| for comp in world.read::<CompInt>().join() {
+                   black_box(comp.0 * comp.0);
+               })
+    }
+
+    #[bench]
+    fn join_multi_threaded(b: &mut test::Bencher) {
+        use rayon::prelude::*;
+        use specs::ParJoin;
+        use test::black_box;
+
+        let mut world = World::new();
+        world.register::<CompInt>();
+
+        {
+            let entities: Vec<_> = world.create_iter().take(50_000).collect();
+            let mut comp_int = world.write();
+            for (i, e) in entities.iter().enumerate() {
+                comp_int.insert(*e, CompInt(i as i32));
+
+
+            }
+        }
+
+        b.iter(|| {
+                   world
+                       .read::<CompInt>()
+                       .par_join()
+                       .for_each(|comp| { black_box(comp.0 * comp.0); })
+               })
     }
 }
