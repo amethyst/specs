@@ -214,6 +214,5 @@ mod join;
 mod storage;
 mod world;
 
-/// `Index` type is arbitrary. It doesn't show up in any interfaces.
-/// Keeping it 32bit allows for a single 64bit word per entity.
+/// An index is basically the id of an `Entity`.
 pub type Index = u32;
