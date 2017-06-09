@@ -25,14 +25,14 @@ mod tests;
 /// > Multiple threads may call `get_mut()` with distinct indices without causing
 /// > undefined behavior.
 ///
-/// This for example valid for `Vec`:
+/// This is for example valid for `Vec`:
 ///
 /// ```rust
 /// vec![1, 2, 3];
 /// ```
 ///
 /// We may modify both element 1 and 2 at the same time; indexing the vector mutably
-/// does not modify anything else than the appropriate elements.
+/// does not modify anything else than the respective elements.
 ///
 /// As a counter example, we may have some kind of cached storage; it caches
 /// elements when they're retrieved, so pushes a new element to some cache-vector.
