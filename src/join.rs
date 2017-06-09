@@ -137,7 +137,7 @@ impl<J> ParallelIterator for JoinParIter<J>
   where
     J: Join + Send,
     J::Type: Send,
-    J::Value: Split + Send,
+    J::Value: Send,
     J::Mask: Send + Sync,
 {
     type Item = J::Type;
