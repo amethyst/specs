@@ -130,6 +130,7 @@ extern crate hibitset;
 extern crate mopa;
 extern crate shred;
 extern crate tuple_utils;
+extern crate rayon;
 
 #[cfg(feature="serialize")]
 extern crate serde;
@@ -203,7 +204,7 @@ pub mod prelude {
              World};
 
     pub use data::{Entities, Fetch, FetchMut, ReadStorage, WriteStorage};
-    pub use join::Join;
+    pub use join::{Join, ParJoin};
     pub use storages::{DenseVecStorage, HashMapStorage, VecStorage, FlaggedStorage};
 }
 

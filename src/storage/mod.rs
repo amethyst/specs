@@ -8,7 +8,7 @@ use hibitset::{BitSet, BitSetNot};
 use mopa::Any;
 use shred::{Fetch, FetchMut, ResourceId, Resources, SystemData};
 
-use join::Join;
+use join::{Join, ParJoin};
 use world::{Component, Entity, EntityIndex, Entities};
 use Index;
 
@@ -19,6 +19,9 @@ pub mod storages;
 
 #[cfg(test)]
 mod tests;
+
+/// A trait that guarantees that mutable storage getter can be used on distinct indices from different threads.
+pub unsafe trait DistinctStorage {}
 
 /// A storage with read access.
 pub type ReadStorage<'a, T> = Storage<'a, T, Fetch<'a, MaskedStorage<T>>>;
@@ -137,6 +140,8 @@ impl<'a> Join for AntiStorage<'a> {
     }
 }
 
+unsafe impl<'a> DistinctStorage for AntiStorage<'a> {}
+
 /// An entry to a storage.
 pub struct Entry<'a, 'e, T, D> {
     id: Index,
@@ -183,6 +188,8 @@ impl<'a, 'e, T, D> Join for &'a CheckStorage<'e, T, D> {
         }
     }
 }
+
+unsafe impl<'a, T, D> DistinctStorage for CheckStorage<'a, T, D> {}
 
 /// A wrapper around the masked storage and the generations vector.
 /// Can be used for safe lookup of components, insertions and removes.
@@ -384,6 +391,9 @@ impl<'e, T, D> Storage<'e, T, D>
         Ok(())
     }
 }
+unsafe impl<'a, T: Component, D> DistinctStorage for Storage<'a, T, D>
+    where T::Storage: DistinctStorage
+{}
 
 impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
     where T: Component,
@@ -401,6 +411,12 @@ impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
         v.get(i)
     }
 }
+
+unsafe impl<'a, 'e, T, D> ParJoin for &'a Storage<'e, T, D>
+    where T: Component,
+          D: Deref<Target = MaskedStorage<T>>,
+          T::Storage: Sync,
+{}
 
 impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
     where T: Component,
@@ -424,6 +440,12 @@ impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
         value.get_mut(i)
     }
 }
+
+unsafe impl<'a, 'e, T, D> ParJoin for &'a mut Storage<'e, T, D>
+    where T: Component,
+          D: DerefMut<Target = MaskedStorage<T>>,
+          T::Storage: Sync + DistinctStorage,
+{}
 
 #[cfg(feature="serialize")]
 impl<'e, T, D> serde::Serialize for Storage<'e, T, D>

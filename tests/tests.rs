@@ -1,4 +1,5 @@
 extern crate specs;
+extern crate rayon;
 
 use specs::prelude::*;
 
@@ -307,4 +308,124 @@ fn register_idempotency() {
     // ...this would end up trying to unwrap a `None`.
     let i = w.read::<CompInt>().get(e).unwrap().0;
     assert_eq!(i, 10);
+}
+
+#[test]
+fn join_two_components() {
+    let mut world = create_world();
+    world.create_entity().with(CompInt(1)).with(CompBool(false)).build();
+    world.create_entity().with(CompInt(2)).with(CompBool(true)).build();
+    world.create_entity().with(CompInt(3)).build();
+
+    struct Iter;
+    impl<'a> System<'a> for Iter {
+        type SystemData = (ReadStorage<'a, CompInt>, ReadStorage<'a, CompBool>);
+
+        fn run(&mut self, data: Self::SystemData) {
+            let (int, boolean) = data;
+            let (mut first, mut second) = (false, false);
+            for (int, boolean) in (&int, &boolean).join() {
+                if int.0 == 1 && !boolean.0 {
+                    first = true;
+                } else if int.0 == 2 && boolean.0 {
+                    second = true;
+                } else {
+                    panic!("Entity with compent values that shouldn't be: {:?} {:?}", int, boolean);
+                }
+            }
+            assert!(first, "There should be entity with CompInt(1) and CompBool(false)");
+            assert!(second, "There should be entity with CompInt(2) and CompBool(true)");
+        }
+    }
+    let mut dispatcher = DispatcherBuilder::new()
+        .add(Iter, "iter", &[])
+        .build();
+    dispatcher.dispatch(&mut world.res);
+}
+
+#[test]
+fn par_join_two_components() {
+    use std::sync::Mutex;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    let mut world = create_world();
+    world.create_entity().with(CompInt(1)).with(CompBool(false)).build();
+    world.create_entity().with(CompInt(2)).with(CompBool(true)).build();
+    world.create_entity().with(CompInt(3)).build();
+    let first = AtomicBool::new(false);
+    let second = AtomicBool::new(false);
+    let error = Mutex::new(None);
+    struct Iter<'a>(&'a AtomicBool, &'a AtomicBool, &'a Mutex<Option<(i8, bool)>>);
+    impl<'a, 'b> System<'a> for Iter<'b> {
+        type SystemData = (ReadStorage<'a, CompInt>, ReadStorage<'a, CompBool>);
+
+        fn run(&mut self, data: Self::SystemData) {
+            use rayon::iter::ParallelIterator;
+            let (int, boolean) = data;
+            let Iter(ref first, ref second, ref error) = *self;
+            (&int, &boolean).par_join().for_each(|(int, boolean)| {
+                if !first.load(Ordering::SeqCst) && int.0 == 1 && !boolean.0 {
+                    first.store(true, Ordering::SeqCst);
+                } else if !second.load(Ordering::SeqCst) && int.0 == 2 && boolean.0 {
+                    second.store(true, Ordering::SeqCst);
+                } else {
+                    *error.lock().unwrap() = Some((int.0, boolean.0));
+                }
+            });
+        }
+    }
+    let mut dispatcher = DispatcherBuilder::new()
+        .add(Iter(&first, &second, &error), "iter", &[])
+        .build();
+    dispatcher.dispatch(&mut world.res);
+    assert_eq!(*error.lock().unwrap(), None, "Entity shouldn't be in the join", );
+    assert!(first.load(Ordering::SeqCst), "There should be entity with CompInt(1) and CompBool(false)");
+    assert!(second.load(Ordering::SeqCst), "There should be entity with CompInt(2) and CompBool(true)");
+}
+
+#[test]
+fn par_join_many_entities_and_systems() {
+    use std::sync::Mutex;
+    use rayon::iter::ParallelIterator;
+    let failed = Mutex::new(vec![]);
+    let mut world = create_world();
+    for _ in 0..1000 {
+        world.create_entity().with(CompInt(-128)).build();
+    }
+    struct Incr;
+    impl<'a> System<'a> for Incr {
+        type SystemData = (Entities<'a>, WriteStorage<'a, CompInt>);
+
+        fn run(&mut self, data: Self::SystemData) {
+            let (entities, mut ints) = data;
+            (&mut ints, &*entities).par_join().for_each(|(int, _)| {
+                int.0 += 1;
+            });
+        }
+    }
+    let mut builder = DispatcherBuilder::new();
+    for i in 0..255 {
+        // TODO: Remove allocation by using ""
+        builder = builder.add(Incr, &i.to_string(), &[]);
+    }
+    struct FindFailed<'a>(&'a Mutex<Vec<(u32, i8)>>);
+    impl<'a, 'b> System<'a> for FindFailed<'b> {
+        type SystemData = (Entities<'a>, ReadStorage<'a, CompInt>);
+
+        fn run(&mut self, data: Self::SystemData) {
+            let (entities, ints) = data;
+            (&ints, &*entities).par_join().for_each(|(int, entity)| {
+                if int.0 != 127 {
+                    self.0.lock().unwrap().push((entity.id(), int.0));
+                }
+            });
+        }
+    }
+    let mut dispatcher = builder
+        .add_barrier()
+        .add(FindFailed(&failed), "find_failed", &[])
+        .build();
+    dispatcher.dispatch(&mut world.res);
+    for &(id, n) in &*failed.lock().unwrap() {
+        panic!("Entity with id {} failed to count to 127. Count was {}", id, n);
+    }
 }

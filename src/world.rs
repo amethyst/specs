@@ -4,7 +4,7 @@ use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use mopa::Any;
 use shred::{Fetch, FetchMut, Resource, Resources};
 
-use join::Join;
+use join::{Join, ParJoin};
 use storage::{AnyStorage, MaskedStorage, ReadStorage, Storage, UnprotectedStorage, WriteStorage};
 use Index;
 
@@ -313,6 +313,8 @@ impl<'a> Join for &'a Entities {
         Entity(idx, gen)
     }
 }
+
+unsafe impl<'a> ParJoin for &'a Entities {}
 
 /// Index generation. When a new entity is placed at an old index,
 /// it bumps the `Generation` by 1. This allows to avoid using components
