@@ -284,7 +284,7 @@ impl<'e, T, D> Storage<'e, T, D>
     }
 }
 
-/// The status of an `insert()`ion into a storage operation.
+/// The status of an `insert()`ion into a storage.
 #[derive(Debug)]
 pub enum InsertResult<T> {
     /// The value was inserted and there was no value before

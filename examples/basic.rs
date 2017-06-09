@@ -33,6 +33,7 @@ impl<'a> System<'a> for SysA {
 
         let (mut pos, vel) = data;
 
+        // You could also use `par_join()` to get a rayon `ParallelIterator`.
         for (pos, vel) in (&mut pos, &vel).join() {
             pos.0 += vel.0;
         }

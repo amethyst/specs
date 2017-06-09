@@ -447,6 +447,8 @@ fn par_join_many_entities_and_systems() {
         .build();
     dispatcher.dispatch(&mut world.res);
     for &(id, n) in &*failed.lock().unwrap() {
-        panic!("Entity with id {} failed to count to 127. Count was {}", id, n);
+        panic!("Entity with id {} failed to count to 127. Count was {}",
+               id,
+               n);
     }
 }
