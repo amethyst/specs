@@ -583,6 +583,10 @@ impl World {
     /// should have called `maintain()` before using this
     /// method.
     ///
+    /// If you want to get this functionality before a `maintain()`,
+    /// you are most likely in a system; from there, just access the
+    /// `Entities` resource and call the `is_alive` method.
+    ///
     /// # Panics
     ///
     /// Panics if generation is dead.
