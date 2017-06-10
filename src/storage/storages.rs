@@ -6,9 +6,8 @@ use std::marker::PhantomData;
 use fnv::FnvHashMap;
 use hibitset::BitSet;
 
-use storage::{UnprotectedStorage, DistinctStorage};
 use world::EntityIndex;
-use {Join, Index};
+use {DistinctStorage, Index, Join, UnprotectedStorage};
 
 /// BTreeMap-based storage.
 pub struct BTreeStorage<T>(BTreeMap<Index, T>);
@@ -53,7 +52,8 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 ///
 /// ```rust
 /// extern crate specs;
-/// use specs::prelude::*;
+///
+/// use specs::{Component, FlaggedStorage, Join, System, VecStorage, WriteStorage};
 ///
 /// pub struct Comp(u32);
 /// impl Component for Comp {

@@ -4,6 +4,8 @@ pub use self::check::{CheckStorage, Entry};
 pub use self::data::{ReadStorage, WriteStorage};
 #[cfg(feature = "serialize")]
 pub use self::ser::{MergeError, PackedData};
+pub use self::storages::{BTreeStorage, DenseVecStorage, FlaggedStorage, HashMapStorage,
+                         NullStorage, VecStorage};
 
 use std;
 use std::marker::PhantomData;
@@ -13,16 +15,13 @@ use hibitset::{BitSet, BitSetNot};
 use mopa::Any;
 use shred::Fetch;
 
-use join::{Join, ParJoin};
-use world::{Component, Entity, Entities};
-use Index;
-
-pub mod storages;
+use {Component, EntitiesRes, Entity, Index, Join, ParJoin};
 
 mod check;
 mod data;
 #[cfg(feature = "serialize")]
 mod ser;
+mod storages;
 #[cfg(test)]
 mod tests;
 
@@ -146,13 +145,13 @@ impl<T: Component> Drop for MaskedStorage<T> {
 /// This is what `World::read/write` fetches for the user.
 pub struct Storage<'e, T, D> {
     data: D,
-    entities: Fetch<'e, Entities>,
+    entities: Fetch<'e, EntitiesRes>,
     phantom: PhantomData<T>,
 }
 
 impl<'e, T, D> Storage<'e, T, D> {
     /// Create a new `Storage`
-    pub fn new(entities: Fetch<'e, Entities>, data: D) -> Storage<'e, T, D> {
+    pub fn new(entities: Fetch<'e, EntitiesRes>, data: D) -> Storage<'e, T, D> {
         Storage {
             data: data,
             entities: entities,

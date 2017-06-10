@@ -14,8 +14,8 @@ extern crate serde_json;
 fn main() {
     use serde::Serialize;
     use serde_json::{Serializer, from_str as json_from_str};
-    use specs::prelude::*;
-    use specs::PackedData;
+    use specs::{Component, DispatcherBuilder, Entities, Join, PackedData, System, VecStorage,
+                World, WriteStorage};
 
     #[derive(Debug, Serialize, Deserialize)]
     struct CompSerialize {

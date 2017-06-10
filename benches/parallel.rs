@@ -8,8 +8,9 @@ extern crate test;
 
 use cgmath::Vector2;
 use rand::thread_rng;
-use specs::prelude::*;
-use specs::storages::NullStorage;
+use specs::{Component, DenseVecStorage, DispatcherBuilder, Entities, Entity, Fetch,
+            HashMapStorage, Join, NullStorage, ReadStorage, RunningTime, System, VecStorage,
+            World, WriteStorage};
 
 use test::Bencher;
 

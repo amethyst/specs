@@ -1,10 +1,11 @@
+extern crate rayon;
 extern crate shred;
 #[macro_use]
 extern crate shred_derive;
 extern crate specs;
 
-use specs::prelude::*;
-use specs::entity::Entity;
+use specs::{Component, DenseVecStorage, DispatcherBuilder, Entities, Entity, HashMapStorage, Join,
+            ParJoin, ReadStorage, System, VecStorage, World, WriteStorage};
 
 // -- Components --
 // A component exists for 0..n
@@ -162,8 +163,24 @@ impl<'a> System<'a> for SysStoreMax {
     }
 }
 
+struct JoinParallel;
+
+impl<'a> System<'a> for JoinParallel {
+    type SystemData = (ReadStorage<'a, CompInt>, WriteStorage<'a, CompFloat>);
+
+    fn run(&mut self, data: Self::SystemData) {
+        use rayon::prelude::*;
+
+        let (comp_int, mut comp_float) = data;
+
+        (&comp_int, &mut comp_float)
+            .par_join()
+            .for_each(|(i, f)| f.0 += i.0 as f32);
+    }
+}
+
 fn main() {
-    let mut w = specs::World::new();
+    let mut w = World::new();
     // All components types should be registered before working with them
     w.register::<CompInt>();
     w.register::<CompBool>();
@@ -201,6 +218,7 @@ fn main() {
         .add(SysStoreMax::new(), "store_max", &["check_positive"])
         .add(SysSpawn::new(), "spawn", &[])
         .add(SysPrintBool, "print_bool2", &["check_positive"])
+        .add(JoinParallel, "join_par", &[])
         .build();
 
     dispatcher.dispatch(&mut w.res);

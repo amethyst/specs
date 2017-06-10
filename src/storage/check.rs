@@ -4,10 +4,9 @@ use std::ops::{Deref, DerefMut};
 
 use hibitset::BitSet;
 
-use join::Join;
-use storage::{DistinctStorage, MaskedStorage, Storage, UnprotectedStorage};
-use world::{Component, EntityIndex};
-use Index;
+use storage::MaskedStorage;
+use world::EntityIndex;
+use {Component, DistinctStorage, Index, Join, Storage, UnprotectedStorage};
 
 /// A storage type that iterates entities that have
 /// a particular component type, but does not return the

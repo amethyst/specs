@@ -38,7 +38,7 @@ write access).
 So we can now rewrite our system:
 
 ```rust,ignore
-use specs::prelude::*;
+use specs::{Fetch, ReadStorage, System, WriteStorage};
 
 struct PosUpdate;
 

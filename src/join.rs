@@ -2,10 +2,8 @@ use std;
 use std::cell::UnsafeCell;
 
 use hibitset::{BitSetAnd, BitIter, BitSetLike, BitProducer};
-
 use rayon::iter::ParallelIterator;
 use rayon::iter::internal::{Folder, UnindexedConsumer, UnindexedProducer, bridge_unindexed};
-
 use tuple_utils::Split;
 
 use Index;

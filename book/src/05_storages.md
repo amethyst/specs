@@ -5,7 +5,7 @@ different use cases. But let's see some basics first.
 
 ## Storage basics
 
-What you specify in a system `impl`-block is an `UnprotectedStorage`.
+What you specify in a component `impl`-block is an `UnprotectedStorage`.
 Each `UnprotectedStorage` exposes an unsafe getter which does not
 perform any checks whether the requested index for the component is valid
 (the id of an entity is the index of its component). To allow checking them

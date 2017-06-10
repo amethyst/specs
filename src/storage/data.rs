@@ -1,9 +1,7 @@
-
 use shred::{Fetch, FetchMut, ResourceId, Resources, SystemData};
 
-use world::{Component, Entities};
-
-use storage::{MaskedStorage, Storage};
+use storage::MaskedStorage;
+use {Component, EntitiesRes, Storage};
 
 /// A storage with read access.
 pub type ReadStorage<'a, T> = Storage<'a, T, Fetch<'a, MaskedStorage<T>>>;
@@ -16,7 +14,7 @@ impl<'a, T> SystemData<'a> for ReadStorage<'a, T>
     }
 
     fn reads(id: usize) -> Vec<ResourceId> {
-        vec![ResourceId::new::<Entities>(),
+        vec![ResourceId::new::<EntitiesRes>(),
              ResourceId::new_with_id::<MaskedStorage<T>>(id)]
     }
 
@@ -36,7 +34,7 @@ impl<'a, T> SystemData<'a> for WriteStorage<'a, T>
     }
 
     fn reads(_: usize) -> Vec<ResourceId> {
-        vec![ResourceId::new::<Entities>()]
+        vec![ResourceId::new::<EntitiesRes>()]
     }
 
     fn writes(id: usize) -> Vec<ResourceId> {
