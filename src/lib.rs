@@ -6,6 +6,12 @@
 //! and convenient usage. It is highly flexible when it comes to actual
 //! component data and the way it is stored and accessed.
 //!
+//! Features:
+//!
+//! * depending on chosen features either 0 virtual function calls or one per system
+//! * parallel iteration over components
+//! * parallel execution of systems
+//!
 //! ## High-level overview
 //!
 //! One could basically split this library up into two parts:
@@ -18,7 +24,9 @@
 //!
 //! [`World`]: ./world/struct.World.html
 //!
-//! Components can be easily implemented like this:
+//! [`Component`]s can be easily implemented like this:
+//!
+//! [`Component`]: trait.Component.html
 //!
 //! ```rust
 //! use specs::prelude::*;
@@ -32,21 +40,35 @@
 //!
 //! You can choose different storages according to your needs.
 //!
+//! These storages can be [`join`]ed together, for example joining a `Velocity`
+//! and a `Position` storage means you'll only get entities which have both of them.
+//! Thanks to rayon, this is even possible in parallel! See [`ParJoin`] for more.
+//!
+//! [`join`]: trait.Join.html#method.join
+//! [`ParJoin`]: trait.ParJoin.html
+//!
 //! ### System execution
 //!
-//! One part of this is `System` and `Dispatcher`. Both types
+//! Here we have [`System`] and [`Dispatcher`] as our core types. Both types
 //! are provided by a library called `shred`.
+//!
+//! [`Dispatcher`]: struct.Dispatcher.html
+//! [`System`]: trait.System.html
 //!
 //! The `Dispatcher` can be seen as an optional part here;
 //! it allows dispatching the systems in parallel, given a list
 //! of systems and their dependencies on other systems.
 //!
+//! If you don't like it, you can also execute the systems yourself
+//! by using [`RunNow`].
+//!
+//! [`RunNow`]: trait.RunNow.html
+//!
 //! `System`s are traits with a `run()` method and an associated
-//! `SystemData`, allowing type-safe aspects (knowledge about the
+//! [`SystemData`], allowing type-safe aspects (knowledge about the
 //! reads / writes of the systems).
 //!
-//! To access components ergonomically, Specs provides a `Join` trait
-//! which joins component storages together in an efficient manner.
+//! [`SystemData`]: ./data/trait.SystemData.html
 //!
 //! ## Examples
 //!
