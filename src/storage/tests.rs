@@ -1,4 +1,5 @@
 use mopa::Any;
+
 use super::*;
 use super::storages::*;
 use entity::{Component, Entity, Generation};
@@ -448,6 +449,8 @@ mod test {
     #[test]
     fn flagged() {
         use join::Join;
+        use world::EntityIndex;
+
         let mut w = World::new();
         w.register_with_id::<FlaggedCvec>(1);
         w.register_with_id::<FlaggedCvec>(2);

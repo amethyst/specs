@@ -1,24 +1,64 @@
 //! Storage types
 
+pub use self::check::{CheckStorage, Entry};
+pub use self::data::{ReadStorage, WriteStorage};
+#[cfg(feature = "serialize")]
+pub use self::ser::{MergeError, PackedData};
+
 use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
 
 use hibitset::{BitSet, BitSetNot};
 use mopa::Any;
-use shred::{Fetch, FetchMut, ResourceId, Resources, SystemData};
+use shred::Fetch;
 
 use join::{Join, ParJoin};
-use world::{Component, Entity, EntityIndex, Entities};
+use world::{Component, Entity, Entities};
 use Index;
-
-#[cfg(feature="serialize")]
-use serde;
 
 pub mod storages;
 
+mod check;
+mod data;
+#[cfg(feature = "serialize")]
+mod ser;
 #[cfg(test)]
 mod tests;
+
+/// An inverted storage type, only useful to iterate entities
+/// that do not have a particular component type.
+pub struct AntiStorage<'a>(&'a BitSet);
+
+impl<'a> Join for AntiStorage<'a> {
+    type Type = ();
+    type Value = ();
+    type Mask = BitSetNot<&'a BitSet>;
+
+    fn open(self) -> (Self::Mask, ()) {
+        (BitSetNot(self.0), ())
+    }
+
+    unsafe fn get(_: &mut (), _: Index) -> () {
+        ()
+    }
+}
+
+unsafe impl<'a> DistinctStorage for AntiStorage<'a> {}
+
+/// A dynamic storage.
+pub trait AnyStorage {
+    /// Remove the component of an entity with a given index.
+    fn remove(&mut self, id: Index) -> Option<Box<Any>>;
+}
+
+impl<T> AnyStorage for MaskedStorage<T>
+    where T: Component
+{
+    fn remove(&mut self, id: Index) -> Option<Box<Any>> {
+        MaskedStorage::remove(self, id).map(|x| Box::new(x) as Box<Any>)
+    }
+}
 
 /// This is a marker trait which requires you to uphold the following guarantee:
 ///
@@ -42,57 +82,17 @@ mod tests;
 /// elements), thus allows `join_par()`.
 pub unsafe trait DistinctStorage {}
 
-/// A storage with read access.
-pub type ReadStorage<'a, T> = Storage<'a, T, Fetch<'a, MaskedStorage<T>>>;
-
-impl<'a, T> SystemData<'a> for ReadStorage<'a, T>
-    where T: Component
-{
-    fn fetch(res: &'a Resources, id: usize) -> Self {
-        Storage::new(res.fetch(0), res.fetch(id))
-    }
-
-    fn reads(id: usize) -> Vec<ResourceId> {
-        vec![ResourceId::new::<Entities>(),
-             ResourceId::new_with_id::<MaskedStorage<T>>(id)]
-    }
-
-    fn writes(_: usize) -> Vec<ResourceId> {
-        vec![]
-    }
-}
-
-/// A storage with read and write access.
-pub type WriteStorage<'a, T> = Storage<'a, T, FetchMut<'a, MaskedStorage<T>>>;
-
-impl<'a, T> SystemData<'a> for WriteStorage<'a, T>
-    where T: Component
-{
-    fn fetch(res: &'a Resources, id: usize) -> Self {
-        Storage::new(res.fetch(0), res.fetch_mut(id))
-    }
-
-    fn reads(_: usize) -> Vec<ResourceId> {
-        vec![ResourceId::new::<Entities>()]
-    }
-
-    fn writes(id: usize) -> Vec<ResourceId> {
-        vec![ResourceId::new_with_id::<MaskedStorage<T>>(id)]
-    }
-}
-
-/// A dynamic storage.
-pub trait AnyStorage {
-    /// Remove the component of an entity with a given index.
-    fn remove(&mut self, id: Index) -> Option<Box<Any>>;
-}
-
-impl<T> AnyStorage for MaskedStorage<T>
-    where T: Component
-{
-    fn remove(&mut self, id: Index) -> Option<Box<Any>> {
-        MaskedStorage::remove(self, id).map(|x| Box::new(x) as Box<Any>)
-    }
+/// The status of an `insert()`ion into a storage.
+#[derive(Debug)]
+pub enum InsertResult<T> {
+    /// The value was inserted and there was no value before
+    Inserted,
+    /// The value was updated an already inserted value
+    /// the value returned is the old value
+    Updated(T),
+    /// The value failed to insert because the entity
+    /// was invalid
+    EntityIsDead(T),
 }
 
 /// The `UnprotectedStorage` together with the `BitSet` that knows
@@ -141,75 +141,6 @@ impl<T: Component> Drop for MaskedStorage<T> {
     }
 }
 
-/// An inverted storage type, only useful to iterate entities
-/// that do not have a particular component type.
-pub struct AntiStorage<'a>(&'a BitSet);
-
-impl<'a> Join for AntiStorage<'a> {
-    type Type = ();
-    type Value = ();
-    type Mask = BitSetNot<&'a BitSet>;
-
-    fn open(self) -> (Self::Mask, ()) {
-        (BitSetNot(self.0), ())
-    }
-
-    unsafe fn get(_: &mut (), _: Index) -> () {
-        ()
-    }
-}
-
-unsafe impl<'a> DistinctStorage for AntiStorage<'a> {}
-
-/// An entry to a storage.
-pub struct Entry<'a, 'e, T, D> {
-    id: Index,
-    // Pointer for comparison when attempting to check against a storage.
-    original: *const Storage<'e, T, D>,
-    phantom: PhantomData<&'a ()>,
-}
-
-impl<'a, 'e, T, D> EntityIndex for Entry<'a, 'e, T, D> {
-    fn index(&self) -> Index {
-        self.id
-    }
-}
-
-impl<'a, 'b, 'e, T, D> EntityIndex for &'b Entry<'a, 'e, T, D> {
-    fn index(&self) -> Index {
-        (*self).index()
-    }
-}
-
-/// A storage type that iterates entities that have
-/// a particular component type, but does not return the
-/// component.
-pub struct CheckStorage<'a, T, D> {
-    bitset: BitSet,
-    // Pointer back to the storage the CheckStorage was created from.
-    original: *const Storage<'a, T, D>,
-}
-
-impl<'a, 'e, T, D> Join for &'a CheckStorage<'e, T, D> {
-    type Type = Entry<'a, 'e, T, D>;
-    type Value = *const Storage<'e, T, D>;
-    type Mask = &'a BitSet;
-
-    fn open(self) -> (Self::Mask, Self::Value) {
-        (&self.bitset, self.original)
-    }
-
-    unsafe fn get(storage: &mut *const Storage<'e, T, D>, id: Index) -> Entry<'a, 'e, T, D> {
-        Entry {
-            id: id,
-            original: *storage,
-            phantom: PhantomData,
-        }
-    }
-}
-
-unsafe impl<'a, T, D> DistinctStorage for CheckStorage<'a, T, D> {}
-
 /// A wrapper around the masked storage and the generations vector.
 /// Can be used for safe lookup of components, insertions and removes.
 /// This is what `World::read/write` fetches for the user.
@@ -217,17 +148,6 @@ pub struct Storage<'e, T, D> {
     data: D,
     entities: Fetch<'e, Entities>,
     phantom: PhantomData<T>,
-}
-
-impl<'a, 'e, T, D> Not for &'a Storage<'e, T, D>
-    where T: Component,
-          D: Deref<Target = MaskedStorage<T>>
-{
-    type Output = AntiStorage<'a>;
-
-    fn not(self) -> Self::Output {
-        AntiStorage(&self.data.mask)
-    }
 }
 
 impl<'e, T, D> Storage<'e, T, D> {
@@ -253,48 +173,6 @@ impl<'e, T, D> Storage<'e, T, D>
             None
         }
     }
-
-    /// Returns a struct that can iterate over the entities that have it
-    /// but does not return the contents of the storage.
-    ///
-    /// Useful if you want to check if an entity has a component
-    /// and then possibly get the component later on in the loop.
-    pub fn check(&self) -> CheckStorage<'e, T, D> {
-        CheckStorage {
-            bitset: self.data.mask.clone(),
-            original: self as *const Storage<'e, T, D>,
-        }
-    }
-
-    /// Reads the data associated with the entry.
-    ///
-    /// `Entry`s are returned from a `CheckStorage` to remove unnecessary checks.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the entry was retrieved from another storage.
-    pub fn get_unchecked<'a>(&'a self, entry: &'a Entry<'a, 'e, T, D>) -> &'a T {
-        assert_eq!(entry.original,
-                   self as *const Storage<'e, T, D>,
-                   "Attempt to get an unchecked entry from a storage: {:?} {:?}",
-                   entry.original,
-                   self as *const Storage<'e, T, D>);
-
-        unsafe { self.data.inner.get(entry.id) }
-    }
-}
-
-/// The status of an `insert()`ion into a storage.
-#[derive(Debug)]
-pub enum InsertResult<T> {
-    /// The value was inserted and there was no value before
-    Inserted,
-    /// The value was updated an already inserted value
-    /// the value returned is the old value
-    Updated(T),
-    /// The value failed to insert because the entity
-    /// was invalid
-    EntityIsDead(T),
 }
 
 impl<'e, T, D> Storage<'e, T, D>
@@ -308,19 +186,6 @@ impl<'e, T, D> Storage<'e, T, D>
         } else {
             None
         }
-    }
-
-    /// Tries to mutate the data associated with an entry.
-    ///
-    /// `Entry`s are returned from a `CheckStorage` to remove unnecessary checks.
-    pub fn get_mut_unchecked<'a>(&'a mut self, entry: &'a mut Entry<'a, 'e, T, D>) -> &'a mut T {
-        assert_eq!(entry.original,
-                   self as *const Storage<'e, T, D>,
-                   "Attempt to get an unchecked entry from a storage: {:?} {:?}",
-                   entry.original,
-                   self as *const Storage<'e, T, D>);
-
-        unsafe { self.data.inner.get_mut(entry.id) }
     }
 
     /// Inserts new data for a given `Entity`.
@@ -356,62 +221,6 @@ impl<'e, T, D> Storage<'e, T, D>
     }
 }
 
-/// The error type returned
-/// by [`Storage::merge`].
-///
-/// [`Storage::merge`]: struct.Storage.html#method.merge
-#[cfg(feature="serialize")]
-#[derive(Debug)]
-pub enum MergeError {
-    /// Returned if there is no
-    /// entity matching the specified offset.
-    NoEntity(Index),
-}
-
-#[cfg(feature="serialize")]
-impl<'e, T, D> Storage<'e, T, D>
-    where T: Component + serde::Deserialize<'e>,
-          D: DerefMut<Target = MaskedStorage<T>>
-{
-    /// Merges a list of components into the storage.
-    ///
-    /// The list of entities will be used as the base for the offsets of the packed data.
-    ///
-    /// e.g.
-    /// ```rust,ignore
-    ///let list = vec![Entity(0, 1), Entity(1, 1), Entity(2, 1)];
-    ///let packed = PackedData { offsets: [0, 2], components: [ ... ] };
-    ///storage.merge(&list, packed);
-    /// ```
-    /// Would merge the components at offset 0 and 2, which would be `Entity(0, 1)` and
-    /// `Entity(2, 1)` while ignoring
-    /// `Entity(1, 1)`.
-    ///
-    /// Note:
-    /// The entity list should be at least the same size as the packed data. To make sure,
-    /// you can call `packed.pair_truncate(&entities)`.
-    /// If the entity list is larger than the packed data then those entities are ignored.
-    ///
-    /// Packed data should also be sorted in ascending order of offsets.
-    /// If this is deserialized from data received from serializing a storage it will be
-    /// in ascending order.
-    pub fn merge<'a>(&'a mut self,
-                     entities: &'a [Entity],
-                     mut packed: PackedData<T>)
-                     -> Result<(), MergeError> {
-        for (component, offset) in packed.components.drain(..).zip(packed.offsets.iter()) {
-            match entities.get(*offset as usize) {
-                Some(entity) => {
-                    self.insert(*entity, component);
-                }
-                None => {
-                    return Err(MergeError::NoEntity(*offset));
-                }
-            }
-        }
-        Ok(())
-    }
-}
 unsafe impl<'a, T: Component, D> DistinctStorage for Storage<'a, T, D>
     where T::Storage: DistinctStorage
 {
@@ -431,6 +240,17 @@ impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
 
     unsafe fn get(v: &mut Self::Value, i: Index) -> &'a T {
         v.get(i)
+    }
+}
+
+impl<'a, 'e, T, D> Not for &'a Storage<'e, T, D>
+    where T: Component,
+          D: Deref<Target = MaskedStorage<T>>
+{
+    type Output = AntiStorage<'a>;
+
+    fn not(self) -> Self::Output {
+        AntiStorage(&self.data.mask)
     }
 }
 
@@ -469,61 +289,6 @@ unsafe impl<'a, 'e, T, D> ParJoin for &'a mut Storage<'e, T, D>
           D: DerefMut<Target = MaskedStorage<T>>,
           T::Storage: Sync + DistinctStorage
 {
-}
-
-#[cfg(feature="serialize")]
-impl<'e, T, D> serde::Serialize for Storage<'e, T, D>
-    where T: Component + serde::Serialize,
-          D: Deref<Target = MaskedStorage<T>>
-{
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        use hibitset::BitSetLike;
-        use serde::ser::SerializeStruct;
-
-        // Serializes the storage in a format of PackedData<T>
-        let (bitset, storage) = self.open();
-        // Serialize a struct that has 2 fields
-        let mut structure = serializer.serialize_struct("PackedData", 2)?;
-        let mut components: Vec<&T> = Vec::new();
-        let mut offsets: Vec<u32> = Vec::new();
-        for index in bitset.iter() {
-            offsets.push(index);
-            let component = unsafe { storage.get(index) };
-            components.push(component);
-        }
-
-        structure.serialize_field("offsets", &offsets)?;
-        structure.serialize_field("components", &components)?;
-        structure.end()
-    }
-}
-
-/// Structure of packed components with offsets of which entities they belong to.
-/// Offsets define which entities the components correspond to, based on a list of entities
-/// the packed data is sent in with.
-///
-/// If the list of entities is all entities in the world, then the offsets in the
-/// packed data are the indices of the entities.
-#[cfg(feature="serialize")]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PackedData<T> {
-    /// List of components.
-    pub components: Vec<T>,
-    /// Offsets used to get entities which correspond to the components.
-    pub offsets: Vec<Index>,
-}
-
-#[cfg(feature="serialize")]
-impl<T> PackedData<T> {
-    /// Modifies the data to match an entity list's length for merging.
-    pub fn pair_truncate<'a>(&mut self, entities: &'a [Entity]) {
-        self.truncate(entities.len());
-    }
-    /// Truncates the length of components and offsets.
-    pub fn truncate(&mut self, length: usize) {
-        self.components.truncate(length);
-        self.offsets.truncate(length);
-    }
 }
 
 /// Used by the framework to quickly join components.
