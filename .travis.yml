@@ -24,11 +24,14 @@ after_success: |
   [ $TRAVIS_BRANCH = master ] &&
   [ $TRAVIS_PULL_REQUEST = false ] &&
   [ $TRAVIS_RUST_VERSION = stable ] &&
-  cargo doc &&
-  echo "<meta http-equiv=refresh content=0;url=`echo $TRAVIS_REPO_SLUG | cut -d '/' -f 2`/index.html>" > target/doc/index.html &&
-  sudo pip install ghp-import &&
-  ghp-import -n target/doc &&
-  git push -fq https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
+  mkdir tmp &&
+  cd tmp &&
+  git clone https://github.com/slide-rs/specs-website &&
+  cd specs-website &&
+  ./scripts/install.sh &&
+  ./scripts/gen.sh &&
+  ./scripts/commit.sh &&
+  git push -fq https://${GH_TOKEN}@github.com/slide-rs/specs-website.git gh-pages
 
 notifications:
   webhooks:
