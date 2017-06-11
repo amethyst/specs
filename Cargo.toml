@@ -1,20 +1,22 @@
 [package]
 name = "specs"
-version = "0.8.0"
+version = "0.9.0"
 description = """
-Parallel Entity-Component System.
+Specs is an Entity-Component System library written in Rust.
+Unlike most other ECS libraries out there, it provides
 
-Specs is a parallel ECS in Rust. It combines the performance of the beast with the flexibility of a cat.
-
-Objectives:
-
-- Automatically parallelize workload, while following Rust ownership rules applied to the components.
-- Do not restrict the storage implementation for a particular component.
-- Place no constraints onto the component types themselves, allow defining them in user modules.
-- Have low overhead, high safety, and optimal ergonomics.
+* easy parallelism
+* high flexibility
+    * contains 5 different storages for components, which can be extended by the user
+    * it's types are mostly not coupled, so you can easily write some part yourself and
+      still use Specs
+    * `System`s may read from and write to components and resources, can depend on each
+      other and you can use barriers to force several stages in system execution
+* high performance for real-world applications
 """
 documentation = "https://docs.rs/specs/"
 repository = "https://github.com/slide-rs/specs"
+homepage = "https://slide-rs.github.io/specs-website/"
 keywords = ["gamedev"]
 categories = ["concurrency"]
 license = "Apache-2.0"
