@@ -31,6 +31,8 @@ after_success: |
   ./scripts/install.sh &&
   ./scripts/gen.sh &&
   ./scripts/commit.sh &&
+  git config --global user.email "torkleyy@gmail.com" &&
+  git config --global user.name "Website updater" &&
   git push -fq https://${GH_TOKEN}@github.com/slide-rs/specs-website.git gh-pages
 
 notifications:
