@@ -33,13 +33,8 @@ Unlike most other ECS libraries out there, it provides
 ## Example
 
 ```rust
-extern crate specs;
-
-use specs::prelude::*;
-
 // A component contains data
 // which is associated with an entity.
-
 #[derive(Debug)]
 struct Vel(f32);
 #[derive(Debug)]
@@ -78,7 +73,6 @@ fn main() {
     // The `World` is our
     // container for components
     // and other resources.
-
     let mut world = World::new();
     world.register::<Pos>();
     world.register::<Vel>();

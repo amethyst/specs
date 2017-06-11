@@ -4,9 +4,8 @@ use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use mopa::Any;
 use shred::{Fetch, FetchMut, Resource, Resources};
 
-use join::{Join, ParJoin};
-use storage::{AnyStorage, MaskedStorage, ReadStorage, Storage, UnprotectedStorage, WriteStorage};
-use Index;
+use storage::{AnyStorage, MaskedStorage};
+use {Index, Join, ParJoin, ReadStorage, Storage, UnprotectedStorage, WriteStorage};
 
 /// Internally used structure for `Entity` allocation.
 #[derive(Default, Debug)]
@@ -143,7 +142,7 @@ pub trait Component: Any + Sized {
 /// it because iterators are lazy.
 ///
 /// Returned from `World::create_iter`.
-pub struct CreateIter<'a>(FetchMut<'a, Entities>);
+pub struct CreateIter<'a>(FetchMut<'a, EntitiesRes>);
 
 impl<'a> Iterator for CreateIter<'a> {
     type Item = Entity;
@@ -251,7 +250,9 @@ impl<'a> EntityBuilder<'a> {
     }
 }
 
-/// The entities of this ECS.
+/// The entities of this ECS. This is a resource, stored in the `World`.
+/// If you just want to access it in your system, you can also use the `Entities`
+/// type def.
 ///
 /// **Please note that you should never fetch
 /// this mutably in a system, because it would
@@ -260,11 +261,11 @@ impl<'a> EntityBuilder<'a> {
 /// You need to call `World::maintain` after creating / deleting
 /// entities with this struct.
 #[derive(Debug, Default)]
-pub struct Entities {
+pub struct EntitiesRes {
     alloc: Allocator,
 }
 
-impl Entities {
+impl EntitiesRes {
     /// Creates a new entity atomically.
     /// This will be persistent as soon
     /// as you call `World::maintain`.
@@ -295,7 +296,7 @@ impl Entities {
     }
 }
 
-impl<'a> Join for &'a Entities {
+impl<'a> Join for &'a EntitiesRes {
     type Type = Entity;
     type Value = Self;
     type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
@@ -304,7 +305,7 @@ impl<'a> Join for &'a Entities {
         (BitSetOr(&self.alloc.alive, &self.alloc.raised), self)
     }
 
-    unsafe fn get(v: &mut &'a Entities, idx: Index) -> Entity {
+    unsafe fn get(v: &mut &'a EntitiesRes, idx: Index) -> Entity {
         let gen = v.alloc
             .generations
             .get(idx as usize)
@@ -314,7 +315,7 @@ impl<'a> Join for &'a Entities {
     }
 }
 
-unsafe impl<'a> ParJoin for &'a Entities {}
+unsafe impl<'a> ParJoin for &'a EntitiesRes {}
 
 /// Index generation. When a new entity is placed at an old index,
 /// it bumps the `Generation` by 1. This allows to avoid using components
@@ -527,12 +528,12 @@ impl World {
     /// Creation and deletion of entities with the `Entities` struct
     /// are atomically, so the actual changes will be applied
     /// with the next call to `maintain()`.
-    pub fn entities(&self) -> Fetch<Entities> {
+    pub fn entities(&self) -> Fetch<EntitiesRes> {
         self.read_resource()
     }
 
     /// Convenience method for fetching entities.
-    fn entities_mut(&self) -> FetchMut<Entities> {
+    fn entities_mut(&self) -> FetchMut<EntitiesRes> {
         self.write_resource()
     }
 
@@ -623,7 +624,7 @@ impl World {
 impl Default for World {
     fn default() -> Self {
         let mut res = Resources::new();
-        res.add(Entities::default());
+        res.add(EntitiesRes::default());
 
         World {
             res: res,

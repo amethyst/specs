@@ -1,7 +1,8 @@
 extern crate specs;
 extern crate rayon;
 
-use specs::prelude::*;
+use specs::{Component, DispatcherBuilder, Entities, Entity, Fetch, FetchMut, HashMapStorage,
+            InsertResult, Join, ParJoin, ReadStorage, System, VecStorage, World, WriteStorage};
 
 #[derive(Clone, Debug)]
 struct CompInt(i8);
@@ -93,13 +94,12 @@ fn dynamic_deletion() {
 
 #[test]
 fn dynamic_create_and_delete() {
-    use specs::Entities;
 
     let mut world = create_world();
 
     {
         let entities = world.entities();
-        let entities: &Entities = &*entities;
+        let entities = &*entities;
         let five: Vec<_> = entities.create_iter().take(5).collect();
 
         for e in five {
@@ -239,10 +239,8 @@ fn stillborn_entities() {
             let (entities, mut comp_int, rand) = data;
 
             for &i in rand.values.iter() {
-                use specs::InsertResult::EntityIsDead;
-
                 let result = comp_int.insert(entities.create(), CompInt(i));
-                if let EntityIsDead(_) = result {
+                if let InsertResult::EntityIsDead(_) = result {
                     panic!("Couldn't insert {} into a stillborn entity", i);
                 }
             }
@@ -408,6 +406,7 @@ fn par_join_two_components() {
 fn par_join_many_entities_and_systems() {
     use std::sync::Mutex;
     use rayon::iter::ParallelIterator;
+
     let failed = Mutex::new(vec![]);
     let mut world = create_world();
     for _ in 0..1000 {

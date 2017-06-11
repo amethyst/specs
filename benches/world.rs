@@ -7,8 +7,7 @@ extern crate specs;
 
 extern crate test;
 
-use specs::{Component, World};
-use specs::storages::{HashMapStorage, VecStorage};
+use specs::{Component, HashMapStorage, Join, ParJoin, VecStorage, World};
 
 #[derive(Clone, Debug)]
 struct CompInt(i32);
@@ -61,8 +60,8 @@ fn delete_now(b: &mut test::Bencher) {
     let mut w = World::new();
     let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_entity().build()).collect();
     b.iter(|| if let Some(id) = eids.pop() {
-        w.delete_entity(id)
-    });
+               w.delete_entity(id)
+           });
 }
 
 #[bench]
@@ -72,8 +71,8 @@ fn delete_now_with_storage(b: &mut test::Bencher) {
         .map(|_| w.create_entity().with(CompInt(1)).build())
         .collect();
     b.iter(|| if let Some(id) = eids.pop() {
-        w.delete_entity(id)
-    });
+               w.delete_entity(id)
+           });
 }
 
 #[bench]
@@ -81,8 +80,8 @@ fn delete_later(b: &mut test::Bencher) {
     let mut w = World::new();
     let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_entity().build()).collect();
     b.iter(|| if let Some(id) = eids.pop() {
-        w.entities().delete(id)
-    });
+               w.entities().delete(id)
+           });
 }
 
 #[bench]
@@ -95,9 +94,9 @@ fn maintain_noop(b: &mut test::Bencher) {
 fn maintain_add_later(b: &mut test::Bencher) {
     let mut w = World::new();
     b.iter(|| {
-        w.entities().create();
-        w.maintain();
-    });
+               w.entities().create();
+               w.maintain();
+           });
 }
 
 #[bench]
@@ -105,16 +104,15 @@ fn maintain_delete_later(b: &mut test::Bencher) {
     let mut w = World::new();
     let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_entity().build()).collect();
     b.iter(|| {
-        if let Some(id) = eids.pop() {
-            w.entities().delete(id);
-        }
-        w.maintain();
-    });
+               if let Some(id) = eids.pop() {
+                   w.entities().delete(id);
+               }
+               w.maintain();
+           });
 }
 
 #[bench]
 fn join_single_threaded(b: &mut test::Bencher) {
-    use specs::Join;
     use test::black_box;
 
     let mut world = World::new();
@@ -129,14 +127,13 @@ fn join_single_threaded(b: &mut test::Bencher) {
     }
 
     b.iter(|| for comp in world.read::<CompInt>().join() {
-        black_box(comp.0 * comp.0);
-    })
+               black_box(comp.0 * comp.0);
+           })
 }
 
 #[bench]
 fn join_multi_threaded(b: &mut test::Bencher) {
     use rayon::prelude::*;
-    use specs::ParJoin;
     use test::black_box;
 
     let mut world = World::new();
@@ -151,9 +148,9 @@ fn join_multi_threaded(b: &mut test::Bencher) {
     }
 
     b.iter(|| {
-        world
-            .read::<CompInt>()
-            .par_join()
-            .for_each(|comp| { black_box(comp.0 * comp.0); })
-    })
+               world
+                   .read::<CompInt>()
+                   .par_join()
+                   .for_each(|comp| { black_box(comp.0 * comp.0); })
+           })
 }

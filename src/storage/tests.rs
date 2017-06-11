@@ -1,9 +1,7 @@
 use mopa::Any;
 
 use super::*;
-use super::storages::*;
-use entity::{Component, Entity, Generation};
-use {Index, World};
+use {Component, Entity, Generation, Index, World};
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T> {
     world.register::<T>();
@@ -131,7 +129,7 @@ mod test {
     impl Component for Cvec {
         type Storage = VecStorage<Cvec>;
     }
-    
+
     #[derive(PartialEq, Eq, Debug)]
     struct FlaggedCvec(u32);
     impl From<u32> for FlaggedCvec {
@@ -503,7 +501,7 @@ mod test {
 mod serialize_test {
     extern crate serde_json;
 
-    use super::{Join, VecStorage, Component, PackedData};
+    use super::{Component, Join, PackedData, VecStorage};
     use world::World;
 
     #[derive(PartialEq, Debug, Serialize, Deserialize)]

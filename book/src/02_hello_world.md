@@ -180,9 +180,6 @@ fn main() {
 }
 ```
 
-> **Note:** You can use `use specs::prelude::*;` to include all
-  the common types.
-
 ---
 
 This was a pretty basic example so far. A key feature we

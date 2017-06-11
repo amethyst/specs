@@ -22,14 +22,14 @@
 //! `World` is where component storages, resources and entities are stored.
 //! See the docs of [`World`] for more.
 //!
-//! [`World`]: ./world/struct.World.html
+//! [`World`]: struct.World.html
 //!
 //! [`Component`]s can be easily implemented like this:
 //!
 //! [`Component`]: trait.Component.html
 //!
 //! ```rust
-//! use specs::prelude::*;
+//! use specs::{Component, VecStorage};
 //!
 //! struct MyComp;
 //!
@@ -68,7 +68,7 @@
 //! [`SystemData`], allowing type-safe aspects (knowledge about the
 //! reads / writes of the systems).
 //!
-//! [`SystemData`]: ./data/trait.SystemData.html
+//! [`SystemData`]: trait.SystemData.html
 //!
 //! ## Examples
 //!
@@ -77,7 +77,8 @@
 //! ```rust
 //! extern crate specs;
 //!
-//! use specs::prelude::*;
+//! use specs::{DispatcherBuilder, Component, Join, ReadStorage, System, VecStorage, WriteStorage,
+//!             World};
 //!
 //! // A component contains data
 //! // which is associated with an entity.
@@ -147,7 +148,25 @@
 //! }
 //! ```
 //!
+//! You can also easily create new entities on the fly:
+//!
+//! ```
+//! use specs::{Entities, FetchMut, System, WriteStorage};
+//!
+//! struct EnemySpawner;
+//!
+//! impl<'a> System<'a> for EnemySpawner {
+//!     type SystemData = Entities<'a>;
+//!
+//!     fn run(&mut self, entities: Entities<'a>) {
+//!         let enemy = entities.create();
+//!     }
+//! }
+//! ```
+//!
 //! See the repository's examples directory for more examples.
+//!
+//!
 //!
 
 extern crate atom;
@@ -164,81 +183,33 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-pub use shred::{AsyncDispatcher, Dispatcher, DispatcherBuilder, Resource, RunNow, RunningTime,
-                System};
-
-pub use entity::{Component, Entity, Entities};
 pub use join::{Join, JoinIter, JoinParIter, ParJoin};
-pub use world::World;
-pub use storage::{CheckStorage, InsertResult, UnprotectedStorage};
+pub use shred::{AsyncDispatcher, Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
+                FetchMut, RunNow, RunningTime, System, SystemData};
+pub use storage::{BTreeStorage, CheckStorage, DenseVecStorage, DistinctStorage, FlaggedStorage,
+                  HashMapStorage, InsertResult, NullStorage, ReadStorage, Storage,
+                  UnprotectedStorage, VecStorage, WriteStorage};
+pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
+                Generation, World};
 
 #[cfg(feature = "serialize")]
 pub use storage::{MergeError, PackedData};
 
-/// Reexports for types implementing `SystemData`.
+/// A wrapper for a fetched `Entities` resource.
+/// Note that this is just `Fetch<Entities>`, so
+/// you can easily use it in your system:
 ///
-/// # Examples
-///
-/// These can be used in a `System` implementation
-///
+/// ```ignore
+/// type SystemData = (Entities<'a>, ...);
 /// ```
-/// use specs::prelude::*;
 ///
-/// # #[derive(Debug)] struct MyComp;
-/// # impl Component for MyComp { type Storage = VecStorage<MyComp>; }
-/// # #[derive(Debug)] struct MyRes;
-///
-/// struct MySys;
-///
-/// impl<'a> System<'a> for MySys {
-///     type SystemData = (Entities<'a>, FetchMut<'a, MyRes>, WriteStorage<'a, MyComp>);
-///
-///     fn run(&mut self, data: Self::SystemData) {
-///         // ..
-///
-///         # let _ = data;
-///     }
-/// }
-/// ```
-pub mod data {
-    pub use shred::{Fetch, FetchId, FetchIdMut, FetchMut, SystemData};
+/// Please note that you should call `World::maintain`
+/// after creating / deleting entities with this resource.
+pub type Entities<'a> = Fetch<'a, EntitiesRes>;
 
-    pub use storage::{ReadStorage, Storage, WriteStorage};
-
-    /// A wrapper for a fetched `Entities` resource.
-    /// Note that this is just `Fetch<Entities>`, so
-    /// you can easily use it in your system:
-    ///
-    /// ```ignore
-    /// type SystemData = (Entities<'a>, ...);
-    /// ```
-    ///
-    /// Please note that you should call `World::maintain`
-    /// after creating / deleting entities with this resource.
-    pub type Entities<'a> = Fetch<'a, ::entity::Entities>;
-}
-
-/// Entity related types.
-pub mod entity {
-    pub use world::{Component, CreateIter, CreateIterAtomic, Entity, Entities, EntityBuilder,
-                    Generation};
-}
-
-/// Reexports for very common types.
-pub mod prelude {
-    pub use {Component, Dispatcher, DispatcherBuilder, Entity, Resource, RunningTime, System,
-             World};
-
-    pub use data::{Entities, Fetch, FetchMut, ReadStorage, WriteStorage};
-    pub use join::{Join, ParJoin};
-    pub use storages::{DenseVecStorage, HashMapStorage, VecStorage, FlaggedStorage};
-}
-
-pub use storage::storages;
+/// An index is basically the id of an `Entity`.
+pub type Index = u32;
 
 mod join;
 mod storage;
 mod world;
-
-/// An index is basically the id of an `Entity`.
-pub type Index = u32;

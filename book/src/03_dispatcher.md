@@ -105,9 +105,8 @@ dispatcher.dispatch(&mut world.res);
 Here the code for this chapter:
 
 ```rust,ignore
-// Notice that I changed the import 
-// because it's too much otherwise.
-use specs::prelude::*;
+use specs::{Component, DispatcherBuilder ReadStorage,
+            System, VecStorage, World, WriteStorage};
 
 #[derive(Debug)]
 struct Position { 
