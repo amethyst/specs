@@ -176,7 +176,7 @@ fn main() {
     world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
     
     let hello_world = HelloWorld;
-    hell_world.run_now(&world.res);
+    hello_world.run_now(&world.res);
 }
 ```
 
