@@ -17,6 +17,10 @@ pub struct CheckStorage<'a, T, D> {
     original: *const Storage<'a, T, D>,
 }
 
+unsafe impl<'a, T, D> Send for CheckStorage<'a, T, D> {}
+
+unsafe impl<'a, T, D> Sync for CheckStorage<'a, T, D> {}
+
 impl<'a, 'e, T, D> Join for &'a CheckStorage<'e, T, D> {
     type Type = Entry<'a, 'e, T, D>;
     type Value = *const Storage<'e, T, D>;
@@ -44,6 +48,10 @@ pub struct Entry<'a, 'e, T, D> {
     original: *const Storage<'e, T, D>,
     phantom: PhantomData<&'a ()>,
 }
+
+unsafe impl<'a, 'e, T, D> Send for Entry<'a, 'e, T, D> {}
+
+unsafe impl<'a, 'e, T, D> Sync for Entry<'a, 'e, T, D> {}
 
 impl<'a, 'e, T, D> EntityIndex for Entry<'a, 'e, T, D> {
     fn index(&self) -> Index {
