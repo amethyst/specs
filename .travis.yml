@@ -24,7 +24,7 @@ after_success: |
   [ $TRAVIS_BRANCH = master ] &&
   [ $TRAVIS_PULL_REQUEST = false ] &&
   [ $TRAVIS_RUST_VERSION = stable ] &&
-  gem install travis -v 1.8.8 --no-rdoc --no-ri &&
+  yes | gem install travis -v 1.8.8 --no-rdoc --no-ri &&
   travis login --org --github-token ${GH_TOKEN} &&
   travis restart -r slide-rs/specs-website
 
