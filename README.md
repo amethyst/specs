@@ -35,14 +35,16 @@ Unlike most other ECS libraries out there, it provides
 ```rust
 // A component contains data
 // which is associated with an entity.
+
 #[derive(Debug)]
 struct Vel(f32);
-#[derive(Debug)]
-struct Pos(f32);
 
 impl Component for Vel {
     type Storage = VecStorage<Self>;
 }
+
+#[derive(Debug)]
+struct Pos(f32);
 
 impl Component for Pos {
     type Storage = VecStorage<Self>;

@@ -233,8 +233,8 @@ mod test {
 
         for i in 0..1_000 {
             *s.get_mut(Entity::new(i, Generation::new(1)))
-                 .unwrap()
-                 .as_mut() -= 718;
+                .unwrap()
+                .as_mut() -= 718;
         }
 
         for i in 0..1_000 {
@@ -497,7 +497,7 @@ mod test {
     }
 }
 
-#[cfg(feature="serialize")]
+#[cfg(feature = "serialize")]
 mod serialize_test {
     extern crate serde_json;
 

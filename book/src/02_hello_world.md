@@ -12,6 +12,7 @@ specs = "0.9"
 And add this to your crate root (`main.rs` or `lib.rs`):
 
 ```rust,ignore
+#[macro_use]
 extern crate specs;
 ```
 
@@ -20,7 +21,7 @@ extern crate specs;
 Let's start by creating some data:
 
 ```rust,ignore
-use specs::{Component, VecStorage};
+use specs::VecStorage;
 
 #[derive(Debug)]
 struct Position {
@@ -43,10 +44,30 @@ impl Component for Velocity {
 }
 ```
 
-These will be our components, stored in a `VecStorage`
-(see [the storages chapter][sc] for more details), so we can associate some data
-with an entity. Before doing that, we need to create a world, because this is
-where the storage for all the components is located.
+These will be our two component types. Optionally, `specs` includes a convenient
+custom `#[derive]` you can use to define component types more succinctly:
+
+```rust,ignore
+#[derive(Component, Debug)]
+#[component(VecStorage)]
+struct Position {
+    x: f32,
+    y: f32
+}
+
+#[derive(Component, Debug)]
+#[component(VecStorage)]
+struct Velocity {
+    x: f32,
+    y: f32,
+}
+```
+
+If the `#[component(...)]` attribute is omitted, the given component will be
+stored in a `DenseVecStorage` by default. But for this example, we are
+explicitly asking for these components to be kept in a `VecStorage` instead (see
+the later [storages chapter][sc] for more details). But before we move on, we
+need to create a world in which to store all of our components.
 
 [sc]: ./05_storages.html
 
@@ -114,9 +135,8 @@ Note that all components that a system accesses must be registered with
 `world.register::<Component>()` before that system is run, or you will get a
 panic.
 
-> There are many other types you can use as system
-  data. Please see the [System Data Chapter][cs] for more
-  information.
+> There are many other types you can use as system data. Please see the
+> [System Data Chapter][cs] for more information.
 
 [cs]: ./06_system_data.html
 
@@ -137,6 +157,7 @@ hello_world.run_now(&world.res);
 Here the complete example of this chapter:
 
 ```rust,ignore
+<<<<<<< HEAD
 use specs::{Component, ReadStorage, System, VecStorage, World, RunNow};
 
 #[derive(Debug)]
@@ -186,10 +207,9 @@ fn main() {
 
 ---
 
-This was a pretty basic example so far. A key feature we
-haven't seen is the `Dispatcher`, which allows to
-configure run systems in parallel (and it offers some other
-nice features, too).
+This was a pretty basic example so far. A key feature we haven't seen is the
+`Dispatcher`, which allows to configure run systems in parallel (and it offers
+some other nice features, too).
 
 Let's see how that works in [Chapter 3: Dispatcher][c3].
 

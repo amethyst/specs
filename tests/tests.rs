@@ -1,17 +1,20 @@
+#[macro_use]
 extern crate specs;
 extern crate rayon;
 
-use specs::{Component, DispatcherBuilder, Entities, Entity, Fetch, FetchMut, HashMapStorage,
-            InsertResult, Join, ParJoin, ReadStorage, System, VecStorage, World, WriteStorage};
+use specs::{DispatcherBuilder, Entities, Entity, Fetch, FetchMut, HashMapStorage, InsertResult,
+            Join, ParJoin, ReadStorage, System, VecStorage, World, WriteStorage};
 
 #[derive(Clone, Debug)]
 struct CompInt(i8);
+
 impl Component for CompInt {
     type Storage = VecStorage<Self>;
 }
 
 #[derive(Clone, Debug)]
 struct CompBool(bool);
+
 impl Component for CompBool {
     type Storage = HashMapStorage<Self>;
 }
@@ -377,8 +380,7 @@ fn par_join_two_components() {
                 .for_each(|(int, boolean)| if !first.load(Ordering::SeqCst) && int.0 == 1 &&
                                               !boolean.0 {
                               first.store(true, Ordering::SeqCst);
-                          } else if !second.load(Ordering::SeqCst) && int.0 == 2 &&
-                                    boolean.0 {
+                          } else if !second.load(Ordering::SeqCst) && int.0 == 2 && boolean.0 {
                               second.store(true, Ordering::SeqCst);
                           } else {
                               *error.lock().unwrap() = Some((int.0, boolean.0));

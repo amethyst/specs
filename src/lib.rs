@@ -38,6 +38,14 @@
 //! }
 //! ```
 //!
+//! Or alternatively, with the included custom `#[derive]` macro:
+//!
+//! ```rust,ignore
+//! #[derive(Component)]
+//! #[component(VecStorage)]
+//! struct MyComp;
+//! ```
+//!
 //! You can choose different storages according to your needs.
 //!
 //! These storages can be [`join`]ed together, for example joining a `Velocity`
@@ -75,19 +83,22 @@
 //! This is a basic example of using Specs:
 //!
 //! ```rust
+//! #[macro_use]
 //! extern crate specs;
 //!
-//! use specs::{DispatcherBuilder, Component, Join, ReadStorage, System, VecStorage, WriteStorage,
-//!             World};
+//! use specs::{DispatcherBuilder, Join, ReadStorage, System, VecStorage,
+//!             WriteStorage, World};
 //!
-//! // A component contains data
-//! // which is associated with an entity.
+//! // A component contains data which is
+//! // associated with an entity.
+//!
 //! struct Vel(f32);
-//! struct Pos(f32);
 //!
 //! impl Component for Vel {
 //!     type Storage = VecStorage<Self>;
 //! }
+//!
+//! struct Pos(f32);
 //!
 //! impl Component for Pos {
 //!     type Storage = VecStorage<Self>;
@@ -167,17 +178,21 @@
 //!
 //!
 
+#[macro_use]
+extern crate specs_derive;
+
 extern crate atom;
 extern crate crossbeam;
 extern crate fnv;
 extern crate hibitset;
 extern crate mopa;
+extern crate rayon;
 extern crate shred;
 extern crate tuple_utils;
-extern crate rayon;
 
 #[cfg(feature = "common")]
 extern crate futures;
+
 #[cfg(feature = "serialize")]
 extern crate serde;
 #[cfg(feature = "serialize")]
@@ -187,15 +202,15 @@ extern crate serde_derive;
 pub use join::{Join, JoinIter, JoinParIter, ParJoin};
 pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
                 FetchMut, RunNow, RunningTime, System, SystemData};
-
-#[cfg(not(target_os = "emscripten"))]
-pub use shred::{AsyncDispatcher};
-
+pub use specs_derive::*;
 pub use storage::{BTreeStorage, CheckStorage, DenseVecStorage, DistinctStorage, FlaggedStorage,
                   HashMapStorage, InsertResult, NullStorage, ReadStorage, Storage,
                   UnprotectedStorage, VecStorage, WriteStorage};
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
                 Generation, LazyUpdate, World};
+
+#[cfg(not(target_os = "emscripten"))]
+pub use shred::{AsyncDispatcher};
 
 #[cfg(feature = "serialize")]
 pub use storage::{MergeError, PackedData};
