@@ -1,4 +1,5 @@
-
+use std::cmp::PartialEq;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
@@ -6,7 +7,7 @@ use hibitset::BitSet;
 
 use storage::MaskedStorage;
 use world::EntityIndex;
-use {Component, DistinctStorage, Index, Join, Storage, UnprotectedStorage};
+use {Component, DistinctStorage, Index, Join, ParJoin, Storage, UnprotectedStorage};
 
 /// A storage type that iterates entities that have
 /// a particular component type, but does not return the
@@ -14,44 +15,38 @@ use {Component, DistinctStorage, Index, Join, Storage, UnprotectedStorage};
 pub struct CheckStorage<'a, T, D> {
     bitset: BitSet,
     // Pointer back to the storage the CheckStorage was created from.
-    original: *const Storage<'a, T, D>,
+    pointer: Pointer<'a, T, D>,
 }
-
-unsafe impl<'a, T, D> Send for CheckStorage<'a, T, D> {}
-
-unsafe impl<'a, T, D> Sync for CheckStorage<'a, T, D> {}
 
 impl<'a, 'e, T, D> Join for &'a CheckStorage<'e, T, D> {
     type Type = Entry<'a, 'e, T, D>;
-    type Value = *const Storage<'e, T, D>;
+    type Value = Pointer<'e, T, D>;
     type Mask = &'a BitSet;
 
     fn open(self) -> (Self::Mask, Self::Value) {
-        (&self.bitset, self.original)
+        (&self.bitset, self.pointer)
     }
 
-    unsafe fn get(storage: &mut *const Storage<'e, T, D>, id: Index) -> Entry<'a, 'e, T, D> {
+    unsafe fn get(pointer: &mut Pointer<'e, T, D>, id: Index) -> Entry<'a, 'e, T, D> {
         Entry {
             id: id,
-            original: *storage,
+            pointer: *pointer,
             phantom: PhantomData,
         }
     }
 }
+
+unsafe impl<'a, 'e, T, D> ParJoin for &'a CheckStorage<'e, T, D> {}
 
 unsafe impl<'a, T, D> DistinctStorage for CheckStorage<'a, T, D> {}
 
 /// An entry to a storage.
 pub struct Entry<'a, 'e, T, D> {
     id: Index,
-    // Pointer for comparison when attempting to check against a storage.
-    original: *const Storage<'e, T, D>,
     phantom: PhantomData<&'a ()>,
+    // Pointer for comparison when attempting to check against a storage.
+    pointer: Pointer<'e, T, D>,
 }
-
-unsafe impl<'a, 'e, T, D> Send for Entry<'a, 'e, T, D> {}
-
-unsafe impl<'a, 'e, T, D> Sync for Entry<'a, 'e, T, D> {}
 
 impl<'a, 'e, T, D> EntityIndex for Entry<'a, 'e, T, D> {
     fn index(&self) -> Index {
@@ -77,7 +72,7 @@ impl<'e, T, D> Storage<'e, T, D>
     pub fn check(&self) -> CheckStorage<'e, T, D> {
         CheckStorage {
             bitset: self.data.mask.clone(),
-            original: self as *const Storage<'e, T, D>,
+            pointer: Pointer(self as *const Storage<'e, T, D>),
         }
     }
 
@@ -89,10 +84,10 @@ impl<'e, T, D> Storage<'e, T, D>
     ///
     /// Panics if the entry was retrieved from another storage.
     pub fn get_unchecked<'a>(&'a self, entry: &'a Entry<'a, 'e, T, D>) -> &'a T {
-        assert_eq!(entry.original,
-                   self as *const Storage<'e, T, D>,
-                   "Attempt to get an unchecked entry from a storage: {:?} {:?}",
-                   entry.original,
+        assert_eq!(entry.pointer,
+                   Pointer(self as *const Storage<'e, T, D>),
+                   "Attempt to get an unchecked entry from wrong storage: {:?} {:?}",
+                   entry.pointer.0,
                    self as *const Storage<'e, T, D>);
 
         unsafe { self.data.inner.get(entry.id) }
@@ -108,12 +103,38 @@ impl<'e, T, D> Storage<'e, T, D>
     ///
     /// `Entry`s are returned from a `CheckStorage` to remove unnecessary checks.
     pub fn get_mut_unchecked<'a>(&'a mut self, entry: &'a mut Entry<'a, 'e, T, D>) -> &'a mut T {
-        assert_eq!(entry.original,
-                   self as *const Storage<'e, T, D>,
-                   "Attempt to get an unchecked entry from a storage: {:?} {:?}",
-                   entry.original,
+        assert_eq!(entry.pointer,
+                   Pointer(self as *const Storage<'e, T, D>),
+                   "Attempt to get an unchecked entry from wrong storage: {:?} {:?}",
+                   entry.pointer.0,
                    self as *const Storage<'e, T, D>);
 
         unsafe { self.data.inner.get_mut(entry.id) }
     }
 }
+
+pub struct Pointer<'e, T, D>(*const Storage<'e, T, D>);
+
+impl<'e, T, D> Copy for Pointer<'e, T, D> {}
+
+impl<'e, T, D> Clone for Pointer<'e, T, D> {
+    fn clone(&self) -> Self {
+        Pointer(self.0)
+    }
+}
+
+impl<'e, T, D> Debug for Pointer<'e, T, D> {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl<'e, T, D> PartialEq for Pointer<'e, T, D> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+unsafe impl<'e, T, D> Send for Pointer<'e, T, D> {}
+
+unsafe impl<'e, T, D> Sync for Pointer<'e, T, D> {}
