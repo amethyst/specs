@@ -1,4 +1,6 @@
 
+use std::marker::PhantomData;
+
 use prelude::World;
 
 #[cfg(feature="serialize")]
@@ -32,12 +34,6 @@ pub trait SerializeGroup: ComponentGroup {
         where V: serde::de::MapVisitor;
 }
 
-macro_rules! deconstruct {
-    ( $( $associated:tt )* ) => {
-        $( #[doc(hidden)] type $associated; )*
-    }
-}
-
 /// Splits a tuple with recursive associated types.
 pub trait Split {
     /// The type split off from the tuple.
@@ -46,16 +42,81 @@ pub trait Split {
     type Next: Split;
     /// Is there another split possible.
     fn next() -> bool;
+    /// Next split in the iterator.
+    fn split_iter(&self, ty: String) -> SplitIter<Self::Next> {
+        SplitIter {
+            inner: None,
+            ty: ty,
+        }
+    }
+}
+
+pub struct SplitConcat<A: Split, B: Split>(PhantomData<(A, B)>);
+
+impl<A: Split, B: Split> Split for SplitConcat {
+    type This = A::This;
+    type Next = Break<A::Next, (B::This, B::Next)>;
+    fn next() -> bool {
+
+    }
+}
+
+pub struct Break<A, B>;
+impl<A, B> Split for Break {
+    type This = A::This;
+    type Next = A::Next;
+}
+
+pub fn next(s: String) -> String {
+    "<".to_owned() + &s + " as Split>::Next"
+}
+
+pub fn this(s: String) -> String {
+    "<".to_owned() + &s + " as Split>::This"
+}
+
+pub struct SplitIter<S>
+    where S: Split,
+          <S as Split>::Next: Split,
+{
+    inner: Option<<S as Split>::Next>,
+    ty: String,
+}
+
+impl<S> Iterator for SplitIter<S>
+    where S: Split,
+          <S as Split>::Next: Split,
+{
+    type Item = String;
+    fn next(&mut self) -> Option<String> {
+        use std::mem;
+        if let Some(ref mut inner) = self.inner {
+            inner.split_iter(next(self.ty.clone())).next()
+        }
+        else {
+            self.inner = Some(unsafe { mem::uninitialized() });
+            if <S as Split>::next() {
+                Some(this(self.ty.clone()))
+            }
+            else {
+                None
+            }
+        }
+    }
 }
 
 /// Deconstructs the group.
 pub trait DeconstructedGroup: ComponentGroup {
-    //type All: Split;
+    /// All components of this group and all subgroups recursively.
+    type All: Split;
     /// Locals of the group.
     type Locals: Split;
     /// Subgroups of the group.
     type Subgroups: Split;
-    //fn all() -> usize;
+    /// Amount of components of this group and all subgroups recursively.
+    fn all() -> usize;
+    ///// Parameters associated with the components.
+    //fn all_params() -> &'static [Parameter];
     /// Amount of local components there are in this group.
     fn locals() -> usize;
     /// Amount of subgroups there are in this group.
@@ -79,3 +140,4 @@ impl Split for () {
     type Next = ();
     fn next() -> bool { false }
 }
+

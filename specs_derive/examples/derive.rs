@@ -13,34 +13,17 @@ extern crate serde_derive;
 #[cfg(feature="serialize")]
 extern crate serde_json;
 
-macro_rules! tokens { // possible idea here for feeding the call macro for iterations.
-    () => { // 64 tokens
-        A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
-        A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
-    }
-}
+use std::mem;
 
 macro_rules! call {
     // Top level calls
-    /*
-    ( $type:ident : $group:ty =>
-        fn $method:ident
-        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
-        ( $( $args:expr ),* )
-    ) => {
-        call!( $type : $group =>
-            fn $method
-            [ $( $before ),* ] in [ $( $after ),* ]
-            ( $( $args ),* );
-    }
-    */
     ( local: $group:ty => 
         fn $method:ident
         [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
         ( $( $args:expr ),* )
     ) => {
         call!(
-            Iter :: $group : Locals =>
+            @Iter $group: Locals =>
             fn $method
             [ $( $before ),* ] in [ $( $after ),* ]
             ( $( $args ),* )
@@ -48,7 +31,7 @@ macro_rules! call {
     };
 
     // Helper methods
-    (Iter :: { $( $group:tt )* } [ $( $token:tt )* ] =>
+    (@Iter [ $( $group:tt )* ] [ A $( $token:tt )* ] =>
         fn $method:ident
         [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
         ( $( $args:expr ),* )
@@ -57,20 +40,35 @@ macro_rules! call {
 
         if <$( $group )* as Split>::next() {
             call!(
-                Iter :: { <$( $group )* as Split>::Next } =>
-                    fn $method
-                    [ $( $before ),* ] in [ $( $after ),* ]
-                    ( $( $args ),* )
+                @Iter [ <$( $group )* as Split>::Next ] [ $( $token )* ] =>
+                fn $method
+                [ $( $before ),* ] in [ $( $after ),* ]
+                ( $( $args ),* )
             );
         }
     };
-    (Iter :: $group:ty : $at:ident =>
+
+    // Break macro recursion
+    (@Iter [ $( $group:tt )* ] [ ] =>
+        fn $method:ident
+        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
+        ( $( $args:expr ),* )
+    ) => { };
+
+    (@Iter $group:ty: $at:ident =>
         fn $method:ident
         [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
         ( $( $args:expr ),* )
     ) => {
         call!(
-            Iter :: { <$group as DeconstructedGroup>::$at } [ tokens!() ] =>
+            @Iter [ <$group as DeconstructedGroup>::$at ] [
+                // Requires tokens for recursion breaking.
+                // Each row has 32 tokens, totalling to 128 currently.
+                A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+                A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+                A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+                A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+            ] =>
             fn $method
             [ $( $before ),* ] in [ $( $after ),* ]
             ( $( $args ),* )
@@ -250,6 +248,14 @@ fn main() {
     call!(local: SomeGroup =>
         fn call_method [ ] in [ ] (s)
     );
+    call!(local: SomeGroup =>
+        fn call_other [ ] in [ ] (s)
+    );
+
+    let x: <SomeGroup as DeconstructedGroup>::Locals = unsafe { mem::uninitialized() };
+    for item in x.split_iter("<SomeGroup as DeconstructedGroup>::Locals".to_owned()) {
+        println!("item: {:?}", item);
+    }
 }
 
 #[cfg(not(feature="serialize"))]

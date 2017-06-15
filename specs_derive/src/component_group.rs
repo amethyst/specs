@@ -1,12 +1,19 @@
 
-use syn::{Ident, VariantData, Attribute, NestedMetaItem, MetaItem, Body, DeriveInput, Field, Ty};
+use std::iter::{FromIterator, IntoIterator};
+use std::ops::{Deref, DerefMut};
+use std::marker::PhantomData;
+use std::any::Any;
+
+use syn::{parse, Ident, VariantData, Attribute, NestedMetaItem, MetaItem, Body, DeriveInput, Field, Ty};
 use quote::{ToTokens, Tokens};
+
+use specs::entity::Split;
 
 /// Expands the `ComponentGroup` derive implementation.
 #[allow(unused_variables)]
 pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     let name = &input.ident;
-    let items = get_items(input);
+    let items = ItemList::new(input);
 
     let dummy_const = Ident::new(format!("_IMPL_COMPONENTGROUP_FOR_{}", name));
     let macro_const = Ident::new(format!("call_{}", name));
@@ -15,23 +22,21 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     // Duplicate references to the components.
     // `quote` currently doesn't support using the same variable binding twice in a repetition.
 
-    let items = items.iter()
+    let items = items.into_iter()
         .filter(|item| !item.parameter.ignore )
-        .collect::<Vec<&Item>>();
+        .collect::<ItemList>();
 
-    // Component fields
+    // Local component fields
     let ref component = items.iter()
-        .filter(|item| item.parameter.option.is_component() )
-        .map(|item| *item)
-        .collect::<Vec<&Item>>();
+        .filter(|item| !item.parameter.subgroup )
+        .collect::<ItemList>();
     let component2 = component;
     let component3 = component;
 
     // Serializable components
     let ref component_serialize = component.iter()
         .filter(|item| item.parameter.serialize)
-        .map(|item| *item)
-        .collect::<Vec<&Item>>();
+        .collect::<ItemList>();
     let component_serialize2 = component_serialize;
 
     // Serializable component names
@@ -41,9 +46,8 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
 
     // Subgroup fields
     let ref subgroup = items.iter()
-        .filter(|item| item.parameter.option.is_subgroup() )
-        .map(|item| *item)
-        .collect::<Vec<_>>();
+        .filter(|item| item.parameter.subgroup )
+        .collect::<ItemList>();
     
     // Subgroup macro names
     let ref subgroup_macro = subgroup.iter()
@@ -54,21 +58,32 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
         })
         .collect::<Vec<_>>();
 
+    // Get all components from a subgroup
     let local_count = component.iter().count();
     let subgroup_count = subgroup.iter().count();
 
-    // Construct Split groups for the components and subgroups.
-    let local_ty = type_list(component);
-    let subgroup_ty = type_list(subgroup);
+    // Construct Split tuple groups for the components and subgroups.
+    let local_ty = component.type_list();
+    let subgroup_ty = subgroup.type_list();
 
     let locals_impl = quote! {
         impl _specs::entity::DeconstructedGroup for #name {
-            //type All;
+            type All = SplitConcat<
+                #local_ty,
+                #(
+                    <#subgroup as DeconstructedGroup>::All,
+                )*
+                #subgroup_ty
+            >;
             type Locals = #local_ty;
             type Subgroups = #subgroup_ty;
-            //fn all() -> usize { #all_count }
             fn locals() -> usize { #local_count }
             fn subgroups() -> usize { #subgroup_count }
+            fn all() -> usize {
+                let mut count = #local_count;
+                #( count += <#subgroup as DeconstructedGroup>::all(); )*
+                count
+            }
         }
     };
 
@@ -294,47 +309,23 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     Ok(wrap)
 }
 
-#[derive(PartialEq, Debug)]
-pub enum ParameterType {
-    // Parameters relating to subgroups only
-    Subgroup {
-        
-    },
-    // Parameters relating to components only
-    Component {
-
-    },
-}
-
-impl ParameterType {
-    fn is_subgroup(&self) -> bool {
-        match self {
-            &ParameterType::Subgroup { } => true,
-            &ParameterType::Component { } => false,
-        }
-    }
-    fn is_component(&self) -> bool {
-        match self {
-            &ParameterType::Subgroup { } => false,
-            &ParameterType::Component { } => true,
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Parameter {
-    // Type of parameter
-    pub option: ParameterType,
+    // Is a subgroup.
+    pub subgroup: bool,
 
     // Serialize this field
     pub serialize: bool,
 
     // Ignore this field completely
     pub ignore: bool,
+
+    // Name of item.
+    pub name: String,
 }
 
 impl Parameter {
-    pub fn parse(input: &Vec<Attribute>) -> Parameter {
+    pub fn parse(field: &Field) -> Parameter {
         use syn::NestedMetaItem::MetaItem;
         use syn::MetaItem::Word;
 
@@ -342,7 +333,7 @@ impl Parameter {
         let mut serialize = false;
         let mut ignore = false;
 
-        for meta_items in input.iter().filter_map(filter_group) {
+        for meta_items in field.attrs.iter().filter_map(filter_group) {
             for meta_item in meta_items {
                 match meta_item {
                     MetaItem(Word(ref name)) if name == "serialize" => serialize = true,
@@ -353,17 +344,11 @@ impl Parameter {
             }
         }
 
-        let parameter_type = if subgroup {
-            ParameterType::Subgroup { }
-        }
-        else {
-            ParameterType::Component { }
-        };
-
         Parameter {
-            option: parameter_type,
+            subgroup: subgroup,
             serialize: serialize,
             ignore: ignore,
+            name: field.ident.clone().unwrap().to_string(),
         }
     }
 }
@@ -375,42 +360,7 @@ fn filter_group(attr: &Attribute) -> Option<Vec<NestedMetaItem>> {
     }
 }
 
-fn get_items(input: &DeriveInput) -> Vec<Item> {
-    let fields = match input.body {
-        Body::Enum(_) => panic!("Enum cannot be a component group"),
-        Body::Struct(ref data) => match data {
-            &VariantData::Struct(ref fields) => fields,
-            _ => panic!("Struct must have named fields"),
-        },
-    };
-
-    fields
-        .iter()
-        .map(move |field| {
-            Item {
-                parameter: Parameter::parse(&field.attrs),
-                field: field,
-            }
-        })
-        .collect::<Vec<Item>>()
-}
-
-fn type_list(list: &Vec<&Item>) -> Ty {
-    list.iter().rev().enumerate().fold(Ty::Tup(Vec::new()), |tup, (index, item)| {
-        if index == 0 {
-            Ty::Tup(vec![
-                item.field.ty.clone(),
-            ])
-        }
-        else {
-            Ty::Tup(vec![
-                item.field.ty.clone(),
-                tup,
-            ])
-        }
-    })
-}
-
+#[derive(Debug, Clone)]
 struct Item<'a> {
     pub parameter: Parameter,
     pub field: &'a Field,
@@ -422,3 +372,138 @@ impl<'a> ToTokens for Item<'a> {
     }
 }
 
+#[derive(Debug, Clone)]
+struct ItemList<'a>(Vec<Item<'a>>);
+
+impl<'a> Deref for ItemList<'a> {
+    type Target = Vec<Item<'a>>;
+    fn deref(&self) -> &Vec<Item<'a>> {
+        &self.0
+    }
+}
+
+impl<'a> DerefMut for ItemList<'a> {
+    fn deref_mut(&mut self) -> &mut Vec<Item<'a>> {
+        &mut self.0
+    }
+}
+
+impl<'a> IntoIterator for ItemList<'a> {
+    type Item = Item<'a>;
+    type IntoIter = <Vec<Item<'a>> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a: 'b, 'b> IntoIterator for &'b ItemList<'a> {
+    type Item = &'b Item<'a>;
+    type IntoIter = <&'b Vec<Item<'a>> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        (&self.0).into_iter()
+    }
+}
+
+impl<'a> FromIterator<Item<'a>> for ItemList<'a> {
+    fn from_iter<I: IntoIterator<Item = Item<'a>>>(iter: I) -> ItemList<'a> {
+        let list = <Vec<Item<'a>> as FromIterator<Item<'a>>>::from_iter(iter);
+        ItemList::from_list(list)
+    }
+}
+
+impl<'a: 'b, 'b> FromIterator<&'b Item<'a>> for ItemList<'a> {
+    fn from_iter<I: IntoIterator<Item = &'b Item<'a>>>(iter: I) -> ItemList<'a> {
+        let list = iter.into_iter().cloned().collect::<Vec<Item<'a>>>();
+        ItemList::from_list(list)
+    }
+}
+
+impl<'a> ItemList<'a> {
+    fn new<'b>(input: &'b DeriveInput) -> ItemList<'b> {
+        let fields = match input.body {
+            Body::Enum(_) => panic!("Enum cannot be a component group"),
+            Body::Struct(ref data) => match data {
+                &VariantData::Struct(ref fields) => fields,
+                _ => panic!("Struct must have named fields"),
+            },
+        };
+
+        fields
+            .iter()
+            .map(move |field| {
+                Item {
+                    parameter: Parameter::parse(&field),
+                    field: field,
+                }
+            })
+            .collect::<ItemList>()
+    }
+
+    fn from_list<'b>(list: Vec<Item<'b>>) -> ItemList<'b> {
+        ItemList(list)
+    }
+
+    fn type_list(&self) -> Ty {
+        self.0.iter().rev().enumerate().fold(Ty::Tup(Vec::new()), |tup, (index, item)| {
+            if index == 0 {
+                Ty::Tup(vec![
+                    item.field.ty.clone(),
+                ])
+            }
+            else {
+                Ty::Tup(vec![
+                    item.field.ty.clone(),
+                    tup,
+                ])
+            }
+        })
+    }
+}
+
+
+
+/*
+struct SplitIter<S>
+    where S: Split,
+{
+    inner: Option<Box<SplitIter<<S as Split>::Next>>>,
+    ty: String,
+    phantom: PhantomData<S>
+}
+
+impl<S> Iterator for SplitIter<S>
+    where S: Split,
+{
+    type Item = String;
+    fn next(&mut self) -> Option<String> {
+        if let Some(inner) = self.inner {
+            inner.next()
+        }
+        else {
+            if <S as Split>::next() {
+                self.inner = Some(Box::new(SplitIter::<<S as Split>::Next> {
+                    inner: None,
+                    ty: next(self.ty),
+                    phantom: PhantomData
+                }));
+                Some(this(self.ty))
+            }
+            else {
+                None
+            }
+        }
+    }
+}
+
+struct SplitIter(Box<SplitNext>, String);
+
+impl Iterator for SplitIter {
+    type Item = String;
+    fn next(&mut self) -> Option<String> {
+        if self.0.next {
+            self.0 = Box::new(Next::<<<self.0 as SplitNext>::Upper as Split>::Next>(PhantomData));
+
+        }
+    }
+}
+*/
