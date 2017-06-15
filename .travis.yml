@@ -24,14 +24,9 @@ after_success: |
   [ $TRAVIS_BRANCH = master ] &&
   [ $TRAVIS_PULL_REQUEST = false ] &&
   [ $TRAVIS_RUST_VERSION = stable ] &&
-  mkdir tmp &&
-  cd tmp &&
-  git clone https://github.com/slide-rs/specs-website &&
-  cd specs-website &&
-  ./scripts/install.sh &&
-  ./scripts/gen.sh &&
-  ./scripts/commit.sh &&
-  git push -fq https://${GH_TOKEN}@github.com/slide-rs/specs-website.git gh-pages
+  gem install travis -v 1.8.8 --no-rdoc --no-ri &&
+  travis login --org --no-interactive --github-token ${GH_TOKEN} &&
+  travis restart --no-interactive -r slide-rs/specs-website
 
 notifications:
   webhooks:
