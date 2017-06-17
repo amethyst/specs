@@ -110,6 +110,10 @@ impl<'a> System<'a> for HelloWorld {
 }
 ```
 
+Note that all components that a system accesses must be registered with
+`world.register::<Component>()` before that system is run, or you will get a
+panic.
+
 > There are many other types you can use as system
   data. Please see the [System Data Chapter][cs] for more
   information.
