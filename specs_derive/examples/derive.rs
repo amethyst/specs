@@ -13,8 +13,7 @@ extern crate serde_derive;
 #[cfg(feature="serialize")]
 extern crate serde_json;
 
-use std::mem;
-
+/*
 macro_rules! call {
     // Top level calls
     ( local: $group:ty => 
@@ -24,6 +23,18 @@ macro_rules! call {
     ) => {
         call!(
             @Iter $group: Locals =>
+            fn $method
+            [ $( $before ),* ] in [ $( $after ),* ]
+            ( $( $args ),* )
+        );
+    };
+    ( subgroups: $group:ty => 
+        fn $method:ident
+        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
+        ( $( $args:expr ),* )
+    ) => {
+        call!(
+            @Iter $group: Subgroups =>
             fn $method
             [ $( $before ),* ] in [ $( $after ),* ]
             ( $( $args ),* )
@@ -75,12 +86,11 @@ macro_rules! call {
         );
     };
 }
+*/
 
 #[cfg(feature="serialize")]
 fn main() {
-    use specs::prelude::*;
-    use specs::{WorldDeserializer, WorldSerializer};
-    use specs::entity::{ComponentGroup, SerializeGroup, DeconstructedGroup, Split};
+    use specs::{Component, ComponentGroup, DeconstructedGroup, DispatcherBuilder, Entities, EntitiesRes, Join, SerializeGroup, System, ReadStorage, Split, VecStorage, WriteStorage, World, WorldDeserializer, WorldSerializer};
     use serde::{Deserialize, Serialize};
     use serde::de::DeserializeSeed;
 
@@ -118,6 +128,7 @@ fn main() {
     #[allow(dead_code)]
     struct SomeGroup {
         #[group(serialize)]
+        #[group(id = "5")]
         field1: Comp1,
 
         #[group(serialize)]
@@ -139,7 +150,7 @@ fn main() {
     }
 
     struct RemovalSystem;
-    impl<'a, C> System<'a, C> for RemovalSystem {
+    impl<'a> System<'a> for RemovalSystem {
         type SystemData = (
             Entities<'a>,
             WriteStorage<'a, Comp1>,
@@ -149,7 +160,7 @@ fn main() {
             WriteStorage<'a, Comp5>,
         );
 
-        fn work(&mut self, mut data: Self::SystemData, _: C) {
+        fn run(&mut self, mut data: Self::SystemData) {
             // Remove all components
             for (entity, _) in (&*data.0, &data.1.check()).join() {
                 data.1.remove(entity);
@@ -190,7 +201,8 @@ fn main() {
             .add(RemovalSystem, "removal", &[])
             .build();
 
-        dispatcher.dispatch(&mut world.res, ());
+        dispatcher.dispatch(&mut world.res);
+        world.maintain();
     }
 
     {
@@ -201,7 +213,7 @@ fn main() {
 
     {
         let entity_list: Vec<_> = {
-            let entities = world.read_resource::<specs::Entities>();
+            let entities = world.read_resource::<specs::EntitiesRes>();
             entities.join().collect()
         };
 
@@ -217,8 +229,6 @@ fn main() {
     }
 
     {
-        use specs::entity::ComponentGroup;
-
         println!("locals:");
         for local in SomeGroup::local_components() {
             println!("{}", local);
@@ -243,19 +253,15 @@ fn main() {
         3
     }
 
-    let s = "test";
-
+    /*
+    let s = "Something";
     call!(local: SomeGroup =>
         fn call_method [ ] in [ ] (s)
     );
     call!(local: SomeGroup =>
         fn call_other [ ] in [ ] (s)
     );
-
-    let x: <SomeGroup as DeconstructedGroup>::Locals = unsafe { mem::uninitialized() };
-    for item in x.split_iter("<SomeGroup as DeconstructedGroup>::Locals".to_owned()) {
-        println!("item: {:?}", item);
-    }
+    */
 }
 
 #[cfg(not(feature="serialize"))]

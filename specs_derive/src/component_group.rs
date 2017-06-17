@@ -1,23 +1,16 @@
 
 use std::iter::{FromIterator, IntoIterator};
 use std::ops::{Deref, DerefMut};
-use std::marker::PhantomData;
-use std::any::Any;
 
-use syn::{parse, Ident, VariantData, Attribute, NestedMetaItem, MetaItem, Body, DeriveInput, Field, Ty};
-use quote::{ToTokens, Tokens};
-
-use specs::entity::Split;
+use syn::{Ident, VariantData, Attribute, NestedMetaItem, MetaItem, Body, DeriveInput, Field, Ty, Lit};
+use quote::Tokens;
 
 /// Expands the `ComponentGroup` derive implementation.
-#[allow(unused_variables)]
 pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     let name = &input.ident;
     let items = ItemList::new(input);
 
     let dummy_const = Ident::new(format!("_IMPL_COMPONENTGROUP_FOR_{}", name));
-    let macro_const = Ident::new(format!("call_{}", name));
-    let macro_const_call = Ident::new(format!("{}!", macro_const));
 
     // Duplicate references to the components.
     // `quote` currently doesn't support using the same variable binding twice in a repetition.
@@ -30,154 +23,63 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     let ref component = items.iter()
         .filter(|item| !item.parameter.subgroup )
         .collect::<ItemList>();
-    let component2 = component;
-    let component3 = component;
+    let ref comp_ty = component.types();
 
     // Serializable components
     let ref component_serialize = component.iter()
         .filter(|item| item.parameter.serialize)
         .collect::<ItemList>();
-    let component_serialize2 = component_serialize;
-
-    // Serializable component names
-    let ref component_serialize_field = component_serialize.iter()
-        .map(|item| item.field.ident.as_ref().unwrap() )
-        .collect::<Vec<&Ident>>();
+    #[allow(unused_variables)]
+    let ref comp_serialize_name = component_serialize.names();
+    let ref comp_serialize_ty = component_serialize.types();
+    #[allow(unused_variables)]
+    let comp_serialize_ty2 = comp_serialize_ty;
 
     // Subgroup fields
     let ref subgroup = items.iter()
         .filter(|item| item.parameter.subgroup )
         .collect::<ItemList>();
-    
-    // Subgroup macro names
-    let ref subgroup_macro = subgroup.iter()
-        .map(|item| {
-            let mut tokens = Tokens::new();
-            item.field.ty.to_tokens(&mut tokens);
-            Ident::new(format!("call_{}!", tokens.as_str()))
-        })
-        .collect::<Vec<_>>();
+    let ref subgroup_ty = subgroup.types();
 
     // Get all components from a subgroup
     let local_count = component.iter().count();
     let subgroup_count = subgroup.iter().count();
 
-    // Construct Split tuple groups for the components and subgroups.
+    // Construct `Split` tuple groups for the components and subgroups.
     let local_ty = component.type_list();
-    let subgroup_ty = subgroup.type_list();
+    let sub_ty = subgroup.type_list();
 
-    let locals_impl = quote! {
-        impl _specs::entity::DeconstructedGroup for #name {
-            type All = SplitConcat<
-                #local_ty,
-                #(
-                    <#subgroup as DeconstructedGroup>::All,
-                )*
-                #subgroup_ty
-            >;
+    // Implementation for deconstructed group for the call macro to work.
+    let deconstructed = quote! {
+        impl _specs::DeconstructedGroup for #name {
             type Locals = #local_ty;
-            type Subgroups = #subgroup_ty;
+            type Subgroups = #sub_ty;
             fn locals() -> usize { #local_count }
             fn subgroups() -> usize { #subgroup_count }
-            fn all() -> usize {
-                let mut count = #local_count;
-                #( count += <#subgroup as DeconstructedGroup>::all(); )*
-                count
-            }
         }
-    };
-
-    // Macro for expanding usage... 
-    let expanded_macro = quote! {
-        #[allow(unused_macros)]
-        macro_rules! #macro_const {
-            ($($option:ident):* =>
-                fn $($method:ident).*
-                [$( $before:ty ),*] in [$( $after:ty ),*]
-                ($( $args:expr ),*)
-            ) => {{
-                #macro_const_call($($option):* => IMPL
-                    fn $($method).*
-                    [$( $before ),*] in [$( $after ),*]
-                    ( $( $args ),* )
-                );
-            }};
-            // all components and subgroups
-            (all => IMPL 
-                fn $($method:ident).*
-                [$( $before:ty ),*] in [$( $after:ty ),*]
-                ($( $args:expr ),*)
-            ) => {{
-                let result =
-                (#(
-                    $($method).*::<$( $before, )* #component $(, $after)* >( $( $args ),* ),
-                )*);
-
-                let result = (result, (#(
-                    #subgroup_macro(all => IMPL
-                        fn $($method).*
-                        [$( $before ),*] in [$( $after ),*]
-                        ( $( $args ),* )
-                    ),
-                )*));
-
-                result
-            }};
-            // only components in this subgroup
-            (local => IMPL
-                fn $($method:ident).*
-                [$( $before:ty ),*] in [$( $after:ty ),*]
-                ($( $args:expr ),*)
-            ) => {{
-                let result =
-                (#(
-                    $($method).*::<$( $before, )* #component $(, $after)* >( $( $args ),* ),
-                )*);
-
-                result
-            }};
-            // only subgroups in this subgroup (not useful on its own but useful together with local components)
-            (subgroups => IMPL
-                fn $($method:ident).*
-                [$( $before:ty ),*] in [$( $after:ty ),*]
-                ($( $args:expr ),*)
-            ) => {{
-                let result =
-                (#(
-                    $($method).*::<$( $before, )* #subgroup $(, $after)* >( $( $args ),* ),
-                )*);
-
-                result
-            }};
-        };
     };
 
     // Normal group methods.
     let default = quote! {
         fn local_components() -> Vec<&'static str> {
-            vec![ #( stringify!(#component) ),* ]
+            vec![ #( stringify!(#comp_ty), )* ]
         }
-        #[allow(unused_mut)]
         fn components() -> Vec<&'static str> {
+            #[allow(unused_mut)]
             let mut list = #name::local_components();
             #(
-                for component in #subgroup::components() {
+                for component in #subgroup_ty::components() {
                     list.push(component);
                 }
             )*
             list
         }
         fn subgroups() -> Vec<&'static str> {
-            vec![ #( stringify!(#subgroup), )* ]
+            vec![ #( stringify!(#subgroup_ty), )* ]
         }
         fn register(world: &mut _specs::World) {
-            #(
-                world.register::<#component>();
-            )*
-
-            #(
-                #subgroup::register(world);
-            )*
+            #( world.register::<#comp_ty>(); )*
+            #( #subgroup_ty::register(world); )*
         }
     };
 
@@ -187,56 +89,49 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
         fn serialize_group<S: _serde::Serializer>(world: &_specs::World, serializer: S) -> Result<S::Ok, S::Error> {
             let mut map = serializer.serialize_map(None)?;
             #(
-                let storage = world.read::<#component_serialize>();
-                _serde::ser::SerializeMap::serialize_entry(&mut map, stringify!(#component_serialize_field), &storage)?;
+                let storage = world.read::<#comp_serialize_ty>();
+                _serde::ser::SerializeMap::serialize_entry(&mut map, #comp_serialize_name, &storage)?;
             )*
 
-            #(
-                #subgroup::serialize_subgroup::<S>(world, &mut map)?;
-            )*
-
+            #( #subgroup_ty::serialize_subgroup::<S>(world, &mut map)?; )*
             _serde::ser::SerializeMap::end(map)
         }
 
         fn serialize_subgroup<S: _serde::Serializer>(world: &_specs::World, map: &mut S::SerializeMap) -> Result<(), S::Error> {
             #(
-                let storage = world.read::<#component_serialize>();
-                _serde::ser::SerializeMap::serialize_entry(map, stringify!(#component_serialize_field), &storage)?;
+                let storage = world.read::<#comp_serialize_ty>();
+                _serde::ser::SerializeMap::serialize_entry(map, #comp_serialize_name, &storage)?;
             )*
-
-            #(
-                #subgroup::serialize_subgroup::<S>(world, map)?;
-            )*
-
+            #( #subgroup_ty::serialize_subgroup::<S>(world, map)?; )*
             Ok(())
         }
 
-        fn deserialize_group<D: _serde::Deserializer>(world: &mut _specs::World, entities: &[_specs::Entity], deserializer: D) -> Result<(), D::Error> {
+        fn deserialize_group<'de, D: _serde::Deserializer<'de>>(world: &mut _specs::World, entities: &[_specs::Entity], deserializer: D) -> Result<(), D::Error> {
             use std::fmt;
 
             struct ComponentVisitor<'a>(&'a mut _specs::World, &'a [_specs::Entity]);
-            impl<'a> _serde::de::Visitor for ComponentVisitor<'a> {
+            impl<'a, 'de> _serde::de::Visitor<'de> for ComponentVisitor<'a> {
                 type Value = ();
                 fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                     write!(formatter, "a map of component identifiers to packed data")
                 }
 
-                fn visit_map<V>(self, mut visitor: V) -> Result<(), V::Error>
-                    where V: _serde::de::MapVisitor
+                fn visit_map<M>(self, mut map: M) -> Result<(), M::Error>
+                    where M: _serde::de::MapAccess<'de>
                 {
-                    while let Some(key) = visitor.visit_key::<String>()? {
-                        #[allow(unused_variables)]
+                    #[allow(unused_variables)]
+                    while let Some(key) = map.next_key::<&'de str>()? {
                         match key {
                             #(
-                                #component_serialize_field => {
-                                    let mut storage = self.0.write::<#component_serialize>();
-                                    let packed = visitor.visit_value::<_specs::PackedData<#component_serialize2>>()?;
+                                #comp_serialize_name => {
+                                    let mut storage = self.0.write::<#comp_serialize_ty>();
+                                    let packed = map.next_value::<_specs::PackedData<#comp_serialize_ty2>>()?;
                                     let _ = storage.merge(self.1, packed);
                                 },
                             )*
-                            key @ _ => {
+                            uncaught_key @ _ => {
                                 #(
-                                    if let Some(()) = <#subgroup as _specs::entity::SerializeGroup>::deserialize_subgroup(self.0, self.1, key.to_owned(), &mut visitor)? {
+                                    if let Some(()) = <#subgroup_ty as _specs::SerializeGroup>::deserialize_subgroup(self.0, self.1, uncaught_key, &mut map)? {
                                         continue; // subgroup deserialized the components
                                     }
                                 )*
@@ -252,22 +147,22 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
             Ok(deserializer.deserialize_map(ComponentVisitor(world, entities))?)
         }
 
-        fn deserialize_subgroup<V>(world: &mut _specs::World, entities: &[_specs::Entity], key: String, mut visitor: &mut V) -> Result<Option<()>, V::Error>
-            where V: _serde::de::MapVisitor
+        fn deserialize_subgroup<'de, M>(world: &mut _specs::World, entities: &[_specs::Entity], key: &'de str, mut map: &mut M) -> Result<Option<()>, M::Error>
+            where M: _serde::de::MapAccess<'de>
         {
             #[allow(unused_variables)]
             match key {
                 #(
-                    #component_serialize_field => {
-                        let mut storage = world.write::<#component_serialize>();
-                        let packed = visitor.visit_value::<_specs::PackedData<#component_serialize2>>()?;
+                    #comp_serialize_name => {
+                        let mut storage = world.write::<#comp_serialize_ty>();
+                        let packed = map.next_value::<_specs::PackedData<#comp_serialize_ty2>>()?;
                         let _ = storage.merge(entities, packed);
                         Ok(Some(()))
                     },
                 )*
-                key @ _ => {
+                uncaught_key @ _ => {
                     #(
-                        if let Some(()) = #subgroup::deserialize_subgroup(world, entities, key.to_owned(), visitor)? {
+                        if let Some(()) = #subgroup_ty::deserialize_subgroup(world, entities, uncaught_key, map)? {
                             return Ok(Some(()));
                         }
                     )*
@@ -280,7 +175,7 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     // Normal expand (no serialization)
     let expanded = quote! {
         #[automatically_derived]
-        impl _specs::entity::ComponentGroup for #name {
+        impl _specs::ComponentGroup for #name {
             #default
         }
     };
@@ -290,7 +185,8 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
     let expanded = quote! {
         extern crate serde as _serde;
         #expanded
-        impl _specs::entity::SerializeGroup for #name {
+        #[automatically_derived]
+        impl _specs::SerializeGroup for #name {
             #serialize
         }
     };
@@ -301,7 +197,7 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
         #[macro_use]
         const #dummy_const: () = {
             extern crate specs as _specs;
-            #locals_impl
+            #deconstructed
             #expanded
         };
     };
@@ -322,38 +218,54 @@ pub struct Parameter {
 
     // Name of item.
     pub name: String,
+
+    // Component id.
+    pub id: usize,
 }
 
 impl Parameter {
+    pub fn default(field: &Field) -> Self {
+        Parameter {
+            subgroup: false,
+            serialize: false,
+            ignore: false,
+            name: field.ident.clone().unwrap().to_string(),
+            id: 0usize,
+        }
+    }
+
     pub fn parse(field: &Field) -> Parameter {
         use syn::NestedMetaItem::MetaItem;
-        use syn::MetaItem::Word;
-
-        let mut subgroup = false;
-        let mut serialize = false;
-        let mut ignore = false;
+        use syn::MetaItem::{NameValue, Word};
+            
+        let mut params = Parameter::default(field);
+        params.name = field.ident.clone().unwrap().to_string();
 
         for meta_items in field.attrs.iter().filter_map(filter_group) {
             for meta_item in meta_items {
                 match meta_item {
-                    MetaItem(Word(ref name)) if name == "serialize" => serialize = true,
-                    MetaItem(Word(ref name)) if name == "subgroup" => subgroup = true,
-                    MetaItem(Word(ref name)) if name == "ignore" => ignore = true,
-                    _ => println!("Unused attribute: {:?}", meta_item),
+                    MetaItem(Word(ref name)) if name == "serialize" => params.serialize = true,
+                    MetaItem(Word(ref name)) if name == "subgroup" => params.subgroup = true,
+                    MetaItem(Word(ref name)) if name == "ignore" => params.ignore = true,
+                    MetaItem(NameValue(ref name, Lit::Str(ref id, _))) if name == "id" => {
+                        if let Ok(id) = id.parse::<usize>() {
+                            params.id = id;
+                        }
+                        else {
+                            println!("{} is not a valid id", id);
+                        }
+                    },
+                    _ => panic!("Unknown group attribute: {:?}", meta_item),
                 }
             }
         }
 
-        Parameter {
-            subgroup: subgroup,
-            serialize: serialize,
-            ignore: ignore,
-            name: field.ident.clone().unwrap().to_string(),
-        }
+        params
     }
 }
 
-fn filter_group(attr: &Attribute) -> Option<Vec<NestedMetaItem>> {
+/// Get the attributes related to this derive.
+pub fn filter_group(attr: &Attribute) -> Option<Vec<NestedMetaItem>> {
     match attr.value {
         MetaItem::List(ref name, ref items) if name == "group" => Some(items.iter().cloned().collect()),
         _ => None,
@@ -361,19 +273,13 @@ fn filter_group(attr: &Attribute) -> Option<Vec<NestedMetaItem>> {
 }
 
 #[derive(Debug, Clone)]
-struct Item<'a> {
+pub struct Item<'a> {
     pub parameter: Parameter,
     pub field: &'a Field,
 }
 
-impl<'a> ToTokens for Item<'a> {
-    fn to_tokens(&self, tokens: &mut Tokens) {
-        self.field.ty.to_tokens(tokens);
-    }
-}
-
 #[derive(Debug, Clone)]
-struct ItemList<'a>(Vec<Item<'a>>);
+pub struct ItemList<'a>(Vec<Item<'a>>);
 
 impl<'a> Deref for ItemList<'a> {
     type Target = Vec<Item<'a>>;
@@ -439,11 +345,11 @@ impl<'a> ItemList<'a> {
             .collect::<ItemList>()
     }
 
-    fn from_list<'b>(list: Vec<Item<'b>>) -> ItemList<'b> {
+    pub fn from_list<'b>(list: Vec<Item<'b>>) -> ItemList<'b> {
         ItemList(list)
     }
 
-    fn type_list(&self) -> Ty {
+    pub fn type_list(&self) -> Ty {
         self.0.iter().rev().enumerate().fold(Ty::Tup(Vec::new()), |tup, (index, item)| {
             if index == 0 {
                 Ty::Tup(vec![
@@ -458,52 +364,22 @@ impl<'a> ItemList<'a> {
             }
         })
     }
-}
 
+    pub fn identifiers(&self) -> Vec<Ident> {
+        self.0.iter()
+            .map(|item| item.field.ident.clone().unwrap() )
+            .collect()
+    }
 
+    pub fn names(&self) -> Vec<String> {
+        self.0.iter()
+            .map(|item| item.field.ident.clone().unwrap().to_string() )
+            .collect()
+    }
 
-/*
-struct SplitIter<S>
-    where S: Split,
-{
-    inner: Option<Box<SplitIter<<S as Split>::Next>>>,
-    ty: String,
-    phantom: PhantomData<S>
-}
-
-impl<S> Iterator for SplitIter<S>
-    where S: Split,
-{
-    type Item = String;
-    fn next(&mut self) -> Option<String> {
-        if let Some(inner) = self.inner {
-            inner.next()
-        }
-        else {
-            if <S as Split>::next() {
-                self.inner = Some(Box::new(SplitIter::<<S as Split>::Next> {
-                    inner: None,
-                    ty: next(self.ty),
-                    phantom: PhantomData
-                }));
-                Some(this(self.ty))
-            }
-            else {
-                None
-            }
-        }
+    pub fn types(&self) -> Vec<Ty> {
+        self.0.iter()
+            .map(|item| item.field.ty.clone() )
+            .collect()
     }
 }
-
-struct SplitIter(Box<SplitNext>, String);
-
-impl Iterator for SplitIter {
-    type Item = String;
-    fn next(&mut self) -> Option<String> {
-        if self.0.next {
-            self.0 = Box::new(Next::<<<self.0 as SplitNext>::Upper as Split>::Next>(PhantomData));
-
-        }
-    }
-}
-*/

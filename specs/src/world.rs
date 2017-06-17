@@ -1,8 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-<<<<<<< HEAD
 use crossbeam::sync::TreiberStack;
-=======
 #[cfg(feature="serialize")]
 use std::marker::PhantomData;
 #[cfg(feature="serialize")]
@@ -14,7 +12,6 @@ use group::SerializeGroup;
 
 use group::ComponentGroup;
 
->>>>>>> e7d508b... World serialization and deserialization
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use mopa::Any;
 use shred::{Fetch, FetchMut, Resource, Resources};
@@ -770,7 +767,6 @@ impl Default for World {
     }
 }
 
-<<<<<<< HEAD
 #[cfg(test)]
 mod tests {
     use storage::VecStorage;
@@ -794,7 +790,13 @@ mod tests {
 
             e = entities.create();
             lazy.add((e, Pos));
-=======
+        }
+
+        world.maintain();
+        assert!(world.read::<Pos>().get(e).is_some());
+    }
+}
+
 #[cfg(feature="serialize")]
 /// Structure used to serialize a world using a component group.
 pub struct WorldSerializer<'a, G> {
@@ -842,35 +844,18 @@ impl<'a, G> WorldDeserializer<'a, G> {
             world: world,
             entities: entities,
             phantom: PhantomData,
->>>>>>> e7d508b... World serialization and deserialization
         }
-
-        world.maintain();
-        assert!(world.read::<Pos>().get(e).is_some());
     }
 }
 
-#[cfg(feature="serialize")]
-<<<<<<< HEAD
-/// Structure used to deserialize into the world.
-pub struct WorldDeserializer<'a, G, C>
-    where G: ComponentGroup,
-          C: PartialEq + Eq + Hash + 'a,
-{
-    world: &'a mut World<C>,
-    entities: &'a [Entity],
-    phantom: PhantomData<G>,
-}
-=======
-impl<'a, G> DeserializeSeed for WorldDeserializer<'a, G>
+impl<'a, 'de, G> DeserializeSeed<'de> for WorldDeserializer<'a, G>
     where G: ComponentGroup + SerializeGroup,
 {
     type Value = ();
     fn deserialize<D>(self, deserializer: D) -> Result<(), D::Error>
-        where D: Deserializer
+        where D: Deserializer<'de>
     {
         G::deserialize_group(self.world, self.entities, deserializer)
     }
 }
 
->>>>>>> e7d508b... World serialization and deserialization

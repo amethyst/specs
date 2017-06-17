@@ -10,11 +10,11 @@ proc-macro = true
 specs = { path = "../specs", version = "0.9.1" }
 syn = "0.11.10"
 quote = "0.3.15"
-serde = { version = "0.9.11", optional = true }
+serde = { version = "1.0", optional = true }
 
 [dev-dependencies]
-serde_derive = "0.9.11"
-serde_json = "0.9.9"
+serde_derive = "1.0"
+serde_json = "1.0"
 
 [features]
 default = []
