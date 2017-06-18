@@ -72,3 +72,79 @@ impl Split for () {
     fn next() -> bool { false }
 }
 
+#[macro_export]
+macro_rules! call {
+    // Top level calls
+    ( component: $group:ty => 
+        fn $method:ident
+        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
+        ( $( $args:expr ),* )
+    ) => {
+        call!(
+            @Iter $group: Locals =>
+            fn $method
+            [ $( $before ),* ] in [ $( $after ),* ]
+            ( $( $args ),* )
+        );
+    };
+    ( subgroup: $group:ty => 
+        fn $method:ident
+        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
+        ( $( $args:expr ),* )
+    ) => {
+        call!(
+            @Iter $group: Subgroups =>
+            fn $method
+            [ $( $before ),* ] in [ $( $after ),* ]
+            ( $( $args ),* )
+        );
+    };
+
+    // Helper methods
+
+    // Break macro recursion.
+    (@Iter [ $( $group:tt )* ] [ ] =>
+        fn $method:ident
+        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
+        ( $( $args:expr ),* )
+    ) => { };
+
+    // Iterate over components through associated type recursion.
+    (@Iter [ $( $group:tt )* ] [ A $( $token:tt )* ] =>
+        fn $method:ident
+        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
+        ( $( $args:expr ),* )
+    ) => {
+        $method::<$( $before, )* <$( $group )* as Split>::This $( , $after )*>( $( $args ),* );
+
+        if <$( $group )* as Split>::next() {
+            call!(
+                @Iter [ <$( $group )* as Split>::Next ] [ $( $token )* ] =>
+                fn $method
+                [ $( $before ),* ] in [ $( $after ),* ]
+                ( $( $args ),* )
+            );
+        }
+    };
+
+    // Entrance to iteration.
+    (@Iter $group:ty: $at:ident =>
+        fn $method:ident
+        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
+        ( $( $args:expr ),* )
+    ) => {
+        call!(
+            @Iter [ <$group as DeconstructedGroup>::$at ] [
+                // Requires tokens for recursion breaking.
+                // Each row has 32 tokens, totalling to 128 currently.
+                A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+                A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+                A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+                A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+            ] =>
+            fn $method
+            [ $( $before ),* ] in [ $( $after ),* ]
+            ( $( $args ),* )
+        );
+    };
+}

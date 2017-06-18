@@ -14,7 +14,7 @@ fn main() {
     use serde::de::DeserializeSeed;
     use serde_json::{Serializer, from_str as json_from_str};
     use specs::{Component, DispatcherBuilder, Entities, Join, PackedData, System, VecStorage,
-                World, WriteStorage, WorldSerializer, WorldDeserializer};
+                World, WorldDeserializer, WorldSerializer, WriteStorage};
 
     #[derive(Debug, Serialize, Deserialize)]
     struct CompSerialize {
@@ -91,10 +91,10 @@ fn main() {
     }
 
     struct RemovalSystem;
-    impl<'a, C> System<'a, C> for RemovalSystem {
+    impl<'a> System<'a> for RemovalSystem {
         type SystemData = RemovalData<'a>;
 
-        fn work(&mut self, mut data: RemovalData, _: C) {
+        fn run(&mut self, mut data: RemovalData) {
             // Remove all components
             for (entity, _) in (&*data.entities, &data.comp_serial.check()).join() {
                 data.comp_serial.remove(entity);
@@ -165,7 +165,8 @@ fn main() {
             .add(RemovalSystem, "removal", &[])
             .build();
 
-        dispatcher.dispatch(&mut world.res, ());
+        dispatcher.dispatch(&mut world.res);
+        world.maintain();
     }
 
     {
@@ -176,7 +177,7 @@ fn main() {
 
     {
         let entity_list: Vec<_> = {
-            let entities = world.read_resource::<specs::Entities>();
+            let entities = world.read_resource::<specs::EntitiesRes>();
             entities.join().collect()
         };
 

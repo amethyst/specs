@@ -1,6 +1,7 @@
 
 #![recursion_limit="256"]
 
+#[macro_use]
 extern crate specs;
 #[macro_use]
 extern crate specs_derive;
@@ -12,81 +13,6 @@ extern crate serde;
 extern crate serde_derive;
 #[cfg(feature="serialize")]
 extern crate serde_json;
-
-/*
-macro_rules! call {
-    // Top level calls
-    ( local: $group:ty => 
-        fn $method:ident
-        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
-        ( $( $args:expr ),* )
-    ) => {
-        call!(
-            @Iter $group: Locals =>
-            fn $method
-            [ $( $before ),* ] in [ $( $after ),* ]
-            ( $( $args ),* )
-        );
-    };
-    ( subgroups: $group:ty => 
-        fn $method:ident
-        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
-        ( $( $args:expr ),* )
-    ) => {
-        call!(
-            @Iter $group: Subgroups =>
-            fn $method
-            [ $( $before ),* ] in [ $( $after ),* ]
-            ( $( $args ),* )
-        );
-    };
-
-    // Helper methods
-    (@Iter [ $( $group:tt )* ] [ A $( $token:tt )* ] =>
-        fn $method:ident
-        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
-        ( $( $args:expr ),* )
-    ) => {
-        $method::<$( $before, )* <$( $group )* as Split>::This $( , $after )*>( $( $args ),* );
-
-        if <$( $group )* as Split>::next() {
-            call!(
-                @Iter [ <$( $group )* as Split>::Next ] [ $( $token )* ] =>
-                fn $method
-                [ $( $before ),* ] in [ $( $after ),* ]
-                ( $( $args ),* )
-            );
-        }
-    };
-
-    // Break macro recursion
-    (@Iter [ $( $group:tt )* ] [ ] =>
-        fn $method:ident
-        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
-        ( $( $args:expr ),* )
-    ) => { };
-
-    (@Iter $group:ty: $at:ident =>
-        fn $method:ident
-        [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
-        ( $( $args:expr ),* )
-    ) => {
-        call!(
-            @Iter [ <$group as DeconstructedGroup>::$at ] [
-                // Requires tokens for recursion breaking.
-                // Each row has 32 tokens, totalling to 128 currently.
-                A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
-                A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
-                A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
-                A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
-            ] =>
-            fn $method
-            [ $( $before ),* ] in [ $( $after ),* ]
-            ( $( $args ),* )
-        );
-    };
-}
-*/
 
 #[cfg(feature="serialize")]
 fn main() {
@@ -253,15 +179,13 @@ fn main() {
         3
     }
 
-    /*
     let s = "Something";
-    call!(local: SomeGroup =>
+    call!(component: SomeGroup =>
         fn call_method [ ] in [ ] (s)
     );
-    call!(local: SomeGroup =>
+    call!(component: SomeGroup =>
         fn call_other [ ] in [ ] (s)
     );
-    */
 }
 
 #[cfg(not(feature="serialize"))]

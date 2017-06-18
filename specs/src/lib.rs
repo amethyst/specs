@@ -222,6 +222,7 @@ pub type Entities<'a> = Fetch<'a, EntitiesRes>;
 /// An index is basically the id of an `Entity`.
 pub type Index = u32;
 
+#[macro_export]
 mod group;
 mod join;
 mod storage;
