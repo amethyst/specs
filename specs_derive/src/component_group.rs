@@ -31,6 +31,7 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
         .collect::<ItemList>();
     #[allow(unused_variables)]
     let ref comp_serialize_name = component_serialize.names();
+    let ref comp_serialize_id = component_serialize.ids();
     let ref comp_serialize_ty = component_serialize.types();
     #[allow(unused_variables)]
     let comp_serialize_ty2 = comp_serialize_ty;
@@ -89,7 +90,7 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
         fn serialize_group<S: _serde::Serializer>(world: &_specs::World, serializer: S) -> Result<S::Ok, S::Error> {
             let mut map = serializer.serialize_map(None)?;
             #(
-                let storage = world.read::<#comp_serialize_ty>();
+                let storage = world.read_with_id::<#comp_serialize_ty>(#comp_serialize_id);
                 _serde::ser::SerializeMap::serialize_entry(&mut map, #comp_serialize_name, &storage)?;
             )*
 
@@ -99,7 +100,7 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
 
         fn serialize_subgroup<S: _serde::Serializer>(world: &_specs::World, map: &mut S::SerializeMap) -> Result<(), S::Error> {
             #(
-                let storage = world.read::<#comp_serialize_ty>();
+                let storage = world.read_with_id::<#comp_serialize_ty>(#comp_serialize_id);
                 _serde::ser::SerializeMap::serialize_entry(map, #comp_serialize_name, &storage)?;
             )*
             #( #subgroup_ty::serialize_subgroup::<S>(world, map)?; )*
@@ -124,7 +125,7 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
                         match key {
                             #(
                                 #comp_serialize_name => {
-                                    let mut storage = self.0.write::<#comp_serialize_ty>();
+                                    let mut storage = self.0.write_with_id::<#comp_serialize_ty>(#comp_serialize_id);
                                     let packed = map.next_value::<_specs::PackedData<#comp_serialize_ty2>>()?;
                                     let _ = storage.merge(self.1, packed);
                                 },
@@ -154,7 +155,7 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
             match key {
                 #(
                     #comp_serialize_name => {
-                        let mut storage = world.write::<#comp_serialize_ty>();
+                        let mut storage = world.write_with_id::<#comp_serialize_ty>(#comp_serialize_id);
                         let packed = map.next_value::<_specs::PackedData<#comp_serialize_ty2>>()?;
                         let _ = storage.merge(entities, packed);
                         Ok(Some(()))
@@ -380,6 +381,12 @@ impl<'a> ItemList<'a> {
     pub fn types(&self) -> Vec<Ty> {
         self.0.iter()
             .map(|item| item.field.ty.clone() )
+            .collect()
+    }
+
+    pub fn ids(&self) -> Vec<usize> {
+        self.0.iter()
+            .map(|item| item.parameter.id )
             .collect()
     }
 }
