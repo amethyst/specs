@@ -10,8 +10,6 @@ use serde::{Serialize, Serializer, Deserializer};
 #[cfg(feature="serialize")]
 use group::SerializeGroup;
 
-use group::ComponentGroup;
-
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use mopa::Any;
 use shred::{Fetch, FetchMut, Resource, Resources};

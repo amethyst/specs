@@ -1,6 +1,5 @@
-# Specs
 
-> **S**pecs **P**arallel **ECS**
+# Specs Procedural Derive Macros
 
 [![Build Status][bi]][bl] [![Crates.io][ci]][cl] [![Gitter][gi]][gl] ![MIT/Apache][li] [![Docs.rs][di]][dl]
 
@@ -18,90 +17,83 @@
 [gi]: https://badges.gitter.im/slide-rs/specs.svg
 [gl]: https://gitter.im/slide-rs/specs
 
-Specs is an Entity-Component System written in Rust. 
-Unlike most other ECS libraries out there, it provides
+## Component Grouping
 
-* easy parallelism
-* high flexibility
-    * contains 5 different storages for components, which can be extended by the user
-    * it's types are mostly not coupled, so you can easily write some part yourself and
-      still use Specs
-    * `System`s may read from and write to components and resources, can depend on each
-      other and you can use barriers to force several stages in system execution
-* high performance for real-world applications
+In a couple situations you are required to perform some task on a bunch of different components, 
+such as serialization or registering the component into the world. Tasks like these require either
+dynamic dispatch through the use of trait objects or closures, but that can make you lose performance
+and prevent some compiler optimizations. However, the alternative is a lot of boilerplate and isn't
+very scalable if using third party code where they also require registering components similar to the
+`World`.
 
-## Example
+In these situations it is useful to use a macro to reduce that boilerplate and make it less annoying
+to add new components to the program. Component groups mark a bunch of different components that
+you want to have some operation perform on all of them.
+
+### Usage
+
+
+Component groups use a procedural derive macro along with using attributes with the tag `group`.
+Fields in the component group `struct` are by default components, alternatively they can be marked
+as a subgroup using the `subgroup` attribute. Subgroups in a component group will try to behave the
+same as if the components were in the parent group. The field names are also used as unique identifiers
+for components in things like serialization.
+
+Note: When using the `call` macro to use the component groups, it is necessary to use another method 
+on subgroups for subgroups to behave correctly in the `call` macro.
 
 ```rust
-// A component contains data
-// which is associated with an entity.
-#[derive(Debug)]
-struct Vel(f32);
-#[derive(Debug)]
-struct Pos(f32);
+#[derive(ComponentGroup)]
+struct ExampleGroup {
+    // The group defaults to just a component.
+    //
+    // The field name "component1" will be used as an
+    // unique identifier.
+    component1: Component1,
 
-impl Component for Vel {
-    type Storage = VecStorage<Vel>;
+    // Component grouping comes with built in support
+    // for serialization and deserialization with `serde`
+    // usage
+    #[group(serialize)]
+    component2: Component2,
+
+    #[group(id = "5")]
+    component3: Component3,
 }
 
-impl Component for Pos {
-    type Storage = VecStorage<Pos>;
-}
+#[derive(ComponentGroup)]
+struct AnotherGroup {
+    component4: Component4,
 
-struct SysA;
-
-impl<'a> System<'a> for SysA {
-    // These are the resources required for execution.
-    // You can also define a struct and `#[derive(SystemData)]`,
-    // see the `full` example.
-    type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
-
-    fn run(&mut self, data: Self::SystemData) {
-        // The `.join()` combines multiple components,
-        // so we only access those entities which have
-        // both of them.
-
-        let (mut pos, vel) = data;
-
-        for (pos, vel) in (&mut pos, &vel).join() {
-            pos.0 += vel.0;
-        }
-    }
-}
-
-fn main() {
-    // The `World` is our
-    // container for components
-    // and other resources.
-    let mut world = World::new();
-    world.register::<Pos>();
-    world.register::<Vel>();
-
-    // An entity may or may not contain some component.
-
-    world.create_entity().with(Vel(2.0)).with(Pos(0.0)).build();
-    world.create_entity().with(Vel(4.0)).with(Pos(1.6)).build();
-    world.create_entity().with(Vel(1.5)).with(Pos(5.4)).build();
-
-    // This entity does not have `Vel`, so it won't be dispatched.
-    world.create_entity().with(Pos(2.0)).build();
-
-    // This builds a dispatcher.
-    // The third parameter of `add` specifies
-    // logical dependencies on other systems.
-    // Since we only have one, we don't depend on anything.
-    // See the `full` example for dependencies.
-    let mut dispatcher = DispatcherBuilder::new().add(SysA, "sys_a", &[]).build();
-
-    // This dispatches all the systems in parallel (but blocking).
-    dispatcher.dispatch(&mut world.res);
+    // If you need a subgroup, then you need to
+    // designate the fields that are subgroups.
+    #[group(subgroup)]
+    example_group: ExampleGroup,
 }
 ```
 
-Please look into [the examples directory](examples) for more.
+When operated on a method, this component group will look similar to something like:
+```rust
+fn method<T>() { ... }
+method::<Component1>();
+method::<Component2>();
+method::<Component3>();
+method::<Component4>();
+```
 
-## Contribution
+### Attributes
 
-Contribution is very welcome! If you didn't contribute before, just
-filter for issues with "easy" label. Please note that your contributions
-are assumed to be dual-licensed under Apache-2.0/MIT.
+`#[group(subgroup)]`
+Marks the field as a subgroup. Will attempt to behave similar to if the components nested in the subgroup
+are in the parent group.
+
+`#[group(serialize)]`
+Marks the field as a serializable component or subgroup. All fields that are marked by this should implement
+`Serialize` and `Deserialize`. The field name is used as the unique identifier for serializaion.
+
+`#[group(id = "...")]`
+Identifies a component id other than the default `0usize`.
+
+### `call` Macro
+
+Component groups also provide capability for external extension using the `call` macro.

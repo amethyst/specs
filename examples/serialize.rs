@@ -32,6 +32,7 @@ fn main() {
     }
 
     #[derive(ComponentGroup)]
+    #[allow(dead_code)]
     struct SerialGroup {
         #[group(serialize)]
         comp_serialize: CompSerialize,
@@ -183,7 +184,7 @@ fn main() {
 
         let world_deserializer = WorldDeserializer::<SerialGroup>::new(&mut world, entity_list.as_slice());
         let mut json_deserializer = serde_json::Deserializer::from_str(&serialized);
-        world_deserializer.deserialize(&mut json_deserializer);
+        let _ = world_deserializer.deserialize(&mut json_deserializer);
     }
 
     {

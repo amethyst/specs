@@ -7,7 +7,7 @@ authors = ["Aceeri <conmcclusk@gmail.com>"]
 proc-macro = true
 
 [dependencies]
-specs = { path = "../specs", version = "0.9.1" }
+specs = { path = "../", version = "0.9.2" }
 syn = "0.11.10"
 quote = "0.3.15"
 serde = { version = "1.0", optional = true }
@@ -19,3 +19,4 @@ serde_json = "1.0"
 [features]
 default = []
 serialize = ["serde", "specs/serialize"]
+

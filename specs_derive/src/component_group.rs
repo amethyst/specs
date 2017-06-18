@@ -25,17 +25,6 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
         .collect::<ItemList>();
     let ref comp_ty = component.types();
 
-    // Serializable components
-    let ref component_serialize = component.iter()
-        .filter(|item| item.parameter.serialize)
-        .collect::<ItemList>();
-    #[allow(unused_variables)]
-    let ref comp_serialize_name = component_serialize.names();
-    let ref comp_serialize_id = component_serialize.ids();
-    let ref comp_serialize_ty = component_serialize.types();
-    #[allow(unused_variables)]
-    let comp_serialize_ty2 = comp_serialize_ty;
-
     // Subgroup fields
     let ref subgroup = items.iter()
         .filter(|item| item.parameter.subgroup )
@@ -68,11 +57,7 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
         fn components() -> Vec<&'static str> {
             #[allow(unused_mut)]
             let mut list = #name::local_components();
-            #(
-                for component in #subgroup_ty::components() {
-                    list.push(component);
-                }
-            )*
+            #( list.extend(#subgroup_ty::components()); )*
             list
         }
         fn subgroups() -> Vec<&'static str> {
@@ -84,94 +69,106 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
         }
     };
 
-    // Serialization methods
     #[cfg(feature="serialize")]
-    let serialize = quote! {
-        fn serialize_group<S: _serde::Serializer>(world: &_specs::World, serializer: S) -> Result<S::Ok, S::Error> {
-            let mut map = serializer.serialize_map(None)?;
-            #(
-                let storage = world.read_with_id::<#comp_serialize_ty>(#comp_serialize_id);
-                _serde::ser::SerializeMap::serialize_entry(&mut map, #comp_serialize_name, &storage)?;
-            )*
+    let serialize = {
+        // Serializable components
+        let ref component_serialize = component.iter()
+            .filter(|item| item.parameter.serialize)
+            .collect::<ItemList>();
+        let ref comp_serialize_name = component_serialize.names();
+        let ref comp_serialize_id = component_serialize.ids();
+        let ref comp_serialize_ty = component_serialize.types();
+        let comp_serialize_ty2 = comp_serialize_ty;
 
-            #( #subgroup_ty::serialize_subgroup::<S>(world, &mut map)?; )*
-            _serde::ser::SerializeMap::end(map)
-        }
+        quote! {
+            fn serialize_group<S: _serde::Serializer>(world: &_specs::World, serializer: S) -> Result<S::Ok, S::Error> {
+                #[allow(unused_mut)]
+                let mut map = serializer.serialize_map(None)?;
+                #(
+                    let storage = world.read_with_id::<#comp_serialize_ty>(#comp_serialize_id);
+                    _serde::ser::SerializeMap::serialize_entry(&mut map, #comp_serialize_name, &storage)?;
+                )*
 
-        fn serialize_subgroup<S: _serde::Serializer>(world: &_specs::World, map: &mut S::SerializeMap) -> Result<(), S::Error> {
-            #(
-                let storage = world.read_with_id::<#comp_serialize_ty>(#comp_serialize_id);
-                _serde::ser::SerializeMap::serialize_entry(map, #comp_serialize_name, &storage)?;
-            )*
-            #( #subgroup_ty::serialize_subgroup::<S>(world, map)?; )*
-            Ok(())
-        }
-
-        fn deserialize_group<'de, D: _serde::Deserializer<'de>>(world: &mut _specs::World, entities: &[_specs::Entity], deserializer: D) -> Result<(), D::Error> {
-            use std::fmt;
-
-            struct ComponentVisitor<'a>(&'a mut _specs::World, &'a [_specs::Entity]);
-            impl<'a, 'de> _serde::de::Visitor<'de> for ComponentVisitor<'a> {
-                type Value = ();
-                fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                    write!(formatter, "a map of component identifiers to packed data")
-                }
-
-                fn visit_map<M>(self, mut map: M) -> Result<(), M::Error>
-                    where M: _serde::de::MapAccess<'de>
-                {
-                    #[allow(unused_variables)]
-                    while let Some(key) = map.next_key::<&'de str>()? {
-                        match key {
-                            #(
-                                #comp_serialize_name => {
-                                    let mut storage = self.0.write_with_id::<#comp_serialize_ty>(#comp_serialize_id);
-                                    let packed = map.next_value::<_specs::PackedData<#comp_serialize_ty2>>()?;
-                                    let _ = storage.merge(self.1, packed);
-                                },
-                            )*
-                            uncaught_key @ _ => {
-                                #(
-                                    if let Some(()) = <#subgroup_ty as _specs::SerializeGroup>::deserialize_subgroup(self.0, self.1, uncaught_key, &mut map)? {
-                                        continue; // subgroup deserialized the components
-                                    }
-                                )*
-                                continue; // not in the registered component list, ignore
-                            },
-                        }
-                    }
-
-                    Ok(())
-                }
+                #( #subgroup_ty::serialize_subgroup::<S>(world, &mut map)?; )*
+                _serde::ser::SerializeMap::end(map)
             }
 
-            Ok(deserializer.deserialize_map(ComponentVisitor(world, entities))?)
-        }
-
-        fn deserialize_subgroup<'de, M>(world: &mut _specs::World, entities: &[_specs::Entity], key: &'de str, mut map: &mut M) -> Result<Option<()>, M::Error>
-            where M: _serde::de::MapAccess<'de>
-        {
-            #[allow(unused_variables)]
-            match key {
+            fn serialize_subgroup<S: _serde::Serializer>(world: &_specs::World, map: &mut S::SerializeMap) -> Result<(), S::Error> {
                 #(
-                    #comp_serialize_name => {
-                        let mut storage = world.write_with_id::<#comp_serialize_ty>(#comp_serialize_id);
-                        let packed = map.next_value::<_specs::PackedData<#comp_serialize_ty2>>()?;
-                        let _ = storage.merge(entities, packed);
-                        Ok(Some(()))
-                    },
+                    let storage = world.read_with_id::<#comp_serialize_ty>(#comp_serialize_id);
+                    _serde::ser::SerializeMap::serialize_entry(map, #comp_serialize_name, &storage)?;
                 )*
-                uncaught_key @ _ => {
-                    #(
-                        if let Some(()) = #subgroup_ty::deserialize_subgroup(world, entities, uncaught_key, map)? {
-                            return Ok(Some(()));
+                #( #subgroup_ty::serialize_subgroup::<S>(world, map)?; )*
+                Ok(())
+            }
+
+            fn deserialize_group<'de, D: _serde::Deserializer<'de>>(world: &mut _specs::World, entities: &[_specs::Entity], deserializer: D) -> Result<(), D::Error> {
+                use std::fmt;
+
+                struct ComponentVisitor<'a>(&'a mut _specs::World, &'a [_specs::Entity]);
+                impl<'a, 'de> _serde::de::Visitor<'de> for ComponentVisitor<'a> {
+                    type Value = ();
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        write!(formatter, "a map of component identifiers to packed data")
+                    }
+
+                    fn visit_map<M>(self, mut map: M) -> Result<(), M::Error>
+                        where M: _serde::de::MapAccess<'de>
+                    {
+                        #[allow(unused_variables)]
+                        while let Some(key) = map.next_key::<&'de str>()? {
+                            match key {
+                                #(
+                                    #comp_serialize_name => {
+                                        let mut storage = self.0.write_with_id::<#comp_serialize_ty>(#comp_serialize_id);
+                                        let packed = map.next_value::<_specs::PackedData<#comp_serialize_ty2>>()?;
+                                        let _ = storage.merge(self.1, packed);
+                                    },
+                                )*
+                                uncaught_key @ _ => {
+                                    #(
+                                        if let Some(()) = <#subgroup_ty as _specs::SerializeGroup>::deserialize_subgroup(self.0, self.1, uncaught_key, &mut map)? {
+                                            continue; // subgroup deserialized the components
+                                        }
+                                    )*
+                                    continue; // not in the registered component list, ignore
+                                },
+                            }
                         }
+
+                        Ok(())
+                    }
+                }
+
+                Ok(deserializer.deserialize_map(ComponentVisitor(world, entities))?)
+            }
+
+            fn deserialize_subgroup<'de, M>(world: &mut _specs::World, entities: &[_specs::Entity], key: &'de str, mut map: &mut M) -> Result<Option<()>, M::Error>
+                where M: _serde::de::MapAccess<'de>
+            {
+                #[allow(unused_variables)]
+                match key {
+                    #(
+                        #comp_serialize_name => {
+                            let mut storage = world.write_with_id::<#comp_serialize_ty>(#comp_serialize_id);
+                            let packed = map.next_value::<_specs::PackedData<#comp_serialize_ty2>>()?;
+                            let _ = storage.merge(entities, packed);
+                            Ok(Some(()))
+                        },
                     )*
-                    Ok(None)
-                },
+                    uncaught_key @ _ => {
+                        #(
+                            if let Some(()) = #subgroup_ty::deserialize_subgroup(world, entities, uncaught_key, map)? {
+                                return Ok(Some(()));
+                            }
+                        )*
+                        Ok(None)
+                    },
+                }
             }
         }
     };
+
 
     // Normal expand (no serialization)
     let expanded = quote! {
@@ -194,7 +191,7 @@ pub fn expand_group(input: &DeriveInput) -> Result<Tokens, String> {
 
     // Wrap the expanded code to prevent context conflicts.
     let wrap = quote! {
-        #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+        #[allow(non_upper_case_globals, unused_mut, unused_attributes, unused_qualifications)]
         #[macro_use]
         const #dummy_const: () = {
             extern crate specs as _specs;
@@ -253,7 +250,7 @@ impl Parameter {
                             params.id = id;
                         }
                         else {
-                            println!("{} is not a valid id", id);
+                            panic!("{} is not a valid id", id);
                         }
                     },
                     _ => panic!("Unknown group attribute: {:?}", meta_item),
