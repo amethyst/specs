@@ -1,6 +1,7 @@
 language: rust
 rust:
 - nightly
+- beta
 - stable
 
 branches:
@@ -10,10 +11,15 @@ branches:
     - master
 
 script:
+- cargo clean
 - cargo build --all --verbose
+- cargo clean
 - cargo test --all --verbose
+- cargo clean
 - cargo build --all --verbose --features serialize
+- cargo clean
 - cargo test --all --verbose --features serialize
+- cargo clean
 - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
     cargo bench --all --verbose --no-run;
   fi

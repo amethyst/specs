@@ -6,18 +6,13 @@ extern crate specs;
 #[macro_use]
 extern crate specs_derive;
 
-#[cfg(feature="serialize")]
 extern crate serde;
-#[cfg(feature="serialize")]
 #[macro_use]
 extern crate serde_derive;
-#[cfg(feature="serialize")]
 extern crate serde_json;
 
-#[cfg(feature="serialize")]
 fn main() {
-    use specs::{Component, ComponentGroup, DeconstructedGroup, DispatcherBuilder, Entities, EntitiesRes, Join, SerializeGroup, System, ReadStorage, Split, VecStorage, WriteStorage, World, WorldDeserializer, WorldSerializer};
-    use serde::{Deserialize, Serialize};
+    use specs::{Component, ComponentGroup, DeconstructedGroup, DispatcherBuilder, Entities, Join, System, Split, VecStorage, WriteStorage, World, WorldDeserializer, WorldSerializer};
     use serde::de::DeserializeSeed;
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -54,7 +49,6 @@ fn main() {
     #[allow(dead_code)]
     struct SomeGroup {
         #[group(serialize)]
-        #[group(id = "5")]
         field1: Comp1,
 
         #[group(serialize)]
@@ -145,7 +139,7 @@ fn main() {
 
         let world_deserializer = WorldDeserializer::<SomeGroup>::new(&mut world, entity_list.as_slice());
         let mut json_deserializer = serde_json::Deserializer::from_str(&serialized);
-        world_deserializer.deserialize(&mut json_deserializer);
+        let _ = world_deserializer.deserialize(&mut json_deserializer);
     }
 
     {
@@ -188,7 +182,3 @@ fn main() {
     );
 }
 
-#[cfg(not(feature="serialize"))]
-fn main() {
-    println!("Requires `serialize` flag to run");
-}

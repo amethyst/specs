@@ -75,6 +75,9 @@ impl Split for () {
 #[macro_export]
 macro_rules! call {
     // Top level calls
+
+    // Calls methods with local components. Should be used together with the `subgroup` call
+    // so that recursive groups work properly.
     ( component: $group:ty => 
         fn $method:ident
         [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
@@ -87,6 +90,8 @@ macro_rules! call {
             ( $( $args ),* )
         );
     };
+
+    // Calls methods with the subgroups.
     ( subgroup: $group:ty => 
         fn $method:ident
         [ $( $before:ty ),* ] in [ $( $after:ty ),* ]
