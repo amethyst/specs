@@ -1,118 +1,158 @@
 
+use std::cell::UnsafeCell;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
 
+use shred::Fetch;
 use hibitset::BitSet;
 
 use storage::{AntiStorage, MaskedStorage};
-use world::EntityIndex;
-use {Component, DistinctStorage, Index, Join, Storage, UnprotectedStorage};
+use world::{EntityIndex, EntitiesRes};
+use {Component, DistinctStorage, Entity, Index, Join, Storage, UnprotectedStorage};
 
-/// A storage type that iterates entities that have
-/// a particular component type, but does not return the
-/// component.
-pub struct CheckStorage<'a, T, D> {
-    bitset: BitSet,
-    // Pointer back to the storage the CheckStorage was created from.
-    original: *const Storage<'a, T, D>,
+/// Similar to a `MaskedStorage` and a `Storage` combined, but restricts usage
+/// to only getting and modifying the components. That means nothing that would
+/// modify the inner bitset so the iteration cannot be invalidated. For example,
+/// no insertion or removal is allowed.
+pub struct RestrictedStorage<'rf, 'st: 'rf, T: Component> {
+    bitset: &'rf BitSet,
+    data: &'rf T::Storage,
+    entities: &'rf Fetch<'st, EntitiesRes>,
 }
 
-impl<'a, 'e, T, D> Join for &'a CheckStorage<'e, T, D> {
-    type Type = Entry<'a, 'e, T, D>;
-    type Value = *const Storage<'e, T, D>;
-    type Mask = &'a BitSet;
-
-    fn open(self) -> (Self::Mask, Self::Value) {
-        (&self.bitset, self.original)
+impl<'rf, 'st, T> RestrictedStorage<'rf, 'st, T>
+    where T: Component,
+{
+    pub fn get(&self, entity: Entity) -> Option<&T> {
+        if self.bitset.contains(entity.id()) && self.entities.is_alive(entity) {
+            Some(unsafe { self.data.get(entity.id()) })
+        } else {
+            None
+        }
     }
 
-    unsafe fn get(storage: &mut *const Storage<'e, T, D>, id: Index) -> Entry<'a, 'e, T, D> {
-        Entry {
+    pub fn get_unchecked(&self, entry: &Entry<'rf, T>) -> &T {
+        unsafe { self.data.get(entry.index()) }
+    }
+}
+
+impl<'rf, 'st: 'rf, T> Join for &'rf RestrictedStorage<'rf, 'st, T>
+    where T: Component,
+{
+    type Type = (Entry<'rf, T>, &'rf RestrictedStorage<'rf, 'st, T>); 
+    type Value = Self;
+    type Mask = &'rf BitSet;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        (self.bitset, self)
+    }
+    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
+        let entry = Entry {
             id: id,
-            original: *storage,
+            pointer: value.data as *const T::Storage,
             phantom: PhantomData,
+        };
+        
+        (entry, value) // reference?
+    }
+}
+
+impl<'st, T, D> Storage<'st, T, D>
+    where T: Component,
+          D: Deref<Target = MaskedStorage<T>>,
+{
+    /// Builds a `RestrictedStorage` out of a `Storage`. Allows restricted
+    /// access to the inner components without allowing invalidating the
+    /// bitset for iteration in `Join`.
+    pub fn restrict<'rf>(&'rf self) -> RestrictedStorage<'rf, 'st, T> {
+        RestrictedStorage {
+            bitset: &self.data.mask,
+            data: &self.data.inner,
+            entities: &self.entities,
+        }
+    }
+
+    /// Builds a `CheckStorage` without borrowing the original storage.
+    /// The bitset *can* be invalidated here if insertion or removal
+    /// methods are used after the `CheckStorage` is created so there is
+    /// no guarantee that the storage does have the component for a specific
+    /// entity.
+    pub fn check(&self) -> CheckStorage {
+        CheckStorage {
+            bitset: self.data.mask.clone(),
         }
     }
 }
 
-impl<'a, 'e, T, D> Not for &'a CheckStorage<'e, T, D> {
+impl<'a Not for &'a CheckStorage {
     type Output = AntiStorage<'a>;
     fn not(self) -> Self::Output {
         AntiStorage(&self.bitset)
     }
 }
 
-unsafe impl<'a, T, D> DistinctStorage for CheckStorage<'a, T, D> {}
+unsafe impl DistinctStorage for CheckStorage {}
 
-/// An entry to a storage.
-pub struct Entry<'a, 'e, T, D> {
-    id: Index,
-    // Pointer for comparison when attempting to check against a storage.
-    original: *const Storage<'e, T, D>,
-    phantom: PhantomData<&'a ()>,
+/// Allows iterating over a storage without borrowing the storage itself.
+pub struct CheckStorage {
+    bitset: BitSet,
 }
 
-impl<'a, 'e, T, D> EntityIndex for Entry<'a, 'e, T, D> {
+impl Join for CheckStorage {
+    type Type = ();
+    type Value = ();
+    type Mask = BitSet;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        (self.bitset, ())
+    }
+    unsafe fn get(_: &mut (), _: Index) -> Self::Type {
+        ()
+    } 
+}
+
+/// An entry to a storage.
+pub struct Entry<'rf, T>
+    where T: Component,
+{
+    id: Index,
+    // Pointer for comparison when attempting to check against a storage.
+    pointer: *const T::Storage,
+    phantom: PhantomData<&'rf ()>,
+}
+
+impl<'rf, T> fmt::Debug for Entry<'rf, T>
+    where T: Component
+{
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "Entry {{ id: {}, pointer: {:?} }}", self.id, self.pointer)
+    }
+}
+
+impl<'rf, T> Entry<'rf, T>
+    where T: Component,
+{
+    #[inline]
+    fn assert_same_storage(&self, storage: &T::Storage) {
+        assert_eq!(self.pointer,
+                   storage as *const T::Storage,
+                   "Attempt to get an unchecked entry from a storage: {:?} {:?}",
+                   self.pointer,
+                   storage as *const T::Storage);
+    }
+}
+
+impl<'rf, T> EntityIndex for Entry<'rf, T>
+    where T: Component,
+{
     fn index(&self) -> Index {
         self.id
     }
 }
 
-impl<'a, 'b, 'e, T, D> EntityIndex for &'b Entry<'a, 'e, T, D> {
+impl<'a, 'rf, T> EntityIndex for &'a Entry<'rf, T>
+    where T: Component,
+{
     fn index(&self) -> Index {
         (*self).index()
     }
 }
 
-impl<'e, T, D> Storage<'e, T, D>
-    where T: Component,
-          D: Deref<Target = MaskedStorage<T>>
-{
-    /// Returns a struct that can iterate over the entities that have it
-    /// but does not return the contents of the storage.
-    ///
-    /// Useful if you want to check if an entity has a component
-    /// and then possibly get the component later on in the loop.
-    pub fn check(&self) -> CheckStorage<'e, T, D> {
-        CheckStorage {
-            bitset: self.data.mask.clone(),
-            original: self as *const Storage<'e, T, D>,
-        }
-    }
-
-    /// Reads the data associated with the entry.
-    ///
-    /// `Entry`s are returned from a `CheckStorage` to remove unnecessary checks.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the entry was retrieved from another storage.
-    pub fn get_unchecked<'a>(&'a self, entry: &'a Entry<'a, 'e, T, D>) -> &'a T {
-        assert_eq!(entry.original,
-                   self as *const Storage<'e, T, D>,
-                   "Attempt to get an unchecked entry from a storage: {:?} {:?}",
-                   entry.original,
-                   self as *const Storage<'e, T, D>);
-
-        unsafe { self.data.inner.get(entry.id) }
-    }
-}
-
-
-impl<'e, T, D> Storage<'e, T, D>
-    where T: Component,
-          D: DerefMut<Target = MaskedStorage<T>>
-{
-    /// Tries to mutate the data associated with an entry.
-    ///
-    /// `Entry`s are returned from a `CheckStorage` to remove unnecessary checks.
-    pub fn get_mut_unchecked<'a>(&'a mut self, entry: &'a mut Entry<'a, 'e, T, D>) -> &'a mut T {
-        assert_eq!(entry.original,
-                   self as *const Storage<'e, T, D>,
-                   "Attempt to get an unchecked entry from a storage: {:?} {:?}",
-                   entry.original,
-                   self as *const Storage<'e, T, D>);
-
-        unsafe { self.data.inner.get_mut(entry.id) }
-    }
-}

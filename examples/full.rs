@@ -85,6 +85,11 @@ impl<'a> System<'a> for SysCheckPositive {
     type SystemData = IntAndBoolData<'a>;
 
     fn run(&mut self, mut data: IntAndBoolData) {
+        
+        for (entry, restricted) in data.comp_int.restrict().join() {
+            let component = restricted.get_unchecked(&entry);
+            println!("{:?}: {:?}", entry, component);
+        }
         // Join merges the two component storages,
         // so you get all (CompInt, CompBool) pairs.
         for (ci, cb) in (&data.comp_int, &mut data.comp_bool).join() {

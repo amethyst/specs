@@ -1,6 +1,6 @@
 //! Storage types
 
-pub use self::check::{CheckStorage, Entry};
+pub use self::check::{RestrictedStorage, CheckStorage, Entry};
 pub use self::data::{ReadStorage, WriteStorage};
 #[cfg(feature = "serialize")]
 pub use self::ser::{MergeError, PackedData};
