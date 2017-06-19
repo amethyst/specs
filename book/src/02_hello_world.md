@@ -43,8 +43,8 @@ impl Component for Velocity {
 }
 ```
 
-This will be our component, stored in a `VecStorage` 
-(see [the storages chapter][sc] for more details), so some data we can associate
+These will be our components, stored in a `VecStorage` 
+(see [the storages chapter][sc] for more details), so we can associate some data
 with an entity. Before doing that, we need to create a world, because this is
 where the storage for all the components is located.
 
@@ -84,9 +84,9 @@ impl<'a> System<'a> for HelloWorld {
 }
 ```
 
-This is how a system looks like. That is, a system which
-does not do anything (yet). Let's talk about the above dummy
-implementation first. The `SystemData` is an associated type
+This is what a system looks like. Though it doesn't do anything (yet).
+Let's talk about this dummy implementation first.
+The `SystemData` is an associated type
 which specifies which components we need in order to run
 the system.
 
@@ -133,7 +133,7 @@ hello_world.run_now(&world.res);
 Here the complete example of this chapter:
 
 ```rust,ignore
-use specs::{Component, ReadStorage, System, VecStorage, World};
+use specs::{Component, ReadStorage, System, VecStorage, World, RunNow};
 
 #[derive(Debug)]
 struct Position { 
@@ -175,7 +175,7 @@ fn main() {
     
     world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
     
-    let hello_world = HelloWorld;
+    let mut hello_world = HelloWorld;
     hello_world.run_now(&world.res);
 }
 ```
