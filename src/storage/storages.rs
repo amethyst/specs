@@ -56,7 +56,7 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 /// ```rust
 /// extern crate specs;
 ///
-/// use specs::{Component, FlaggedStorage, Join, System, VecStorage, WriteStorage};
+/// use specs::{Component, Entities, FlaggedStorage, Join, System, VecStorage, WriteStorage};
 ///
 /// pub struct Comp(u32);
 /// impl Component for Comp {
@@ -67,8 +67,10 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 ///
 /// pub struct CompSystem;
 /// impl<'a> System<'a> for CompSystem {
-///     type SystemData = WriteStorage<'a, Comp>;
-///     fn run(&mut self, mut comps: WriteStorage<'a, Comp>) {
+///     type SystemData = (Entities<'a>, WriteStorage<'a, Comp>);
+///     fn run(&mut self, (entities, mut comps): Self::SystemData) {
+///         let entities = &*entities;
+///
 ///         // Iterates over all components like normal.
 ///         for comp in (&comps).join() {
 ///             // ...
@@ -82,9 +84,9 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 ///         }
 ///
 ///         // Instead do something like:
-///         for mut entry in (&comps.check()).join() {
+///         for (entity, _) in (entities, comps.check()).join() {
 ///             if true { // check whether this component should be modified.
-///                 let mut comp = comps.get_mut_unchecked(&mut entry);
+///                 let mut comp = comps.get_mut(entity);
 ///                 // ...
 ///             }
 ///         }

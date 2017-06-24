@@ -1,5 +1,4 @@
 
-use std::cell::UnsafeCell;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
 
@@ -14,44 +13,98 @@ use {Component, DistinctStorage, Entity, Index, Join, Storage, UnprotectedStorag
 /// to only getting and modifying the components. That means nothing that would
 /// modify the inner bitset so the iteration cannot be invalidated. For example,
 /// no insertion or removal is allowed.
-pub struct RestrictedStorage<'rf, 'st: 'rf, T: Component> {
-    bitset: &'rf BitSet,
-    data: &'rf T::Storage,
+pub struct RestrictedStorage<'rf, 'st: 'rf, B, T, R>
+    where T: Component,
+          R: Borrow<T::Storage> + 'rf,
+          B: Borrow<BitSet> + 'rf,
+{
+    bitset: B,
+    data: R,
     entities: &'rf Fetch<'st, EntitiesRes>,
+    phantom: PhantomData<T>,
 }
 
-impl<'rf, 'st, T> RestrictedStorage<'rf, 'st, T>
+impl<'rf, 'st, B, T, R> RestrictedStorage<'rf, 'st, B, T, R>
     where T: Component,
+          R: Borrow<T::Storage>,
+          B: Borrow<BitSet>,
 {
+    /// Attempts 
     pub fn get(&self, entity: Entity) -> Option<&T> {
-        if self.bitset.contains(entity.id()) && self.entities.is_alive(entity) {
-            Some(unsafe { self.data.get(entity.id()) })
+        if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
+            Some(unsafe { self.data.borrow().get(entity.id()) })
         } else {
             None
         }
     }
 
     pub fn get_unchecked(&self, entry: &Entry<'rf, T>) -> &T {
-        unsafe { self.data.get(entry.index()) }
+        entry.assert_same_storage(self.data.borrow());
+        unsafe { self.data.borrow().get(entry.index()) }
     }
 }
 
-impl<'rf, 'st: 'rf, T> Join for &'rf RestrictedStorage<'rf, 'st, T>
+impl<'rf, 'st, B, T, R> RestrictedStorage<'rf, 'st, B, T, R>
     where T: Component,
+          R: BorrowMut<T::Storage>,
+          B: Borrow<BitSet>,
 {
-    type Type = (Entry<'rf, T>, &'rf RestrictedStorage<'rf, 'st, T>); 
+    pub fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
+        if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
+            Some(unsafe { self.data.borrow_mut().get_mut(entity.id()) })
+        } else {
+            None
+        }
+    }
+
+    pub fn get_mut_unchecked(&mut self, entry: &Entry<'rf, T>) -> &mut T {
+        entry.assert_same_storage(self.data.borrow());
+        unsafe { self.data.borrow_mut().get_mut(entry.index()) }
+    }
+}
+
+impl<'rf, 'st: 'rf, B, T, R> Join for &'rf RestrictedStorage<'rf, 'st, B, T, R>
+    where T: Component,
+          R: Borrow<T::Storage>,
+          B: Borrow<BitSet>,
+{
+    type Type = (Entry<'rf, T>, Self); 
     type Value = Self;
     type Mask = &'rf BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
-        (self.bitset, self)
+        (self.bitset.borrow(), self)
     }
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         let entry = Entry {
             id: id,
-            pointer: value.data as *const T::Storage,
+            pointer: value.data.borrow() as *const T::Storage,
             phantom: PhantomData,
         };
         
+        (entry, value) // reference?
+    }
+}
+
+impl<'rf, 'st: 'rf, B, T, R> Join for &'rf mut RestrictedStorage<'rf, 'st, B, T, R>
+    where T: Component,
+          R: BorrowMut<T::Storage>,
+          B: Borrow<BitSet>,
+{
+    type Type = (Entry<'rf, T>, Self); 
+    type Value = Self;
+    type Mask = BitSet;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        (self.bitset.borrow().clone(), self)
+    }
+    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
+        use std::mem;
+        let entry = Entry {
+            id: id,
+            pointer: value.data.borrow() as *const T::Storage,
+            phantom: PhantomData,
+        };
+
+        let value: &'rf mut Self::Value = mem::transmute(value);
         (entry, value) // reference?
     }
 }
@@ -60,14 +113,15 @@ impl<'st, T, D> Storage<'st, T, D>
     where T: Component,
           D: Deref<Target = MaskedStorage<T>>,
 {
-    /// Builds a `RestrictedStorage` out of a `Storage`. Allows restricted
+    /// Builds an immutable `RestrictedStorage` out of a `Storage`. Allows restricted
     /// access to the inner components without allowing invalidating the
     /// bitset for iteration in `Join`.
-    pub fn restrict<'rf>(&'rf self) -> RestrictedStorage<'rf, 'st, T> {
+    pub fn restrict<'rf>(&'rf self) -> RestrictedStorage<'rf, 'st, &'rf BitSet, T, &'rf T::Storage> {
         RestrictedStorage {
             bitset: &self.data.mask,
             data: &self.data.inner,
             entities: &self.entities,
+            phantom: PhantomData,
         }
     }
 
@@ -83,14 +137,23 @@ impl<'st, T, D> Storage<'st, T, D>
     }
 }
 
-impl<'a Not for &'a CheckStorage {
-    type Output = AntiStorage<'a>;
-    fn not(self) -> Self::Output {
-        AntiStorage(&self.bitset)
+impl<'st, T, D> Storage<'st, T, D>
+    where T: Component,
+          D: DerefMut<Target = MaskedStorage<T>>,
+{
+    /// Builds a mutable `RestrictedStorage` out of a `Storage`. Allows restricted
+    /// access to the inner components without allowing invalidating the
+    /// bitset for iteration in `Join`.
+    pub fn restrict_mut<'rf>(&'rf mut self) -> RestrictedStorage<'rf, 'st, &'rf BitSet, T, &'rf mut T::Storage> {
+        let (mask, data) = self.data.open_mut();
+        RestrictedStorage {
+            bitset: mask,
+            data: data,
+            entities: &self.entities,
+            phantom: PhantomData,
+        }
     }
 }
-
-unsafe impl DistinctStorage for CheckStorage {}
 
 /// Allows iterating over a storage without borrowing the storage itself.
 pub struct CheckStorage {
@@ -108,6 +171,15 @@ impl Join for CheckStorage {
         ()
     } 
 }
+
+impl<'a Not for &'a CheckStorage {
+    type Output = AntiStorage<'a>;
+    fn not(self) -> Self::Output {
+        AntiStorage(&self.bitset)
+    }
+}
+
+unsafe impl DistinctStorage for CheckStorage {}
 
 /// An entry to a storage.
 pub struct Entry<'rf, T>
