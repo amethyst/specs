@@ -184,8 +184,12 @@ extern crate serde;
 extern crate serde_derive;
 
 pub use join::{Join, JoinIter, JoinParIter, ParJoin};
-pub use shred::{AsyncDispatcher, Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
+pub use shred::{ Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
                 FetchMut, RunNow, RunningTime, System, SystemData};
+
+#[cfg(not(target_os = "emscripten"))]
+pub use shred::{AsyncDispatcher};
+
 pub use storage::{BTreeStorage, CheckStorage, DenseVecStorage, DistinctStorage, FlaggedStorage,
                   HashMapStorage, InsertResult, NullStorage, ReadStorage, Storage,
                   UnprotectedStorage, VecStorage, WriteStorage};
