@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
 use fnv::FnvHashMap;
-use hibitset::BitSet;
+use hibitset::{BitSet, BitSetAnd, BitSetNot};
 
 use world::EntityIndex;
 use {DistinctStorage, Index, Join, UnprotectedStorage};
@@ -350,14 +350,11 @@ unsafe impl<T> DistinctStorage for VecStorage<T> {}
 /// Wrapper storage that stores modifications to components with a bitset along with
 /// comparing equality to a cached version.
 ///
-/// `ChangedStorage::maintain()` should be called after every modification of the storage
-/// to *maintain* the cache and flagging correctly. 
-///
 ///# Example Usage:
 /// 
 /// ```rust
 /// extern crate specs;
-/// use specs::prelude::*;
+/// use specs::{Component, ChangedStorage, Join, System, VecStorage, WriteStorage};
 /// 
 /// #[derive(PartialEq, Clone)]
 /// pub struct Comp(u32);
@@ -385,9 +382,6 @@ unsafe impl<T> DistinctStorage for VecStorage<T> {}
 ///         for comp in (&mut comps).join() {
 ///             // ...
 ///         }
-///         // `maintain` checks for equality between the cache and the actual components 
-///         // and filters out the components that did not change from the flagged ones.
-///         (&mut comps).open().1.maintain();
 ///
 ///         // Clears the changed storage every frame with this system.
 ///         (&mut comps).open().1.clear_flags();
@@ -427,14 +421,6 @@ impl<C, U> ChangedStorage<C, U>
     pub fn flag<E: EntityIndex>(&mut self, entity: E) {
         self.inner.flag(entity);
     }
-    /// Getter for the internal flagged storage.
-    pub fn inner(&self) -> &FlaggedStorage<C, U> {
-        &self.inner
-    }
-    /// Mutable getter for the internal flagged storage.
-    pub fn inner_mut(&mut self) -> &mut FlaggedStorage<C, U> {
-        &mut self.inner
-    }
 }
 
 impl<C, U> UnprotectedStorage<C> for ChangedStorage<C, U>
@@ -456,6 +442,14 @@ impl<C, U> UnprotectedStorage<C> for ChangedStorage<C, U>
         self.inner.get(id)
     }
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
+        if let Some(index) = self.next {
+            if self.cache.get(index) == self.inner.get(index) {
+                self.unflag(index);
+            }
+            else {
+                self.cache.insert(index, self.inner.get(index).clone());
+            }
+        }
         self.next = Some(id);
         self.inner.get_mut(id)
     }
@@ -464,27 +458,60 @@ impl<C, U> UnprotectedStorage<C> for ChangedStorage<C, U>
         self.inner.insert(id, comp);
     }
     unsafe fn remove(&mut self, id: Index) -> C {
+        if let Some(next) = self.next {
+            if next == id {
+                self.next = None;
+            }
+        }
         self.inner.remove(id)
     }
 }
 
-impl<'a, C, U: UnprotectedStorage<C>> Join for &'a ChangedStorage<C, U> {
+impl<'a, C, U: UnprotectedStorage<C>> Join for &'a ChangedStorage<C, U>
+    where C: PartialEq,
+          U: UnprotectedStorage<C>,
+{
     type Type = &'a C;
     type Value = &'a U;
-    type Mask = &'a BitSet;
+    type Mask = BitSetAnd<&'a BitSet, BitSetNot<BitSet>>;
     fn open(self) -> (Self::Mask, Self::Value) {
-        (&self.inner).open()
+        // filter out singular bit in case that the cached
+        // next index to check is invalid
+        let mut single = BitSet::new();
+        if let Some(index) = self.next {
+            if unsafe { self.cache.get(index) } == unsafe { self.inner.get(index) } {
+                single.add(index);
+            }
+        }
+
+        let (bitset, storage) = (&self.inner).open();
+        (BitSetAnd(bitset, BitSetNot(single)), storage)
     }
     unsafe fn get(v: &mut Self::Value, id: Index) -> &'a C {
         v.get(id)
     }
 }
 
-impl<'a, C, U: UnprotectedStorage<C>> Join for &'a mut ChangedStorage<C, U> {
+impl<'a, C, U: UnprotectedStorage<C>> Join for &'a mut ChangedStorage<C, U>
+    where C: PartialEq + Clone,
+          U: UnprotectedStorage<C>,
+{
     type Type = &'a mut C;
     type Value = &'a mut U;
     type Mask = &'a BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
+        if let Some(index) = self.next {
+            unsafe { 
+                if self.cache.get(index) == self.inner.get(index) {
+                    self.unflag(index);
+                }
+                else {
+                    self.cache.insert(index, self.inner.get(index).clone());
+                }
+            }
+
+            self.next = None;
+        }
         (&mut self.inner).open()
     }
     unsafe fn get(v: &mut Self::Value, id: Index) -> &'a mut C {

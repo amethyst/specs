@@ -514,6 +514,7 @@ mod test {
 
         // Iterate over all flagged entities.
         for (entity, _) in (entities, s1.open().1).join() {
+            println!("flagged: {:?}", entity);
             // All entities in here should be flagged.
             assert!(s1.open().1.flagged(&entity));
         }
@@ -522,6 +523,7 @@ mod test {
     #[test]
     fn changed() {
         use join::Join;
+        use world::EntityIndex;
         let mut w = World::new();
         w.register_with_id::<ChangedCvec>(1);
         w.register_with_id::<ChangedCvec>(2);
@@ -586,7 +588,6 @@ mod test {
                 c1.0 += 0; // don't actually modify but gets flagged.
             }
         }
-        (&mut s1).open().1.maintain();
 
         let flagged = s1.open().1;
         let mut checked = Vec::new();
