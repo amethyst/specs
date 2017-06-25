@@ -22,35 +22,35 @@ type Vec2 = Vector2<f32>;
 struct Pos(Vec2);
 
 impl Component for Pos {
-    type Storage = VecStorage<Pos>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Clone, Copy, Debug)]
 struct Vel(Vec2);
 
 impl Component for Vel {
-    type Storage = VecStorage<Vel>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Clone, Copy, Debug)]
 struct Force(Vec2);
 
 impl Component for Force {
-    type Storage = VecStorage<Force>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Clone, Copy, Debug)]
 struct InvMass(f32);
 
 impl Component for InvMass {
-    type Storage = VecStorage<InvMass>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Clone, Copy, Debug)]
 struct Lifetime(f32);
 
 impl Component for Lifetime {
-    type Storage = VecStorage<Lifetime>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -59,7 +59,7 @@ struct Ball {
 }
 
 impl Component for Ball {
-    type Storage = VecStorage<Ball>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -69,7 +69,7 @@ struct Rect {
 }
 
 impl Component for Rect {
-    type Storage = VecStorage<Rect>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -79,14 +79,14 @@ enum Spawner {
 }
 
 impl Component for Spawner {
-    type Storage = HashMapStorage<Spawner>;
+    type Storage = HashMapStorage<Self>;
 }
 
 #[derive(Clone, Copy, Debug)]
 struct SpawnRequests(usize);
 
 impl Component for SpawnRequests {
-    type Storage = HashMapStorage<SpawnRequests>;
+    type Storage = HashMapStorage<Self>;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -97,7 +97,7 @@ struct Collision {
 }
 
 impl Component for Collision {
-    type Storage = DenseVecStorage<Collision>;
+    type Storage = DenseVecStorage<Self>;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -107,7 +107,7 @@ struct Room {
 }
 
 impl Component for Room {
-    type Storage = HashMapStorage<Room>;
+    type Storage = HashMapStorage<Self>;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -117,14 +117,14 @@ enum Color {
 }
 
 impl Component for Color {
-    type Storage = VecStorage<Color>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Clone, Copy, Debug, Default)]
 struct KillsEnemy;
 
 impl Component for KillsEnemy {
-    type Storage = NullStorage<KillsEnemy>;
+    type Storage = NullStorage<Self>;
 }
 
 // -- Resources --
@@ -143,10 +143,8 @@ impl<'a> System<'a> for Integrate {
      ReadStorage<'a, InvMass>,
      Fetch<'a, DeltaTime>);
 
-    fn run(&mut self, data: Self::SystemData) {
+    fn run(&mut self, (mut pos, mut vel, mut force, inv_mass, delta): Self::SystemData) {
         use cgmath::Zero;
-
-        let (mut pos, mut vel, mut force, inv_mass, delta) = data;
 
         let delta: f32 = delta.0;
 
@@ -176,20 +174,23 @@ impl<'a> System<'a> for Spawn {
      WriteStorage<'a, Color>,
      WriteStorage<'a, SpawnRequests>);
 
-    fn run(&mut self, data: Self::SystemData) {
+    fn run(
+        &mut self,
+        (
+            entities,
+            spawner,
+            mut pos,
+            mut vel,
+            mut force,
+            mut inv_mass,
+            mut ball,
+            mut rect,
+            mut color,
+            mut requests
+        ): Self::SystemData
+    ) {
         use cgmath::Zero;
         use rand::Rng;
-
-        let (entities,
-             spawner,
-             mut pos,
-             mut vel,
-             mut force,
-             mut inv_mass,
-             mut ball,
-             mut rect,
-             mut color,
-             mut requests) = data;
 
         let mut rng = thread_rng();
         let mut gen = || rng.gen_range(-4.0, 4.0);

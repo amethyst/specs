@@ -3,7 +3,7 @@
 ## When to use a `Dispatcher`
 
 The `Dispatcher` allows you to automatically parallelize
-system execution where possible, using the [fork-join model][fj] to split up the 
+system execution where possible, using the [fork-join model][fj] to split up the
 work and merge the result at the end. It requires a bit more planning
 and may have a little bit more overhead, but it's pretty convenient,
 especially when you're building a big game where you don't
@@ -40,7 +40,7 @@ system yet.
 struct UpdatePos;
 
 impl<'a> System<'a> for UpdatePos {
-    type SystemData = (ReadStorage<'a, Velocity>, 
+    type SystemData = (ReadStorage<'a, Velocity>,
                        WriteStorage<'a, Position>);
 }
 ```
@@ -48,11 +48,11 @@ impl<'a> System<'a> for UpdatePos {
 Let's talk about the system data first. What you see here
 is a **tuple**, which we are using as our `SystemData`.
 In fact, `SystemData` is implemented for all tuples
-with up to 26 other types implementing `SystemData` in it. 
+with up to 26 other types implementing `SystemData` in it.
 
 > Notice that `ReadStorage` and `WriteStorage` *are* implementors of `SystemData`
   themselves, that's why we could use the first one for our `HelloWorld` system
-  without wrapping it in a tuple; for more information see 
+  without wrapping it in a tuple; for more information see
   [the Chapter about system data][cs].
 
 [cs]: ./06_system_data.html
@@ -60,11 +60,8 @@ with up to 26 other types implementing `SystemData` in it.
 To complete the implementation block, here's the `run` method:
 
 ```rust,ignore
-    fn run(&mut self, data: Self::SystemData) {
+    fn run(&mut self, (vel, mut pos): Self::SystemData) {
         use specs::Join;
-        
-        let (vel, mut pos) = data;
-        
         for (vel, pos) in (&vel, &mut pos).join() {
             pos.x += vel.x * 0.05;
             pos.y += vel.y * 0.05;
@@ -109,13 +106,13 @@ use specs::{Component, DispatcherBuilder ReadStorage,
             System, VecStorage, World, WriteStorage};
 
 #[derive(Debug)]
-struct Position { 
-    x: f32, 
-    y: f32 
+struct Position {
+    x: f32,
+    y: f32
 }
 
 impl Component for Position {
-    type Storage = VecStorage<Position>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Debug)]
@@ -125,17 +122,17 @@ struct Velocity {
 }
 
 impl Component for Velocity {
-    type Storage = VecStorage<Velocity>;
+    type Storage = VecStorage<Self>;
 }
 
 struct HelloWorld;
 
 impl<'a> System<'a> for HelloWorld {
     type SystemData = ReadStorage<'a, Position>;
-    
+
     fn run(&mut self, position: Self::SystemData) {
         use specs::Join;
-    
+
         for position in position.join() {
             println!("Hello, {:?}", &position);
         }
@@ -145,14 +142,11 @@ impl<'a> System<'a> for HelloWorld {
 struct UpdatePos;
 
 impl<'a> System<'a> for UpdatePos {
-    type SystemData = (ReadStorage<'a, Velocity>, 
+    type SystemData = (ReadStorage<'a, Velocity>,
                        WriteStorage<'a, Position>);
-                       
-    fn run(&mut self, data: Self::SystemData) {
+
+    fn run(&mut self, (vel, mut pos): Self::SystemData) {
         use specs::Join;
-        
-        let (vel, mut pos) = data;
-        
         for (vel, pos) in (&vel, &mut pos).join() {
             pos.x += vel.x * 0.05;
             pos.y += vel.y * 0.05;
@@ -163,7 +157,7 @@ impl<'a> System<'a> for UpdatePos {
 fn main() {
     let mut world = World::new();
     world.register::<Position>();
-    
+
     // Only the second entity will get a position update,
     // because the first one does not have a velocity.
     world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
@@ -172,12 +166,12 @@ fn main() {
         .with(Position { x: 2.0, y: 5.0 })
         .with(Velocity { x: 0.1, y: 0.2 })
         .build();
-    
+
     let mut dispatcher = DispatcherBuilder::new()
         .add(HelloWorld, "hello_world", &[])
         .add(UpdatePos, "update_pos" &["hello_world"])
         .build();
-        
+
     dispatcher.dispatch(&mut world.res);
 }
 ```

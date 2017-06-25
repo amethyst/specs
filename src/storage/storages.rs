@@ -59,7 +59,7 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 /// impl Component for Comp {
 ///     // `FlaggedStorage` acts as a wrapper around another storage.
 ///     // You can put any store inside of here (e.g. HashMapStorage, VecStorage, etc.)
-///     type Storage = FlaggedStorage<Comp, VecStorage<Comp>>;
+///     type Storage = FlaggedStorage<Self, VecStorage<Self>>;
 /// }
 ///
 /// pub struct CompSystem;

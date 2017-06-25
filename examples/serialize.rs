@@ -23,7 +23,7 @@ fn main() {
         other: bool,
     }
     impl Component for CompSerialize {
-        type Storage = VecStorage<CompSerialize>;
+        type Storage = VecStorage<Self>;
     }
 
     #[derive(SystemData)]

@@ -18,7 +18,7 @@
 [gi]: https://badges.gitter.im/slide-rs/specs.svg
 [gl]: https://gitter.im/slide-rs/specs
 
-Specs is an Entity-Component System written in Rust. 
+Specs is an Entity-Component System written in Rust.
 Unlike most other ECS libraries out there, it provides
 
 * easy parallelism
@@ -41,11 +41,11 @@ struct Vel(f32);
 struct Pos(f32);
 
 impl Component for Vel {
-    type Storage = VecStorage<Vel>;
+    type Storage = VecStorage<Self>;
 }
 
 impl Component for Pos {
-    type Storage = VecStorage<Pos>;
+    type Storage = VecStorage<Self>;
 }
 
 struct SysA;
@@ -56,13 +56,10 @@ impl<'a> System<'a> for SysA {
     // see the `full` example.
     type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
 
-    fn run(&mut self, data: Self::SystemData) {
+    fn run(&mut self, (mut pos, vel): Self::SystemData) {
         // The `.join()` combines multiple components,
         // so we only access those entities which have
         // both of them.
-
-        let (mut pos, vel) = data;
-
         for (pos, vel) in (&mut pos, &vel).join() {
             pos.0 += vel.0;
         }
