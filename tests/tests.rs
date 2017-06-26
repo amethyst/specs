@@ -443,3 +443,25 @@ fn par_join_many_entities_and_systems() {
                n);
     }
 }
+
+fn par_join_check_storage() {
+    use rayon::iter::ParallelIterator;
+
+    struct Sys;
+
+    let mut world = create_world();
+
+    impl<'a> System<'a> for Sys {
+        type SystemData = (WriteStorage<'a, CompInt>);
+
+        fn run(&mut self, data: Self::SystemData) {
+            let mut ints = data;
+            (ints.check())
+                .par_join()
+                .for_each(|c_i| ints.get_mut_unchecked(&mut c_i).0 += 1);
+        }
+    }
+
+    let mut dispatcher = DispatcherBuilder::new().add(Sys, "", &[]).build();
+    dispatcher.dispatch(&mut world.res);
+}

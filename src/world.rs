@@ -621,6 +621,9 @@ impl World {
     }
 }
 
+unsafe impl Send for World {}
+unsafe impl Sync for World {}
+
 impl Default for World {
     fn default() -> Self {
         let mut res = Resources::new();
