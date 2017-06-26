@@ -12,11 +12,11 @@ struct Vel(f32);
 struct Pos(f32);
 
 impl Component for Vel {
-    type Storage = VecStorage<Vel>;
+    type Storage = VecStorage<Self>;
 }
 
 impl Component for Pos {
-    type Storage = VecStorage<Pos>;
+    type Storage = VecStorage<Self>;
 }
 
 struct SysA;
@@ -27,13 +27,10 @@ impl<'a> System<'a> for SysA {
     // see the `full` example.
     type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
 
-    fn run(&mut self, data: Self::SystemData) {
+    fn run(&mut self, (mut pos, vel): Self::SystemData) {
         // The `.join()` combines multiple components,
         // so we only access those entities which have
         // both of them.
-
-        let (mut pos, vel) = data;
-
         // You could also use `par_join()` to get a rayon `ParallelIterator`.
         for (pos, vel) in (&mut pos, &vel).join() {
             pos.0 += vel.0;

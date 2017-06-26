@@ -7,13 +7,13 @@ use specs::{Component, DispatcherBuilder, Entities, Entity, Fetch, FetchMut, Has
 #[derive(Clone, Debug)]
 struct CompInt(i8);
 impl Component for CompInt {
-    type Storage = VecStorage<CompInt>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Clone, Debug)]
 struct CompBool(bool);
 impl Component for CompBool {
-    type Storage = HashMapStorage<CompBool>;
+    type Storage = HashMapStorage<Self>;
 }
 
 fn create_world() -> World {
@@ -212,9 +212,7 @@ fn stillborn_entities() {
     impl<'a> System<'a> for Delete {
         type SystemData = (Entities<'a>, ReadStorage<'a, CompInt>, Fetch<'a, Rand>);
 
-        fn run(&mut self, data: Self::SystemData) {
-            let (entities, comp_int, rand) = data;
-
+        fn run(&mut self, (entities, comp_int, rand): Self::SystemData) {
             let mut lowest = Vec::new();
             for (&CompInt(k), entity) in (&comp_int, &*entities).join() {
                 if lowest.iter().all(|&(n, _)| n >= k) {
@@ -235,9 +233,7 @@ fn stillborn_entities() {
     impl<'a> System<'a> for Insert {
         type SystemData = (Entities<'a>, WriteStorage<'a, CompInt>, Fetch<'a, Rand>);
 
-        fn run(&mut self, data: Self::SystemData) {
-            let (entities, mut comp_int, rand) = data;
-
+        fn run(&mut self, (entities, mut comp_int, rand): Self::SystemData) {
             for &i in rand.values.iter() {
                 let result = comp_int.insert(entities.create(), CompInt(i));
                 if let InsertResult::EntityIsDead(_) = result {
@@ -327,8 +323,7 @@ fn join_two_components() {
     impl<'a> System<'a> for Iter {
         type SystemData = (ReadStorage<'a, CompInt>, ReadStorage<'a, CompBool>);
 
-        fn run(&mut self, data: Self::SystemData) {
-            let (int, boolean) = data;
+        fn run(&mut self, (int, boolean): Self::SystemData) {
             let (mut first, mut second) = (false, false);
             for (int, boolean) in (&int, &boolean).join() {
                 if int.0 == 1 && !boolean.0 {
@@ -374,9 +369,8 @@ fn par_join_two_components() {
     impl<'a, 'b> System<'a> for Iter<'b> {
         type SystemData = (ReadStorage<'a, CompInt>, ReadStorage<'a, CompBool>);
 
-        fn run(&mut self, data: Self::SystemData) {
+        fn run(&mut self, (int, boolean): Self::SystemData) {
             use rayon::iter::ParallelIterator;
-            let (int, boolean) = data;
             let Iter(ref first, ref second, ref error) = *self;
             (&int, &boolean)
                 .par_join()
@@ -416,8 +410,7 @@ fn par_join_many_entities_and_systems() {
     impl<'a> System<'a> for Incr {
         type SystemData = (Entities<'a>, WriteStorage<'a, CompInt>);
 
-        fn run(&mut self, data: Self::SystemData) {
-            let (entities, mut ints) = data;
+        fn run(&mut self, (entities, mut ints): Self::SystemData) {
             (&mut ints, &*entities)
                 .par_join()
                 .for_each(|(int, _)| { int.0 += 1; });
@@ -431,8 +424,7 @@ fn par_join_many_entities_and_systems() {
     impl<'a, 'b> System<'a> for FindFailed<'b> {
         type SystemData = (Entities<'a>, ReadStorage<'a, CompInt>);
 
-        fn run(&mut self, data: Self::SystemData) {
-            let (entities, ints) = data;
+        fn run(&mut self, (entities, ints): Self::SystemData) {
             (&ints, &*entities)
                 .par_join()
                 .for_each(|(int, entity)| if int.0 != 127 {

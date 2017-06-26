@@ -23,13 +23,13 @@ Let's start by creating some data:
 use specs::{Component, VecStorage};
 
 #[derive(Debug)]
-struct Position { 
-    x: f32, 
-    y: f32 
+struct Position {
+    x: f32,
+    y: f32
 }
 
 impl Component for Position {
-    type Storage = VecStorage<Position>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Debug)]
@@ -39,11 +39,11 @@ struct Velocity {
 }
 
 impl Component for Velocity {
-    type Storage = VecStorage<Velocity>;
+    type Storage = VecStorage<Self>;
 }
 ```
 
-These will be our components, stored in a `VecStorage` 
+These will be our components, stored in a `VecStorage`
 (see [the storages chapter][sc] for more details), so we can associate some data
 with an entity. Before doing that, we need to create a world, because this is
 where the storage for all the components is located.
@@ -79,7 +79,7 @@ struct HelloWorld;
 
 impl<'a> System<'a> for HelloWorld {
     type SystemData = ();
-    
+
     fn run(&mut self, data: Self::SystemData) {}
 }
 ```
@@ -99,10 +99,10 @@ struct HelloWorld;
 
 impl<'a> System<'a> for HelloWorld {
     type SystemData = ReadStorage<'a, Position>;
-    
+
     fn run(&mut self, position: Self::SystemData) {
         use specs::Join;
-    
+
         for position in position.join() {
             println!("Hello, {:?}", &position);
         }
@@ -136,13 +136,13 @@ Here the complete example of this chapter:
 use specs::{Component, ReadStorage, System, VecStorage, World, RunNow};
 
 #[derive(Debug)]
-struct Position { 
-    x: f32, 
-    y: f32 
+struct Position {
+    x: f32,
+    y: f32
 }
 
 impl Component for Position {
-    type Storage = VecStorage<Position>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Debug)]
@@ -152,17 +152,17 @@ struct Velocity {
 }
 
 impl Component for Velocity {
-    type Storage = VecStorage<Velocity>;
+    type Storage = VecStorage<Self>;
 }
 
 struct HelloWorld;
 
 impl<'a> System<'a> for HelloWorld {
     type SystemData = ReadStorage<'a, Position>;
-    
+
     fn run(&mut self, position: Self::SystemData) {
         use specs::Join;
-    
+
         for position in position.join() {
             println!("Hello, {:?}", &position);
         }
@@ -172,9 +172,9 @@ impl<'a> System<'a> for HelloWorld {
 fn main() {
     let mut world = World::new();
     world.register::<Position>();
-    
+
     world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
-    
+
     let mut hello_world = HelloWorld;
     hello_world.run_now(&world.res);
 }
