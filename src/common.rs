@@ -24,7 +24,8 @@ use std::io::Write;
 use std::marker::PhantomData;
 
 use futures::{Async, Future};
-use {Component, DenseVecStorage, Entities, FetchMut, Join, RunningTime, System, WriteStorage};
+use {Component, DenseVecStorage, Entity, Entities, FetchMut, Join, RunningTime, System,
+     WriteStorage};
 
 /// A boxed error implementing `Debug`, `Display` and `Error`.
 pub struct BoxedErr(pub Box<Error + Send + Sync + 'static>);
@@ -90,7 +91,7 @@ impl Errors {
         self.errors.push(error);
     }
 
-    /// Prints all errors and exits. Useful for debugging.
+    /// Prints all errors and exits in case there's been an error. Useful for debugging.
     pub fn print_and_exit(&mut self) {
         use std::io::stderr;
         use std::process::exit;
@@ -99,18 +100,17 @@ impl Errors {
             return;
         }
 
-        writeln!(&mut stderr(),
+        let stderr = stderr();
+        let mut stderr = stderr.lock();
+
+        writeln!(&mut stderr,
                  "Exiting program because of {} errors...",
                  self.errors.len()).unwrap();
 
-        for error in self.errors.drain(..) {
+        for (ind, error) in self.errors.drain(..).enumerate() {
             let error = error.as_ref();
 
-            writeln!(&mut stderr(),
-                     "-----\n\tDescription: {}\n\tDebug: {:?}\n\tDisplay: {}",
-                     error.description(),
-                     error,
-                     error).unwrap();
+            writeln!(&mut stderr, "{}: {}", ind, error).unwrap();
         }
 
         exit(1);
@@ -124,6 +124,7 @@ impl Errors {
 /// In case of an error, it will be added to the `Errors` resource.
 pub struct Merge<T> {
     asset_type: PhantomData<T>,
+    tmp: Vec<Entity>,
 }
 
 impl<T> Merge<T> {
@@ -131,6 +132,7 @@ impl<T> Merge<T> {
     pub fn new() -> Self {
         Merge {
             asset_type: PhantomData,
+            tmp: Vec::new(),
         }
     }
 }
@@ -143,10 +145,8 @@ impl<'a, T> System<'a> for Merge<T>
                        WriteStorage<'a, FutureComponent<T>>,
                        WriteStorage<'a, T>);
 
-    fn run(&mut self, data: Self::SystemData) {
-        let (entities, mut errors, mut future, mut pers) = data;
-
-        let mut delete = Vec::new();
+    fn run(&mut self, (entities, mut errors, mut future, mut pers): Self::SystemData) {
+        let mut delete = &mut self.tmp;
 
         for (e, future) in (&*entities, &mut future).join() {
             match future.poll() {
@@ -162,7 +162,7 @@ impl<'a, T> System<'a> for Merge<T>
             }
         }
 
-        for e in delete {
+        for e in delete.drain(..) {
             future.remove(e);
         }
     }
