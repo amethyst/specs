@@ -175,9 +175,11 @@ extern crate shred;
 extern crate tuple_utils;
 extern crate rayon;
 
-#[cfg(feature="serialize")]
+#[cfg(feature = "common")]
+extern crate futures;
+#[cfg(feature = "serialize")]
 extern crate serde;
-#[cfg(feature="serialize")]
+#[cfg(feature = "serialize")]
 #[macro_use]
 extern crate serde_derive;
 
@@ -196,6 +198,9 @@ pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, En
 
 #[cfg(feature = "serialize")]
 pub use storage::{MergeError, PackedData};
+
+#[cfg(feature = "common")]
+pub mod common;
 
 /// A wrapper for a fetched `Entities` resource.
 /// Note that this is just `Fetch<Entities>`, so
