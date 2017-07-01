@@ -24,8 +24,7 @@ use std::io::Write;
 use std::marker::PhantomData;
 
 use futures::{Async, Future};
-use {Component, DenseVecStorage, Entity, Entities, FetchMut, Join, RunningTime, System,
-     WriteStorage};
+use {Component, Entity, Entities, FetchMut, Join, RunningTime, System, WriteStorage};
 
 /// A boxed error implementing `Debug`, `Display` and `Error`.
 pub struct BoxedErr(pub Box<Error + Send + Sync + 'static>);
@@ -63,14 +62,8 @@ impl Error for BoxedErr {
     }
 }
 
-/// The component type for futures of `T`.
-pub type FutureComponent<T> = Box<Future<Item = T, Error = BoxedErr> + Send + Sync>;
-
-impl<T> Component for FutureComponent<T>
-    where T: Send + Sync + 'static
-{
-    type Storage = DenseVecStorage<FutureComponent<T>>;
-}
+/// A boxed, thread-safe future with `T` as item and `BoxedErr` as error type.
+pub type BoxedFuture<T> = Box<Future<Item = T, Error = BoxedErr> + Send + Sync + 'static>;
 
 /// A resource you can use to store errors that occurred outside of
 /// the ECS but were catched inside, therefore should be handled by the user.
@@ -119,30 +112,31 @@ impl Errors {
 
 /// A system which merges `Ready` futures into the persistent storage.
 /// Please note that your `World` has to contain a component storage
-/// for `T`.
+/// for `F` and `F::Item`.
 ///
 /// In case of an error, it will be added to the `Errors` resource.
-pub struct Merge<T> {
-    asset_type: PhantomData<T>,
+pub struct Merge<F> {
+    future_type: PhantomData<F>,
     tmp: Vec<Entity>,
 }
 
-impl<T> Merge<T> {
+impl<F> Merge<F> {
     /// Creates a new merge system.
     pub fn new() -> Self {
         Merge {
-            asset_type: PhantomData,
+            future_type: PhantomData,
             tmp: Vec::new(),
         }
     }
 }
 
-impl<'a, T> System<'a> for Merge<T>
-    where T: Component + Send + Sync + 'static
+impl<'a, T, F> System<'a> for Merge<F>
+    where T: Component + Send + Sync + 'static,
+          F: Future<Item = T, Error = BoxedErr> + Component + Send + Sync,
 {
     type SystemData = (Entities<'a>,
                        FetchMut<'a, Errors>,
-                       WriteStorage<'a, FutureComponent<T>>,
+                       WriteStorage<'a, F>,
                        WriteStorage<'a, T>);
 
     fn run(&mut self, (entities, mut errors, mut future, mut pers): Self::SystemData) {

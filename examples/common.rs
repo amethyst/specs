@@ -4,22 +4,37 @@ extern crate specs;
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
-use futures::Future;
+use futures::{Future, Poll};
 use futures::future::Lazy;
 use specs::*;
-use specs::common::{Errors, FutureComponent, Merge};
+use specs::common::{BoxedErr, BoxedFuture, Errors, Merge};
 
 struct MyFloat(f32);
 
+struct MyFuture(BoxedFuture<MyFloat>);
+
+impl Future for MyFuture {
+    type Item = MyFloat;
+    type Error = BoxedErr;
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        self.0.poll()
+    }
+}
+
 impl Component for MyFloat {
     type Storage = VecStorage<Self>;
+}
+
+impl Component for MyFuture {
+    type Storage = DenseVecStorage<Self>;
 }
 
 fn main() {
     let mut world = World::new();
 
     world.register::<MyFloat>();
-    world.register::<FutureComponent<MyFloat>>();
+    world.register::<MyFuture>();
 
     world.add_resource(Errors::new());
 
@@ -28,7 +43,7 @@ fn main() {
         .build();
 
     let mut dispatcher = DispatcherBuilder::new()
-        .add(Merge::<MyFloat>::new(), "merge_my_float", &[])
+        .add(Merge::<MyFuture>::new(), "merge_my_float", &[])
         .build();
 
     dispatcher.dispatch(&mut world.res);
@@ -57,12 +72,12 @@ impl Error for MyErr {
     }
 }
 
-fn future_sqrt(num: f32) -> FutureComponent<MyFloat> {
+fn future_sqrt(num: f32) -> MyFuture {
     use futures::lazy;
     use specs::common::BoxedErr;
 
     let lazy: Lazy<_, Result<_, MyErr>> = lazy(move || Ok(num.sqrt()));
     let future = lazy.map(MyFloat).map_err(BoxedErr::new);
 
-    Box::new(future)
+    MyFuture(Box::new(future))
 }
