@@ -7,6 +7,11 @@ use shred::{Fetch, FetchMut, Resource, Resources};
 use storage::{AnyStorage, MaskedStorage};
 use {Index, Join, ParJoin, ReadStorage, Storage, UnprotectedStorage, WriteStorage};
 
+const COMPONENT_NOT_REGISTERED: &str = "No component with the given id. Did you forget to register \
+the component with `World::register::<ComponentName>()`?";
+const RESOURCE_NOT_ADDED: &str = "No resource with the given id. Did you forget to add \
+the resource with `World::add_resource(resource)`?";
+
 /// Internally used structure for `Entity` allocation.
 #[derive(Default, Debug)]
 pub struct Allocator {
@@ -369,11 +374,16 @@ impl Generation {
 /// the borrowing rules of Rust (multiple reads xor one write),
 /// you will get a panic.
 ///
-/// # Component / Resource ids
+/// # Component / Resources ids
 ///
 /// Components and resources may, in addition to their type, be identified
 /// by an id of type `usize`. The convenience methods dealing
 /// with components assume that it's `0`.
+///
+/// If a system attempts to access a component/resource that has not been
+/// registered/added, it will panic when run. Add all components with
+/// `World::register` before running any systems. Also add all resources
+/// with `World::add_resource`.
 pub struct World {
     /// The resources used for this world.
     pub res: Resources,
@@ -464,10 +474,12 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed mutably.
+    /// Also panics if the component is not registered with `World::register`.
     pub fn read_with_id<T: Component>(&self, id: usize) -> ReadStorage<T> {
         let entities = self.entities();
+        let resource = self.res.try_fetch::<MaskedStorage<T>>(id);
 
-        Storage::new(entities, self.res.fetch(id))
+        Storage::new(entities, resource.expect(COMPONENT_NOT_REGISTERED))
     }
 
     /// Fetches a component's storage with a specified id for writing.
@@ -475,10 +487,12 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed.
+    /// Also panics if the component is not registered with `World::register`.
     pub fn write_with_id<T: Component>(&self, id: usize) -> WriteStorage<T> {
         let entities = self.entities();
+        let resource = self.res.try_fetch_mut::<MaskedStorage<T>>(id);
 
-        Storage::new(entities, self.res.fetch_mut(id))
+        Storage::new(entities, resource.expect(COMPONENT_NOT_REGISTERED))
     }
 
     /// Fetches a resource with a specified id for reading.
@@ -487,7 +501,7 @@ impl World {
     ///
     /// Panics if it is already borrowed mutably.
     pub fn read_resource_with_id<T: Resource>(&self, id: usize) -> Fetch<T> {
-        self.res.fetch(id)
+        self.res.try_fetch(id).expect(RESOURCE_NOT_ADDED)
     }
 
     /// Fetches a resource with a specified id for writing.
@@ -496,7 +510,7 @@ impl World {
     ///
     /// Panics if it is already borrowed.
     pub fn write_resource_with_id<T: Resource>(&self, id: usize) -> FetchMut<T> {
-        self.res.fetch_mut(id)
+        self.res.try_fetch_mut(id).expect(RESOURCE_NOT_ADDED)
     }
 
     /// Fetches a resource with the default id for reading.
