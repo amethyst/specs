@@ -186,7 +186,6 @@ impl<'a, C, T: UnprotectedStorage<C>> Join for &'a mut FlaggedStorage<C, T> {
     }
 }
 
-
 /// HashMap-based storage. Best suited for rare components.
 pub struct HashMapStorage<T>(FnvHashMap<Index, T>);
 
