@@ -62,6 +62,10 @@ impl<'a> System<'a> for PosUpdate {
 }
 ```
 
+Note that all resources that a system accesses must be registered with
+`world.add_resource(resource)` before that system is run, or you will get a
+panic.
+
 For more information on `SystemData`, see [the
 system data chapter][cs].
 

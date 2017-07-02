@@ -34,7 +34,7 @@
 //! struct MyComp;
 //!
 //! impl Component for MyComp {
-//!     type Storage = VecStorage<MyComp>;
+//!     type Storage = VecStorage<Self>;
 //! }
 //! ```
 //!
@@ -86,11 +86,11 @@
 //! struct Pos(f32);
 //!
 //! impl Component for Vel {
-//!     type Storage = VecStorage<Vel>;
+//!     type Storage = VecStorage<Self>;
 //! }
 //!
 //! impl Component for Pos {
-//!     type Storage = VecStorage<Pos>;
+//!     type Storage = VecStorage<Self>;
 //! }
 //!
 //! struct SysA;
@@ -101,12 +101,10 @@
 //!     // see the `full` example.
 //!     type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
 //!
-//!     fn run(&mut self, data: Self::SystemData) {
+//!     fn run(&mut self, (mut pos, vel): Self::SystemData) {
 //!         // The `.join()` combines multiple components,
 //!         // so we only access those entities which have
 //!         // both of them.
-//!
-//!         let (mut pos, vel) = data;
 //!
 //!         // This joins the component storages for Position
 //!         // and Velocity together; it's also possible to do this
@@ -177,15 +175,21 @@ extern crate shred;
 extern crate tuple_utils;
 extern crate rayon;
 
-#[cfg(feature="serialize")]
+#[cfg(feature = "common")]
+extern crate futures;
+#[cfg(feature = "serialize")]
 extern crate serde;
-#[cfg(feature="serialize")]
+#[cfg(feature = "serialize")]
 #[macro_use]
 extern crate serde_derive;
 
 pub use join::{Join, JoinIter, JoinParIter, ParJoin};
-pub use shred::{AsyncDispatcher, Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
+pub use shred::{ Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
                 FetchMut, RunNow, RunningTime, System, SystemData};
+
+#[cfg(not(target_os = "emscripten"))]
+pub use shred::{AsyncDispatcher};
+
 pub use storage::{BTreeStorage, CheckStorage, DenseVecStorage, DistinctStorage, FlaggedStorage,
                   HashMapStorage, InsertResult, NullStorage, ReadStorage, Storage,
                   UnprotectedStorage, VecStorage, WriteStorage};
@@ -194,6 +198,9 @@ pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, En
 
 #[cfg(feature = "serialize")]
 pub use storage::{MergeError, PackedData};
+
+#[cfg(feature = "common")]
+pub mod common;
 
 /// A wrapper for a fetched `Entities` resource.
 /// Note that this is just `Fetch<Entities>`, so

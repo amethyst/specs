@@ -15,7 +15,7 @@ mod map_test {
     #[derive(Debug)]
     struct Comp<T>(T);
     impl<T: Any + Send + Sync> Component for Comp<T> {
-        type Storage = VecStorage<Comp<T>>;
+        type Storage = VecStorage<Self>;
     }
 
     fn ent(i: Index) -> Entity {
@@ -127,7 +127,7 @@ mod test {
         }
     }
     impl Component for Cvec {
-        type Storage = VecStorage<Cvec>;
+        type Storage = VecStorage<Self>;
     }
 
     #[derive(PartialEq, Eq, Debug)]
@@ -143,7 +143,7 @@ mod test {
         }
     }
     impl Component for FlaggedCvec {
-        type Storage = FlaggedStorage<FlaggedCvec, VecStorage<FlaggedCvec>>;
+        type Storage = FlaggedStorage<Self, VecStorage<Self>>;
     }
 
     #[derive(PartialEq, Eq, Debug)]
@@ -159,7 +159,7 @@ mod test {
         }
     }
     impl Component for Cmap {
-        type Storage = HashMapStorage<Cmap>;
+        type Storage = HashMapStorage<Self>;
     }
 
     #[derive(PartialEq, Eq, Debug)]
@@ -175,7 +175,7 @@ mod test {
         }
     }
     impl Component for CBtree {
-        type Storage = BTreeStorage<CBtree>;
+        type Storage = BTreeStorage<Self>;
     }
 
     #[derive(Clone, Debug)]
@@ -191,7 +191,7 @@ mod test {
         }
     }
     impl Component for Cnull {
-        type Storage = NullStorage<Cnull>;
+        type Storage = NullStorage<Self>;
     }
 
     fn test_add<T: Component + From<u32> + Debug + Eq>() {
@@ -510,7 +510,7 @@ mod serialize_test {
         field2: bool,
     }
     impl Component for CompTest {
-        type Storage = VecStorage<CompTest>;
+        type Storage = VecStorage<Self>;
     }
 
     #[test]

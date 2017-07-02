@@ -17,7 +17,7 @@ struct CompInt(i32);
 impl Component for CompInt {
     // Storage is used to store all data for components of this type
     // VecStorage is meant to be used for components that are in almost every entity
-    type Storage = VecStorage<CompInt>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Clone, Debug)]
@@ -25,14 +25,14 @@ struct CompBool(bool);
 
 impl Component for CompBool {
     // HashMapStorage is better for components that are met rarely
-    type Storage = HashMapStorage<CompBool>;
+    type Storage = HashMapStorage<Self>;
 }
 
 #[derive(Clone, Debug)]
 struct CompFloat(f32);
 
 impl Component for CompFloat {
-    type Storage = DenseVecStorage<CompFloat>;
+    type Storage = DenseVecStorage<Self>;
 }
 
 // -- Resources --
@@ -168,11 +168,8 @@ struct JoinParallel;
 impl<'a> System<'a> for JoinParallel {
     type SystemData = (ReadStorage<'a, CompInt>, WriteStorage<'a, CompFloat>);
 
-    fn run(&mut self, data: Self::SystemData) {
+    fn run(&mut self, (comp_int, mut comp_float): Self::SystemData) {
         use rayon::prelude::*;
-
-        let (comp_int, mut comp_float) = data;
-
         (&comp_int, &mut comp_float)
             .par_join()
             .for_each(|(i, f)| f.0 += i.0 as f32);

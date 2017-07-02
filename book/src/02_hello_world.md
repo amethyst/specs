@@ -23,13 +23,13 @@ Let's start by creating some data:
 use specs::{Component, VecStorage};
 
 #[derive(Debug)]
-struct Position { 
-    x: f32, 
-    y: f32 
+struct Position {
+    x: f32,
+    y: f32
 }
 
 impl Component for Position {
-    type Storage = VecStorage<Position>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Debug)]
@@ -39,12 +39,12 @@ struct Velocity {
 }
 
 impl Component for Velocity {
-    type Storage = VecStorage<Velocity>;
+    type Storage = VecStorage<Self>;
 }
 ```
 
-This will be our component, stored in a `VecStorage` 
-(see [the storages chapter][sc] for more details), so some data we can associate
+These will be our components, stored in a `VecStorage`
+(see [the storages chapter][sc] for more details), so we can associate some data
 with an entity. Before doing that, we need to create a world, because this is
 where the storage for all the components is located.
 
@@ -79,14 +79,14 @@ struct HelloWorld;
 
 impl<'a> System<'a> for HelloWorld {
     type SystemData = ();
-    
+
     fn run(&mut self, data: Self::SystemData) {}
 }
 ```
 
-This is how a system looks like. That is, a system which
-does not do anything (yet). Let's talk about the above dummy
-implementation first. The `SystemData` is an associated type
+This is what a system looks like. Though it doesn't do anything (yet).
+Let's talk about this dummy implementation first.
+The `SystemData` is an associated type
 which specifies which components we need in order to run
 the system.
 
@@ -99,16 +99,20 @@ struct HelloWorld;
 
 impl<'a> System<'a> for HelloWorld {
     type SystemData = ReadStorage<'a, Position>;
-    
+
     fn run(&mut self, position: Self::SystemData) {
         use specs::Join;
-    
+
         for position in position.join() {
             println!("Hello, {:?}", &position);
         }
     }
 }
 ```
+
+Note that all components that a system accesses must be registered with
+`world.register::<Component>()` before that system is run, or you will get a
+panic.
 
 > There are many other types you can use as system
   data. Please see the [System Data Chapter][cs] for more
@@ -133,16 +137,16 @@ hello_world.run_now(&world.res);
 Here the complete example of this chapter:
 
 ```rust,ignore
-use specs::{Component, ReadStorage, System, VecStorage, World};
+use specs::{Component, ReadStorage, System, VecStorage, World, RunNow};
 
 #[derive(Debug)]
-struct Position { 
-    x: f32, 
-    y: f32 
+struct Position {
+    x: f32,
+    y: f32
 }
 
 impl Component for Position {
-    type Storage = VecStorage<Position>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Debug)]
@@ -152,17 +156,17 @@ struct Velocity {
 }
 
 impl Component for Velocity {
-    type Storage = VecStorage<Velocity>;
+    type Storage = VecStorage<Self>;
 }
 
 struct HelloWorld;
 
 impl<'a> System<'a> for HelloWorld {
     type SystemData = ReadStorage<'a, Position>;
-    
+
     fn run(&mut self, position: Self::SystemData) {
         use specs::Join;
-    
+
         for position in position.join() {
             println!("Hello, {:?}", &position);
         }
@@ -172,10 +176,10 @@ impl<'a> System<'a> for HelloWorld {
 fn main() {
     let mut world = World::new();
     world.register::<Position>();
-    
+
     world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
-    
-    let hello_world = HelloWorld;
+
+    let mut hello_world = HelloWorld;
     hello_world.run_now(&world.res);
 }
 ```

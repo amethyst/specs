@@ -1,10 +1,10 @@
 
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Not};
 
 use hibitset::BitSet;
 
-use storage::MaskedStorage;
+use storage::{AntiStorage, MaskedStorage};
 use world::EntityIndex;
 use {Component, DistinctStorage, Index, Join, Storage, UnprotectedStorage};
 
@@ -32,6 +32,13 @@ impl<'a, 'e, T, D> Join for &'a CheckStorage<'e, T, D> {
             original: *storage,
             phantom: PhantomData,
         }
+    }
+}
+
+impl<'a, 'e, T, D> Not for &'a CheckStorage<'e, T, D> {
+    type Output = AntiStorage<'a>;
+    fn not(self) -> Self::Output {
+        AntiStorage(&self.bitset)
     }
 }
 

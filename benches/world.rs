@@ -13,14 +13,14 @@ use specs::{Component, HashMapStorage, Join, ParJoin, VecStorage, World};
 struct CompInt(i32);
 
 impl Component for CompInt {
-    type Storage = VecStorage<CompInt>;
+    type Storage = VecStorage<Self>;
 }
 
 #[derive(Clone, Debug)]
 struct CompBool(bool);
 
 impl Component for CompBool {
-    type Storage = HashMapStorage<CompBool>;
+    type Storage = HashMapStorage<Self>;
 }
 
 fn create_world() -> World {
