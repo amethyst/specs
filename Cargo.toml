@@ -50,5 +50,15 @@ rand = "0.3"
 serde_json = "1.0"
 
 [[example]]
+name = "basic"
+
+[[example]]
+name = "full"
+
+[[example]]
 name = "common"
 required-features = ["common"]
+
+[[example]]
+name = "serialize"
+required-features = ["serialize"]
