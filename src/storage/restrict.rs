@@ -4,17 +4,18 @@ use std::ops::{Deref, DerefMut};
 use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
 
-use shred::Fetch;
 use hibitset::BitSet;
 
 use storage::MaskedStorage;
-use world::{EntityIndex, EntitiesRes};
-use {Component, Entity, Index, Join, Storage, UnprotectedStorage};
+use world::EntityIndex;
+use {Component, DistinctStorage, Entities, Entity, Index, Join, Storage, UnprotectedStorage};
 
 /// Generic flags for the restricted storage to determine
 /// the type of restriction.
 pub mod restrict_type {
+    /// Specifies that the `RestrictedStorage` cannot run in parallel.
     pub struct Normal;
+    /// Specifies that the `RestrictedStorage` can run in parallel.
     pub struct Parallel;
 }
 
@@ -29,9 +30,15 @@ pub struct RestrictedStorage<'rf, 'st: 'rf, B, T, R, RT>
 {
     bitset: B,
     data: R,
-    entities: &'rf Fetch<'st, EntitiesRes>,
+    entities: &'rf Entities<'st>,
     phantom: PhantomData<(T, RT)>,
 }
+
+unsafe impl<'rf, 'st: 'rf, B, T, R, RT> DistinctStorage for RestrictedStorage<'rf, 'st, B, T, R, RT>
+    where T: Component,
+          R: Borrow<T::Storage> + 'rf,
+          B: Borrow<BitSet> + 'rf,
+{ }
 
 impl<'rf, 'st, B, T, R, RT> RestrictedStorage<'rf, 'st, B, T, R, RT>
     where T: Component,
@@ -78,6 +85,10 @@ impl<'rf, 'st, B, T, R> RestrictedStorage<'rf, 'st, B, T, R, restrict_type::Norm
     /// Attempts to get the component related to the entity mutably.
     ///
     /// Functions similar to the normal `Storage::get_mut` implementation.
+    ///
+    /// Note: This only works if this is a parallel and mutable `RestrictedStorage`.
+    /// You can get one by using the `par_restrict_mut` method instead of the normal
+    /// `restrict_mut`/`restrict` methods on a storage.
     pub fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
             Some(unsafe { self.data.borrow_mut().get_mut(entity.id()) })
@@ -106,7 +117,7 @@ impl<'rf, 'st: 'rf, B, T, R, RT> Join for &'rf RestrictedStorage<'rf, 'st, B, T,
             phantom: PhantomData,
         };
         
-        (entry, value) // reference?
+        (entry, value)
     }
 }
 
@@ -143,19 +154,6 @@ impl<'st, T, D> Storage<'st, T, D>
     /// bitset for iteration in `Join`.
     pub fn restrict<'rf>(&'rf self)
         -> RestrictedStorage<'rf, 'st, &'rf BitSet, T, &'rf T::Storage, restrict_type::Normal>
-    {
-        RestrictedStorage {
-            bitset: &self.data.mask,
-            data: &self.data.inner,
-            entities: &self.entities,
-            phantom: PhantomData,
-        }
-    }
-
-    /// Builds a parallel `RestrictedStorage`, does not allow mutably getting other components
-    /// aside from the current iteration.
-    pub fn par_restrict<'rf>(&'rf self)
-        -> RestrictedStorage<'rf, 'st, &'rf BitSet, T, &'rf T::Storage, restrict_type::Parallel>
     {
         RestrictedStorage {
             bitset: &self.data.mask,
@@ -209,6 +207,9 @@ pub struct Entry<'rf, T>
     pointer: *const T::Storage,
     phantom: PhantomData<&'rf ()>,
 }
+
+unsafe impl<'rf, T: Component> Send for Entry<'rf, T> { }
+unsafe impl<'rf, T: Component> Sync for Entry<'rf, T> { }
 
 impl<'rf, T> fmt::Debug for Entry<'rf, T>
     where T: Component

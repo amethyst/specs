@@ -50,7 +50,6 @@ struct Sum(usize);
 struct IntAndBoolData<'a> {
     comp_int: ReadStorage<'a, CompInt>,
     comp_bool: WriteStorage<'a, CompBool>,
-    entities: Entities<'a>,
 }
 
 #[derive(SystemData)]
@@ -86,19 +85,6 @@ impl<'a> System<'a> for SysCheckPositive {
     type SystemData = IntAndBoolData<'a>;
 
     fn run(&mut self, mut data: IntAndBoolData) {
-        
-        for (entity, (entry, restricted)) in (&*data.entities, &mut data.comp_bool.restrict_mut()).join() {
-            {
-                let component = restricted.get_unchecked(&entry);
-                println!("immutable: {:?}: {:?}", entry, component);
-            }
-
-            {
-                let mut component = restricted.get_mut_unchecked(&entry);
-                component.0 = !component.0;
-                println!("mutable: {:?}: {:?}", entry, component);
-            }
-        }
         // Join merges the two component storages,
         // so you get all (CompInt, CompBool) pairs.
         for (ci, cb) in (&data.comp_int, &mut data.comp_bool).join() {

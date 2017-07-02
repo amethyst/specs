@@ -478,7 +478,7 @@ mod test {
     }
 
     #[test]
-    //#[should_panic]
+    #[should_panic]
     fn wrong_storage() {
         use join::Join;
         let mut w = World::new();
@@ -486,14 +486,15 @@ mod test {
         w.register_with_id::<Cvec>(2);
         let mut s1: Storage<Cvec, _> = w.write_with_id(1);
         // Possibility if the world uses dynamic components.
-        let s2: Storage<Cvec, _> = w.write_with_id(2);
+        let mut s2: Storage<Cvec, _> = w.write_with_id(2);
 
         for i in 0..50 {
             s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
+            s2.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
         }
         for ((s1_entry, s1_restricted), (s2_entry, s2_restricted)) in (&s1.restrict(), &s2.restrict()).join() {
-            s2_restricted.get_unchecked(&s1_entry); // verify that the assert fails if the storage is
-            // not the original.
+            // verify that the assert fails if the storage is not the original.
+            s2_restricted.get_unchecked(&s1_entry); 
         }
     }
 
@@ -524,7 +525,7 @@ mod test {
         (&mut s1).open().1.clear_flags();
 
         // Cleared flags
-        for (entity, _) in (entities, (&s1).check()).join() {
+        for (entity, _) in (entities, &s1.check()).join() {
             assert!(!s1.open().1.flagged(&entity));
         }
 
@@ -534,7 +535,7 @@ mod test {
             c1.0 += c2.0;
         }
 
-        for (entity, _) in (entities, s1.check()).join() {
+        for (entity, _) in (entities, &s1.check()).join() {
             // Should only be modified if the entity had both components
             // Which means only half of them should have it.
             if s1.open().1.flagged(&entity) {
