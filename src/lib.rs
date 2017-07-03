@@ -168,6 +168,7 @@
 //!
 
 extern crate atom;
+extern crate crossbeam;
 extern crate fnv;
 extern crate hibitset;
 extern crate mopa;
@@ -194,7 +195,7 @@ pub use storage::{BTreeStorage, CheckStorage, DenseVecStorage, DistinctStorage, 
                   HashMapStorage, InsertResult, NullStorage, ReadStorage, Storage,
                   UnprotectedStorage, VecStorage, WriteStorage};
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
-                Generation, World};
+                Generation, LazyInsert, LazyInsertions, World};
 
 #[cfg(feature = "serialize")]
 pub use storage::{MergeError, PackedData};
