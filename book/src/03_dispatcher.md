@@ -169,7 +169,7 @@ fn main() {
 
     let mut dispatcher = DispatcherBuilder::new()
         .add(HelloWorld, "hello_world", &[])
-        .add(UpdatePos, "update_pos" &["hello_world"])
+        .add(UpdatePos, "update_pos", &["hello_world"])
         .build();
 
     dispatcher.dispatch(&mut world.res);
