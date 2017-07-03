@@ -48,7 +48,7 @@ impl<'a> System<'a> for PosUpdate {
                        WriteStorage<'a, Position>);
                        
     fn run(&mut self, data: Self::SystemData) {
-        let (delta, vel, pos) = data;
+        let (delta, vel, mut pos) = data;
         
         // `Fetch` implements `Deref`, so it
         // coerces to `&DeltaTime`.
