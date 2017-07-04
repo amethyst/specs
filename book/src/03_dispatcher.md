@@ -157,6 +157,7 @@ impl<'a> System<'a> for UpdatePos {
 fn main() {
     let mut world = World::new();
     world.register::<Position>();
+    world.register::<Velocity>();
 
     // Only the second entity will get a position update,
     // because the first one does not have a velocity.
