@@ -11,7 +11,7 @@
 * Better docs for `World` and better panic message ([#199])
 * Add support for Emscripten ([#205])
 * Change examples to use `FooStorage<Self>` and destructure system data in method head ([#206])
-* `AntiStorage` for `ChecStorage` ([#208])
+* `AntiStorage` for `CheckStorage` ([#208])
 * Integrate futures by introducing a `common` module ([#209])
 
 [#198]: https://github.com/slide-rs/specs/pull/198
@@ -20,3 +20,9 @@
 [#206]: https://github.com/slide-rs/specs/pull/206
 [#208]: https://github.com/slide-rs/specs/pull/208
 [#209]: https://github.com/slide-rs/specs/pull/209
+[#214]: https://github.com/slide-rs/specs/pull/214
+
+## 0.10.0
+* Separate `CheckStorage` into two variants and fix soundness issues ([#203])
+
+[#203]: https://github.com/slide-rs/specs/pull/203
