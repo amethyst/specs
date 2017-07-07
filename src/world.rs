@@ -412,7 +412,33 @@ pub struct LazyInsertions {
 }
 
 impl LazyInsertions {
-    /// Adds an insertion.
+    /// Adds an insertion. Please note that this method takes `&self`
+    /// so there's no need to fetch it mutably.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use specs::*;
+    /// #
+    /// struct Pos(f32, f32);
+    ///
+    /// impl Component for Pos {
+    ///     type Storage = VecStorage<Self>;
+    /// }
+    ///
+    /// struct InsertPos;
+    ///
+    /// impl<'a> System<'a> for InsertPos {
+    ///     type SystemData = (Entities<'a>, Fetch<'a, LazyInsertions>);
+    ///
+    ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
+    ///         let a = ent.create();
+    ///         let b = ent.create();
+    ///
+    ///         lazy.add(vec![(a, Pos(3.0, 1.0)), (b, Pos(0.0, 4.0))]);
+    ///     }
+    /// }
+    /// ```
     pub fn add<L>(&self, l: L)
         where L: LazyInsert + 'static
     {
@@ -722,5 +748,35 @@ impl Default for World {
             res: res,
             storages: Default::default(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use storage::VecStorage;
+    use super::*;
+
+    struct Pos;
+
+    impl Component for Pos {
+        type Storage = VecStorage<Self>;
+    }
+
+    #[test]
+    fn lazy_insertion() {
+        let mut world = World::new();
+        world.register::<Pos>();
+
+        let e;
+        {
+            let entities = world.read_resource::<EntitiesRes>();
+            let lazy = world.read_resource::<LazyInsertions>();
+
+            e = entities.create();
+            lazy.add((e, Pos));
+        }
+
+        world.maintain();
+        assert!(world.read::<Pos>().get(e).is_some());
     }
 }
