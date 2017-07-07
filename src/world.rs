@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use crossbeam::sync::TreiberStack;
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use mopa::Any;
 use shred::{Fetch, FetchMut, Resource, Resources};
@@ -366,6 +367,99 @@ impl Generation {
     }
 }
 
+/// A type implementing `LazyInsert` can be inserted
+/// using `LazyInsertions`.
+pub trait LazyInsert: Send + Sync {
+    /// Inserts the component(s) into the world.
+    fn insert(self, world: &World);
+}
+
+impl<C> LazyInsert for (Entity, C) where C: Component + Send + Sync {
+    fn insert(self, world: &World) {
+        world.write::<C>().insert(self.0, self.1);
+    }
+}
+
+impl<L> LazyInsert for Vec<L>
+    where L: LazyInsert
+{
+    fn insert(self, world: &World) {
+        for item in self {
+            item.insert(world);
+        }
+    }
+}
+
+trait LazyInsertInternal: Send + Sync {
+    fn insert(self: Box<Self>, world: &World);
+}
+
+impl<L> LazyInsertInternal for L
+    where L: LazyInsert
+{
+    fn insert(self: Box<Self>, world: &World) {
+        L::insert(*self, world);
+    }
+}
+
+/// Lazy insertions can be used after creating a new
+/// entity in a system. This way, none of the actual
+/// component storages have to be borrowed mutably.
+///
+/// This resource is added to the world by default.
+pub struct LazyInsertions {
+    stack: TreiberStack<Box<LazyInsertInternal>>
+}
+
+impl LazyInsertions {
+    /// Adds an insertion. Please note that this method takes `&self`
+    /// so there's no need to fetch it mutably.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use specs::*;
+    /// #
+    /// struct Pos(f32, f32);
+    ///
+    /// impl Component for Pos {
+    ///     type Storage = VecStorage<Self>;
+    /// }
+    ///
+    /// struct InsertPos;
+    ///
+    /// impl<'a> System<'a> for InsertPos {
+    ///     type SystemData = (Entities<'a>, Fetch<'a, LazyInsertions>);
+    ///
+    ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
+    ///         let a = ent.create();
+    ///         let b = ent.create();
+    ///
+    ///         lazy.add(vec![(a, Pos(3.0, 1.0)), (b, Pos(0.0, 4.0))]);
+    ///     }
+    /// }
+    /// ```
+    pub fn add<L>(&self, l: L)
+        where L: LazyInsert + 'static
+    {
+        self.stack.push(Box::new(l));
+    }
+}
+
+impl Default for LazyInsertions {
+    fn default() -> Self {
+        // TODO: derive (`Default` is not yet implemented for `TreiberStack`)
+        LazyInsertions { stack: TreiberStack::new() }
+    }
+}
+
+impl Drop for LazyInsertions {
+    fn drop(&mut self) {
+        // TODO: remove as soon as leak is fixed in crossbeam
+        while self.stack.pop().is_some() {}
+    }
+}
+
 /// The `World` struct contains the component storages and
 /// other resources.
 ///
@@ -619,9 +713,18 @@ impl World {
     /// Merges in the appendix, recording all the dynamically created
     /// and deleted entities into the persistent generations vector.
     /// Also removes all the abandoned components.
+    ///
+    /// Additionally, `LazyInsertions` will be merged.
     pub fn maintain(&mut self) {
         let deleted = self.entities_mut().alloc.merge();
         self.delete_components(&deleted);
+
+        let mut lazy_insertions = self.write_resource::<LazyInsertions>();
+        let lazy = &mut lazy_insertions.stack;
+
+        while let Some(l) = lazy.pop() {
+            l.insert(&*self);
+        }
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {
@@ -639,10 +742,41 @@ impl Default for World {
     fn default() -> Self {
         let mut res = Resources::new();
         res.add(EntitiesRes::default());
+        res.add(LazyInsertions::default());
 
         World {
             res: res,
             storages: Default::default(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use storage::VecStorage;
+    use super::*;
+
+    struct Pos;
+
+    impl Component for Pos {
+        type Storage = VecStorage<Self>;
+    }
+
+    #[test]
+    fn lazy_insertion() {
+        let mut world = World::new();
+        world.register::<Pos>();
+
+        let e;
+        {
+            let entities = world.read_resource::<EntitiesRes>();
+            let lazy = world.read_resource::<LazyInsertions>();
+
+            e = entities.create();
+            lazy.add((e, Pos));
+        }
+
+        world.maintain();
+        assert!(world.read::<Pos>().get(e).is_some());
     }
 }
