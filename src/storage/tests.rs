@@ -178,6 +178,26 @@ mod test {
         type Storage = BTreeStorage<Self>;
     }
 
+    #[derive(PartialEq, Eq, Debug)]
+    #[cfg(feature="rudy")]
+    struct CRudy(u32);
+    #[cfg(feature="rudy")]
+    impl From<u32> for CRudy {
+        fn from(v: u32) -> CRudy {
+            CRudy(v)
+        }
+    }
+    #[cfg(feature="rudy")]
+    impl AsMut<u32> for CRudy {
+        fn as_mut(&mut self) -> &mut u32 {
+            &mut self.0
+        }
+    }
+    #[cfg(feature="rudy")]
+    impl Component for CRudy {
+        type Storage = RudyStorage<Self>;
+    }
+
     #[derive(Clone, Debug)]
     struct Cnull(u32);
     impl Default for Cnull {
@@ -396,6 +416,37 @@ mod test {
     #[test]
     fn btree_test_clear() {
         test_clear::<CBtree>();
+    }
+
+    #[cfg(feature="rudy")]
+    #[test]
+    fn rudy_test_add() {
+        test_add::<CRudy>();
+    }
+    #[cfg(feature="rudy")]
+    #[test]
+    fn rudy_test_sub() {
+        test_sub::<CRudy>();
+    }
+    #[cfg(feature="rudy")]
+    #[test]
+    fn rudy_test_get_mut() {
+        test_get_mut::<CRudy>();
+    }
+    #[cfg(feature="rudy")]
+    #[test]
+    fn rudy_test_add_gen() {
+        test_add_gen::<CRudy>();
+    }
+    #[cfg(feature="rudy")]
+    #[test]
+    fn rudy_test_sub_gen() {
+        test_sub_gen::<CRudy>();
+    }
+    #[cfg(feature="rudy")]
+    #[test]
+    fn rudy_test_clear() {
+        test_clear::<CRudy>();
     }
 
     #[test]

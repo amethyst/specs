@@ -6,6 +6,8 @@ pub use self::data::{ReadStorage, WriteStorage};
 pub use self::ser::{MergeError, PackedData};
 pub use self::storages::{BTreeStorage, DenseVecStorage, FlaggedStorage, HashMapStorage,
                          NullStorage, VecStorage};
+#[cfg(feature = "rudy")]
+pub use self::storages::RudyStorage;
 
 use std;
 use std::marker::PhantomData;

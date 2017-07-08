@@ -184,6 +184,9 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+#[cfg(feature = "rudy")]
+extern crate rudy;
+
 pub use join::{Join, JoinIter, JoinParIter, ParJoin};
 pub use shred::{ Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
                 FetchMut, RunNow, RunningTime, System, SystemData};
