@@ -460,6 +460,42 @@ impl Drop for LazyInsertions {
     }
 }
 
+/// Lazy removals can be used after creating a new
+/// entity in a system. This way, none of the actual
+/// component storages have to be borrowed mutably.
+///
+/// This resource is added to the world by default.
+pub struct LazyRemovals {
+    stack: TreiberStack<Box<Fn(&World) + Send + Sync>>,
+}
+
+impl LazyRemovals {
+    /// Adds a removal. Please note that this method takes `&self`
+    /// so there's no need to fetch it mutably.
+    pub fn add<C>(&self, e: Entity)
+    where
+        C: Component + Send + Sync,
+    {
+        self.stack.push(Box::new(
+            move |world| { world.write::<C>().remove(e); },
+        ));
+    }
+}
+
+impl Default for LazyRemovals {
+    fn default() -> Self {
+        // TODO: derive (`Default` is not yet implemented for `TreiberStack`)
+        LazyRemovals { stack: TreiberStack::new() }
+    }
+}
+
+impl Drop for LazyRemovals {
+    fn drop(&mut self) {
+        // TODO: remove as soon as leak is fixed in crossbeam
+        while self.stack.pop().is_some() {}
+    }
+}
+
 /// The `World` struct contains the component storages and
 /// other resources.
 ///
@@ -725,6 +761,13 @@ impl World {
         while let Some(l) = lazy.pop() {
             l.insert(&*self);
         }
+        
+        let mut lazy_removals = self.write_resource::<LazyRemovals>();
+        let lazy = &mut lazy_removals.stack;
+
+        while let Some(remove) = lazy.pop() {
+            remove(self);
+        }
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {
@@ -743,6 +786,7 @@ impl Default for World {
         let mut res = Resources::new();
         res.add(EntitiesRes::default());
         res.add(LazyInsertions::default());
+        res.add(LazyRemovals::default());
 
         World {
             res: res,
@@ -778,5 +822,20 @@ mod tests {
 
         world.maintain();
         assert!(world.read::<Pos>().get(e).is_some());
+    }
+    
+    #[test]
+    fn lazy_removal() {
+        let mut world = World::new();
+        world.register::<Pos>();
+
+        let e = world.create_entity().with(Pos).build();
+        {
+            let lazy = world.read_resource::<LazyRemovals>();
+            lazy.add::<Pos>(e);
+        }
+
+        world.maintain();
+        assert!(world.read::<Pos>().get(e).is_none());
     }
 }

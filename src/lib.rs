@@ -195,7 +195,7 @@ pub use storage::{BTreeStorage, CheckStorage, DenseVecStorage, DistinctStorage, 
                   HashMapStorage, InsertResult, NullStorage, ReadStorage, Storage,
                   UnprotectedStorage, VecStorage, WriteStorage};
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
-                Generation, LazyInsert, LazyInsertions, World};
+                Generation, LazyInsert, LazyInsertions, LazyRemovals, World};
 
 #[cfg(feature = "serialize")]
 pub use storage::{MergeError, PackedData};
