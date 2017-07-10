@@ -382,3 +382,8 @@ impl<T> UnprotectedStorage<T> for RudyStorage<T> {
         self.0.remove(id).unwrap()
     }
 }
+
+// Rudy does satisfy the DistinctStorage guarantee:
+//   https://github.com/adevore/rudy/issues/12
+#[cfg(feature="rudy")]
+unsafe impl<T> DistinctStorage for RudyStorage<T> {}
