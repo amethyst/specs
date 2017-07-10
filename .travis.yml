@@ -19,6 +19,9 @@ script:
 - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
     cargo bench --verbose --no-run;
   fi
+- if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
+    cargo test --verbose --features rudy;
+  fi
 
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&
