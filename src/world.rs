@@ -407,11 +407,12 @@ impl<L> LazyInsertInternal for L
 /// component storages have to be borrowed mutably.
 ///
 /// This resource is added to the world by default.
-pub struct LazyInsertions {
-    stack: TreiberStack<Box<LazyInsertInternal>>
+pub struct LazyUpdate {
+    insert_stack: TreiberStack<Box<LazyInsertInternal>>,
+    remove_stack: TreiberStack<Box<Fn(&World) + Send + Sync>>,
 }
 
-impl LazyInsertions {
+impl LazyUpdate {
     /// Adds an insertion. Please note that this method takes `&self`
     /// so there's no need to fetch it mutably.
     ///
@@ -429,70 +430,48 @@ impl LazyInsertions {
     /// struct InsertPos;
     ///
     /// impl<'a> System<'a> for InsertPos {
-    ///     type SystemData = (Entities<'a>, Fetch<'a, LazyInsertions>);
+    ///     type SystemData = (Entities<'a>, Fetch<'a, LazyUpdate>);
     ///
     ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
     ///         let a = ent.create();
     ///         let b = ent.create();
     ///
-    ///         lazy.add(vec![(a, Pos(3.0, 1.0)), (b, Pos(0.0, 4.0))]);
+    ///         lazy.add_insertions(vec![(a, Pos(3.0, 1.0)), (b, Pos(0.0, 4.0))]);
     ///     }
     /// }
     /// ```
-    pub fn add<L>(&self, l: L)
+    pub fn add_insertions<L>(&self, l: L)
         where L: LazyInsert + 'static
     {
-        self.stack.push(Box::new(l));
+        self.insert_stack.push(Box::new(l));
     }
-}
 
-impl Default for LazyInsertions {
-    fn default() -> Self {
-        // TODO: derive (`Default` is not yet implemented for `TreiberStack`)
-        LazyInsertions { stack: TreiberStack::new() }
-    }
-}
-
-impl Drop for LazyInsertions {
-    fn drop(&mut self) {
-        // TODO: remove as soon as leak is fixed in crossbeam
-        while self.stack.pop().is_some() {}
-    }
-}
-
-/// Lazy removals can be used after creating a new
-/// entity in a system. This way, none of the actual
-/// component storages have to be borrowed mutably.
-///
-/// This resource is added to the world by default.
-pub struct LazyRemovals {
-    stack: TreiberStack<Box<Fn(&World) + Send + Sync>>,
-}
-
-impl LazyRemovals {
     /// Adds a removal. Please note that this method takes `&self`
     /// so there's no need to fetch it mutably.
-    pub fn add<C>(&self, e: Entity)
-    where
-        C: Component + Send + Sync,
+    pub fn add_removal<C>(&self, e: Entity)
+        where C: Component + Send + Sync,
     {
-        self.stack.push(Box::new(
+        self.remove_stack.push(Box::new(
             move |world| { world.write::<C>().remove(e); },
         ));
     }
 }
 
-impl Default for LazyRemovals {
+impl Default for LazyUpdate {
     fn default() -> Self {
         // TODO: derive (`Default` is not yet implemented for `TreiberStack`)
-        LazyRemovals { stack: TreiberStack::new() }
+        LazyUpdate {
+            insert_stack: TreiberStack::new(),
+            remove_stack: TreiberStack::new(),
+        }
     }
 }
 
-impl Drop for LazyRemovals {
+impl Drop for LazyUpdate {
     fn drop(&mut self) {
         // TODO: remove as soon as leak is fixed in crossbeam
-        while self.stack.pop().is_some() {}
+        while self.insert_stack.pop().is_some() {}
+        while self.remove_stack.pop().is_some() {}
     }
 }
 
@@ -755,18 +734,18 @@ impl World {
         let deleted = self.entities_mut().alloc.merge();
         self.delete_components(&deleted);
 
-        let mut lazy_insertions = self.write_resource::<LazyInsertions>();
-        let lazy = &mut lazy_insertions.stack;
-
-        while let Some(l) = lazy.pop() {
-            l.insert(&*self);
+        let mut lazy_update = self.write_resource::<LazyUpdate>();
+        {
+            let lazy = &mut lazy_update.insert_stack;
+            while let Some(l) = lazy.pop() {
+                l.insert(&*self);
+            }
         }
-        
-        let mut lazy_removals = self.write_resource::<LazyRemovals>();
-        let lazy = &mut lazy_removals.stack;
-
-        while let Some(remove) = lazy.pop() {
-            remove(self);
+        {
+            let lazy = &mut lazy_update.remove_stack;
+            while let Some(remove) = lazy.pop() {
+                remove(self);
+            }
         }
     }
 
@@ -785,8 +764,7 @@ impl Default for World {
     fn default() -> Self {
         let mut res = Resources::new();
         res.add(EntitiesRes::default());
-        res.add(LazyInsertions::default());
-        res.add(LazyRemovals::default());
+        res.add(LazyUpdate::default());
 
         World {
             res: res,
@@ -814,10 +792,10 @@ mod tests {
         let e;
         {
             let entities = world.read_resource::<EntitiesRes>();
-            let lazy = world.read_resource::<LazyInsertions>();
+            let lazy = world.read_resource::<LazyUpdate>();
 
             e = entities.create();
-            lazy.add((e, Pos));
+            lazy.add_insertions((e, Pos));
         }
 
         world.maintain();
@@ -831,8 +809,8 @@ mod tests {
 
         let e = world.create_entity().with(Pos).build();
         {
-            let lazy = world.read_resource::<LazyRemovals>();
-            lazy.add::<Pos>(e);
+            let lazy = world.read_resource::<LazyUpdate>();
+            lazy.add_removal::<Pos>(e);
         }
 
         world.maintain();
