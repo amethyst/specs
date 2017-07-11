@@ -399,6 +399,11 @@ impl<F> LazyRemovalMarker<F> {
     }
 }
 
+struct LazyRemovalInfo<C> {
+    entity: Entity,
+    marker: LazyRemovalMarker<C>,
+}
+
 trait LazyUpdateInternal: Send + Sync {
     fn update(self: Box<Self>, world: &World);
 }
@@ -411,11 +416,11 @@ impl<L> LazyUpdateInternal for L
     }
 }
 
-impl<C> LazyUpdateInternal for (Entity, LazyRemovalMarker<C>)
+impl<C> LazyUpdateInternal for LazyRemovalInfo<C>
     where C: Component + Send + Sync
 {
     fn update(self: Box<Self>, world: &World) {
-        world.write::<C>().remove(self.0);
+        world.write::<C>().remove(self.entity);
     }
 }
 
@@ -464,10 +469,14 @@ impl LazyUpdate {
 
     /// Adds a removal. Please note that this method takes `&self`
     /// so there's no need to fetch it mutably.
-    pub fn add_removal<C>(&self, entity: Entity)
-        where C: Component + Send + Sync
+    pub fn add_removal<C>(&self, e: Entity)
+    where
+        C: Component + Send + Sync,
     {
-        self.stack.push(Box::new((entity, LazyRemovalMarker::<C>::new())));
+        self.stack.push(Box::new(LazyRemovalInfo {
+            entity: e,
+            marker: LazyRemovalMarker::<C>::new(),
+        }));
     }
 }
 
