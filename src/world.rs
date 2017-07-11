@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crossbeam::sync::TreiberStack;
@@ -368,7 +369,7 @@ impl Generation {
 }
 
 /// A type implementing `LazyInsert` can be inserted
-/// using `LazyInsertions`.
+/// using `LazyUpdate`.
 pub trait LazyInsert: Send + Sync {
     /// Inserts the component(s) into the world.
     fn insert(self, world: &World);
@@ -390,26 +391,41 @@ impl<L> LazyInsert for Vec<L>
     }
 }
 
-trait LazyInsertInternal: Send + Sync {
-    fn insert(self: Box<Self>, world: &World);
+struct LazyRemovalMarker<F>(PhantomData<F>);
+
+impl<F> LazyRemovalMarker<F> {
+    pub fn new() -> Self {
+        LazyRemovalMarker(PhantomData)
+    }
 }
 
-impl<L> LazyInsertInternal for L
+trait LazyUpdateInternal: Send + Sync {
+    fn update(self: Box<Self>, world: &World);
+}
+
+impl<L> LazyUpdateInternal for L
     where L: LazyInsert
 {
-    fn insert(self: Box<Self>, world: &World) {
+    fn update(self: Box<Self>, world: &World) {
         L::insert(*self, world);
     }
 }
 
-/// Lazy insertions can be used after creating a new
+impl<C> LazyUpdateInternal for (Entity, LazyRemovalMarker<C>)
+    where C: Component + Send + Sync
+{
+    fn update(self: Box<Self>, world: &World) {
+        world.write::<C>().remove(self.0);
+    }
+}
+
+/// Lazy updates can be used after creating a new
 /// entity in a system. This way, none of the actual
 /// component storages have to be borrowed mutably.
 ///
 /// This resource is added to the world by default.
 pub struct LazyUpdate {
-    insert_stack: TreiberStack<Box<LazyInsertInternal>>,
-    remove_stack: TreiberStack<Box<Fn(&World) + Send + Sync>>,
+    stack: TreiberStack<Box<LazyUpdateInternal>>,
 }
 
 impl LazyUpdate {
@@ -443,17 +459,15 @@ impl LazyUpdate {
     pub fn add_insertions<L>(&self, l: L)
         where L: LazyInsert + 'static
     {
-        self.insert_stack.push(Box::new(l));
+        self.stack.push(Box::new(l));
     }
 
     /// Adds a removal. Please note that this method takes `&self`
     /// so there's no need to fetch it mutably.
-    pub fn add_removal<C>(&self, e: Entity)
-        where C: Component + Send + Sync,
+    pub fn add_removal<C>(&self, entity: Entity)
+        where C: Component + Send + Sync
     {
-        self.remove_stack.push(Box::new(
-            move |world| { world.write::<C>().remove(e); },
-        ));
+        self.stack.push(Box::new((entity, LazyRemovalMarker::<C>::new())));
     }
 }
 
@@ -461,8 +475,7 @@ impl Default for LazyUpdate {
     fn default() -> Self {
         // TODO: derive (`Default` is not yet implemented for `TreiberStack`)
         LazyUpdate {
-            insert_stack: TreiberStack::new(),
-            remove_stack: TreiberStack::new(),
+            stack: TreiberStack::new(),
         }
     }
 }
@@ -470,8 +483,7 @@ impl Default for LazyUpdate {
 impl Drop for LazyUpdate {
     fn drop(&mut self) {
         // TODO: remove as soon as leak is fixed in crossbeam
-        while self.insert_stack.pop().is_some() {}
-        while self.remove_stack.pop().is_some() {}
+        while self.stack.pop().is_some() {}
     }
 }
 
@@ -729,23 +741,16 @@ impl World {
     /// and deleted entities into the persistent generations vector.
     /// Also removes all the abandoned components.
     ///
-    /// Additionally, `LazyInsertions` will be merged.
+    /// Additionally, `LazyUpdate` will be merged.
     pub fn maintain(&mut self) {
         let deleted = self.entities_mut().alloc.merge();
         self.delete_components(&deleted);
 
         let mut lazy_update = self.write_resource::<LazyUpdate>();
-        {
-            let lazy = &mut lazy_update.insert_stack;
-            while let Some(l) = lazy.pop() {
-                l.insert(&*self);
-            }
-        }
-        {
-            let lazy = &mut lazy_update.remove_stack;
-            while let Some(remove) = lazy.pop() {
-                remove(self);
-            }
+        let lazy = &mut lazy_update.stack;
+
+        while let Some(l) = lazy.pop() {
+            l.update(&*self);
         }
     }
 
