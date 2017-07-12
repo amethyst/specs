@@ -391,18 +391,7 @@ impl<L> LazyInsert for Vec<L>
     }
 }
 
-struct LazyRemovalMarker<F>(PhantomData<F>);
-
-impl<F> LazyRemovalMarker<F> {
-    pub fn new() -> Self {
-        LazyRemovalMarker(PhantomData)
-    }
-}
-
-struct LazyRemovalInfo<C> {
-    entity: Entity,
-    marker: LazyRemovalMarker<C>,
-}
+struct LazyRemovalInfo<C>(Entity, PhantomData<C>);
 
 trait LazyUpdateInternal: Send + Sync {
     fn update(self: Box<Self>, world: &World);
@@ -420,22 +409,29 @@ impl<C> LazyUpdateInternal for LazyRemovalInfo<C>
     where C: Component + Send + Sync
 {
     fn update(self: Box<Self>, world: &World) {
-        world.write::<C>().remove(self.entity);
+        world.write::<C>().remove(self.0);
     }
 }
 
-/// Lazy updates can be used after creating a new
-/// entity in a system. This way, none of the actual
-/// component storages have to be borrowed mutably.
-///
+impl LazyUpdateInternal for Box<Fn(&World) + Send + Sync> {
+    fn update(self: Box<Self>, world: &World) {
+        self(world);
+    }
+}
+
+/// Lazy updates can be used for world updates
+/// that need to borrow a lot of resources
+/// and as such should better be done at the end
+/// when maintaining the world.
 /// This resource is added to the world by default.
+/// Please note that the provided methods take `&self`
+/// so there's no need to fetch `LazyUpdate` mutably.
 pub struct LazyUpdate {
     stack: TreiberStack<Box<LazyUpdateInternal>>,
 }
 
 impl LazyUpdate {
-    /// Adds an insertion. Please note that this method takes `&self`
-    /// so there's no need to fetch it mutably.
+    /// Lazily inserts component(s) for one or more entities.
     ///
     /// ## Examples
     ///
@@ -457,26 +453,84 @@ impl LazyUpdate {
     ///         let a = ent.create();
     ///         let b = ent.create();
     ///
-    ///         lazy.add_insertions(vec![(a, Pos(3.0, 1.0)), (b, Pos(0.0, 4.0))]);
+    ///         lazy.insert(vec![(a, Pos(3.0, 1.0)), (b, Pos(0.0, 4.0))]);
     ///     }
     /// }
     /// ```
-    pub fn add_insertions<L>(&self, l: L)
+    pub fn insert<L>(&self, l: L)
         where L: LazyInsert + 'static
     {
         self.stack.push(Box::new(l));
     }
 
-    /// Adds a removal. Please note that this method takes `&self`
-    /// so there's no need to fetch it mutably.
-    pub fn add_removal<C>(&self, e: Entity)
+    /// Lazily removes a component.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use specs::*;
+    /// #
+    /// struct Pos;
+    ///
+    /// impl Component for Pos {
+    ///     type Storage = VecStorage<Self>;
+    /// }
+    ///
+    /// struct RemovePos;
+    ///
+    /// impl<'a> System<'a> for RemovePos {
+    ///     type SystemData = (Entities<'a>, Fetch<'a, LazyUpdate>);
+    ///
+    ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
+    ///         for entity in ent.join() {
+    ///             lazy.remove::<Pos>(entity);
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    pub fn remove<C>(&self, e: Entity)
     where
         C: Component + Send + Sync,
     {
-        self.stack.push(Box::new(LazyRemovalInfo {
-            entity: e,
-            marker: LazyRemovalMarker::<C>::new(),
-        }));
+        self.stack.push(Box::new(LazyRemovalInfo::<C>(e, PhantomData)));
+    }
+
+    /// Lazily executes a closure with world access.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use specs::*;
+    /// #
+    /// struct Pos;
+    ///
+    /// impl Component for Pos {
+    ///     type Storage = VecStorage<Self>;
+    /// }
+    ///
+    /// struct Execution;
+    ///
+    /// impl<'a> System<'a> for Execution {
+    ///     type SystemData = (Entities<'a>, Fetch<'a, LazyUpdate>);
+    ///
+    ///     fn run(&mut self, (ent, lazy): Self::SystemData) {      
+    ///         for entity in ent.join() {
+    ///             lazy.execute(move |world| {
+    ///                 if world.is_alive(entity) {
+    ///                     println!("Entity {:?} is alive.", entity);
+    ///                 }
+    ///             });
+    ///         }
+     ///     }
+    /// }
+    /// ```
+    pub fn execute<F>(&self, f: F)
+    where
+        F: Fn(&World) + 'static + Send + Sync,
+    {
+        self.stack.push(Box::new(
+            Box::new(f) as Box<Fn(&World) + Send + Sync>)
+        );
     }
 }
 
@@ -809,7 +863,7 @@ mod tests {
             let lazy = world.read_resource::<LazyUpdate>();
 
             e = entities.create();
-            lazy.add_insertions((e, Pos));
+            lazy.insert((e, Pos));
         }
 
         world.maintain();
@@ -824,10 +878,30 @@ mod tests {
         let e = world.create_entity().with(Pos).build();
         {
             let lazy = world.read_resource::<LazyUpdate>();
-            lazy.add_removal::<Pos>(e);
+            lazy.remove::<Pos>(e);
         }
 
         world.maintain();
         assert!(world.read::<Pos>().get(e).is_none());
+    }
+
+    #[test]
+    fn lazy_execution() {
+        let mut world = World::new();
+        world.register::<Pos>();
+
+        let e = {
+            let entity_res = world.read_resource::<EntitiesRes>();
+            entity_res.create()
+        };
+        {
+            let lazy = world.read_resource::<LazyUpdate>();
+            lazy.execute(move |world| {
+                world.write::<Pos>().insert(e, Pos);
+            });
+        }
+
+        world.maintain();
+        assert!(world.read::<Pos>().get(e).is_some());
     }
 }
