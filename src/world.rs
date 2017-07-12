@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crossbeam::sync::TreiberStack;
@@ -391,29 +390,12 @@ impl<L> LazyInsert for Vec<L>
     }
 }
 
-struct LazyRemovalInfo<C>(Entity, PhantomData<C>);
-
 trait LazyUpdateInternal: Send + Sync {
     fn update(self: Box<Self>, world: &World);
 }
 
-impl<L> LazyUpdateInternal for L
-    where L: LazyInsert
-{
-    fn update(self: Box<Self>, world: &World) {
-        L::insert(*self, world);
-    }
-}
-
-impl<C> LazyUpdateInternal for LazyRemovalInfo<C>
-    where C: Component + Send + Sync
-{
-    fn update(self: Box<Self>, world: &World) {
-        world.write::<C>().remove(self.0);
-    }
-}
-
-impl LazyUpdateInternal for Box<Fn(&World) + Send + Sync> {
+impl<F> LazyUpdateInternal for F
+    where F: FnOnce(&World) + Send + Sync + 'static {
     fn update(self: Box<Self>, world: &World) {
         self(world);
     }
@@ -453,14 +435,29 @@ impl LazyUpdate {
     ///         let a = ent.create();
     ///         let b = ent.create();
     ///
-    ///         lazy.insert(vec![(a, Pos(3.0, 1.0)), (b, Pos(0.0, 4.0))]);
+    ///         lazy.insert_all(vec![(a, Pos(3.0, 1.0)), (b, Pos(0.0, 4.0))]);
     ///     }
     /// }
     /// ```
-    pub fn insert<L>(&self, l: L)
-        where L: LazyInsert + 'static
+    pub fn insert_all<C, I>(&self, iter: I)
+        where 
+            C: Component + Send + Sync,
+            I: IntoIterator<Item=(Entity, C)> + Send + Sync + 'static,
     {
-        self.stack.push(Box::new(l));
+        self.execute(move |world| {
+            let mut storage = world.write::<C>();
+            for (e, c) in iter {
+                storage.insert(e, c);
+            }
+        });
+    }
+    ///
+    pub fn insert<C>(&self, e: Entity, c: C)
+        where C: Component + Send + Sync,
+    {
+        self.execute(move |world| {
+            world.write::<C>().insert(e, c);
+        });
     }
 
     /// Lazily removes a component.
@@ -492,7 +489,9 @@ impl LazyUpdate {
     where
         C: Component + Send + Sync,
     {
-        self.stack.push(Box::new(LazyRemovalInfo::<C>(e, PhantomData)));
+        self.execute(move |world| {
+            world.write::<C>().remove(e);
+        });
     }
 
     /// Lazily executes a closure with world access.
@@ -521,16 +520,14 @@ impl LazyUpdate {
     ///                 }
     ///             });
     ///         }
-     ///     }
+    ///     }
     /// }
     /// ```
     pub fn execute<F>(&self, f: F)
     where
-        F: Fn(&World) + 'static + Send + Sync,
+        F: FnOnce(&World) + 'static + Send + Sync,
     {
-        self.stack.push(Box::new(
-            Box::new(f) as Box<Fn(&World) + Send + Sync>)
-        );
+        self.stack.push(Box::new(f));
     }
 }
 
@@ -863,7 +860,7 @@ mod tests {
             let lazy = world.read_resource::<LazyUpdate>();
 
             e = entities.create();
-            lazy.insert((e, Pos));
+            lazy.insert(e, Pos);
         }
 
         world.maintain();
