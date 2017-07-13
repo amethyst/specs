@@ -5,7 +5,7 @@
 * Change examples to use `FooStorage<Self>` and destructure system data in method head ([#206])
 * `AntiStorage` for `ChecStorage` ([#208])
 * Integrate futures by introducing a `common` module ([#209])
-* Add lazy component insertions ([#214])
+* Add lazy updates: insert and remove components, execute closures on world ([#214], [#221])
 
 [#198]: https://github.com/slide-rs/specs/pull/198
 [#199]: https://github.com/slide-rs/specs/pull/199

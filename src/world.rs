@@ -367,35 +367,13 @@ impl Generation {
     }
 }
 
-/// A type implementing `LazyInsert` can be inserted
-/// using `LazyUpdate`.
-pub trait LazyInsert: Send + Sync {
-    /// Inserts the component(s) into the world.
-    fn insert(self, world: &World);
-}
-
-impl<C> LazyInsert for (Entity, C) where C: Component + Send + Sync {
-    fn insert(self, world: &World) {
-        world.write::<C>().insert(self.0, self.1);
-    }
-}
-
-impl<L> LazyInsert for Vec<L>
-    where L: LazyInsert
-{
-    fn insert(self, world: &World) {
-        for item in self {
-            item.insert(world);
-        }
-    }
-}
-
 trait LazyUpdateInternal: Send + Sync {
     fn update(self: Box<Self>, world: &World);
 }
 
 impl<F> LazyUpdateInternal for F
-    where F: FnOnce(&World) + Send + Sync + 'static {
+    where F: FnOnce(&World) + Send + Sync + 'static
+{
     fn update(self: Box<Self>, world: &World) {
         self(world);
     }
@@ -403,17 +381,50 @@ impl<F> LazyUpdateInternal for F
 
 /// Lazy updates can be used for world updates
 /// that need to borrow a lot of resources
-/// and as such should better be done at the end
-/// when maintaining the world.
-/// This resource is added to the world by default.
+/// and as such should better be done at the end.
+/// They work lazily in the sense that they are
+/// dispatched when calling `world.maintain()`.
 /// Please note that the provided methods take `&self`
 /// so there's no need to fetch `LazyUpdate` mutably.
+/// This resource is added to the world by default.
 pub struct LazyUpdate {
     stack: TreiberStack<Box<LazyUpdateInternal>>,
 }
 
 impl LazyUpdate {
-    /// Lazily inserts component(s) for one or more entities.
+    /// Lazily inserts a component for an entity.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use specs::*;
+    /// #
+    /// struct Pos(f32, f32);
+    ///
+    /// impl Component for Pos {
+    ///     type Storage = VecStorage<Self>;
+    /// }
+    ///
+    /// struct InsertPos;
+    ///
+    /// impl<'a> System<'a> for InsertPos {
+    ///     type SystemData = (Entities<'a>, Fetch<'a, LazyUpdate>);
+    ///
+    ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
+    ///         let a = ent.create();
+    ///         lazy.insert(a, Pos(1.0, 1.0));
+    ///     }
+    /// }
+    /// ```
+    pub fn insert<C>(&self, e: Entity, c: C)
+        where C: Component + Send + Sync,
+    {
+        self.execute(move |world| {
+            world.write::<C>().insert(e, c);
+        });
+    }
+
+    /// Lazily inserts components for entities.
     ///
     /// ## Examples
     ///
@@ -449,14 +460,6 @@ impl LazyUpdate {
             for (e, c) in iter {
                 storage.insert(e, c);
             }
-        });
-    }
-    ///
-    pub fn insert<C>(&self, e: Entity, c: C)
-        where C: Component + Send + Sync,
-    {
-        self.execute(move |world| {
-            world.write::<C>().insert(e, c);
         });
     }
 
@@ -849,22 +852,34 @@ mod tests {
         type Storage = VecStorage<Self>;
     }
 
+    struct Vel;
+
+    impl Component for Vel {
+        type Storage = VecStorage<Self>;
+    }
+
     #[test]
     fn lazy_insertion() {
         let mut world = World::new();
         world.register::<Pos>();
+        world.register::<Vel>();
 
-        let e;
+        let e1;
+        let e2;
         {
             let entities = world.read_resource::<EntitiesRes>();
             let lazy = world.read_resource::<LazyUpdate>();
 
-            e = entities.create();
-            lazy.insert(e, Pos);
+            e1 = entities.create();
+            e2 = entities.create();
+            lazy.insert(e1, Pos);
+            lazy.insert_all(vec! [(e1, Vel), (e2, Vel)]);
         }
 
         world.maintain();
-        assert!(world.read::<Pos>().get(e).is_some());
+        assert!(world.read::<Pos>().get(e1).is_some());
+        assert!(world.read::<Vel>().get(e1).is_some());
+        assert!(world.read::<Vel>().get(e2).is_some());
     }
     
     #[test]
