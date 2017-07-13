@@ -1,7 +1,8 @@
 ## 0.9.3 (Unreleased)
-* Add lazy component insertions ([#214])
+* Add lazy updates: insert and remove components, execute closures on world ([#214], [#221])
 
 [#214]: https://github.com/slide-rs/specs/pull/214
+[#221]: https://github.com/slide-rs/specs/pull/221
 
 ## 0.9.2
 * Fixed grammar in book ([#198])
@@ -17,4 +18,3 @@
 [#206]: https://github.com/slide-rs/specs/pull/206
 [#208]: https://github.com/slide-rs/specs/pull/208
 [#209]: https://github.com/slide-rs/specs/pull/209
-
