@@ -16,11 +16,9 @@ script:
 - cargo test --verbose --no-default-features
 - cargo build --verbose --features serialize
 - cargo test --verbose --features serialize
+- cargo test --verbose --features rudy
 - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
     cargo bench --verbose --no-run;
-  fi
-- if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
-    cargo test --verbose --features rudy;
   fi
 
 after_success: |
