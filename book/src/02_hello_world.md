@@ -44,8 +44,9 @@ impl Component for Velocity {
 }
 ```
 
-These will be our two component types. Optionally, `specs` includes a convenient
-custom `#[derive]` you can use to define component types more succinctly:
+These will be our two component types. Optionally, the `specs-derive` crate
+provides a convenient custom `#[derive]` you can use to define component types
+more succinctly:
 
 ```rust,ignore
 #[derive(Component, Debug)]

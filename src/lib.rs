@@ -38,7 +38,8 @@
 //! }
 //! ```
 //!
-//! Or alternatively, with the included custom `#[derive]` macro:
+//! Or alternatively, if you import the `specs-derive` crate, you can use a
+//! custom `#[derive]` macro:
 //!
 //! ```rust,ignore
 //! #[derive(Component)]
@@ -176,10 +177,6 @@
 //!
 //!
 //!
-
-#[allow(unused_imports)]
-#[macro_use]
-extern crate specs_derive;
 
 extern crate atom;
 extern crate crossbeam;
