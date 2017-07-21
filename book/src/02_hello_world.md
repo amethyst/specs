@@ -157,7 +157,6 @@ hello_world.run_now(&world.res);
 Here the complete example of this chapter:
 
 ```rust,ignore
-<<<<<<< HEAD
 use specs::{Component, ReadStorage, System, VecStorage, World, RunNow};
 
 #[derive(Debug)]
