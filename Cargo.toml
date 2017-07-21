@@ -26,6 +26,9 @@ exclude = ["bors.toml", ".travis.yml"]
 [badges]
 travis-ci = { repository = "slide-rs/specs" }
 
+[workspace]
+members = [ "specs_derive" ]
+
 [dependencies]
 atom = "0.3"
 crossbeam = "0.2.10"
@@ -46,9 +49,10 @@ common = ["futures"]
 serialize = ["serde", "serde_derive"]
 
 [dev-dependencies]
-cgmath =  { version = "0.14", features = ["eders"] }
+cgmath = { version = "0.14", features = ["eders"] }
 rand = "0.3"
 serde_json = "1.0"
+specs_derive = { path = "specs_derive", version = "0.1", features = ["serialize"] }
 
 [[example]]
 name = "basic"
@@ -62,4 +66,8 @@ required-features = ["common"]
 
 [[example]]
 name = "serialize"
+required-features = ["serialize"]
+
+[[example]]
+name = "derive"
 required-features = ["serialize"]

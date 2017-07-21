@@ -184,6 +184,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+pub use group::{ComponentGroup, DeconstructedGroup, Split};
 pub use join::{Join, JoinIter, JoinParIter, ParJoin};
 pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
                 FetchMut, RunNow, RunningTime, System, SystemData};
@@ -197,11 +198,17 @@ pub use storage::{BTreeStorage, CheckStorage, DenseVecStorage, DistinctStorage, 
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
                 Generation, LazyUpdate, World};
 
+#[cfg(feature="serialize")]
+pub use group::SerializeGroup;
+
 #[cfg(feature = "serialize")]
 pub use storage::{MergeError, PackedData};
 
 #[cfg(feature = "common")]
 pub mod common;
+
+#[cfg(feature="serialize")]
+pub use world::{WorldSerializer, WorldDeserializer};
 
 /// A wrapper for a fetched `Entities` resource.
 /// Note that this is just `Fetch<Entities>`, so
@@ -218,6 +225,7 @@ pub type Entities<'a> = Fetch<'a, EntitiesRes>;
 /// An index is basically the id of an `Entity`.
 pub type Index = u32;
 
+mod group;
 mod join;
 mod storage;
 mod world;

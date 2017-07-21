@@ -2,6 +2,8 @@ extern crate shred;
 #[macro_use]
 extern crate shred_derive;
 extern crate specs;
+#[macro_use]
+extern crate specs_derive;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -9,9 +11,10 @@ extern crate serde_json;
 
 fn main() {
     use serde::Serialize;
+    use serde::de::DeserializeSeed;
     use serde_json::{Serializer, from_str as json_from_str};
     use specs::{Component, DispatcherBuilder, Entities, Join, PackedData, System, VecStorage,
-                World, WriteStorage};
+                World, WorldDeserializer, WorldSerializer, WriteStorage};
 
     #[derive(Debug, Serialize, Deserialize)]
     struct CompSerialize {
@@ -20,6 +23,22 @@ fn main() {
     }
     impl Component for CompSerialize {
         type Storage = VecStorage<Self>;
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct CompFloat(f32);
+    impl Component for CompFloat {
+        type Storage = VecStorage<CompFloat>;
+    }
+
+    #[derive(ComponentGroup)]
+    #[allow(dead_code)]
+    struct SerialGroup {
+        #[group(serialize)]
+        comp_serialize: CompSerialize,
+
+        #[group(serialize)]
+        comp_float: CompFloat,
     }
 
     #[derive(SystemData)]
@@ -65,10 +84,34 @@ fn main() {
         }
     }
 
-    let mut world = World::new();
-    world.register::<CompSerialize>();
+    #[derive(SystemData)]
+    struct RemovalData<'a> {
+        entities: Entities<'a>,
+        comp_serial: WriteStorage<'a, CompSerialize>,
+        comp_float: WriteStorage<'a, CompFloat>,
+    }
 
-    world.create_entity().build();
+    struct RemovalSystem;
+    impl<'a> System<'a> for RemovalSystem {
+        type SystemData = RemovalData<'a>;
+
+        fn run(&mut self, mut data: RemovalData) {
+            // Remove all components
+            for (entity, _) in (&*data.entities, &data.comp_serial.check()).join() {
+                data.comp_serial.remove(entity);
+            }
+            for (entity, _) in (&*data.entities, &data.comp_float.check()).join() {
+                data.comp_float.remove(entity);
+            }
+        }
+    }
+
+    let mut world = World::new();
+    world.register_group::<SerialGroup>();
+
+    world.create_entity()
+        .with(CompFloat(2.71828182845))
+        .build();
     world.create_entity().build();
     world
         .create_entity()
@@ -85,6 +128,7 @@ fn main() {
                   field: 5,
                   other: true,
               })
+        .with(CompFloat(3.14159265358979))
         .build();
     world
         .create_entity()
@@ -100,6 +144,7 @@ fn main() {
                   field: 0,
                   other: false,
               })
+        .with(CompFloat(5.0))
         .build();
 
     let mut dispatcher = DispatcherBuilder::new()
@@ -108,4 +153,43 @@ fn main() {
 
     dispatcher.dispatch(&mut world.res);
     world.maintain();
+
+    let serialized = {
+        let world_serializer = WorldSerializer::<SerialGroup>::new(&world);
+        let serialized = serde_json::to_string_pretty(&world_serializer).unwrap();
+        println!("{}", serialized);
+        serialized
+    };
+
+    {
+        let mut dispatcher = DispatcherBuilder::new()
+            .add(RemovalSystem, "removal", &[])
+            .build();
+
+        dispatcher.dispatch(&mut world.res);
+        world.maintain();
+    }
+
+    {
+        let world_serializer = WorldSerializer::<SerialGroup>::new(&world);
+        let serialized = serde_json::to_string_pretty(&world_serializer).unwrap();
+        println!("before: {}", serialized);
+    }
+
+    {
+        let entity_list: Vec<_> = {
+            let entities = world.read_resource::<specs::EntitiesRes>();
+            entities.join().collect()
+        };
+
+        let world_deserializer = WorldDeserializer::<SerialGroup>::new(&mut world, entity_list.as_slice());
+        let mut json_deserializer = serde_json::Deserializer::from_str(&serialized);
+        let _ = world_deserializer.deserialize(&mut json_deserializer);
+    }
+
+    {
+        let world_serializer = WorldSerializer::<SerialGroup>::new(&world);
+        let serialized = serde_json::to_string_pretty(&world_serializer).unwrap();
+        println!("after: {}", serialized);
+    }
 }
