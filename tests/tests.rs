@@ -1,9 +1,9 @@
-#[macro_use]
 extern crate specs;
 extern crate rayon;
 
-use specs::{DispatcherBuilder, Entities, Entity, Fetch, FetchMut, HashMapStorage, InsertResult,
-            Join, ParJoin, ReadStorage, System, VecStorage, World, WriteStorage};
+use specs::{Component, DispatcherBuilder, Entities, Entity, Fetch, FetchMut,
+            HashMapStorage, InsertResult, Join, ParJoin, ReadStorage, System,
+            VecStorage, World, WriteStorage};
 
 #[derive(Clone, Debug)]
 struct CompInt(i8);

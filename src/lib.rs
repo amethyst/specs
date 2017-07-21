@@ -83,10 +83,9 @@
 //! This is a basic example of using Specs:
 //!
 //! ```rust
-//! #[macro_use]
 //! extern crate specs;
 //!
-//! use specs::{DispatcherBuilder, Join, ReadStorage, System, VecStorage,
+//! use specs::{Component, DispatcherBuilder, Join, ReadStorage, System, VecStorage,
 //!             WriteStorage, World};
 //!
 //! // A component contains data which is
@@ -178,6 +177,7 @@
 //!
 //!
 
+#[allow(unused_imports)]
 #[macro_use]
 extern crate specs_derive;
 
@@ -202,7 +202,6 @@ extern crate serde_derive;
 pub use join::{Join, JoinIter, JoinParIter, ParJoin};
 pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
                 FetchMut, RunNow, RunningTime, System, SystemData};
-pub use specs_derive::*;
 pub use storage::{BTreeStorage, CheckStorage, DenseVecStorage, DistinctStorage, FlaggedStorage,
                   HashMapStorage, InsertResult, NullStorage, ReadStorage, Storage,
                   UnprotectedStorage, VecStorage, WriteStorage};
@@ -211,6 +210,8 @@ pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, En
 
 #[cfg(not(target_os = "emscripten"))]
 pub use shred::{AsyncDispatcher};
+
+pub use specs_derive::*;
 
 #[cfg(feature = "serialize")]
 pub use storage::{MergeError, PackedData};

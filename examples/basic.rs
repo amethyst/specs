@@ -1,7 +1,7 @@
-#[macro_use]
 extern crate specs;
 
-use specs::{DispatcherBuilder, Join, ReadStorage, System, VecStorage, World, WriteStorage};
+use specs::{Component, DispatcherBuilder, Join, ReadStorage, System, VecStorage,
+            World, WriteStorage};
 
 // A component contains data which is associated with an entity.
 
@@ -12,27 +12,12 @@ impl Component for Vel {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Component, Debug)]
+#[derive(Debug)]
 struct Pos(f32);
 
 impl Component for Pos {
     type Storage = VecStorage<Self>;
 }
-
-// The `#[derive(Component)]` macro and `#[component]` attribute used above will
-// desugar into:
-//
-// ```
-// struct Vel(f32);
-//
-// impl Component for Vel {
-//     type Storage = VecStorage<Vel>;
-// }
-// ```
-//
-// If the `#[component]` attribute is omitted, the component will be stored in a
-// `DenseVecStorage` by default.
->>>>>>> Create specs_derive crate, rustfmt codebase, ignore *.bk files
 
 struct SysA;
 
