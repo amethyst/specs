@@ -2,16 +2,14 @@
 
 extern crate cgmath;
 extern crate rand;
-#[macro_use]
 extern crate specs;
-
 extern crate test;
 
 use cgmath::Vector2;
 use rand::thread_rng;
-use specs::{DenseVecStorage, DispatcherBuilder, Entities, Entity, Fetch, HashMapStorage, Join,
-            NullStorage, ReadStorage, RunningTime, System, VecStorage, World, WriteStorage};
-
+use specs::{Component, DenseVecStorage, DispatcherBuilder, Entities, Entity,
+            Fetch, HashMapStorage, Join, NullStorage, ReadStorage, RunningTime,
+            System, VecStorage, World, WriteStorage};
 use test::Bencher;
 
 type Vec2 = Vector2<f32>;
@@ -19,6 +17,8 @@ type Vec2 = Vector2<f32>;
 // -- Components --
 
 #[derive(Clone, Copy, Debug)]
+struct Pos(Vec2);
+
 impl Component for Pos {
     type Storage = VecStorage<Self>;
 }

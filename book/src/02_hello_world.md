@@ -21,7 +21,7 @@ extern crate specs;
 Let's start by creating some data:
 
 ```rust,ignore
-use specs::VecStorage;
+use specs::{Component, VecStorage};
 
 #[derive(Debug)]
 struct Position {

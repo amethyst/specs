@@ -3,12 +3,10 @@
 extern crate cgmath;
 extern crate rand;
 extern crate rayon;
-#[macro_use]
 extern crate specs;
-
 extern crate test;
 
-use specs::{HashMapStorage, Join, ParJoin, VecStorage, World};
+use specs::{Component, HashMapStorage, Join, ParJoin, VecStorage, World};
 
 #[derive(Clone, Debug)]
 struct CompInt(i32);
