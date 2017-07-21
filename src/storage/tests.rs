@@ -146,6 +146,22 @@ mod test {
         type Storage = FlaggedStorage<Self, VecStorage<Self>>;
     }
 
+    #[derive(PartialEq, Clone, Eq, Debug)]
+    struct ChangedCvec(u32);
+    impl From<u32> for ChangedCvec {
+        fn from(v: u32) -> ChangedCvec {
+            ChangedCvec(v)
+        }
+    }
+    impl AsMut<u32> for ChangedCvec {
+        fn as_mut(&mut self) -> &mut u32 {
+            &mut self.0
+        }
+    }
+    impl Component for ChangedCvec {
+        type Storage = ChangedStorage<ChangedCvec, VecStorage<ChangedCvec>>;
+    }
+
     #[derive(PartialEq, Eq, Debug)]
     struct Cmap(u32);
     impl From<u32> for Cmap {
@@ -452,19 +468,28 @@ mod test {
         let mut w = World::new();
         w.register_with_id::<FlaggedCvec>(1);
         w.register_with_id::<FlaggedCvec>(2);
-        let mut s1: Storage<FlaggedCvec, _> = w.write_with_id(1);
-        let mut s2: Storage<FlaggedCvec, _> = w.write_with_id(2);
+        w.create_iter().take(15).collect::<Vec<Entity>>();
 
-        for i in 0..15 {
-            // Test insertion flagging
-            s1.insert(Entity::new(i, Generation::new(1)), i.into());
-            assert!(s1.open().1.flagged(Entity::new(i, Generation::new(1))));
+        {
+            let entities = &*w.entities();
+            let mut s1: Storage<FlaggedCvec, _> = w.write_with_id(1);
+            let mut s2: Storage<FlaggedCvec, _> = w.write_with_id(2);
 
-            if i % 2 == 0 {
-                s2.insert(Entity::new(i, Generation::new(1)), i.into());
-                assert!(s2.open().1.flagged(Entity::new(i, Generation::new(1))));
+            for entity in entities.join() {
+                s1.insert(entity, entity.index().into());
+                assert!(s1.open().1.flagged(entity));
+
+                if entity.index() % 2 == 0 {
+                    s2.insert(entity, entity.index().into());
+                    assert!(s2.open().1.flagged(entity));
+                }
             }
         }
+        w.maintain();
+
+        let entities = &*w.entities();
+        let mut s1: Storage<FlaggedCvec, _> = w.write_with_id(1);
+        let s2: Storage<FlaggedCvec, _> = w.write_with_id(2);
 
         (&mut s1).open().1.clear_flags();
 
@@ -475,7 +500,6 @@ mod test {
 
         // Modify components to flag.
         for (c1, c2) in (&mut s1, &s2).join() {
-            println!("{:?} {:?}", c1, c2);
             c1.0 += c2.0;
         }
 
@@ -483,17 +507,95 @@ mod test {
             // Should only be modified if the entity had both components
             // Which means only half of them should have it.
             if s1.open().1.flagged(&c1) {
-                println!("Flagged: {:?}", c1.index());
                 // Only every other component was flagged.
                 assert!(c1.index() % 2 == 0);
             }
         }
 
         // Iterate over all flagged entities.
-        for (entity, _) in (&*w.entities(), s1.open().1).join() {
+        for (entity, _) in (entities, s1.open().1).join() {
+            println!("flagged: {:?}", entity);
             // All entities in here should be flagged.
             assert!(s1.open().1.flagged(&entity));
         }
+    }
+
+    #[test]
+    fn changed() {
+        use join::Join;
+        use world::EntityIndex;
+        let mut w = World::new();
+        w.register_with_id::<ChangedCvec>(1);
+        w.register_with_id::<ChangedCvec>(2);
+        w.create_iter().take(15).collect::<Vec<Entity>>();
+
+        {
+            let entities = &*w.entities();
+            let mut s1: Storage<ChangedCvec, _> = w.write_with_id(1);
+            let mut s2: Storage<ChangedCvec, _> = w.write_with_id(2);
+
+            for entity in entities.join() {
+                s1.insert(entity, entity.index().into());
+                assert!(s1.open().1.flagged(entity));
+
+                if entity.index() % 2 == 0 {
+                    s2.insert(entity, entity.index().into());
+                    assert!(s2.open().1.flagged(entity));
+                }
+            }
+        }
+        w.maintain();
+
+        let entities = &*w.entities();
+        let mut s1: Storage<ChangedCvec, _> = w.write_with_id(1);
+        let s2: Storage<ChangedCvec, _> = w.write_with_id(2);
+
+        // `clear_flags` should be available through `ChangedStorage`.
+        (&mut s1).open().1.clear_flags();
+
+        // Cleared flags
+        for c1 in ((&s1).check()).join() {
+            assert!(!s1.open().1.flagged(&c1));
+        }
+
+        // Modify components to flag.
+        for (c1, c2) in (&mut s1, &s2).join() {
+            c1.0 += c2.0;
+        }
+
+        for c1 in (s1.check()).join() {
+            // Should only be modified if the entity had both components
+            // Which means only half of them should have it.
+            if s1.open().1.flagged(&c1) {
+                // Only every other component was flagged.
+                assert!(c1.index() % 2 == 0);
+            }
+        }
+
+        // Iterate over all flagged entities.
+        for (entity, _) in (entities, s1.open().1).join() {
+            // All entities in here should be flagged.
+            assert!(s1.open().1.flagged(&entity))
+        }
+
+        (&mut s1).open().1.clear_flags();
+
+        for (i, c1) in (&mut s1).join().enumerate() {
+            if i % 3 == 0 {
+                c1.0 += 1; // actually modify
+            }
+            else {
+                c1.0 += 0; // don't actually modify but gets flagged.
+            }
+        }
+
+        let flagged = s1.open().1;
+        let mut checked = Vec::new();
+        for (entity, _) in (entities, flagged).join() {
+            checked.push(entity.index());
+        }
+
+        assert_eq!(checked, vec![0, 3, 6, 9, 12]);
     }
 }
 

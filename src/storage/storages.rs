@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
 use fnv::FnvHashMap;
-use hibitset::BitSet;
+use hibitset::{BitSet, BitSetAnd, BitSetNot};
 
 use world::EntityIndex;
 use {DistinctStorage, Index, Join, UnprotectedStorage};
@@ -91,7 +91,7 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 ///             // ...
 ///         }
 ///
-///         // Clears the tracked storage every frame with this system.
+///         // Clears the flagged storage every frame with this system.
 ///         (&mut comps).open().1.clear_flags();
 ///     }
 /// }
@@ -111,10 +111,8 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
             phantom: PhantomData,
         }
     }
-    unsafe fn clean<F>(&mut self, has: F)
-        where F: Fn(Index) -> bool
-    {
-        self.mask.clear();
+    unsafe fn clean<F>(&mut self, has: F) where F: Fn(Index) -> bool {
+        self.clear_flags();
         self.storage.clean(has);
     }
     unsafe fn get(&self, id: Index) -> &C {
@@ -122,15 +120,15 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
     }
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         // calling `.iter()` on an unconstrained mutable storage will flag everything
-        self.mask.add(id);
+        self.flag(id);
         self.storage.get_mut(id)
     }
     unsafe fn insert(&mut self, id: Index, comp: C) {
-        self.mask.add(id);
+        self.flag(id);
         self.storage.insert(id, comp);
     }
     unsafe fn remove(&mut self, id: Index) -> C {
-        self.mask.remove(id);
+        self.unflag(id);
         self.storage.remove(id)
     }
 }
@@ -140,7 +138,9 @@ impl<C, T: UnprotectedStorage<C>> FlaggedStorage<C, T> {
     pub fn flagged<E: EntityIndex>(&self, entity: E) -> bool {
         self.mask.contains(entity.index())
     }
-    /// All components will be cleared of being flagged.
+    /// Clears the bitset for flagged components.
+    ///
+    /// Should be called at least once depending on where you want to reset the flags.
     pub fn clear_flags(&mut self) {
         self.mask.clear();
     }
@@ -180,7 +180,6 @@ impl<'a, C, T: UnprotectedStorage<C>> Join for &'a mut FlaggedStorage<C, T> {
         value.get_mut(id)
     }
 }
-
 
 /// HashMap-based storage. Best suited for rare components.
 pub struct HashMapStorage<T>(FnvHashMap<Index, T>);
@@ -347,3 +346,178 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
 }
 
 unsafe impl<T> DistinctStorage for VecStorage<T> {}
+
+/// Wrapper storage that stores modifications to components with a bitset along with
+/// comparing equality to a cached version.
+///
+///# Example Usage:
+/// 
+/// ```rust
+/// extern crate specs;
+/// use specs::{Component, ChangedStorage, Join, System, VecStorage, WriteStorage};
+/// 
+/// #[derive(PartialEq, Clone)]
+/// pub struct Comp(u32);
+/// impl Component for Comp {
+///     // `ChangedStorage` acts as a wrapper around another storage.
+///     // You can put any store inside of here (e.g. HashMapStorage, VecStorage, etc.)
+///     type Storage = ChangedStorage<Comp, VecStorage<Comp>>;
+/// }
+/// 
+/// pub struct CompSystem;
+/// impl<'a> System<'a> for CompSystem {
+///     type SystemData = WriteStorage<'a, Comp>;
+///     fn run(&mut self, mut comps: WriteStorage<'a, Comp>) {
+///         // Iterates over all components like normal.
+///         for comp in (&comps).join() {
+///             // ...
+///         }
+/// 
+///         // To iterate over the flagged/modified components:
+///         for flagged_comp in (&comps).open().1.join() {
+///             // ...
+///         }
+/// 
+///         // Modify the components in some way.
+///         for comp in (&mut comps).join() {
+///             // ...
+///         }
+///
+///         // Clears the changed storage every frame with this system.
+///         (&mut comps).open().1.clear_flags();
+///     }
+/// }
+///# fn main() { }
+/// ```
+pub struct ChangedStorage<C, U> {
+    inner: FlaggedStorage<C, U>,
+    cache: U,
+    next: Option<Index>,
+}
+
+impl<C, U> ChangedStorage<C, U>
+    where C: PartialEq + Clone,
+          U: UnprotectedStorage<C>,
+{
+    /// Whether the component related to the entity was flagged or not.
+    pub fn flagged<E: EntityIndex>(&self, entity: E) -> bool {
+        self.inner.flagged(entity)
+    }
+    /// Clears the bitset for flagged components.
+    ///
+    /// Should be called at least once depending on where you want to reset the flags.
+    pub fn clear_flags(&mut self) {
+        if let Some(index) = self.next {
+            unsafe { self.cache.insert(index, self.inner.get(index).clone()); }
+            self.next = None;
+        }
+        self.inner.clear_flags();
+    }
+    /// Flags a single component as not flagged.
+    pub fn unflag<E: EntityIndex>(&mut self, entity: E) {
+        self.inner.unflag(entity);
+    }
+    /// Flags a single component as flagged.
+    pub fn flag<E: EntityIndex>(&mut self, entity: E) {
+        self.inner.flag(entity);
+    }
+}
+
+impl<C, U> UnprotectedStorage<C> for ChangedStorage<C, U>
+    where C: PartialEq + Clone,
+          U: UnprotectedStorage<C>,
+{
+    fn new() -> Self {
+        ChangedStorage {
+            inner: FlaggedStorage::<C, U>::new(),
+            cache: U::new(),
+            next: None,
+        }
+    }
+    unsafe fn clean<F>(&mut self, has: F) where F: Fn(Index) -> bool {
+        self.inner.clean(&has);
+        self.cache.clean(&has);
+    }
+    unsafe fn get(&self, id: Index) -> &C {
+        self.inner.get(id)
+    }
+    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
+        if let Some(index) = self.next {
+            if self.cache.get(index) == self.inner.get(index) {
+                self.unflag(index);
+            }
+            else {
+                self.cache.insert(index, self.inner.get(index).clone());
+            }
+        }
+        self.next = Some(id);
+        self.inner.get_mut(id)
+    }
+    unsafe fn insert(&mut self, id: Index, comp: C) {
+        self.cache.insert(id, comp.clone());
+        self.inner.insert(id, comp);
+    }
+    unsafe fn remove(&mut self, id: Index) -> C {
+        if let Some(next) = self.next {
+            if next == id {
+                self.next = None;
+            }
+        }
+        self.inner.remove(id)
+    }
+}
+
+impl<'a, C, U: UnprotectedStorage<C>> Join for &'a ChangedStorage<C, U>
+    where C: PartialEq,
+          U: UnprotectedStorage<C>,
+{
+    type Type = &'a C;
+    type Value = &'a U;
+    type Mask = BitSetAnd<&'a BitSet, BitSetNot<BitSet>>;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        // filter out singular bit in case that the cached
+        // next index to check is invalid
+        let mut single = BitSet::new();
+        if let Some(index) = self.next {
+            if unsafe { self.cache.get(index) } == unsafe { self.inner.get(index) } {
+                single.add(index);
+            }
+        }
+
+        let (bitset, storage) = (&self.inner).open();
+        (BitSetAnd(bitset, BitSetNot(single)), storage)
+    }
+    unsafe fn get(v: &mut Self::Value, id: Index) -> &'a C {
+        v.get(id)
+    }
+}
+
+impl<'a, C, U: UnprotectedStorage<C>> Join for &'a mut ChangedStorage<C, U>
+    where C: PartialEq + Clone,
+          U: UnprotectedStorage<C>,
+{
+    type Type = &'a mut C;
+    type Value = &'a mut U;
+    type Mask = &'a BitSet;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        if let Some(index) = self.next {
+            unsafe { 
+                if self.cache.get(index) == self.inner.get(index) {
+                    self.unflag(index);
+                }
+                else {
+                    self.cache.insert(index, self.inner.get(index).clone());
+                }
+            }
+
+            self.next = None;
+        }
+        (&mut self.inner).open()
+    }
+    unsafe fn get(v: &mut Self::Value, id: Index) -> &'a mut C {
+        // similar issue here as the `Storage<T, A, D>` implementation
+        use std::mem;
+        let value: &'a mut Self::Value = mem::transmute(v);
+        value.get_mut(id)
+    }
+}
