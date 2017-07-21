@@ -12,7 +12,6 @@ specs = "0.9"
 And add this to your crate root (`main.rs` or `lib.rs`):
 
 ```rust,ignore
-#[macro_use]
 extern crate specs;
 ```
 
