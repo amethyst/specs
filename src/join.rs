@@ -1,7 +1,7 @@
 use std;
 use std::cell::UnsafeCell;
 
-use hibitset::{BitSetAnd, BitIter, BitSetLike, BitProducer};
+use hibitset::{BitIter, BitProducer, BitSetAnd, BitSetLike};
 use rayon::iter::ParallelIterator;
 use rayon::iter::internal::{Folder, UnindexedConsumer, UnindexedProducer, bridge_unindexed};
 use tuple_utils::Split;
@@ -135,7 +135,7 @@ impl<J> ParallelIterator for JoinParIter<J>
     where J: Join + Send,
           J::Mask: Send + Sync,
           J::Type: Send,
-          J::Value: Send,
+          J::Value: Send
 {
     type Item = J::Type;
 
@@ -154,7 +154,7 @@ struct JoinProducer<'a, J>
     where J: Join + Send,
           J::Mask: Send + Sync + 'a,
           J::Type: Send,
-          J::Value: Send + 'a,
+          J::Value: Send + 'a
 {
     keys: BitProducer<'a, J::Mask>,
     values: &'a UnsafeCell<J::Value>,
@@ -202,15 +202,14 @@ impl<'a, J> UnindexedProducer for JoinProducer<'a, J>
         where F: Folder<Self::Item>
     {
         let JoinProducer { values, keys, .. } = self;
-        let iter = keys.0
-            .map(|idx| unsafe {
-                     // This unsafe block should be safe if the `J::get`
-                     // can be safely called from different threads with distinct indices.
+        let iter = keys.0.map(|idx| unsafe {
+            // This unsafe block should be safe if the `J::get`
+            // can be safely called from different threads with distinct indices.
 
-                     // The indices here are guaranteed to be distinct because of the fact
-                     // that the bit set is split.
-                     J::get(&mut *values.get(), idx)
-                 });
+            // The indices here are guaranteed to be distinct because of the fact
+            // that the bit set is split.
+            J::get(&mut *values.get(), idx)
+        });
 
         folder.consume_iter(iter)
     }
