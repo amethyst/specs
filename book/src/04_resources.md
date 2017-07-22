@@ -48,7 +48,7 @@ impl<'a> System<'a> for PosUpdate {
                        WriteStorage<'a, Position>);
                        
     fn run(&mut self, data: Self::SystemData) {
-        let (delta, vel, pos) = data;
+        let (delta, vel, mut pos) = data;
         
         // `Fetch` implements `Deref`, so it
         // coerces to `&DeltaTime`.
@@ -66,8 +66,7 @@ Note that all resources that a system accesses must be registered with
 `world.add_resource(resource)` before that system is run, or you will get a
 panic.
 
-For more information on `SystemData`, see [the
-system data chapter][cs].
+For more information on `SystemData`, see [the system data chapter][cs].
 
 [cs]: ./06_system_data.html
 

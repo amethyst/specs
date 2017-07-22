@@ -1,16 +1,12 @@
 extern crate shred;
-#[cfg(feature="serialize")]
 #[macro_use]
 extern crate shred_derive;
 extern crate specs;
-#[cfg(feature="serialize")]
 extern crate serde;
-#[cfg(feature="serialize")]
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
 
-#[cfg(feature="serialize")]
 fn main() {
     use serde::Serialize;
     use serde_json::{Serializer, from_str as json_from_str};
@@ -112,11 +108,4 @@ fn main() {
 
     dispatcher.dispatch(&mut world.res);
     world.maintain();
-}
-
-#[cfg(not(feature="serialize"))]
-fn main() {
-    println!("This example requires the feature \"serialize\" to be enabled.");
-    println!("You can enable it temporarily with: ");
-    println!("    cargo run --example serialize --features serialize");
 }

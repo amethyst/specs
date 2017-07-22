@@ -102,7 +102,7 @@ dispatcher.dispatch(&mut world.res);
 Here the code for this chapter:
 
 ```rust,ignore
-use specs::{Component, DispatcherBuilder ReadStorage,
+use specs::{Component, DispatcherBuilder, ReadStorage,
             System, VecStorage, World, WriteStorage};
 
 #[derive(Debug)]
@@ -157,6 +157,7 @@ impl<'a> System<'a> for UpdatePos {
 fn main() {
     let mut world = World::new();
     world.register::<Position>();
+    world.register::<Velocity>();
 
     // Only the second entity will get a position update,
     // because the first one does not have a velocity.
@@ -169,7 +170,7 @@ fn main() {
 
     let mut dispatcher = DispatcherBuilder::new()
         .add(HelloWorld, "hello_world", &[])
-        .add(UpdatePos, "update_pos" &["hello_world"])
+        .add(UpdatePos, "update_pos", &["hello_world"])
         .build();
 
     dispatcher.dispatch(&mut world.res);

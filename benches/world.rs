@@ -4,7 +4,6 @@ extern crate cgmath;
 extern crate rand;
 extern crate rayon;
 extern crate specs;
-
 extern crate test;
 
 use specs::{Component, HashMapStorage, Join, ParJoin, VecStorage, World};
