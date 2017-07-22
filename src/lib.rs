@@ -202,7 +202,6 @@ pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
 #[cfg(not(target_os = "emscripten"))]
 pub use shred::{AsyncDispatcher};
 
-pub use specs_derive::*;
 pub use storage::{BTreeStorage, CheckStorage, DenseVecStorage, DistinctStorage, FlaggedStorage,
                   HashMapStorage, InsertResult, NullStorage, ReadStorage, Storage,
                   UnprotectedStorage, VecStorage, WriteStorage};

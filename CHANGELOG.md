@@ -1,6 +1,8 @@
 ## 0.9.3 (Unreleased)
+* Add `specs-derive` crate, custom `#[derive]` for components ([#192])
 * Add lazy updates: insert and remove components, execute closures on world ([#214], [#221])
 
+[#192]: https://github.com/slide-rs/specs/pull/192
 [#214]: https://github.com/slide-rs/specs/pull/214
 [#221]: https://github.com/slide-rs/specs/pull/221
 
