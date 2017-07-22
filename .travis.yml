@@ -21,6 +21,8 @@ script:
 - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
     cargo bench --verbose --no-run;
   fi
+- cargo build --manifest-path ./specs-derive/Cargo.toml --verbose
+- cargo test --manifest-path ./specs-derive/Cargo.toml --verbose
 
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&
