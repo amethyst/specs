@@ -1,4 +1,4 @@
-## 0.9.3 (Unreleased)
+## 0.9.3
 * Add `specs-derive` crate, custom `#[derive]` for components ([#192])
 * Add lazy updates: insert and remove components, execute closures on world ([#214], [#221])
 
