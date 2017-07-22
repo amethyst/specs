@@ -16,7 +16,7 @@ use quote::Tokens;
 ///
 /// ## Example
 ///
-/// ```
+/// ```rust,ignore
 /// #[derive(Component, Debug)]
 /// struct Pos(f32, f32, f32);
 /// ```
@@ -24,7 +24,7 @@ use quote::Tokens;
 /// The macro will store components in `DenseVecStorage`s by default. To specify
 /// a different storage type, you may use the `#[component]` attribute.
 ///
-/// ```
+/// ```rust,ignore
 /// #[derive(Component, Debug)]
 /// #[component(HashMapStorage)]
 /// struct Pos(f32, f32, f32);
