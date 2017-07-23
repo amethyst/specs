@@ -63,6 +63,9 @@ name = "full"
 name = "cluster_bomb"
 
 [[example]]
+name = "bitset"
+
+[[example]]
 name = "common"
 required-features = ["common"]
 
