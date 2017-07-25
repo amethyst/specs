@@ -1,6 +1,6 @@
 
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
+use std::ops::DerefMut;
 use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
 
@@ -147,31 +147,12 @@ impl<'rf, 'st: 'rf, B, T, R, RT> Join for &'rf mut RestrictedStorage<'rf, 'st, B
 
 impl<'st, T, D> Storage<'st, T, D>
     where T: Component,
-          D: Deref<Target = MaskedStorage<T>>,
-{
-    /// Builds an immutable `RestrictedStorage` out of a `Storage`. Allows restricted
-    /// access to the inner components without allowing invalidating the
-    /// bitset for iteration in `Join`.
-    pub fn restrict<'rf>(&'rf self)
-        -> RestrictedStorage<'rf, 'st, &'rf BitSet, T, &'rf T::Storage, restrict_type::Normal>
-    {
-        RestrictedStorage {
-            bitset: &self.data.mask,
-            data: &self.data.inner,
-            entities: &self.entities,
-            phantom: PhantomData,
-        }
-    }
-}
-
-impl<'st, T, D> Storage<'st, T, D>
-    where T: Component,
           D: DerefMut<Target = MaskedStorage<T>>,
 {
     /// Builds a mutable `RestrictedStorage` out of a `Storage`. Allows restricted
     /// access to the inner components without allowing invalidating the
     /// bitset for iteration in `Join`.
-    pub fn restrict_mut<'rf>(&'rf mut self)
+    pub fn restrict<'rf>(&'rf mut self)
         -> RestrictedStorage<'rf, 'st, &'rf BitSet, T, &'rf mut T::Storage, restrict_type::Normal>
     {
         let (mask, data) = self.data.open_mut();
@@ -185,7 +166,7 @@ impl<'st, T, D> Storage<'st, T, D>
 
     /// Builds a mutable, parallel `RestrictedStorage`, does not allow mutably getting other components
     /// aside from the current iteration.
-    pub fn par_restrict_mut<'rf>(&'rf mut self)
+    pub fn par_restrict<'rf>(&'rf mut self)
         -> RestrictedStorage<'rf, 'st, &'rf BitSet, T, &'rf mut T::Storage, restrict_type::Parallel>
     {
         let (mask, data) = self.data.open_mut();
