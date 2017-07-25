@@ -8,16 +8,12 @@ use hibitset::BitSet;
 
 use storage::MaskedStorage;
 use world::EntityIndex;
-use {Component, DistinctStorage, Entities, Entity, Index, Join, Storage, UnprotectedStorage};
+use {Component, DistinctStorage, Entities, Entity, Index, Join, ParJoin, Storage, UnprotectedStorage};
 
-/// Generic flags for the restricted storage to determine
-/// the type of restriction.
-pub mod restrict_type {
-    /// Specifies that the `RestrictedStorage` cannot run in parallel.
-    pub struct Normal;
-    /// Specifies that the `RestrictedStorage` can run in parallel.
-    pub struct Parallel;
-}
+/// Specifies that the `RestrictedStorage` cannot run in parallel.
+pub enum NormalRestriction { }
+/// Specifies that the `RestrictedStorage` can run in parallel.
+pub enum ParallelRestriction { }
 
 /// Similar to a `MaskedStorage` and a `Storage` combined, but restricts usage
 /// to only getting and modifying the components. That means nothing that would
@@ -34,9 +30,9 @@ pub struct RestrictedStorage<'rf, 'st: 'rf, B, T, R, RT>
     phantom: PhantomData<(T, RT)>,
 }
 
-unsafe impl<'rf, 'st: 'rf, B, T, R, RT> DistinctStorage for RestrictedStorage<'rf, 'st, B, T, R, RT>
+unsafe impl<'rf, 'st: 'rf, B, T, R> ParJoin for &'rf mut RestrictedStorage<'rf, 'st, B, T, R, ParallelRestriction>
     where T: Component,
-          R: Borrow<T::Storage> + 'rf,
+          R: BorrowMut<T::Storage> + 'rf,
           B: Borrow<BitSet> + 'rf,
 { }
 
@@ -77,7 +73,7 @@ impl<'rf, 'st, B, T, R, RT> RestrictedStorage<'rf, 'st, B, T, R, RT>
     }
 }
 
-impl<'rf, 'st, B, T, R> RestrictedStorage<'rf, 'st, B, T, R, restrict_type::Normal>
+impl<'rf, 'st, B, T, R> RestrictedStorage<'rf, 'st, B, T, R, NormalRestriction>
     where T: Component,
           R: BorrowMut<T::Storage>,
           B: Borrow<BitSet>,
@@ -86,9 +82,7 @@ impl<'rf, 'st, B, T, R> RestrictedStorage<'rf, 'st, B, T, R, restrict_type::Norm
     ///
     /// Functions similar to the normal `Storage::get_mut` implementation.
     ///
-    /// Note: This only works if this is a parallel and mutable `RestrictedStorage`.
-    /// You can get one by using the `par_restrict_mut` method instead of the normal
-    /// `restrict_mut`/`restrict` methods on a storage.
+    /// Note: This only works if this is a non-parallel `RestrictedStorage`.
     pub fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
             Some(unsafe { self.data.borrow_mut().get_mut(entity.id()) })
@@ -96,7 +90,6 @@ impl<'rf, 'st, B, T, R> RestrictedStorage<'rf, 'st, B, T, R, restrict_type::Norm
             None
         }
     }
-
 }
 
 impl<'rf, 'st: 'rf, B, T, R, RT> Join for &'rf RestrictedStorage<'rf, 'st, B, T, R, RT>
@@ -153,7 +146,7 @@ impl<'st, T, D> Storage<'st, T, D>
     /// access to the inner components without allowing invalidating the
     /// bitset for iteration in `Join`.
     pub fn restrict<'rf>(&'rf mut self)
-        -> RestrictedStorage<'rf, 'st, &'rf BitSet, T, &'rf mut T::Storage, restrict_type::Normal>
+        -> RestrictedStorage<'rf, 'st, &BitSet, T, &mut T::Storage, NormalRestriction>
     {
         let (mask, data) = self.data.open_mut();
         RestrictedStorage {
@@ -167,7 +160,7 @@ impl<'st, T, D> Storage<'st, T, D>
     /// Builds a mutable, parallel `RestrictedStorage`, does not allow mutably getting other components
     /// aside from the current iteration.
     pub fn par_restrict<'rf>(&'rf mut self)
-        -> RestrictedStorage<'rf, 'st, &'rf BitSet, T, &'rf mut T::Storage, restrict_type::Parallel>
+        -> RestrictedStorage<'rf, 'st, &BitSet, T, &mut T::Storage, ParallelRestriction>
     {
         let (mask, data) = self.data.open_mut();
         RestrictedStorage {
