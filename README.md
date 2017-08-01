@@ -24,7 +24,7 @@ Unlike most other ECS libraries out there, it provides
 * easy parallelism
 * high flexibility
     * contains 5 different storages for components, which can be extended by the user
-    * it's types are mostly not coupled, so you can easily write some part yourself and
+    * its types are mostly not coupled, so you can easily write some part yourself and
       still use Specs
     * `System`s may read from and write to components and resources, can depend on each
       other and you can use barriers to force several stages in system execution
