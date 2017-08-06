@@ -8,7 +8,7 @@ use hibitset::BitSet;
 
 use storage::MaskedStorage;
 use world::EntityIndex;
-use {Component, DistinctStorage, Entities, Entity, Index, Join, ParJoin, Storage, UnprotectedStorage};
+use {Component, Entities, Entity, Index, Join, ParJoin, Storage, UnprotectedStorage};
 
 /// Specifies that the `RestrictedStorage` cannot run in parallel.
 pub enum NormalRestriction { }
@@ -19,6 +19,34 @@ pub enum ParallelRestriction { }
 /// to only getting and modifying the components. That means nothing that would
 /// modify the inner bitset so the iteration cannot be invalidated. For example,
 /// no insertion or removal is allowed.
+///
+/// Example Usage:
+/// ```rust
+///#extern crate specs;
+///#use specs::{Join, System, RestrictedStorage};
+///struct SomeComp(u32);
+///impl Component for SomeComp {
+///    type Storage = VecStorage<Self>;
+///}
+///
+///struct RestrictedSystem;
+///impl<'a> System<'a> for RestrictedSystem {
+///    type SystemData = (
+///        Entities<'a>,
+///        WriteStorage<'a, SomeComp>,
+///    );
+///    fn run(&mut self, (entities, mut some_comps): Self::SystemData) {
+///        for (entity, (mut entry, restricted)) in (&*entities, &mut some_comps.restrict()).join() {
+///            // Check if the reference is fine to mutate.
+///            if restricted.get_unchecked(&entry).0 < 5 { 
+///                // Get a mutable reference now.
+///                let mut mutable = restricted.get_mut_unchecked(&mut entry);
+///                mutable.0 += 1;
+///            }
+///        }
+///    }
+///}
+/// ```
 pub struct RestrictedStorage<'rf, 'st: 'rf, B, T, R, RT>
     where T: Component,
           R: Borrow<T::Storage> + 'rf,
