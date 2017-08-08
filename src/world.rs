@@ -387,6 +387,7 @@ impl<F> LazyUpdateInternal for F
 /// Please note that the provided methods take `&self`
 /// so there's no need to fetch `LazyUpdate` mutably.
 /// This resource is added to the world by default.
+#[derive(Default)]
 pub struct LazyUpdate {
     stack: TreiberStack<Box<LazyUpdateInternal>>,
 }
@@ -531,15 +532,6 @@ impl LazyUpdate {
         F: FnOnce(&World) + 'static + Send + Sync,
     {
         self.stack.push(Box::new(f));
-    }
-}
-
-impl Default for LazyUpdate {
-    fn default() -> Self {
-        // TODO: derive (`Default` is not yet implemented for `TreiberStack`)
-        LazyUpdate {
-            stack: TreiberStack::new(),
-        }
     }
 }
 
