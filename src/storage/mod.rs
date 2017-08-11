@@ -1,6 +1,7 @@
 //! Storage types
 
-pub use self::check::{CheckStorage, Entry};
+pub use self::check::CheckStorage;
+pub use self::restrict::{Entry, NormalRestriction, ParallelRestriction, RestrictedStorage};
 pub use self::data::{ReadStorage, WriteStorage};
 #[cfg(feature = "serialize")]
 pub use self::ser::{MergeError, PackedData};
@@ -21,6 +22,7 @@ use {Component, EntitiesRes, Entity, Index, Join, ParJoin};
 
 mod check;
 mod data;
+mod restrict;
 #[cfg(feature = "serialize")]
 mod ser;
 mod storages;

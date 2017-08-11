@@ -48,15 +48,15 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 /// Wrapper storage that stores modifications to components in a bitset.
 ///
 /// **Note:** Joining over all components of a `FlaggedStorage` mutably will flag all components.**
-/// What you want to instead is to use `check()` to first get the entities which contain
-/// the component, and then conditionally set the component after a call to `get_mut_unchecked()`.
+/// What you want to instead is to use `check()` or `restrict()` to first get the entities which contain
+/// the component, and then conditionally set the component after a call to `get_mut_unchecked()` or `get_mut()`.
 ///
 /// # Examples
 ///
 /// ```rust
 /// extern crate specs;
 ///
-/// use specs::{Component, FlaggedStorage, Join, System, VecStorage, WriteStorage};
+/// use specs::{Component, Entities, FlaggedStorage, Join, System, VecStorage, WriteStorage};
 ///
 /// pub struct Comp(u32);
 /// impl Component for Comp {
@@ -67,8 +67,8 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 ///
 /// pub struct CompSystem;
 /// impl<'a> System<'a> for CompSystem {
-///     type SystemData = WriteStorage<'a, Comp>;
-///     fn run(&mut self, mut comps: WriteStorage<'a, Comp>) {
+///     type SystemData = (Entities<'a>, WriteStorage<'a, Comp>);
+///     fn run(&mut self, (entities, mut comps): Self::SystemData) {
 ///         // Iterates over all components like normal.
 ///         for comp in (&comps).join() {
 ///             // ...
@@ -82,9 +82,9 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 ///         }
 ///
 ///         // Instead do something like:
-///         for mut entry in (&comps.check()).join() {
+///         for (entity, _) in (&*entities, &comps.check()).join() {
 ///             if true { // check whether this component should be modified.
-///                 let mut comp = comps.get_mut_unchecked(&mut entry);
+///                 let mut comp = comps.get_mut(entity);
 ///                 // ...
 ///             }
 ///         }
@@ -183,7 +183,6 @@ impl<'a, C, T: UnprotectedStorage<C>> Join for &'a mut FlaggedStorage<C, T> {
         value.get_mut(id)
     }
 }
-
 
 /// HashMap-based storage. Best suited for rare components.
 pub struct HashMapStorage<T>(FnvHashMap<Index, T>);
