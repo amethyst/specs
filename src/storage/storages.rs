@@ -178,9 +178,8 @@ impl<'a, C, T: UnprotectedStorage<C>> Join for &'a mut FlaggedStorage<C, T> {
     }
     unsafe fn get(v: &mut Self::Value, id: Index) -> &'a mut C {
         // similar issue here as the `Storage<T, A, D>` implementation
-        use std::mem;
-        let value: &'a mut Self::Value = mem::transmute(v);
-        value.get_mut(id)
+        let value: *mut Self::Value = v as *mut Self::Value;
+        (*value).get_mut(id)
     }
 }
 
