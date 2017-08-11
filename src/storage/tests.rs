@@ -580,6 +580,15 @@ mod test {
             s1.insert(Entity::new(i, Generation::new(1)), CMarker);
         }
 
+        for (entity, id) in (&*w.entities(), &s1.check()).join() {
+            if id % 3 == 0 {
+                let _ = s1.get_mut(entity);
+            }
+            else {
+                let _ = s1.get(entity);
+            }
+        }
+
         assert_eq!((&s1.check()).join().count(), 50);
     }
 

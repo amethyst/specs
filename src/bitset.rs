@@ -1,7 +1,7 @@
 
 use hibitset::{BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr};
 
-use ::{Index, Join};
+use ::{Index, Join, ParJoin};
 
 macro_rules! define_bit_join {
     ( $bitset:ident [ $( $arg:ident ),* ] ) => {
@@ -18,6 +18,10 @@ macro_rules! define_bit_join {
                 id
             }
         }
+        
+        unsafe impl<'a, $( $arg ),*> ParJoin for &'a $bitset<$( $arg ),*>
+            where $( $arg: BitSetLike ),*
+        { }
     }
 }
 

@@ -1,6 +1,5 @@
 //! Storage types
 
-pub use self::check::CheckStorage;
 pub use self::restrict::{Entry, NormalRestriction, ParallelRestriction, RestrictedStorage};
 pub use self::data::{ReadStorage, WriteStorage};
 pub use self::flagged::FlaggedStorage;
@@ -21,7 +20,6 @@ use shred::Fetch;
 
 use {Component, EntitiesRes, Entity, Index, Join, ParJoin};
 
-mod check;
 mod data;
 mod restrict;
 mod flagged;
@@ -177,6 +175,17 @@ impl<'e, T, D> Storage<'e, T, D>
         } else {
             None
         }
+    }
+
+    /// Returns a copy of the `BitSet` of the storage. This allows you to
+    /// do some methods on the actual storage without worrying about borrowing
+    /// semantics.
+    ///
+    /// This bitset *can* be invalidated here if insertion or removal methods
+    /// are used after the call to get the `BitSet`, so there is no guarantee
+    /// that the storage will have a component for a specific entity.
+    pub fn check(&self) -> BitSet {
+        self.data.mask.clone()
     }
 }
 
