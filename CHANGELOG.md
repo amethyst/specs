@@ -1,3 +1,13 @@
+## [Unreleased]
+
+* Make `CheckStorage` wrap a bitset and introduce `RestrictStorage` ([#203])
+* Bump rayon (breaking) ([#237])
+* Add `SortedStorage`, a storage which keeps a sorted version of components ([#239])
+
+[#203]: https://github.com/slide-rs/specs/pull/203
+[#237]: https://github.com/slide-rs/specs/pull/237
+[#239]: https://github.com/slide-rs/specs/pull/239
+
 ## 0.9.3
 * Add `specs-derive` crate, custom `#[derive]` for components ([#192])
 * Add lazy updates: insert and remove components, execute closures on world ([#214], [#221])

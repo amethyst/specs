@@ -5,6 +5,7 @@ pub use self::restrict::{Entry, NormalRestriction, ParallelRestriction, Restrict
 pub use self::data::{ReadStorage, WriteStorage};
 #[cfg(feature = "serialize")]
 pub use self::ser::{MergeError, PackedData};
+pub use self::sorted::SortedStorage;
 pub use self::storages::{BTreeStorage, DenseVecStorage, FlaggedStorage, HashMapStorage,
                          NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
@@ -25,6 +26,7 @@ mod data;
 mod restrict;
 #[cfg(feature = "serialize")]
 mod ser;
+mod sorted;
 mod storages;
 #[cfg(test)]
 mod tests;
