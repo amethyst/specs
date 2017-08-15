@@ -277,13 +277,11 @@ impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
     }
 
     unsafe fn get(v: &mut Self::Value, i: Index) -> &'a mut T {
-        use std::mem;
-
         // This is horribly unsafe. Unfortunately, Rust doesn't provide a way
         // to abstract mutable/immutable state at the moment, so we have to hack
         // our way through it.
-        let value: &'a mut Self::Value = mem::transmute(v);
-        value.get_mut(i)
+        let value: *mut Self::Value = v as *mut Self::Value;
+        (*value).get_mut(i)
     }
 }
 
