@@ -3,9 +3,10 @@
 pub use self::check::CheckStorage;
 pub use self::restrict::{Entry, NormalRestriction, ParallelRestriction, RestrictedStorage};
 pub use self::data::{ReadStorage, WriteStorage};
+pub use self::flagged::FlaggedStorage;
 #[cfg(feature = "serialize")]
 pub use self::ser::{MergeError, PackedData};
-pub use self::storages::{BTreeStorage, DenseVecStorage, FlaggedStorage, HashMapStorage,
+pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage,
                          NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
@@ -23,6 +24,7 @@ use {Component, EntitiesRes, Entity, Index, Join, ParJoin};
 mod check;
 mod data;
 mod restrict;
+mod flagged;
 #[cfg(feature = "serialize")]
 mod ser;
 mod storages;
