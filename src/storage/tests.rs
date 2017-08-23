@@ -114,6 +114,12 @@ mod test {
 
     use super::*;
 
+    #[derive(PartialEq, Eq, Debug, Default)]
+    struct CMarker;
+    impl Component for CMarker {
+        type Storage = NullStorage<Self>;
+    }
+
     #[derive(PartialEq, Eq, Debug)]
     struct Cvec(u32);
     impl From<u32> for Cvec {
@@ -454,27 +460,67 @@ mod test {
         test_clear::<Cnull>();
     }
 
-    // Check storage tests
     #[test]
-    fn check_storage() {
+    fn restricted_storage() {
         use join::Join;
+        use std::collections::HashSet;
+
         let mut w = World::new();
         w.register::<Cvec>();
         let mut s1: Storage<Cvec, _> = w.write();
+        let mut components = HashSet::new();
 
         for i in 0..50 {
-            s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
+            let c = i + 10;
+            s1.insert(Entity::new(i, Generation::new(1)), c.into());
+            components.insert(c);
         }
 
         for (entry, restricted) in (&mut s1.restrict()).join() {
-            {
-                restricted.get_unchecked(&entry);
-            }
+            let c1 = {
+                restricted.get_unchecked(&entry).0
+            };
 
-            {
-                restricted.get_mut_unchecked(&entry);
-            }
+            let c2 = {
+                restricted.get_mut_unchecked(&entry).0
+            };
+
+            assert_eq!(c1, c2, "Mutable and immutable gets returned different components.");
+            assert!(components.remove(&c1), "Same component was iterated twice in join.");
         }
+        assert!(components.is_empty(), "Some components weren't iterated in join.");
+    }
+
+    #[test]
+    fn par_restricted_storage() {
+        use join::ParJoin;
+        use std::sync::Mutex;
+        use std::collections::HashSet;
+        use rayon::iter::ParallelIterator;
+
+        let mut w = World::new();
+        w.register::<Cvec>();
+        let mut s1: Storage<Cvec, _> = w.write();
+        let mut components = HashSet::new();
+
+        for i in 0..50 {
+            let c = i + 10;
+            s1.insert(Entity::new(i, Generation::new(1)), c.into());
+            components.insert(c);
+        }
+
+        let components2 = Mutex::new(Vec::new());
+        let components2_mut = Mutex::new(Vec::new());
+
+        (&mut s1.par_restrict()).par_join()
+            .for_each(|(entry, restricted)| {
+                let (mut components2, mut components2_mut) = (components2.lock().unwrap(), components2_mut.lock().unwrap());
+                components2.push(restricted.get_unchecked(&entry).0);
+                components2_mut.push(restricted.get_mut_unchecked(&entry).0);
+            });
+        let components2 = components2.into_inner().unwrap();
+        assert_eq!(components2, components2_mut.into_inner().unwrap(), "Mutable and immutable gets returned different components.");
+        assert_eq!(components, components2.into_iter().collect(), "Components iterated weren't as should've been.");
     }
 
     #[test]
@@ -494,8 +540,63 @@ mod test {
         }
         for ((s1_entry, _), (_, s2_restricted)) in (&mut s1.restrict(), &mut s2.restrict()).join() {
             // verify that the assert fails if the storage is not the original.
-            s2_restricted.get_unchecked(&s1_entry); 
+            s2_restricted.get_unchecked(&s1_entry);
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn par_wrong_storage() {
+        use join::ParJoin;
+        use rayon::iter::ParallelIterator;
+
+        let mut w = World::new();
+        w.register_with_id::<Cvec>(1);
+        w.register_with_id::<Cvec>(2);
+        let mut s1: Storage<Cvec, _> = w.write_with_id(1);
+        // Possibility if the world uses dynamic components.
+        let mut s2: Storage<Cvec, _> = w.write_with_id(2);
+
+        for i in 0..50 {
+            s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
+            s2.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
+        }
+        (&mut s1.par_restrict(), &mut s2.par_restrict()).par_join()
+            .for_each(|((s1_entry, _), (_, s2_restricted))| {
+                // verify that the assert fails if the storage is not the original.
+                s2_restricted.get_unchecked(&s1_entry);
+            });
+    }
+
+    #[test]
+    fn check_storage() {
+        use join::Join;
+
+        let mut w = World::new();
+        w.register::<CMarker>();
+        let mut s1: Storage<CMarker, _> = w.write();
+
+        for i in 0..50 {
+            s1.insert(Entity::new(i, Generation::new(1)), CMarker);
+        }
+
+        assert_eq!((&s1.check()).join().count(), 50);
+    }
+
+    #[test]
+    fn par_check_storage() {
+        use join::ParJoin;
+        use rayon::iter::ParallelIterator;
+
+        let mut w = World::new();
+        w.register::<CMarker>();
+        let mut s1: Storage<CMarker, _> = w.write();
+
+        for i in 0..50 {
+            s1.insert(Entity::new(i, Generation::new(1)), CMarker);
+        }
+
+        assert_eq!((&s1.check()).par_join().count(), 50);
     }
 
     #[test]

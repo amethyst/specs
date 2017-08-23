@@ -4,7 +4,7 @@ use std::ops::{Deref, Not};
 use hibitset::BitSet;
 
 use storage::{AntiStorage, MaskedStorage};
-use {Component, DistinctStorage, Index, Join, Storage};
+use {Component, DistinctStorage, Index, Join, ParJoin, Storage};
 
 /// Allows iterating over a storage without borrowing the storage itself.
 pub struct CheckStorage {
@@ -20,8 +20,11 @@ impl<'a> Join for &'a CheckStorage {
     }
     unsafe fn get(_: &mut (), _: Index) -> Self::Type {
         ()
-    } 
+    }
 }
+
+unsafe impl<'a> ParJoin for &'a CheckStorage
+{ }
 
 impl<'a> Not for &'a CheckStorage {
     type Output = AntiStorage<'a>;
