@@ -22,30 +22,30 @@ pub enum ParallelRestriction { }
 ///
 /// Example Usage:
 /// ```rust
-///#extern crate specs;
-///#use specs::{Join, System, RestrictedStorage};
-///struct SomeComp(u32);
-///impl Component for SomeComp {
-///    type Storage = VecStorage<Self>;
-///}
+/// #extern crate specs;
+/// #use specs::{Join, System, RestrictedStorage};
+/// struct SomeComp(u32);
+/// impl Component for SomeComp {
+///     type Storage = VecStorage<Self>;
+/// }
 ///
-///struct RestrictedSystem;
-///impl<'a> System<'a> for RestrictedSystem {
-///    type SystemData = (
-///        Entities<'a>,
-///        WriteStorage<'a, SomeComp>,
-///    );
-///    fn run(&mut self, (entities, mut some_comps): Self::SystemData) {
-///        for (entity, (mut entry, restricted)) in (&*entities, &mut some_comps.restrict()).join() {
-///            // Check if the reference is fine to mutate.
-///            if restricted.get_unchecked(&entry).0 < 5 { 
-///                // Get a mutable reference now.
-///                let mut mutable = restricted.get_mut_unchecked(&mut entry);
-///                mutable.0 += 1;
-///            }
-///        }
-///    }
-///}
+/// struct RestrictedSystem;
+/// impl<'a> System<'a> for RestrictedSystem {
+///     type SystemData = (
+///         Entities<'a>,
+///         WriteStorage<'a, SomeComp>,
+///     );
+///     fn run(&mut self, (entities, mut some_comps): Self::SystemData) {
+///         for (entity, (mut entry, restricted)) in (&*entities, &mut some_comps.restrict()).join() {
+///             // Check if the reference is fine to mutate.
+///             if restricted.get_unchecked(&entry).0 < 5 { 
+///                 // Get a mutable reference now.
+///                 let mut mutable = restricted.get_mut_unchecked(&mut entry);
+///                 mutable.0 += 1;
+///             }
+///         }
+///     }
+/// }
 /// ```
 pub struct RestrictedStorage<'rf, 'st: 'rf, B, T, R, RT>
     where T: Component,
