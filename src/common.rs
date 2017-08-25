@@ -136,7 +136,7 @@ impl<F> Merge<F> {
 struct NotifyIgnore;
 impl Notify for NotifyIgnore {
     fn notify(&self, _: usize) {
-        /* Intetionally ignore */
+        /* Intentionally ignore */
     }
 }
 
