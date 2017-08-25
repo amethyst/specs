@@ -24,6 +24,8 @@ use std::io::Write;
 use std::marker::PhantomData;
 
 use futures::{Async, Future};
+use futures::executor::{Notify, Spawn, spawn};
+
 use {Component, Entity, Entities, FetchMut, Join, RunningTime, System, WriteStorage};
 
 /// A boxed error implementing `Debug`, `Display` and `Error`.
@@ -117,7 +119,7 @@ impl Errors {
 /// In case of an error, it will be added to the `Errors` resource.
 pub struct Merge<F> {
     future_type: PhantomData<F>,
-    tmp: Vec<Entity>,
+    spawns: Vec<(Entity, Spawn<F>)>,
 }
 
 impl<F> Merge<F> {
@@ -125,10 +127,19 @@ impl<F> Merge<F> {
     pub fn new() -> Self {
         Merge {
             future_type: PhantomData,
-            tmp: Vec::new(),
+            spawns: Vec::new(),
         }
     }
 }
+
+struct NotifyIgnore;
+impl Notify for NotifyIgnore {
+    fn notify(&self, _: usize) {
+        // Intentionally ignore
+    }
+}
+
+static NOTIFY_IGNORE: &&NotifyIgnore = &&NotifyIgnore;
 
 impl<'a, T, F> System<'a> for Merge<F>
     where T: Component + Send + Sync + 'static,
@@ -139,29 +150,52 @@ impl<'a, T, F> System<'a> for Merge<F>
                        WriteStorage<'a, F>,
                        WriteStorage<'a, T>);
 
-    fn run(&mut self, (entities, mut errors, mut future, mut pers): Self::SystemData) {
-        let mut delete = &mut self.tmp;
+    fn run(&mut self, (entities, mut errors, mut futures, mut pers): Self::SystemData) {
 
-        for (e, future) in (&*entities, &mut future).join() {
-            match future.poll() {
-                Ok(Async::Ready(x)) => {
-                    pers.insert(e, x);
-                    delete.push(e);
+        for (e, ()) in (&*entities, &futures.check()).join() {
+            self.spawns.push((e, spawn(futures.remove(e).unwrap())));
+        }
+
+        retain_mut(&mut self.spawns, |spawn| {
+            match spawn.1.poll_future_notify(NOTIFY_IGNORE, 0) {
+                Ok(Async::NotReady) => {
+                    true
                 }
-                Ok(Async::NotReady) => {}
+                Ok(Async::Ready(value)) => {
+                    pers.insert(spawn.0, value);
+                    false
+                }
                 Err(err) => {
                     errors.add(err);
-                    delete.push(e);
+                    false
                 }
             }
-        }
-
-        for e in delete.drain(..) {
-            future.remove(e);
-        }
+        });
     }
 
     fn running_time(&self) -> RunningTime {
         RunningTime::Short
+    }
+}
+
+
+fn retain_mut<T, F>(vec: &mut Vec<T>, mut f: F)
+        where F: FnMut(&mut T) -> bool
+{
+    let len = vec.len();
+    let mut del = 0;
+    {
+        let v = &mut **vec;
+
+        for i in 0..len {
+            if !f(&mut v[i]) {
+                del += 1;
+            } else if del > 0 {
+                v.swap(i - del, i);
+            }
+        }
+    }
+    if del > 0 {
+        vec.truncate(len - del);
     }
 }
