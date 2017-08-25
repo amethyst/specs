@@ -21,6 +21,7 @@ pub enum ParallelRestriction { }
 /// no insertion or removal is allowed.
 ///
 /// Example Usage:
+/// 
 /// ```rust
 /// #extern crate specs;
 /// #use specs::{Join, System, RestrictedStorage};
