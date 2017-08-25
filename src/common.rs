@@ -17,6 +17,7 @@
 //! features = ["common"]
 //! ```
 
+use std::cell::RefCell;
 use std::convert::AsRef;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
@@ -24,7 +25,7 @@ use std::io::Write;
 use std::marker::PhantomData;
 
 use futures::{Async, Future};
-use futures::executor::{Notify, Spawn};
+use futures::executor::{Notify, spawn, Spawn};
 
 use {Component, Entity, Entities, FetchMut, Join, RunningTime, System, WriteStorage};
 
@@ -119,6 +120,7 @@ impl Errors {
 /// In case of an error, it will be added to the `Errors` resource.
 pub struct Merge<F> {
     future_type: PhantomData<F>,
+    spawns: Vec<RefCell<(Entity, Spawn<F>)>>,
 }
 
 impl<F> Merge<F> {
@@ -126,39 +128,51 @@ impl<F> Merge<F> {
     pub fn new() -> Self {
         Merge {
             future_type: PhantomData,
+            spawns: Vec::new(),
         }
     }
 }
 
 struct NotifyIgnore;
 impl Notify for NotifyIgnore {
-    fn notify(&self, id: usize) {
+    fn notify(&self, _: usize) {
         /* Intetionally ignore */
     }
 }
 
-static NOTIFY_IGNORE: NotifyIgnore = NotifyIgnore;
+static NOTIFY_IGNORE: &&'static NotifyIgnore = &&NotifyIgnore;
 
 impl<'a, T, F> System<'a> for Merge<F>
     where T: Component + Send + Sync + 'static,
-          F: Future<Item = T, Error = BoxedErr>,
-          Spawn<F>: Component + Send + Sync,
+          F: Future<Item = T, Error = BoxedErr> + Component + Send + Sync,
 {
     type SystemData = (Entities<'a>,
                        FetchMut<'a, Errors>,
-                       WriteStorage<'a, Spawn<F>>,
+                       WriteStorage<'a, F>,
                        WriteStorage<'a, T>);
 
-    fn run(&mut self, (entities, mut errors, mut spawns, mut pers): Self::SystemData) {
+    fn run(&mut self, (entities, mut errors, mut futures, mut pers): Self::SystemData) {
 
-        for (e, ()) in (&*entities, &spawns.check()).join() {
-            let mut spawn = spawns.remove(e).unwrap();
-            match spawn.poll_future_notify(&NOTIFY_IGNORE, 0) {
-                Ok(Async::NotReady) => { spawns.insert(e, spawn); }
-                Ok(Async::Ready(value)) => { pers.insert(e, value); }
-                Err(err) => errors.add(err),
-            };
+        for (e, ()) in (&*entities, &futures.check()).join() {
+            self.spawns.push(RefCell::new((e, spawn(futures.remove(e).unwrap()))));
         }
+
+        self.spawns.retain(|spawn| {
+            let mut spawn = spawn.borrow_mut();
+            match (*spawn).1.poll_future_notify(NOTIFY_IGNORE, 0) {
+                Ok(Async::NotReady) => {
+                    true
+                }
+                Ok(Async::Ready(value)) => {
+                    pers.insert(spawn.0, value);
+                    false
+                }
+                Err(err) => {
+                    errors.add(err);
+                    false
+                }
+            }
+        });
     }
 
     fn running_time(&self) -> RunningTime {
