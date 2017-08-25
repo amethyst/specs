@@ -17,7 +17,6 @@
 //! features = ["common"]
 //! ```
 
-use std::cell::RefCell;
 use std::convert::AsRef;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
@@ -25,7 +24,7 @@ use std::io::Write;
 use std::marker::PhantomData;
 
 use futures::{Async, Future};
-use futures::executor::{Notify, spawn, Spawn};
+use futures::executor::{Notify, Spawn, spawn};
 
 use {Component, Entity, Entities, FetchMut, Join, RunningTime, System, WriteStorage};
 
@@ -120,7 +119,7 @@ impl Errors {
 /// In case of an error, it will be added to the `Errors` resource.
 pub struct Merge<F> {
     future_type: PhantomData<F>,
-    spawns: Vec<RefCell<(Entity, Spawn<F>)>>,
+    spawns: Vec<(Entity, Spawn<F>)>,
 }
 
 impl<F> Merge<F> {
@@ -136,11 +135,11 @@ impl<F> Merge<F> {
 struct NotifyIgnore;
 impl Notify for NotifyIgnore {
     fn notify(&self, _: usize) {
-        /* Intentionally ignore */
+        // Intentionally ignore
     }
 }
 
-static NOTIFY_IGNORE: &&'static NotifyIgnore = &&NotifyIgnore;
+static NOTIFY_IGNORE: &&NotifyIgnore = &&NotifyIgnore;
 
 impl<'a, T, F> System<'a> for Merge<F>
     where T: Component + Send + Sync + 'static,
@@ -154,12 +153,11 @@ impl<'a, T, F> System<'a> for Merge<F>
     fn run(&mut self, (entities, mut errors, mut futures, mut pers): Self::SystemData) {
 
         for (e, ()) in (&*entities, &futures.check()).join() {
-            self.spawns.push(RefCell::new((e, spawn(futures.remove(e).unwrap()))));
+            self.spawns.push((e, spawn(futures.remove(e).unwrap())));
         }
 
-        self.spawns.retain(|spawn| {
-            let mut spawn = spawn.borrow_mut();
-            match (*spawn).1.poll_future_notify(NOTIFY_IGNORE, 0) {
+        retain_mut(&mut self.spawns, |spawn| {
+            match spawn.1.poll_future_notify(NOTIFY_IGNORE, 0) {
                 Ok(Async::NotReady) => {
                     true
                 }
@@ -177,5 +175,27 @@ impl<'a, T, F> System<'a> for Merge<F>
 
     fn running_time(&self) -> RunningTime {
         RunningTime::Short
+    }
+}
+
+
+fn retain_mut<T, F>(vec: &mut Vec<T>, mut f: F)
+        where F: FnMut(&mut T) -> bool
+{
+    let len = vec.len();
+    let mut del = 0;
+    {
+        let v = &mut **vec;
+
+        for i in 0..len {
+            if !f(&mut v[i]) {
+                del += 1;
+            } else if del > 0 {
+                v.swap(i - del, i);
+            }
+        }
+    }
+    if del > 0 {
+        vec.truncate(len - del);
     }
 }
