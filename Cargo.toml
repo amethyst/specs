@@ -1,6 +1,7 @@
 [package]
 name = "specs"
 version = "0.9.4"
+description = "Specs Parallel ECS"
 readme = "README.md"
 documentation = "https://docs.rs/specs/"
 repository = "https://github.com/slide-rs/specs"
