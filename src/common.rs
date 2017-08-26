@@ -152,7 +152,7 @@ impl<'a, T, F> System<'a> for Merge<F>
 
     fn run(&mut self, (entities, mut errors, mut futures, mut pers): Self::SystemData) {
 
-        for (e, ()) in (&*entities, &futures.check()).join() {
+        for (e, _) in (&*entities, &futures.check()).join() {
             self.spawns.push((e, spawn(futures.remove(e).unwrap())));
         }
 
