@@ -1,6 +1,6 @@
 [package]
 name = "specs"
-version = "0.9.4"
+version = "0.9.5"
 description = "Specs Parallel ECS"
 readme = "README.md"
 documentation = "https://docs.rs/specs/"

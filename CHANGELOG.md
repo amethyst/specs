@@ -1,4 +1,10 @@
-## 0.9.4
+## 0.9.5
+
+* Fixes compilation error which broke 0.9.5 ([#246])
+
+[#246]: https://github.com/slide-rs/specs/pull/246
+
+## 0.9.4 (Broken)
 
 * Fix bug in common::Merge ([#245])
 
