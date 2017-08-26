@@ -1,4 +1,11 @@
+## 0.9.4
+
+* Fix bug in common::Merge ([#245])
+
+[#245]: https://github.com/slide-rs/specs/pull/245
+
 ## 0.9.3
+
 * Add `specs-derive` crate, custom `#[derive]` for components ([#192])
 * Add lazy updates: insert and remove components, execute closures on world ([#214], [#221])
 
@@ -7,6 +14,7 @@
 [#221]: https://github.com/slide-rs/specs/pull/221
 
 ## 0.9.2
+
 * Fixed grammar in book ([#198])
 * Better docs for `World` and better panic message ([#199])
 * Add support for Emscripten ([#205])
