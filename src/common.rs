@@ -199,3 +199,92 @@ fn retain_mut<T, F>(vec: &mut Vec<T>, mut f: F)
         vec.truncate(len - del);
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use std::error::Error;
+    use std::fmt::{Display, Formatter, Result as FmtResult};
+
+    use futures::task;
+    use futures::Poll;
+    use futures::future::{Future, FutureResult, result};
+
+    use common::{BoxedErr, Errors, Merge};
+    use Component;
+    use DispatcherBuilder;
+    use storage::{NullStorage, VecStorage};
+    use world::World;
+    #[test]
+    fn test_merge() {
+        #[derive(Default)]
+        struct TestComponent;
+
+        impl Component for TestComponent {
+            type Storage = NullStorage<Self>;
+        }
+
+        struct TestFuture {
+            result: FutureResult<TestComponent, BoxedErr>,
+        }
+
+        impl Future for TestFuture {
+            type Item = TestComponent;
+            type Error = BoxedErr;
+
+            fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+                task::current(); // This function called purely to see if we can.
+                // Futures will expect to be able to call this function without panicking.
+                self.result.poll()
+            }
+        }
+
+        impl Component for TestFuture {
+            type Storage = VecStorage<Self>;
+        }
+
+        #[derive(Debug)]
+        struct TestError;
+
+        impl Display for TestError {
+            fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
+                fmt.write_str("TestError")
+            }
+        }
+
+        impl Error for TestError {
+            fn description(&self) -> &str {
+                "An error used for testing"
+            }
+
+            fn cause(&self) -> Option<&Error> {
+                None
+            }
+        }
+
+        let mut world = World::new();
+        world.add_resource(Errors::new());
+        world.register::<TestComponent>();
+        world.register::<TestFuture>();
+        let success = world.create_entity()
+            .with(TestFuture {
+                result: result(Ok(TestComponent))
+            }).build();
+        let error = world.create_entity()
+            .with(TestFuture {
+                result: result(Err(BoxedErr::new(TestError)))
+            }).build();
+
+        let system: Merge<TestFuture> = Merge::new();
+
+        let mut dispatcher = DispatcherBuilder::new().add(system, "merge", &[]).build();
+
+        // Sequential dispatch used in order to avoid missing panics due to them happening in
+        // another thread.
+        dispatcher.dispatch_seq(&mut world.res); 
+        let components = world.read::<TestComponent>();
+        assert!(components.get(success).is_some());
+        assert!(components.get(error).is_none());
+        assert_eq!(world.read_resource::<Errors>().errors.len(), 1);
+    }
+}
