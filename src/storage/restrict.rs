@@ -21,10 +21,9 @@ pub enum ParallelRestriction { }
 /// no insertion or removal is allowed.
 ///
 /// Example Usage:
-/// 
+///
 /// ```rust
-/// #extern crate specs;
-/// #use specs::{Join, System, RestrictedStorage};
+/// # use specs::{Join, System, Component, RestrictedStorage, WriteStorage, VecStorage, Entities};
 /// struct SomeComp(u32);
 /// impl Component for SomeComp {
 ///     type Storage = VecStorage<Self>;
@@ -39,7 +38,7 @@ pub enum ParallelRestriction { }
 ///     fn run(&mut self, (entities, mut some_comps): Self::SystemData) {
 ///         for (entity, (mut entry, restricted)) in (&*entities, &mut some_comps.restrict()).join() {
 ///             // Check if the reference is fine to mutate.
-///             if restricted.get_unchecked(&entry).0 < 5 { 
+///             if restricted.get_unchecked(&entry).0 < 5 {
 ///                 // Get a mutable reference now.
 ///                 let mut mutable = restricted.get_mut_unchecked(&mut entry);
 ///                 mutable.0 += 1;
@@ -126,7 +125,7 @@ impl<'rf, 'st: 'rf, B, T, R, RT> Join for &'rf RestrictedStorage<'rf, 'st, B, T,
           R: Borrow<T::Storage>,
           B: Borrow<BitSet>,
 {
-    type Type = (Entry<'rf, T>, Self); 
+    type Type = (Entry<'rf, T>, Self);
     type Value = Self;
     type Mask = &'rf BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
@@ -138,7 +137,7 @@ impl<'rf, 'st: 'rf, B, T, R, RT> Join for &'rf RestrictedStorage<'rf, 'st, B, T,
             pointer: value.data.borrow() as *const T::Storage,
             phantom: PhantomData,
         };
-        
+
         (entry, value)
     }
 }
@@ -148,7 +147,7 @@ impl<'rf, 'st: 'rf, B, T, R, RT> Join for &'rf mut RestrictedStorage<'rf, 'st, B
           R: BorrowMut<T::Storage>,
           B: Borrow<BitSet>,
 {
-    type Type = (Entry<'rf, T>, Self); 
+    type Type = (Entry<'rf, T>, Self);
     type Value = Self;
     type Mask = BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
@@ -250,4 +249,3 @@ impl<'a, 'rf, T> EntityIndex for &'a Entry<'rf, T>
         (*self).index()
     }
 }
-
