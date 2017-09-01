@@ -143,7 +143,7 @@ fn main() {
             let positions = world.read::<Pos>();
             const WIDTH: usize = 10;
             const HEIGHT: usize = 10;
-            const SCALE: f32 = 1 / 4.;
+            const SCALE: f32 = 1. / 4.;
             let mut screen = [[0; WIDTH]; HEIGHT];
             for entity in world.entities().join() {
                 if let Some(pos) = positions.get(entity) {
