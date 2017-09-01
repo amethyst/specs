@@ -32,14 +32,14 @@ impl Component for Shrapnel {
 #[derive(Debug, Clone)]
 struct Pos(f32, f32);
 impl Component for Pos {
-    // This uses `VecStorage`, because all entities have position.
+    // This uses `VecStorage`, because all entities have a position.
     type Storage = VecStorage<Self>;
 }
 
 #[derive(Debug)]
 struct Vel(f32, f32);
 impl Component for Vel {
-    // This uses `DenseVecStorage`, because nearly all entities have velocity.
+    // This uses `DenseVecStorage`, because nearly all entities have a velocity.
     type Storage = DenseVecStorage<Self>;
 }
 
