@@ -39,7 +39,7 @@ impl Component for Pos {
 #[derive(Debug)]
 struct Vel(f32, f32);
 impl Component for Vel {
-    // This uses `DenseVecStorage`, because nearly all entities have position.
+    // This uses `DenseVecStorage`, because nearly all entities have velocity.
     type Storage = DenseVecStorage<Self>;
 }
 
