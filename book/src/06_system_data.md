@@ -17,6 +17,39 @@ methods, respectively. After dynamic entity creation / deletion,
 a call `World::maintain` is necessary in order to make the changes
 persistent and delete associated components.
 
-You cannot, however, easily build an entity
-with associated components. For that, you have to write to these component
-storages and insert a component for your entity.
+## Adding and removing components
+
+To add or remove component to existing or dynamically created entity
+you can either modify it's storage directly with `WriteStorage`
+or lazily using `LazyUpdate` resource.
+
+```rust,ignore
+use specs::{Component, Fetch, LazyUpdate, NullStorage, System, Entities, WriteStorage};
+
+struct Stone;
+impl Component for Stone {
+    type Storage = NullStorage<Self>;
+}
+
+struct StoneCreator;
+impl<'a> System<'a> for StoneCreator {
+    type SystemData = (
+        Entities<'a>,
+        WriteStorage<'a, Stone>,
+        Fetch<'a, LazyUpdate>
+    );
+
+    fn run(&mut self, (entities, stones, updater): Self::SystemData) {
+        let stone = entities.create();
+
+        // 1) Either we insert the component by writing to it's storage
+        stones.insert(stone, Stone);
+
+        // 2) or we can lazily insert it with `LazyUpdate`
+        updater.insert(stone, Stone);
+    }
+}
+```
+
+> **Note:** After using adding or removing component using `LazyUpdate`
+  a call to `World::maintain` is necessary to actually execute the changes.

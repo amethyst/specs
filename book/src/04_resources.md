@@ -46,14 +46,14 @@ impl<'a> System<'a> for PosUpdate {
     type SystemData = (Fetch<'a, DeltaTime>,
                        ReadStorage<'a, Velocity>,
                        WriteStorage<'a, Position>);
-                       
+
     fn run(&mut self, data: Self::SystemData) {
         let (delta, vel, mut pos) = data;
-        
+
         // `Fetch` implements `Deref`, so it
         // coerces to `&DeltaTime`.
         let delta = delta.0;
-        
+
         for (vel, pos) in (&vel, &mut pos).join() {
             pos.x += vel.x * delta;
             pos.y += vel.y * delta;
