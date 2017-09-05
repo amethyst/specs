@@ -205,7 +205,7 @@ pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
 #[cfg(not(target_os = "emscripten"))]
 pub use shred::{AsyncDispatcher};
 
-pub use storage::{BTreeStorage, CheckStorage, DenseVecStorage, DistinctStorage, Entry, FlaggedStorage,
+pub use storage::{BTreeStorage, DenseVecStorage, DistinctStorage, Entry, FlaggedStorage,
                   HashMapStorage, InsertResult, MaskedStorage, NormalRestriction, NullStorage, ParallelRestriction, ReadStorage, RestrictedStorage,
                   Storage, UnprotectedStorage, VecStorage, WriteStorage};
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
@@ -232,6 +232,7 @@ pub type Entities<'a> = Fetch<'a, EntitiesRes>;
 /// An index is basically the id of an `Entity`.
 pub type Index = u32;
 
+mod bitset;
 mod join;
 mod storage;
 mod world;
