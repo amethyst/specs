@@ -3,13 +3,20 @@ rust:
 - nightly
 - stable
 
+cache: cargo
+
 branches:
   only:
     - staging
     - trying
     - master
 
+before_script:
+- export PATH="$PATH:$HOME/.cargo/bin"
+- which rustfmt || cargo install rustfmt
+
 script:
+- cargo fmt -- --write-mode=diff
 - cargo build --verbose
 - cargo test --verbose
 - cargo build --verbose --no-default-features
