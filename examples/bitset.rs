@@ -1,7 +1,7 @@
 extern crate hibitset;
 extern crate specs;
 
-use hibitset::{BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr};
+use hibitset::{BitSet, BitSetNot};
 use specs::Join;
 
 const COUNT: u32 = 100;

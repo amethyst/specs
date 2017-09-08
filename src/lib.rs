@@ -178,7 +178,6 @@
 //!
 //!
 
-extern crate atom;
 extern crate crossbeam;
 extern crate fnv;
 extern crate hibitset;
