@@ -19,9 +19,9 @@ persistent and delete associated components.
 
 ## Adding and removing components
 
-To add or remove components of existing or dynamically created entity
-you can either modify the storage directly with `WriteStorage`
-or lazily using `LazyUpdate` resource.
+Adding or removing components can be done by modifying
+either components storage directly with a `WriteStorage`
+or lazily using the `LazyUpdate` resource.
 
 ```rust,ignore
 use specs::{Component, Fetch, LazyUpdate, NullStorage, System, Entities, WriteStorage};
@@ -42,7 +42,7 @@ impl<'a> System<'a> for StoneCreator {
     fn run(&mut self, (entities, stones, updater): Self::SystemData) {
         let stone = entities.create();
 
-        // 1) Either we insert the component by writing to it's storage
+        // 1) Either we insert the component by writing to its storage
         stones.insert(stone, Stone);
 
         // 2) or we can lazily insert it with `LazyUpdate`
@@ -51,5 +51,5 @@ impl<'a> System<'a> for StoneCreator {
 }
 ```
 
-> **Note:** After using adding or removing components using `LazyUpdate`
-  a call to `World::maintain` is necessary to actually execute the changes.
+> **Note:** After using `LazyUpdate` a call to `World::maintain`
+  is necessary to actually execute the changes.
