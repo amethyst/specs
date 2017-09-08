@@ -199,15 +199,16 @@ extern crate serde_derive;
 extern crate rudy;
 
 pub use join::{Join, JoinIter, JoinParIter, ParJoin};
-pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut,
-                FetchMut, RunNow, RunningTime, System, SystemData};
+pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut, FetchMut, RunNow,
+                RunningTime, System, SystemData};
 
 #[cfg(not(target_os = "emscripten"))]
-pub use shred::{AsyncDispatcher};
+pub use shred::AsyncDispatcher;
 
 pub use storage::{BTreeStorage, DenseVecStorage, DistinctStorage, Entry, FlaggedStorage,
-                  HashMapStorage, InsertResult, MaskedStorage, NormalRestriction, NullStorage, ParallelRestriction, ReadStorage, RestrictedStorage,
-                  Storage, UnprotectedStorage, VecStorage, WriteStorage};
+                  HashMapStorage, InsertResult, MaskedStorage, NormalRestriction, NullStorage,
+                  ParallelRestriction, ReadStorage, RestrictedStorage, Storage,
+                  UnprotectedStorage, VecStorage, WriteStorage};
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
                 Generation, LazyUpdate, World};
 

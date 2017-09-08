@@ -1,7 +1,7 @@
 #![feature(test)]
 
-extern crate test;
 extern crate specs;
+extern crate test;
 
 macro_rules! setup {
     ($num:expr => [ $( $comp:ty ),* ] ) => {
@@ -10,13 +10,13 @@ macro_rules! setup {
             $(
                 w.register::<$comp>();
             )*
-            
+
             let mut eids: Vec<_> = (0..$num)
                 .map(|i| {
                     let mut builder = w.create_entity();
                     if insert && i % sparsity == 0 {
                         $(
-                            builder = builder.with::<$comp>(<$comp>::default()); 
+                            builder = builder.with::<$comp>(<$comp>::default());
                         )*
                     }
                     builder.build()
@@ -105,7 +105,7 @@ macro_rules! tests {
             impl Component for CompBool {
                 type Storage = $storage;
             }
-            
+
             setup!(NUM => [ CompInt, CompBool ]);
 
             gap!(sparse_1 => 1);

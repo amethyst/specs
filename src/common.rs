@@ -24,9 +24,9 @@ use std::io::Write;
 use std::marker::PhantomData;
 
 use futures::{Async, Future};
-use futures::executor::{Notify, Spawn, spawn};
+use futures::executor::{spawn, Notify, Spawn};
 
-use {Component, Entity, Entities, FetchMut, Join, RunningTime, System, WriteStorage};
+use {Component, Entities, Entity, FetchMut, Join, RunningTime, System, WriteStorage};
 
 /// A boxed error implementing `Debug`, `Display` and `Error`.
 pub struct BoxedErr(pub Box<Error + Send + Sync + 'static>);
@@ -34,7 +34,8 @@ pub struct BoxedErr(pub Box<Error + Send + Sync + 'static>);
 impl BoxedErr {
     /// Creates a new boxed error.
     pub fn new<T>(err: T) -> Self
-        where T: Error + Send + Sync + 'static
+    where
+        T: Error + Send + Sync + 'static,
     {
         BoxedErr(Box::new(err))
     }
@@ -98,9 +99,11 @@ impl Errors {
         let stderr = stderr();
         let mut stderr = stderr.lock();
 
-        writeln!(&mut stderr,
-                 "Exiting program because of {} errors...",
-                 self.errors.len()).unwrap();
+        writeln!(
+            &mut stderr,
+            "Exiting program because of {} errors...",
+            self.errors.len()
+        ).unwrap();
 
         for (ind, error) in self.errors.drain(..).enumerate() {
             let error = error.as_ref();
@@ -142,25 +145,25 @@ impl Notify for NotifyIgnore {
 static NOTIFY_IGNORE: &&NotifyIgnore = &&NotifyIgnore;
 
 impl<'a, T, F> System<'a> for Merge<F>
-    where T: Component + Send + Sync + 'static,
-          F: Future<Item = T, Error = BoxedErr> + Component + Send + Sync,
+where
+    T: Component + Send + Sync + 'static,
+    F: Future<Item = T, Error = BoxedErr> + Component + Send + Sync,
 {
-    type SystemData = (Entities<'a>,
-                       FetchMut<'a, Errors>,
-                       WriteStorage<'a, F>,
-                       WriteStorage<'a, T>);
+    type SystemData = (
+        Entities<'a>,
+        FetchMut<'a, Errors>,
+        WriteStorage<'a, F>,
+        WriteStorage<'a, T>,
+    );
 
     fn run(&mut self, (entities, mut errors, mut futures, mut pers): Self::SystemData) {
-
         for (e, ()) in (&*entities, &futures.check()).join() {
             self.spawns.push((e, spawn(futures.remove(e).unwrap())));
         }
 
         retain_mut(&mut self.spawns, |spawn| {
             match spawn.1.poll_future_notify(NOTIFY_IGNORE, 0) {
-                Ok(Async::NotReady) => {
-                    true
-                }
+                Ok(Async::NotReady) => true,
                 Ok(Async::Ready(value)) => {
                     pers.insert(spawn.0, value);
                     false
@@ -180,7 +183,8 @@ impl<'a, T, F> System<'a> for Merge<F>
 
 
 fn retain_mut<T, F>(vec: &mut Vec<T>, mut f: F)
-        where F: FnMut(&mut T) -> bool
+where
+    F: FnMut(&mut T) -> bool,
 {
     let len = vec.len();
     let mut del = 0;
@@ -206,13 +210,13 @@ mod test {
     use std::error::Error;
     use std::fmt::{Display, Formatter, Result as FmtResult};
 
-    use futures::task;
     use futures::Poll;
-    use futures::future::{Future, FutureResult, result};
+    use futures::future::{result, Future, FutureResult};
+    use futures::task;
 
-    use common::{BoxedErr, Errors, Merge};
     use Component;
     use DispatcherBuilder;
+    use common::{BoxedErr, Errors, Merge};
     use storage::{NullStorage, VecStorage};
     use world::World;
     #[test]
@@ -266,14 +270,18 @@ mod test {
         world.add_resource(Errors::new());
         world.register::<TestComponent>();
         world.register::<TestFuture>();
-        let success = world.create_entity()
+        let success = world
+            .create_entity()
             .with(TestFuture {
-                result: result(Ok(TestComponent))
-            }).build();
-        let error = world.create_entity()
+                result: result(Ok(TestComponent)),
+            })
+            .build();
+        let error = world
+            .create_entity()
             .with(TestFuture {
-                result: result(Err(BoxedErr::new(TestError)))
-            }).build();
+                result: result(Err(BoxedErr::new(TestError))),
+            })
+            .build();
 
         let system: Merge<TestFuture> = Merge::new();
 
@@ -281,7 +289,7 @@ mod test {
 
         // Sequential dispatch used in order to avoid missing panics due to them happening in
         // another thread.
-        dispatcher.dispatch_seq(&mut world.res); 
+        dispatcher.dispatch_seq(&mut world.res);
         let components = world.read::<TestComponent>();
         assert!(components.get(success).is_some());
         assert!(components.get(error).is_none());

@@ -3,8 +3,8 @@ use std::ops::{Deref, DerefMut};
 use serde::{Deserialize, Serialize, Serializer};
 use serde::ser::SerializeStruct;
 
-use storage::MaskedStorage;
 use {Component, Entity, Index, Join, Storage, UnprotectedStorage};
+use storage::MaskedStorage;
 
 /// The error type returned
 /// by [`Storage::merge`].
@@ -44,8 +44,9 @@ impl<T> PackedData<T> {
 }
 
 impl<'e, T, D> Serialize for Storage<'e, T, D>
-    where T: Component + Serialize,
-          D: Deref<Target = MaskedStorage<T>>
+where
+    T: Component + Serialize,
+    D: Deref<Target = MaskedStorage<T>>,
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use hibitset::BitSetLike;
@@ -69,8 +70,9 @@ impl<'e, T, D> Serialize for Storage<'e, T, D>
 }
 
 impl<'e, T, D> Storage<'e, T, D>
-    where T: Component + Deserialize<'e>,
-          D: DerefMut<Target = MaskedStorage<T>>
+where
+    T: Component + Deserialize<'e>,
+    D: DerefMut<Target = MaskedStorage<T>>,
 {
     /// Merges a list of components into the storage.
     ///
@@ -94,10 +96,11 @@ impl<'e, T, D> Storage<'e, T, D>
     /// Packed data should also be sorted in ascending order of offsets.
     /// If this is deserialized from data received from serializing a storage it will be
     /// in ascending order.
-    pub fn merge<'a>(&'a mut self,
-                     entities: &'a [Entity],
-                     mut packed: PackedData<T>)
-                     -> Result<(), MergeError> {
+    pub fn merge<'a>(
+        &'a mut self,
+        entities: &'a [Entity],
+        mut packed: PackedData<T>,
+    ) -> Result<(), MergeError> {
         for (component, offset) in packed.components.drain(..).zip(packed.offsets.iter()) {
             match entities.get(*offset as usize) {
                 Some(entity) => {

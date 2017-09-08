@@ -3,7 +3,7 @@ use std::cell::UnsafeCell;
 
 use hibitset::{BitIter, BitProducer, BitSetAnd, BitSetLike};
 use rayon::iter::ParallelIterator;
-use rayon::iter::internal::{Folder, UnindexedConsumer, UnindexedProducer, bridge_unindexed};
+use rayon::iter::internal::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
 use tuple_utils::Split;
 
 use Index;
@@ -17,7 +17,8 @@ pub trait BitAnd {
 
 /// This needs to be special cased
 impl<A> BitAnd for (A,)
-    where A: BitSetLike
+where
+    A: BitSetLike,
 {
     type Value = A;
 
@@ -75,7 +76,8 @@ pub trait Join {
 
     /// Create a joined iterator over the contents.
     fn join(self) -> JoinIter<Self>
-        where Self: Sized
+    where
+        Self: Sized,
     {
         JoinIter::new(self)
     }
@@ -93,7 +95,8 @@ pub trait Join {
 pub unsafe trait ParJoin: Join {
     /// Create a joined parallel iterator over the contents.
     fn par_join(self) -> JoinParIter<Self>
-        where Self: Sized
+    where
+        Self: Sized,
     {
         JoinParIter(self)
     }
@@ -132,15 +135,17 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
 pub struct JoinParIter<J>(J);
 
 impl<J> ParallelIterator for JoinParIter<J>
-    where J: Join + Send,
-          J::Mask: Send + Sync,
-          J::Type: Send,
-          J::Value: Send
+where
+    J: Join + Send,
+    J::Mask: Send + Sync,
+    J::Type: Send,
+    J::Value: Send,
 {
     type Item = J::Type;
 
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
-        where C: UnindexedConsumer<Self::Item>
+    where
+        C: UnindexedConsumer<Self::Item>,
     {
         let (keys, values) = self.0.open();
         let producer = BitProducer((&keys).iter());
@@ -151,20 +156,22 @@ impl<J> ParallelIterator for JoinParIter<J>
 }
 
 struct JoinProducer<'a, J>
-    where J: Join + Send,
-          J::Mask: Send + Sync + 'a,
-          J::Type: Send,
-          J::Value: Send + 'a
+where
+    J: Join + Send,
+    J::Mask: Send + Sync + 'a,
+    J::Type: Send,
+    J::Value: Send + 'a,
 {
     keys: BitProducer<'a, J::Mask>,
     values: &'a UnsafeCell<J::Value>,
 }
 
 impl<'a, J> JoinProducer<'a, J>
-    where J: Join + Send,
-          J::Type: Send,
-          J::Value: 'a + Send,
-          J::Mask: 'a + Send + Sync
+where
+    J: Join + Send,
+    J::Type: Send,
+    J::Value: 'a + Send,
+    J::Mask: 'a + Send + Sync,
 {
     fn new(keys: BitProducer<'a, J::Mask>, values: &'a UnsafeCell<J::Value>) -> Self {
         JoinProducer {
@@ -175,18 +182,20 @@ impl<'a, J> JoinProducer<'a, J>
 }
 
 unsafe impl<'a, J> Send for JoinProducer<'a, J>
-    where J: Join + Send,
-          J::Type: Send,
-          J::Value: 'a + Send,
-          J::Mask: 'a + Send + Sync
+where
+    J: Join + Send,
+    J::Type: Send,
+    J::Value: 'a + Send,
+    J::Mask: 'a + Send + Sync,
 {
 }
 
 impl<'a, J> UnindexedProducer for JoinProducer<'a, J>
-    where J: Join + Send,
-          J::Type: Send,
-          J::Value: 'a + Send,
-          J::Mask: 'a + Send + Sync
+where
+    J: Join + Send,
+    J::Type: Send,
+    J::Value: 'a + Send,
+    J::Mask: 'a + Send + Sync,
 {
     type Item = J::Type;
     fn split(self) -> (Self, Option<Self>) {
@@ -199,7 +208,8 @@ impl<'a, J> UnindexedProducer for JoinProducer<'a, J>
     }
 
     fn fold_with<F>(self, folder: F) -> F
-        where F: Folder<Self::Item>
+    where
+        F: Folder<Self::Item>,
     {
         let JoinProducer { values, keys, .. } = self;
         let iter = keys.0.map(|idx| unsafe {

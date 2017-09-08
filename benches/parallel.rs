@@ -7,9 +7,9 @@ extern crate test;
 
 use cgmath::Vector2;
 use rand::thread_rng;
-use specs::{Component, DenseVecStorage, DispatcherBuilder, Entities, Entity,
-            Fetch, HashMapStorage, Join, NullStorage, ReadStorage, RunningTime,
-            System, VecStorage, World, WriteStorage};
+use specs::{Component, DenseVecStorage, DispatcherBuilder, Entities, Entity, Fetch,
+            HashMapStorage, Join, NullStorage, ReadStorage, RunningTime, System, VecStorage,
+            World, WriteStorage};
 use test::Bencher;
 
 type Vec2 = Vector2<f32>;
@@ -135,11 +135,13 @@ struct DeltaTime(f32);
 struct Integrate;
 
 impl<'a> System<'a> for Integrate {
-    type SystemData = (WriteStorage<'a, Pos>,
-     WriteStorage<'a, Vel>,
-     WriteStorage<'a, Force>,
-     ReadStorage<'a, InvMass>,
-     Fetch<'a, DeltaTime>);
+    type SystemData = (
+        WriteStorage<'a, Pos>,
+        WriteStorage<'a, Vel>,
+        WriteStorage<'a, Force>,
+        ReadStorage<'a, InvMass>,
+        Fetch<'a, DeltaTime>,
+    );
 
     fn run(&mut self, (mut pos, mut vel, mut force, inv_mass, delta): Self::SystemData) {
         use cgmath::Zero;
@@ -161,16 +163,18 @@ impl<'a> System<'a> for Integrate {
 struct Spawn;
 
 impl<'a> System<'a> for Spawn {
-    type SystemData = (Entities<'a>,
-     ReadStorage<'a, Spawner>,
-     WriteStorage<'a, Pos>,
-     WriteStorage<'a, Vel>,
-     WriteStorage<'a, Force>,
-     WriteStorage<'a, InvMass>,
-     WriteStorage<'a, Ball>,
-     WriteStorage<'a, Rect>,
-     WriteStorage<'a, Color>,
-     WriteStorage<'a, SpawnRequests>);
+    type SystemData = (
+        Entities<'a>,
+        ReadStorage<'a, Spawner>,
+        WriteStorage<'a, Pos>,
+        WriteStorage<'a, Vel>,
+        WriteStorage<'a, Force>,
+        WriteStorage<'a, InvMass>,
+        WriteStorage<'a, Ball>,
+        WriteStorage<'a, Rect>,
+        WriteStorage<'a, Color>,
+        WriteStorage<'a, SpawnRequests>,
+    );
 
     fn run(
         &mut self,
@@ -186,7 +190,7 @@ impl<'a> System<'a> for Spawn {
             mut color,
             mut requests
         ): Self::SystemData
-    ) {
+){
         use cgmath::Zero;
         use rand::Rng;
 
@@ -254,10 +258,12 @@ impl<'a> System<'a> for RequestSpawns {
 struct GenCollisions;
 
 impl<'a> System<'a> for GenCollisions {
-    type SystemData = (ReadStorage<'a, Pos>,
-     ReadStorage<'a, Ball>,
-     ReadStorage<'a, Rect>,
-     WriteStorage<'a, Collision>);
+    type SystemData = (
+        ReadStorage<'a, Pos>,
+        ReadStorage<'a, Ball>,
+        ReadStorage<'a, Rect>,
+        WriteStorage<'a, Collision>,
+    );
 
     fn run(&mut self, _: Self::SystemData) {
         // TODO
@@ -312,9 +318,9 @@ fn bench_parallel(b: &mut Bencher) {
             w.create_entity()
                 .with(Pos(Vec2::new(x, y)))
                 .with(Room {
-                          inner_width: width,
-                          inner_height: height,
-                      })
+                    inner_width: width,
+                    inner_height: height,
+                })
                 .build();
 
             for i in 0..4 {
@@ -337,7 +343,7 @@ fn bench_parallel(b: &mut Bencher) {
         .build();
 
     b.iter(|| {
-               d.dispatch(&mut w.res);
-               w.maintain();
-           })
+        d.dispatch(&mut w.res);
+        w.maintain();
+    })
 }

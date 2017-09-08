@@ -1,15 +1,15 @@
-extern crate shred;
-#[macro_use]
-extern crate shred_derive;
-extern crate specs;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate shred;
+#[macro_use]
+extern crate shred_derive;
+extern crate specs;
 
 fn main() {
     use serde::Serialize;
-    use serde_json::{Serializer, from_str as json_from_str};
+    use serde_json::{from_str as json_from_str, Serializer};
     use specs::{Component, DispatcherBuilder, Entities, Join, PackedData, System, VecStorage,
                 World, WriteStorage};
 
@@ -73,33 +73,33 @@ fn main() {
     world
         .create_entity()
         .with(CompSerialize {
-                  field: 5,
-                  other: true,
-              })
+            field: 5,
+            other: true,
+        })
         .build();
     world.create_entity().build();
     world.create_entity().build();
     world
         .create_entity()
         .with(CompSerialize {
-                  field: 5,
-                  other: true,
-              })
+            field: 5,
+            other: true,
+        })
         .build();
     world
         .create_entity()
         .with(CompSerialize {
-                  field: 10,
-                  other: false,
-              })
+            field: 10,
+            other: false,
+        })
         .build();
     world.create_entity().build();
     world
         .create_entity()
         .with(CompSerialize {
-                  field: 0,
-                  other: false,
-              })
+            field: 0,
+            other: false,
+        })
         .build();
 
     let mut dispatcher = DispatcherBuilder::new()
