@@ -23,10 +23,11 @@ use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 use std::io::Write;
 use std::marker::PhantomData;
 
+use crossbeam::sync::MsQueue;
 use futures::{Async, Future};
 use futures::executor::{spawn, Notify, Spawn};
 
-use {Component, Entities, Entity, FetchMut, Join, RunningTime, System, WriteStorage};
+use {Component, Entities, Entity, Fetch, Join, RunningTime, System, WriteStorage};
 
 /// A boxed error implementing `Debug`, `Display` and `Error`.
 pub struct BoxedErr(pub Box<Error + Send + Sync + 'static>);
@@ -68,23 +69,63 @@ impl Error for BoxedErr {
 /// A boxed, thread-safe future with `T` as item and `BoxedErr` as error type.
 pub type BoxedFuture<T> = Box<Future<Item = T, Error = BoxedErr> + Send + Sync + 'static>;
 
+/// A draining iterator for `Errors`.
+/// This is the return value of `Errors::drain`.
+#[derive(Debug)]
+pub struct DrainErrors<'a> {
+    queue: &'a mut MsQueue<BoxedErr>,
+}
+
+impl<'a> Iterator for DrainErrors<'a> {
+    type Item = BoxedErr;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.queue.try_pop()
+    }
+}
+
 /// A resource you can use to store errors that occurred outside of
 /// the ECS but were catched inside, therefore should be handled by the user.
 #[derive(Debug)]
 pub struct Errors {
     /// The collection of errors.
-    pub errors: Vec<BoxedErr>,
+    errors: MsQueue<BoxedErr>,
 }
 
 impl Errors {
     /// Creates a new instance of `Errors`.
     pub fn new() -> Self {
-        Errors { errors: Vec::new() }
+        Errors {
+            errors: MsQueue::new(),
+        }
     }
 
-    /// Add an error to the error `Vec`.
-    pub fn add(&mut self, error: BoxedErr) {
+    /// Add an error to the error collection.
+    pub fn add(&self, error: BoxedErr) {
         self.errors.push(error);
+    }
+
+    /// Checks if the queue contains at least one error.
+    pub fn has_error(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    /// Removes the first error from the queue.
+    pub fn pop_err(&mut self) -> Option<BoxedErr> {
+        self.errors.try_pop()
+    }
+
+    /// Returns a draining iterator, removing elements
+    /// on each call to `Iterator::next`.
+    pub fn drain(&mut self) -> DrainErrors {
+        DrainErrors {
+            queue: &mut self.errors,
+        }
+    }
+
+    /// Collect all errors into a `Vec`.
+    pub fn collect(&mut self) -> Vec<BoxedErr> {
+        self.drain().collect()
     }
 
     /// Prints all errors and exits in case there's been an error. Useful for debugging.
@@ -96,16 +137,18 @@ impl Errors {
             return;
         }
 
+        let mut errors = self.collect();
+
         let stderr = stderr();
         let mut stderr = stderr.lock();
 
         writeln!(
             &mut stderr,
             "Exiting program because of {} errors...",
-            self.errors.len()
+            errors.len()
         ).unwrap();
 
-        for (ind, error) in self.errors.drain(..).enumerate() {
+        for (ind, error) in errors.drain(..).enumerate() {
             let error = error.as_ref();
 
             writeln!(&mut stderr, "{}: {}", ind, error).unwrap();
@@ -151,12 +194,12 @@ where
 {
     type SystemData = (
         Entities<'a>,
-        FetchMut<'a, Errors>,
+        Fetch<'a, Errors>,
         WriteStorage<'a, F>,
         WriteStorage<'a, T>,
     );
 
-    fn run(&mut self, (entities, mut errors, mut futures, mut pers): Self::SystemData) {
+    fn run(&mut self, (entities, errors, mut futures, mut pers): Self::SystemData) {
         for (e, _) in (&*entities, &futures.check()).join() {
             self.spawns.push((e, spawn(futures.remove(e).unwrap())));
         }
@@ -206,7 +249,6 @@ where
 
 #[cfg(test)]
 mod test {
-
     use std::error::Error;
     use std::fmt::{Display, Formatter, Result as FmtResult};
 
@@ -219,6 +261,7 @@ mod test {
     use common::{BoxedErr, Errors, Merge};
     use storage::{NullStorage, VecStorage};
     use world::World;
+
     #[test]
     fn test_merge() {
         #[derive(Default)]
@@ -293,6 +336,10 @@ mod test {
         let components = world.read::<TestComponent>();
         assert!(components.get(success).is_some());
         assert!(components.get(error).is_none());
-        assert_eq!(world.read_resource::<Errors>().errors.len(), 1);
+        assert_eq!(
+            world.read_resource::<Errors>().errors.pop().description(),
+            "An error used for testing"
+        );
+        assert!(world.read_resource::<Errors>().errors.try_pop().is_none());
     }
 }
