@@ -6,5 +6,6 @@
 - [Resources](04_resources.md)
 - [Storages](05_storages.md)
 - [System Data](06_system_data.md)
-- [Rendering](07_rendering.md)
+- [Parallel Join](07_parallel_join.md)
+- [Rendering](08_rendering.md)
 - [Building a game with Specs]()
