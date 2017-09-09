@@ -6,7 +6,7 @@ use fnv::FnvHashMap;
 
 use {DistinctStorage, Index, UnprotectedStorage};
 
-#[cfg(feature="rudy")]
+#[cfg(feature = "rudy")]
 use rudy::rudymap::RudyMap;
 
 /// BTreeMap-based storage.
@@ -18,7 +18,8 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
     }
 
     unsafe fn clean<F>(&mut self, _: F)
-        where F: Fn(Index) -> bool
+    where
+        F: Fn(Index) -> bool,
     {
         // nothing to do
     }
@@ -51,7 +52,8 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     }
 
     unsafe fn clean<F>(&mut self, _: F)
-        where F: Fn(Index) -> bool
+    where
+        F: Fn(Index) -> bool,
     {
         //nothing to do
     }
@@ -94,7 +96,8 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
     }
 
     unsafe fn clean<F>(&mut self, _: F)
-        where F: Fn(Index) -> bool
+    where
+        F: Fn(Index) -> bool,
     {
         // nothing to do
     }
@@ -140,7 +143,11 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
     fn new() -> Self {
         NullStorage(Default::default())
     }
-    unsafe fn clean<F>(&mut self, _: F) where F: Fn(Index) -> bool {}
+    unsafe fn clean<F>(&mut self, _: F)
+    where
+        F: Fn(Index) -> bool,
+    {
+    }
     unsafe fn get(&self, _: Index) -> &T {
         &self.0
     }
@@ -166,7 +173,8 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
     }
 
     unsafe fn clean<F>(&mut self, has: F)
-        where F: Fn(Index) -> bool
+    where
+        F: Fn(Index) -> bool,
     {
         use std::ptr;
         for (i, v) in self.0.iter_mut().enumerate() {
@@ -209,17 +217,18 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
 unsafe impl<T> DistinctStorage for VecStorage<T> {}
 
 /// Rudy-based storage.
-#[cfg(feature="rudy")]
+#[cfg(feature = "rudy")]
 pub struct RudyStorage<T>(RudyMap<Index, T>);
 
-#[cfg(feature="rudy")]
+#[cfg(feature = "rudy")]
 impl<T> UnprotectedStorage<T> for RudyStorage<T> {
     fn new() -> Self {
         RudyStorage(Default::default())
     }
 
     unsafe fn clean<F>(&mut self, _: F)
-        where F: Fn(Index) -> bool
+    where
+        F: Fn(Index) -> bool,
     {
     }
 
@@ -242,5 +251,5 @@ impl<T> UnprotectedStorage<T> for RudyStorage<T> {
 
 // Rudy does satisfy the DistinctStorage guarantee:
 //   https://github.com/adevore/rudy/issues/12
-#[cfg(feature="rudy")]
+#[cfg(feature = "rudy")]
 unsafe impl<T> DistinctStorage for RudyStorage<T> {}

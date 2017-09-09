@@ -27,7 +27,6 @@ exclude = ["bors.toml", ".travis.yml"]
 travis-ci = { repository = "slide-rs/specs" }
 
 [dependencies]
-atom = "0.3"
 crossbeam = "0.3.0"
 fnv = "1.0"
 hibitset = "0.2.0"

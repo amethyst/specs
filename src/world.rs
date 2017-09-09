@@ -5,13 +5,13 @@ use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use mopa::Any;
 use shred::{Fetch, FetchMut, Resource, Resources};
 
-use storage::{AnyStorage, MaskedStorage};
 use {Index, Join, ParJoin, ReadStorage, Storage, UnprotectedStorage, WriteStorage};
+use storage::{AnyStorage, MaskedStorage};
 
 const COMPONENT_NOT_REGISTERED: &str = "No component with the given id. Did you forget to register \
-the component with `World::register::<ComponentName>()`?";
+                                        the component with `World::register::<ComponentName>()`?";
 const RESOURCE_NOT_ADDED: &str = "No resource with the given id. Did you forget to add \
-the resource with `World::add_resource(resource)`?";
+                                  the resource with `World::add_resource(resource)`?";
 
 /// Internally used structure for `Entity` allocation.
 #[derive(Default, Debug)]
@@ -43,8 +43,7 @@ impl Allocator {
 
     /// Return `true` if the entity is alive.
     fn is_alive(&self, e: Entity) -> bool {
-        e.gen() ==
-        match self.generations.get(e.id() as usize) {
+        e.gen() == match self.generations.get(e.id() as usize) {
             Some(g) if !g.is_alive() && self.raised.contains(e.id()) => g.raised(),
             Some(g) => *g,
             None => Generation(1),
@@ -62,8 +61,9 @@ impl Allocator {
             }
 
             if start_from ==
-               self.start_from
-                   .compare_and_swap(current, start_from, Ordering::Relaxed) {
+                self.start_from
+                    .compare_and_swap(current, start_from, Ordering::Relaxed)
+            {
                 return;
             }
         }
@@ -372,7 +372,8 @@ trait LazyUpdateInternal: Send + Sync {
 }
 
 impl<F> LazyUpdateInternal for F
-    where F: FnOnce(&World) + Send + Sync + 'static
+where
+    F: FnOnce(&World) + Send + Sync + 'static,
 {
     fn update(self: Box<Self>, world: &World) {
         self(world);
@@ -418,11 +419,10 @@ impl LazyUpdate {
     /// }
     /// ```
     pub fn insert<C>(&self, e: Entity, c: C)
-        where C: Component + Send + Sync,
+    where
+        C: Component + Send + Sync,
     {
-        self.execute(move |world| {
-            world.write::<C>().insert(e, c);
-        });
+        self.execute(move |world| { world.write::<C>().insert(e, c); });
     }
 
     /// Lazily inserts components for entities.
@@ -452,9 +452,9 @@ impl LazyUpdate {
     /// }
     /// ```
     pub fn insert_all<C, I>(&self, iter: I)
-        where 
-            C: Component + Send + Sync,
-            I: IntoIterator<Item=(Entity, C)> + Send + Sync + 'static,
+    where
+        C: Component + Send + Sync,
+        I: IntoIterator<Item = (Entity, C)> + Send + Sync + 'static,
     {
         self.execute(move |world| {
             let mut storage = world.write::<C>();
@@ -493,9 +493,7 @@ impl LazyUpdate {
     where
         C: Component + Send + Sync,
     {
-        self.execute(move |world| {
-            world.write::<C>().remove(e);
-        });
+        self.execute(move |world| { world.write::<C>().remove(e); });
     }
 
     /// Lazily executes a closure with world access.
@@ -516,7 +514,7 @@ impl LazyUpdate {
     /// impl<'a> System<'a> for Execution {
     ///     type SystemData = (Entities<'a>, Fetch<'a, LazyUpdate>);
     ///
-    ///     fn run(&mut self, (ent, lazy): Self::SystemData) {      
+    ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
     ///         for entity in ent.join() {
     ///             lazy.execute(move |world| {
     ///                 if world.is_alive(entity) {
@@ -591,7 +589,8 @@ impl World {
         use shred::ResourceId;
 
         if self.res
-               .has_value(ResourceId::new_with_id::<MaskedStorage<T>>(id)) {
+            .has_value(ResourceId::new_with_id::<MaskedStorage<T>>(id))
+        {
             return;
         }
 
@@ -835,8 +834,8 @@ impl Default for World {
 
 #[cfg(test)]
 mod tests {
-    use storage::VecStorage;
     use super::*;
+    use storage::VecStorage;
 
     struct Pos;
 
@@ -865,7 +864,7 @@ mod tests {
             e1 = entities.create();
             e2 = entities.create();
             lazy.insert(e1, Pos);
-            lazy.insert_all(vec! [(e1, Vel), (e2, Vel)]);
+            lazy.insert_all(vec![(e1, Vel), (e2, Vel)]);
         }
 
         world.maintain();
@@ -873,7 +872,7 @@ mod tests {
         assert!(world.read::<Vel>().get(e1).is_some());
         assert!(world.read::<Vel>().get(e2).is_some());
     }
-    
+
     #[test]
     fn lazy_removal() {
         let mut world = World::new();
@@ -900,9 +899,7 @@ mod tests {
         };
         {
             let lazy = world.read_resource::<LazyUpdate>();
-            lazy.execute(move |world| {
-                world.write::<Pos>().insert(e, Pos);
-            });
+            lazy.execute(move |world| { world.write::<Pos>().insert(e, Pos); });
         }
 
         world.maintain();

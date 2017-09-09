@@ -1,13 +1,14 @@
-extern crate specs;
 extern crate rand;
 extern crate rayon;
+extern crate specs;
 
 use rand::Rand;
 use rand::distributions::{IndependentSample, Range};
 
 use rayon::iter::ParallelIterator;
 
-use specs::{Component, DispatcherBuilder, Join, ParJoin, ReadStorage, System, HashMapStorage, VecStorage, DenseVecStorage, World, WriteStorage, Entities, LazyUpdate, Fetch};
+use specs::{Component, DenseVecStorage, DispatcherBuilder, Entities, Fetch, HashMapStorage, Join,
+            LazyUpdate, ParJoin, ReadStorage, System, VecStorage, World, WriteStorage};
 
 const TAU: f32 = 2. * std::f32::consts::PI;
 
@@ -57,61 +58,52 @@ impl<'a> System<'a> for ClusterBombSystem {
     fn run(&mut self, (entities, mut bombs, positions, updater): Self::SystemData) {
         let durability_range = Range::new(10, 20);
         // Join components in potentially parallel way using rayon.
-        (&*entities, &mut bombs, &positions)
-            .par_join()
-            .for_each(|(entity, bomb, position)| {
-                if bomb.fuse == 0 {
-                    entities.delete(entity);
-                    for _ in 0..9 {
-                        let shrapnel = entities.create();
-                        updater.insert(shrapnel, Shrapnel {
+        (&*entities, &mut bombs, &positions).par_join().for_each(
+            |(entity, bomb, position)| if bomb.fuse == 0 {
+                entities.delete(entity);
+                for _ in 0..9 {
+                    let shrapnel = entities.create();
+                    updater.insert(
+                        shrapnel,
+                        Shrapnel {
                             durability: durability_range.ind_sample(&mut rand::thread_rng()),
-                        });
-                        updater.insert(shrapnel, position.clone());
-                        let angle = f32::rand(&mut rand::thread_rng()) * TAU;
-                        updater.insert(shrapnel, Vel(angle.sin(), angle.cos()));
-                    }
-                } else {
-                    bomb.fuse -= 1;
+                        },
+                    );
+                    updater.insert(shrapnel, position.clone());
+                    let angle = f32::rand(&mut rand::thread_rng()) * TAU;
+                    updater.insert(shrapnel, Vel(angle.sin(), angle.cos()));
                 }
-            });
+            } else {
+                bomb.fuse -= 1;
+            },
+        );
     }
 }
 
 struct PhysicsSystem;
 impl<'a> System<'a> for PhysicsSystem {
-    type SystemData = (
-        WriteStorage<'a, Pos>,
-        ReadStorage<'a, Vel>
-    );
+    type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
 
     fn run(&mut self, (mut pos, vel): Self::SystemData) {
-        (&mut pos, &vel)
-            .par_join()
-            .for_each(|(pos, vel)| {
-                pos.0 += vel.0;
-                pos.1 += vel.1;
-            });
+        (&mut pos, &vel).par_join().for_each(|(pos, vel)| {
+            pos.0 += vel.0;
+            pos.1 += vel.1;
+        });
     }
 }
 
 struct ShrapnelSystem;
 impl<'a> System<'a> for ShrapnelSystem {
-    type SystemData = (
-        Entities<'a>,
-        WriteStorage<'a, Shrapnel>,
-    );
+    type SystemData = (Entities<'a>, WriteStorage<'a, Shrapnel>);
 
     fn run(&mut self, (entities, mut shrapnels): Self::SystemData) {
-        (&*entities, &mut shrapnels)
-            .par_join()
-            .for_each(|(entity, shrapnel)| {
-                if shrapnel.durability == 0 {
-                    entities.delete(entity);
-                } else {
-                    shrapnel.durability -= 1;
-                }
-            });
+        (&*entities, &mut shrapnels).par_join().for_each(
+            |(entity, shrapnel)| if shrapnel.durability == 0 {
+                entities.delete(entity);
+            } else {
+                shrapnel.durability -= 1;
+            },
+        );
     }
 }
 
@@ -122,11 +114,10 @@ fn main() {
     world.register::<Shrapnel>();
     world.register::<ClusterBomb>();
 
-    world.create_entity()
+    world
+        .create_entity()
         .with(Pos(0., 0.))
-        .with(ClusterBomb {
-            fuse: 3
-        })
+        .with(ClusterBomb { fuse: 3 })
         .build();
 
     let mut dispatcher = DispatcherBuilder::new()
@@ -139,7 +130,8 @@ fn main() {
     loop {
         step += 1;
         let mut entities = 0;
-        { // Simple console rendering
+        {
+            // Simple console rendering
             let positions = world.read::<Pos>();
             const WIDTH: usize = 10;
             const HEIGHT: usize = 10;

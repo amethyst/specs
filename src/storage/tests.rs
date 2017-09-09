@@ -185,21 +185,21 @@ mod test {
     }
 
     #[derive(PartialEq, Eq, Debug)]
-    #[cfg(feature="rudy")]
+    #[cfg(feature = "rudy")]
     struct CRudy(u32);
-    #[cfg(feature="rudy")]
+    #[cfg(feature = "rudy")]
     impl From<u32> for CRudy {
         fn from(v: u32) -> CRudy {
             CRudy(v)
         }
     }
-    #[cfg(feature="rudy")]
+    #[cfg(feature = "rudy")]
     impl AsMut<u32> for CRudy {
         fn as_mut(&mut self) -> &mut u32 {
             &mut self.0
         }
     }
-    #[cfg(feature="rudy")]
+    #[cfg(feature = "rudy")]
     impl Component for CRudy {
         type Storage = RudyStorage<Self>;
     }
@@ -229,8 +229,10 @@ mod test {
         }
 
         for i in 0..1_000 {
-            assert_eq!(s.get(Entity::new(i, Generation::new(1))).unwrap(),
-                       &(i + 2718).into());
+            assert_eq!(
+                s.get(Entity::new(i, Generation::new(1))).unwrap(),
+                &(i + 2718).into()
+            );
         }
     }
 
@@ -243,8 +245,10 @@ mod test {
         }
 
         for i in 0..1_000 {
-            assert_eq!(s.remove(Entity::new(i, Generation::new(1))).unwrap(),
-                       (i + 2718).into());
+            assert_eq!(
+                s.remove(Entity::new(i, Generation::new(1))).unwrap(),
+                (i + 2718).into()
+            );
             assert!(s.remove(Entity::new(i, Generation::new(1))).is_none());
         }
     }
@@ -264,8 +268,10 @@ mod test {
         }
 
         for i in 0..1_000 {
-            assert_eq!(s.get(Entity::new(i, Generation::new(1))).unwrap(),
-                       &(i + 2000).into());
+            assert_eq!(
+                s.get(Entity::new(i, Generation::new(1))).unwrap(),
+                &(i + 2000).into()
+            );
         }
     }
 
@@ -280,8 +286,10 @@ mod test {
 
         for i in 0..1_000 {
             assert!(s.get(Entity::new(i, Generation::new(2))).is_none());
-            assert_eq!(s.get(Entity::new(i, Generation::new(1))).unwrap(),
-                       &(i + 2718).into());
+            assert_eq!(
+                s.get(Entity::new(i, Generation::new(1))).unwrap(),
+                &(i + 2718).into()
+            );
         }
     }
 
@@ -424,32 +432,32 @@ mod test {
         test_clear::<CBtree>();
     }
 
-    #[cfg(feature="rudy")]
+    #[cfg(feature = "rudy")]
     #[test]
     fn rudy_test_add() {
         test_add::<CRudy>();
     }
-    #[cfg(feature="rudy")]
+    #[cfg(feature = "rudy")]
     #[test]
     fn rudy_test_sub() {
         test_sub::<CRudy>();
     }
-    #[cfg(feature="rudy")]
+    #[cfg(feature = "rudy")]
     #[test]
     fn rudy_test_get_mut() {
         test_get_mut::<CRudy>();
     }
-    #[cfg(feature="rudy")]
+    #[cfg(feature = "rudy")]
     #[test]
     fn rudy_test_add_gen() {
         test_add_gen::<CRudy>();
     }
-    #[cfg(feature="rudy")]
+    #[cfg(feature = "rudy")]
     #[test]
     fn rudy_test_sub_gen() {
         test_sub_gen::<CRudy>();
     }
-    #[cfg(feature="rudy")]
+    #[cfg(feature = "rudy")]
     #[test]
     fn rudy_test_clear() {
         test_clear::<CRudy>();
@@ -477,18 +485,24 @@ mod test {
         }
 
         for (entry, restricted) in (&mut s1.restrict()).join() {
-            let c1 = {
-                restricted.get_unchecked(&entry).0
-            };
+            let c1 = { restricted.get_unchecked(&entry).0 };
 
-            let c2 = {
-                restricted.get_mut_unchecked(&entry).0
-            };
+            let c2 = { restricted.get_mut_unchecked(&entry).0 };
 
-            assert_eq!(c1, c2, "Mutable and immutable gets returned different components.");
-            assert!(components.remove(&c1), "Same component was iterated twice in join.");
+            assert_eq!(
+                c1,
+                c2,
+                "Mutable and immutable gets returned different components."
+            );
+            assert!(
+                components.remove(&c1),
+                "Same component was iterated twice in join."
+            );
         }
-        assert!(components.is_empty(), "Some components weren't iterated in join.");
+        assert!(
+            components.is_empty(),
+            "Some components weren't iterated in join."
+        );
     }
 
     #[test]
@@ -512,15 +526,25 @@ mod test {
         let components2 = Mutex::new(Vec::new());
         let components2_mut = Mutex::new(Vec::new());
 
-        (&mut s1.par_restrict()).par_join()
+        (&mut s1.par_restrict())
+            .par_join()
             .for_each(|(entry, restricted)| {
-                let (mut components2, mut components2_mut) = (components2.lock().unwrap(), components2_mut.lock().unwrap());
+                let (mut components2, mut components2_mut) =
+                    (components2.lock().unwrap(), components2_mut.lock().unwrap());
                 components2.push(restricted.get_unchecked(&entry).0);
                 components2_mut.push(restricted.get_mut_unchecked(&entry).0);
             });
         let components2 = components2.into_inner().unwrap();
-        assert_eq!(components2, components2_mut.into_inner().unwrap(), "Mutable and immutable gets returned different components.");
-        assert_eq!(components, components2.into_iter().collect(), "Components iterated weren't as should've been.");
+        assert_eq!(
+            components2,
+            components2_mut.into_inner().unwrap(),
+            "Mutable and immutable gets returned different components."
+        );
+        assert_eq!(
+            components,
+            components2.into_iter().collect(),
+            "Components iterated weren't as should've been."
+        );
     }
 
     #[test]
@@ -561,7 +585,8 @@ mod test {
             s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
             s2.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
         }
-        (&mut s1.par_restrict(), &mut s2.par_restrict()).par_join()
+        (&mut s1.par_restrict(), &mut s2.par_restrict())
+            .par_join()
             .for_each(|((s1_entry, _), (_, s2_restricted))| {
                 // verify that the assert fails if the storage is not the original.
                 s2_restricted.get_unchecked(&s1_entry);
@@ -583,8 +608,7 @@ mod test {
         for (entity, id) in (&*w.entities(), &s1.check()).join() {
             if id % 3 == 0 {
                 let _ = s1.get_mut(entity);
-            }
-            else {
+            } else {
                 let _ = s1.get(entity);
             }
         }
@@ -688,32 +712,35 @@ mod serialize_test {
         world
             .create_entity()
             .with(CompTest {
-                      field1: 0,
-                      field2: true,
-                  })
+                field1: 0,
+                field2: true,
+            })
             .build();
         world.create_entity().build();
         world.create_entity().build();
         world
             .create_entity()
             .with(CompTest {
-                      field1: 158123,
-                      field2: false,
-                  })
+                field1: 158123,
+                field2: false,
+            })
             .build();
         world
             .create_entity()
             .with(CompTest {
-                      field1: u32::max_value(),
-                      field2: false,
-                  })
+                field1: u32::max_value(),
+                field2: false,
+            })
             .build();
         world.create_entity().build();
 
         let storage = world.read::<CompTest>();
         let serialized = serde_json::to_string(&storage).unwrap();
-        assert_eq!(serialized,
-                   r#"{"offsets":[1,4,5],"components":[{"field1":0,"field2":true},{"field1":158123,"field2":false},{"field1":4294967295,"field2":false}]}"#);
+        assert_eq!(
+            serialized,
+            r#"{"offsets":[1,4,5],"components":[{"field1":0,"field2":true},"#.to_owned() +
+                r#"{"field1":158123,"field2":false},{"field1":4294967295,"field2":false}]}"#
+        );
     }
 
     #[test]
@@ -747,40 +774,50 @@ mod serialize_test {
         let mut storage = world.write::<CompTest>();
         let packed: PackedData<CompTest> = serde_json::from_str(&data).unwrap();
         assert_eq!(packed.offsets, vec![3, 7, 8]);
-        assert_eq!(packed.components,
-                   vec![CompTest {
-                            field1: 0,
-                            field2: true,
-                        },
-                        CompTest {
-                            field1: 158123,
-                            field2: false,
-                        },
-                        CompTest {
-                            field1: u32::max_value(),
-                            field2: false,
-                        }]);
+        assert_eq!(
+            packed.components,
+            vec![
+                CompTest {
+                    field1: 0,
+                    field2: true,
+                },
+                CompTest {
+                    field1: 158123,
+                    field2: false,
+                },
+                CompTest {
+                    field1: u32::max_value(),
+                    field2: false,
+                },
+            ]
+        );
 
         storage
             .merge(&entities.as_slice(), packed)
             .expect("Failed to merge into storage");
 
         assert_eq!((&storage).join().count(), 3);
-        assert_eq!((&storage).get(entities[3]),
-                   Some(&CompTest {
-                            field1: 0,
-                            field2: true,
-                        }));
-        assert_eq!((&storage).get(entities[7]),
-                   Some(&CompTest {
-                            field1: 158123,
-                            field2: false,
-                        }));
-        assert_eq!((&storage).get(entities[8]),
-                   Some(&CompTest {
-                            field1: u32::max_value(),
-                            field2: false,
-                        }));
+        assert_eq!(
+            (&storage).get(entities[3]),
+            Some(&CompTest {
+                field1: 0,
+                field2: true,
+            })
+        );
+        assert_eq!(
+            (&storage).get(entities[7]),
+            Some(&CompTest {
+                field1: 158123,
+                field2: false,
+            })
+        );
+        assert_eq!(
+            (&storage).get(entities[8]),
+            Some(&CompTest {
+                field1: u32::max_value(),
+                field2: false,
+            })
+        );
 
         let none = vec![0, 1, 2, 4, 5, 6, 9];
         for entity in none {

@@ -1,16 +1,19 @@
-
 use std::marker::PhantomData;
 
 use hibitset::BitSet;
 
-use world::EntityIndex;
 use {Index, Join, UnprotectedStorage};
+use world::EntityIndex;
 
 /// Wrapper storage that stores modifications to components in a bitset.
 ///
-/// **Note:** Joining over all components of a `FlaggedStorage` mutably will flag all components.**
-/// What you want to instead is to use `check()` or `restrict()` to first get the entities which contain
-/// the component, and then conditionally set the component after a call to `get_mut_unchecked()` or `get_mut()`.
+/// **Note:** Joining over all components of a `FlaggedStorage`
+/// mutably will flag all components.**
+///
+/// What you want to instead is to use `check()` or `restrict()` to first
+/// get the entities which contain the component,
+/// and then conditionally set the component
+/// after a call to `get_mut_unchecked()` or `get_mut()`.
 ///
 /// # Examples
 ///
@@ -89,7 +92,8 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
         }
     }
     unsafe fn clean<F>(&mut self, has: F)
-        where F: Fn(Index) -> bool
+    where
+        F: Fn(Index) -> bool,
     {
         self.mask.clear();
         self.storage.clean(has);

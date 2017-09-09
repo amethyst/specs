@@ -1,12 +1,11 @@
 //! Storage types
 
-pub use self::restrict::{Entry, NormalRestriction, ParallelRestriction, RestrictedStorage};
 pub use self::data::{ReadStorage, WriteStorage};
 pub use self::flagged::FlaggedStorage;
+pub use self::restrict::{Entry, NormalRestriction, ParallelRestriction, RestrictedStorage};
 #[cfg(feature = "serialize")]
 pub use self::ser::{MergeError, PackedData};
-pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage,
-                         NullStorage, VecStorage};
+pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
 
@@ -56,7 +55,8 @@ pub trait AnyStorage {
 }
 
 impl<T> AnyStorage for MaskedStorage<T>
-    where T: Component
+where
+    T: Component,
 {
     fn remove(&mut self, id: Index) -> Option<Box<Any>> {
         MaskedStorage::remove(self, id).map(|x| Box::new(x) as Box<Any>)
@@ -165,8 +165,9 @@ impl<'e, T, D> Storage<'e, T, D> {
 }
 
 impl<'e, T, D> Storage<'e, T, D>
-    where T: Component,
-          D: Deref<Target = MaskedStorage<T>>
+where
+    T: Component,
+    D: Deref<Target = MaskedStorage<T>>,
 {
     /// Tries to read the data associated with an `Entity`.
     pub fn get(&self, e: Entity) -> Option<&T> {
@@ -190,8 +191,9 @@ impl<'e, T, D> Storage<'e, T, D>
 }
 
 impl<'e, T, D> Storage<'e, T, D>
-    where T: Component,
-          D: DerefMut<Target = MaskedStorage<T>>
+where
+    T: Component,
+    D: DerefMut<Target = MaskedStorage<T>>,
 {
     /// Tries to mutate the data associated with an `Entity`.
     pub fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
@@ -236,13 +238,15 @@ impl<'e, T, D> Storage<'e, T, D>
 }
 
 unsafe impl<'a, T: Component, D> DistinctStorage for Storage<'a, T, D>
-    where T::Storage: DistinctStorage
+where
+    T::Storage: DistinctStorage,
 {
 }
 
 impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
-    where T: Component,
-          D: Deref<Target = MaskedStorage<T>>
+where
+    T: Component,
+    D: Deref<Target = MaskedStorage<T>>,
 {
     type Type = &'a T;
     type Value = &'a T::Storage;
@@ -258,8 +262,9 @@ impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
 }
 
 impl<'a, 'e, T, D> Not for &'a Storage<'e, T, D>
-    where T: Component,
-          D: Deref<Target = MaskedStorage<T>>
+where
+    T: Component,
+    D: Deref<Target = MaskedStorage<T>>,
 {
     type Output = AntiStorage<'a>;
 
@@ -269,15 +274,17 @@ impl<'a, 'e, T, D> Not for &'a Storage<'e, T, D>
 }
 
 unsafe impl<'a, 'e, T, D> ParJoin for &'a Storage<'e, T, D>
-    where T: Component,
-          D: Deref<Target = MaskedStorage<T>>,
-          T::Storage: Sync
+where
+    T: Component,
+    D: Deref<Target = MaskedStorage<T>>,
+    T::Storage: Sync,
 {
 }
 
 impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
-    where T: Component,
-          D: DerefMut<Target = MaskedStorage<T>>
+where
+    T: Component,
+    D: DerefMut<Target = MaskedStorage<T>>,
 {
     type Type = &'a mut T;
     type Value = &'a mut T::Storage;
@@ -297,9 +304,10 @@ impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
 }
 
 unsafe impl<'a, 'e, T, D> ParJoin for &'a mut Storage<'e, T, D>
-    where T: Component,
-          D: DerefMut<Target = MaskedStorage<T>>,
-          T::Storage: Sync + DistinctStorage
+where
+    T: Component,
+    D: DerefMut<Target = MaskedStorage<T>>,
+    T::Storage: Sync + DistinctStorage,
 {
 }
 
@@ -311,7 +319,9 @@ pub trait UnprotectedStorage<T>: Sized {
 
     /// Clean the storage given a check to figure out if an index
     /// is valid or not. Allows us to safely drop the storage.
-    unsafe fn clean<F>(&mut self, f: F) where F: Fn(Index) -> bool;
+    unsafe fn clean<F>(&mut self, f: F)
+    where
+        F: Fn(Index) -> bool;
 
     /// Tries reading the data associated with an `Index`.
     /// This is unsafe because the external set used

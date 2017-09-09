@@ -38,9 +38,7 @@ fn main() {
 
     world.add_resource(Errors::new());
 
-    world.create_entity()
-        .with(future_sqrt(25.0))
-        .build();
+    world.create_entity().with(future_sqrt(25.0)).build();
 
     let mut dispatcher = DispatcherBuilder::new()
         .add(Merge::<MyFuture>::new(), "merge_my_float", &[])

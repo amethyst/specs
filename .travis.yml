@@ -3,13 +3,25 @@ rust:
 - nightly
 - stable
 
+cache: cargo
+
 branches:
   only:
     - staging
     - trying
     - master
 
+before_script:
+- export PATH="$PATH:$HOME/.cargo/bin"
+- if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
+    which rustfmt && cargo uninstall rustfmt;
+    cargo install --force rustfmt-nightly;
+  fi
+
 script:
+- if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
+    cargo fmt -- --write-mode=diff;
+  fi
 - cargo build --verbose
 - cargo test --verbose
 - cargo build --verbose --no-default-features
@@ -18,6 +30,8 @@ script:
 - cargo test --verbose --features serialize
 - cargo build --verbose --features rudy
 - cargo test --verbose --features rudy
+- cargo build --verbose --features common
+- cargo test --verbose --features common
 - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
     cargo bench --verbose --no-run;
   fi
