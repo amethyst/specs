@@ -4,6 +4,8 @@ As mentioned in the chapter dedicated on how to [dispatch][c3] systems,
 Specs automatically parallelizes system execution when there is non-conflicting
 component requirements between them (mutability XOR aliasing).
 
+[c3]: ./03_dispatcher.html
+
 What isn't automatically parallelized by Specs are
 the joins made within a single system:
 
