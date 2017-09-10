@@ -120,29 +120,19 @@ impl Errors {
 /// for `F` and `F::Item`.
 ///
 /// In case of an error, it will be added to the `Errors` resource.
+#[derive(Derivative)]
+#[derivative(Default(bound = ""))]
 pub struct Merge<F> {
-    future_type: PhantomData<F>,
+    #[derivative(Default(value = "PhantomData"))] future_type: PhantomData<F>,
     spawns: Vec<(Entity, Spawn<F>)>,
 }
 
 impl<F> Merge<F> {
     /// Creates a new merge system.
     pub fn new() -> Self {
-        Merge {
-            future_type: PhantomData,
-            spawns: Vec::new(),
-        }
+        Default::default()
     }
 }
-
-struct NotifyIgnore;
-impl Notify for NotifyIgnore {
-    fn notify(&self, _: usize) {
-        // Intentionally ignore
-    }
-}
-
-static NOTIFY_IGNORE: &&NotifyIgnore = &&NotifyIgnore;
 
 impl<'a, T, F> System<'a> for Merge<F>
 where
@@ -180,6 +170,16 @@ where
         RunningTime::Short
     }
 }
+
+struct NotifyIgnore;
+
+impl Notify for NotifyIgnore {
+    fn notify(&self, _: usize) {
+        // Intentionally ignore
+    }
+}
+
+static NOTIFY_IGNORE: &&NotifyIgnore = &&NotifyIgnore;
 
 
 fn retain_mut<T, F>(vec: &mut Vec<T>, mut f: F)

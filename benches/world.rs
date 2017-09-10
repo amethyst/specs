@@ -1,7 +1,5 @@
 #![feature(test)]
 
-extern crate cgmath;
-extern crate rand;
 extern crate rayon;
 extern crate specs;
 extern crate test;
@@ -33,7 +31,7 @@ fn create_world() -> World {
 
 #[bench]
 fn world_build(b: &mut test::Bencher) {
-    b.iter(|| World::new());
+    b.iter(World::new);
 }
 
 #[bench]

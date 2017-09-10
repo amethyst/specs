@@ -372,7 +372,7 @@ mod test {
         #[derive(Debug)]
         struct A(Arc<()>);
 
-        let mut storage = VecStorage::<A>::new();
+        let mut storage = VecStorage::<A>::default();
 
         unsafe {
             for i in (0..200).filter(|i| i % 2 != 0) {

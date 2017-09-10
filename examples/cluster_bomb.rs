@@ -51,7 +51,7 @@ impl<'a> System<'a> for ClusterBombSystem {
         WriteStorage<'a, ClusterBomb>,
         ReadStorage<'a, Pos>,
         // Allows lazily adding and removing components to entities
-        // or executing arbitary code with world access lazily via `execute`.
+        // or executing arbitrary code with world access lazily via `execute`.
         Fetch<'a, LazyUpdate>,
     );
 
@@ -148,8 +148,8 @@ fn main() {
                 entities += 1;
             }
             println!("Step: {}, Entities: {}", step, entities);
-            for row in screen.iter() {
-                for cell in row.iter() {
+            for row in &screen {
+                for cell in row {
                     print!("{}", cell);
                 }
                 println!();

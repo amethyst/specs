@@ -179,6 +179,8 @@
 //!
 
 extern crate crossbeam;
+#[macro_use]
+extern crate derivative;
 extern crate fnv;
 extern crate hibitset;
 extern crate mopa;

@@ -10,13 +10,11 @@ use {DistinctStorage, Index, UnprotectedStorage};
 use rudy::rudymap::RudyMap;
 
 /// BTreeMap-based storage.
+#[derive(Derivative)]
+#[derivative(Default(bound = ""))]
 pub struct BTreeStorage<T>(BTreeMap<Index, T>);
 
 impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
-    fn new() -> Self {
-        BTreeStorage(Default::default())
-    }
-
     unsafe fn clean<F>(&mut self, _: F)
     where
         F: Fn(Index) -> bool,
@@ -25,7 +23,7 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
     }
 
     unsafe fn get(&self, id: Index) -> &T {
-        self.0.get(&id).unwrap()
+        &self.0[&id]
     }
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
@@ -44,13 +42,11 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
 unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 
 /// HashMap-based storage. Best suited for rare components.
+#[derive(Derivative)]
+#[derivative(Default(bound = ""))]
 pub struct HashMapStorage<T>(FnvHashMap<Index, T>);
 
 impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
-    fn new() -> Self {
-        HashMapStorage(Default::default())
-    }
-
     unsafe fn clean<F>(&mut self, _: F)
     where
         F: Fn(Index) -> bool,
@@ -59,7 +55,7 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     }
 
     unsafe fn get(&self, id: Index) -> &T {
-        self.0.get(&id).unwrap()
+        &self.0[&id]
     }
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
@@ -80,6 +76,8 @@ unsafe impl<T> DistinctStorage for HashMapStorage<T> {}
 /// Dense vector storage. Has a redirection 2-way table
 /// between entities and components, allowing to leave
 /// no gaps within the data.
+#[derive(Derivative)]
+#[derivative(Default(bound = ""))]
 pub struct DenseVecStorage<T> {
     data: Vec<T>,
     entity_id: Vec<Index>,
@@ -87,14 +85,6 @@ pub struct DenseVecStorage<T> {
 }
 
 impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
-    fn new() -> Self {
-        DenseVecStorage {
-            data: Vec::new(),
-            entity_id: Vec::new(),
-            data_id: Vec::new(),
-        }
-    }
-
     unsafe fn clean<F>(&mut self, _: F)
     where
         F: Fn(Index) -> bool,
@@ -137,24 +127,26 @@ unsafe impl<T> DistinctStorage for DenseVecStorage<T> {}
 
 /// A null storage type, used for cases where the component
 /// doesn't contain any data and instead works as a simple flag.
+#[derive(Default)]
 pub struct NullStorage<T>(T);
 
 impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
-    fn new() -> Self {
-        NullStorage(Default::default())
-    }
     unsafe fn clean<F>(&mut self, _: F)
     where
         F: Fn(Index) -> bool,
     {
     }
+
     unsafe fn get(&self, _: Index) -> &T {
         &self.0
     }
+
     unsafe fn get_mut(&mut self, _: Index) -> &mut T {
         panic!("One does not simply modify a NullStorage")
     }
+
     unsafe fn insert(&mut self, _: Index, _: T) {}
+
     unsafe fn remove(&mut self, _: Index) -> T {
         Default::default()
     }
@@ -165,13 +157,11 @@ unsafe impl<T> DistinctStorage for NullStorage<T> {}
 
 /// Vector storage. Uses a simple `Vec`. Supposed to have maximum
 /// performance for the components mostly present in entities.
+#[derive(Derivative)]
+#[derivative(Default(bound = ""))]
 pub struct VecStorage<T>(Vec<T>);
 
 impl<T> UnprotectedStorage<T> for VecStorage<T> {
-    fn new() -> Self {
-        VecStorage(Vec::new())
-    }
-
     unsafe fn clean<F>(&mut self, has: F)
     where
         F: Fn(Index) -> bool,
@@ -218,14 +208,12 @@ unsafe impl<T> DistinctStorage for VecStorage<T> {}
 
 /// Rudy-based storage.
 #[cfg(feature = "rudy")]
+#[derive(Derivative)]
+#[derivative(Default(bound = ""))]
 pub struct RudyStorage<T>(RudyMap<Index, T>);
 
 #[cfg(feature = "rudy")]
 impl<T> UnprotectedStorage<T> for RudyStorage<T> {
-    fn new() -> Self {
-        RudyStorage(Default::default())
-    }
-
     unsafe fn clean<F>(&mut self, _: F)
     where
         F: Fn(Index) -> bool,

@@ -143,7 +143,7 @@ where
     }
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         let entry = Entry {
-            id: id,
+            id,
             pointer: value.data.borrow() as *const T::Storage,
             phantom: PhantomData,
         };
@@ -167,7 +167,7 @@ where
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         use std::mem;
         let entry = Entry {
-            id: id,
+            id,
             pointer: value.data.borrow() as *const T::Storage,
             phantom: PhantomData,
         };
@@ -191,7 +191,7 @@ where
         let (mask, data) = self.data.open_mut();
         RestrictedStorage {
             bitset: mask,
-            data: data,
+            data,
             entities: &self.entities,
             phantom: PhantomData,
         }
@@ -206,7 +206,7 @@ where
         let (mask, data) = self.data.open_mut();
         RestrictedStorage {
             bitset: mask,
-            data: data,
+            data,
             entities: &self.entities,
             phantom: PhantomData,
         }

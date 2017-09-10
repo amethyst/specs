@@ -172,16 +172,16 @@ fn is_alive() {
 #[test]
 fn stillborn_entities() {
     struct LCG(u32);
-    const RANDMAX: u32 = 32767;
+    const RANDMAX: u32 = 32_767;
     impl LCG {
         fn new() -> Self {
-            LCG(0xdeadbeef)
+            LCG(0xdead_beef)
         }
         fn geni(&mut self) -> i8 {
             ((self.gen() as i32) - 0x7f) as i8
         }
         fn gen(&mut self) -> u32 {
-            self.0 = self.0.wrapping_mul(214013).wrapping_add(2531011);
+            self.0 = self.0.wrapping_mul(214_013).wrapping_add(2_531_011);
             self.0 % RANDMAX
         }
     }
@@ -223,7 +223,7 @@ fn stillborn_entities() {
 
             lowest.reverse();
             lowest.truncate(rand.values.len());
-            for (_, eid) in lowest.into_iter() {
+            for (_, eid) in lowest {
                 entities.delete(eid);
             }
         }
@@ -235,7 +235,7 @@ fn stillborn_entities() {
         type SystemData = (Entities<'a>, WriteStorage<'a, CompInt>, Fetch<'a, Rand>);
 
         fn run(&mut self, (entities, mut comp_int, rand): Self::SystemData) {
-            for &i in rand.values.iter() {
+            for &i in &rand.values {
                 let result = comp_int.insert(entities.create(), CompInt(i));
                 if let InsertResult::EntityIsDead(_) = result {
                     panic!("Couldn't insert {} into a stillborn entity", i);
@@ -382,7 +382,7 @@ fn par_join_two_components() {
 
         fn run(&mut self, (int, boolean): Self::SystemData) {
             use rayon::iter::ParallelIterator;
-            let Iter(ref first, ref second, ref error) = *self;
+            let Iter(first, second, error) = *self;
             (&int, &boolean).par_join().for_each(|(int, boolean)| {
                 if !first.load(Ordering::SeqCst) && int.0 == 1 && !boolean.0 {
                     first.store(true, Ordering::SeqCst);
