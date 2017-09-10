@@ -766,6 +766,14 @@ impl World {
         self.entities_mut().alloc.kill(delete);
     }
 
+    /// Deletes all entities and their components.
+    pub fn delete_all(&mut self) {
+        use join::Join;
+
+        let entities: Vec<_> = (&*self.entities()).join().collect();
+        self.delete_entities(&entities);
+    }
+
     /// Checks if an entity is alive.
     /// Please note that atomically created or deleted entities
     /// (the ones created / deleted with the `Entities` struct)
@@ -847,6 +855,25 @@ mod tests {
 
     impl Component for Vel {
         type Storage = VecStorage<Self>;
+    }
+
+    #[test]
+    fn delete_all() {
+        let mut world = World::new();
+
+        world.register::<Pos>();
+        world.register::<Vel>();
+
+        world.create_entity().build();
+        let b = world.create_entity().with(Pos).with(Vel).build();
+        world.create_entity().with(Pos).with(Vel).build();
+
+        assert_eq!(world.entities().join().count(), 3);
+
+        world.delete_all();
+
+        assert_eq!(world.entities().join().count(), 0);
+        assert!(world.read::<Pos>().get(b).is_none());
     }
 
     #[test]
