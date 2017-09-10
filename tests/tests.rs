@@ -82,7 +82,7 @@ fn dynamic_deletion() {
 
         fn run(&mut self, entities: Self::SystemData) {
             let e = entities.create();
-            entities.delete(e);
+            entities.delete(e).unwrap();
         }
     }
 
@@ -104,7 +104,7 @@ fn dynamic_create_and_delete() {
         let five: Vec<_> = entities.create_iter().take(5).collect();
 
         for e in five {
-            entities.delete(e);
+            entities.delete(e).unwrap();
         }
     }
 
@@ -130,7 +130,7 @@ fn mixed_create_merge() {
             for _ in 0..cnt {
                 add(set, w.create_entity().build());
                 let e = w.create_entity().build();
-                w.delete_entity(e);
+                w.delete_entity(e).unwrap();
                 add(set, w.entities().create());
                 //  swap order
                 add(set, w.entities().create());
@@ -142,11 +142,11 @@ fn mixed_create_merge() {
 
     insert(&mut world, &mut set, 10);
     for e in set.drain() {
-        world.entities().delete(e);
+        world.entities().delete(e).unwrap();
     }
     insert(&mut world, &mut set, 20);
     for e in set.drain() {
-        world.delete_entity(e);
+        world.delete_entity(e).unwrap();
     }
     insert(&mut world, &mut set, 40);
 }
@@ -157,12 +157,12 @@ fn is_alive() {
 
     let e = w.create_entity().build();
     assert!(w.is_alive(e));
-    w.delete_entity(e);
+    w.delete_entity(e).unwrap();
     assert!(!w.is_alive(e));
 
     let e2 = w.create_entity().build();
     assert!(w.is_alive(e2));
-    w.entities().delete(e2);
+    w.entities().delete(e2).unwrap();
     assert!(w.is_alive(e2));
     w.maintain();
     assert!(!w.is_alive(e2));
@@ -224,7 +224,7 @@ fn stillborn_entities() {
             lowest.reverse();
             lowest.truncate(rand.values.len());
             for (_, eid) in lowest {
-                entities.delete(eid);
+                entities.delete(eid).unwrap();
             }
         }
     }

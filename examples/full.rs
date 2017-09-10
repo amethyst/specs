@@ -109,7 +109,7 @@ impl<'a> System<'a> for SysSpawn {
     fn run(&mut self, mut data: SpawnData) {
         if self.counter == 0 {
             let entity = data.entities.join().next().unwrap();
-            data.entities.delete(entity);
+            let _ = data.entities.delete(entity);
         }
 
         let entity = data.entities.create();
