@@ -126,3 +126,5 @@ tests!(vec_storage => ::specs::VecStorage<Self>);
 tests!(dense_vec_storage => ::specs::DenseVecStorage<Self>);
 tests!(hashmap_storage => ::specs::HashMapStorage<Self>);
 tests!(btree_storage => ::specs::BTreeStorage<Self>);
+#[cfg(feature = "rudy")]
+tests!(rudy_storage => ::specs::RudyStorage<Self>);
