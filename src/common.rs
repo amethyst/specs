@@ -18,6 +18,7 @@
 //! ```
 
 use std::convert::AsRef;
+use std::error::Error;
 use std::io::Write;
 use std::marker::PhantomData;
 
@@ -65,6 +66,35 @@ impl Errors {
     /// Add an error to the error collection.
     pub fn add(&self, error: BoxedErr) {
         self.errors.push(error);
+    }
+
+    /// A convenience method which allows nicer error handling.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # use specs::common::Errors;
+    /// # let errors = Errors::new();
+    /// # use std::io::{Error, ErrorKind};
+    /// # fn do_something() -> Result<i32, Error> { Err(Error::new(ErrorKind::Other, "Other")) }
+    /// errors.execute::<Error, _>(|| {
+    ///     let y = do_something()?;
+    ///     println!("{}", y + 5);
+    ///
+    ///     Ok(())
+    /// });
+    /// ```
+    ///
+    /// So the closure you pass to this method is essentially an environment where you can
+    /// use `?` for error handling.
+    pub fn execute<E, F>(&self, f: F)
+    where
+        E: Error + Send + Sync + 'static,
+        F: FnOnce() -> Result<(), E>,
+    {
+        if let Err(e) = f() {
+            self.add(BoxedErr::new(e));
+        }
     }
 
     /// Checks if the queue contains at least one error.
