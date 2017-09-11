@@ -149,11 +149,11 @@ impl<'a> System<'a> for Integrate {
         let delta: f32 = delta.0;
 
         for (pos, vel, force, inv_mass) in (&mut pos, &mut vel, &mut force, &inv_mass).join() {
-            pos.0 = pos.0 + vel.0 * delta;
+            pos.0 += vel.0 * delta;
 
             let damping = (0.9f32).powf(delta);
-            vel.0 = vel.0 + (force.0 * inv_mass.0);
-            vel.0 = vel.0 * damping;
+            vel.0 += force.0 * inv_mass.0;
+            vel.0 *= damping;
 
             force.0 = Vec2::zero();
         }
@@ -215,12 +215,12 @@ impl<'a> System<'a> for Spawn {
 
             let spawn_inv_mass = match spawner {
                 Spawner::Rect { a, b, inv_mass } => {
-                    rect.insert(entity, Rect { a: a, b: b });
+                    rect.insert(entity, Rect { a, b });
 
                     inv_mass
                 }
                 Spawner::Ball { radius, inv_mass } => {
-                    ball.insert(entity, Ball { radius: radius });
+                    ball.insert(entity, Ball { radius });
 
                     inv_mass
                 }

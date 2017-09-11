@@ -8,7 +8,7 @@ use tuple_utils::Split;
 
 use Index;
 
-/// BitAnd is a helper method to & bitsets together resulting in a tree.
+/// `BitAnd` is a helper method to & bitsets together resulting in a tree.
 pub trait BitAnd {
     type Value: BitSetLike;
 
@@ -115,7 +115,7 @@ impl<J: Join> JoinIter<J> {
         let (keys, values) = j.open();
         JoinIter {
             keys: keys.iter(),
-            values: values,
+            values,
         }
     }
 }
@@ -174,10 +174,7 @@ where
     J::Mask: 'a + Send + Sync,
 {
     fn new(keys: BitProducer<'a, J::Mask>, values: &'a UnsafeCell<J::Value>) -> Self {
-        JoinProducer {
-            keys: keys,
-            values: values,
-        }
+        JoinProducer { keys, values }
     }
 }
 

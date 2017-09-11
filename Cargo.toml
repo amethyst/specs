@@ -28,6 +28,7 @@ travis-ci = { repository = "slide-rs/specs" }
 
 [dependencies]
 crossbeam = "0.3.0"
+derivative = "1"
 fnv = "1.0"
 hibitset = "0.2.0"
 mopa = "0.2"

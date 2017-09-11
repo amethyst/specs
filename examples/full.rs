@@ -202,7 +202,7 @@ fn main() {
     // resources can be installed, these are nothing fancy, but allow you
     // to pass data to systems and follow the same sync strategy as the
     // component storage does.
-    w.add_resource(Sum(0xdeadbeef));
+    w.add_resource(Sum(0xdead_beef));
 
     // This builds our dispatcher, which contains the systems.
     // Every system has a name and can depend on other systems.

@@ -11,7 +11,7 @@ macro_rules! setup {
                 w.register::<$comp>();
             )*
 
-            let mut eids: Vec<_> = (0..$num)
+            let eids: Vec<_> = (0..$num)
                 .map(|i| {
                     let mut builder = w.create_entity();
                     if insert && i % sparsity == 0 {
@@ -32,11 +32,11 @@ macro_rules! gap {
     ( $name:ident => $sparsity:expr ) => {
         mod $name {
             use super::{CompInt, CompBool, setup};
-            use test::Bencher;
+            use test::{Bencher, black_box};
 
             #[bench]
             fn insert(bencher: &mut Bencher) {
-                let (mut world, mut entities) = setup(false, $sparsity);
+                let (world, entities) = setup(false, $sparsity);
                 let mut ints = world.write::<CompInt>();
                 let mut bools = world.write::<CompBool>();
 
@@ -49,7 +49,7 @@ macro_rules! gap {
             }
             #[bench]
             fn remove(bencher: &mut Bencher) {
-                let (mut world, mut entities) = setup(true, $sparsity);
+                let (world, entities) = setup(true, $sparsity);
                 let mut ints = world.write::<CompInt>();
                 let mut bools = world.write::<CompBool>();
 
@@ -62,14 +62,14 @@ macro_rules! gap {
             }
             #[bench]
             fn get(bencher: &mut Bencher) {
-                let (mut world, mut entities) = setup(true, $sparsity);
+                let (world, entities) = setup(true, $sparsity);
                 let ints = world.read::<CompInt>();
                 let bools = world.read::<CompBool>();
 
                 bencher.iter(move || {
                     for &entity in &entities {
-                        let int = ints.get(entity);
-                        let boolean = bools.get(entity);
+                        black_box(ints.get(entity));
+                        black_box(bools.get(entity));
                     }
                 });
             }

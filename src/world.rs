@@ -732,7 +732,7 @@ impl World {
         let entity = self.entities_mut().alloc.allocate();
 
         EntityBuilder {
-            entity: entity,
+            entity,
             world: self,
         }
     }
@@ -834,7 +834,7 @@ impl Default for World {
         res.add(LazyUpdate::default());
 
         World {
-            res: res,
+            res,
             storages: Default::default(),
         }
     }
