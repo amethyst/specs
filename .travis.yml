@@ -13,14 +13,8 @@ branches:
 
 before_script:
 - export PATH="$PATH:$HOME/.cargo/bin"
-- if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
-    which rustfmt || cargo install rustfmt-nightly;
-  fi
 
 script:
-- if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
-    cargo fmt -- --write-mode=diff;
-  fi
 - cargo build --verbose
 - cargo test --verbose
 - cargo build --verbose --no-default-features
