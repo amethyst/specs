@@ -225,7 +225,7 @@ where
 macro_rules! define_open {
     // use variables to indicate the arity of the tuple
     ($($from:ident),*) => {
-        impl<'a, $($from,)*> Join for ($($from),*,)
+        impl<$($from,)*> Join for ($($from),*,)
             where $($from: Join),*,
                   ($(<$from as Join>::Mask,)*): BitAnd,
         {
@@ -248,7 +248,7 @@ macro_rules! define_open {
                 ($($from::get($from, i),)*)
             }
         }
-        unsafe impl<'a, $($from,)*> ParJoin for ($($from),*,)
+        unsafe impl<$($from,)*> ParJoin for ($($from),*,)
             where $($from: ParJoin),*,
                   ($(<$from as Join>::Mask,)*): BitAnd,
         {}
