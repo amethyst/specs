@@ -57,7 +57,7 @@ fn delete_now(b: &mut test::Bencher) {
     let mut w = World::new();
     let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_entity().build()).collect();
     b.iter(|| if let Some(id) = eids.pop() {
-        w.delete_entity(id)
+        w.delete_entity(id).unwrap()
     });
 }
 
@@ -68,7 +68,7 @@ fn delete_now_with_storage(b: &mut test::Bencher) {
         .map(|_| w.create_entity().with(CompInt(1)).build())
         .collect();
     b.iter(|| if let Some(id) = eids.pop() {
-        w.delete_entity(id)
+        w.delete_entity(id).unwrap()
     });
 }
 
@@ -77,7 +77,7 @@ fn delete_later(b: &mut test::Bencher) {
     let mut w = World::new();
     let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_entity().build()).collect();
     b.iter(|| if let Some(id) = eids.pop() {
-        w.entities().delete(id)
+        w.entities().delete(id).unwrap()
     });
 }
 
@@ -102,7 +102,7 @@ fn maintain_delete_later(b: &mut test::Bencher) {
     let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_entity().build()).collect();
     b.iter(|| {
         if let Some(id) = eids.pop() {
-            w.entities().delete(id);
+            w.entities().delete(id).unwrap();
         }
         w.maintain();
     });

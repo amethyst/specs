@@ -60,7 +60,7 @@ impl<'a> System<'a> for ClusterBombSystem {
         // Join components in potentially parallel way using rayon.
         (&*entities, &mut bombs, &positions).par_join().for_each(
             |(entity, bomb, position)| if bomb.fuse == 0 {
-                entities.delete(entity);
+                let _ = entities.delete(entity);
                 for _ in 0..9 {
                     let shrapnel = entities.create();
                     updater.insert(
@@ -99,7 +99,7 @@ impl<'a> System<'a> for ShrapnelSystem {
     fn run(&mut self, (entities, mut shrapnels): Self::SystemData) {
         (&*entities, &mut shrapnels).par_join().for_each(
             |(entity, shrapnel)| if shrapnel.durability == 0 {
-                entities.delete(entity);
+                let _ = entities.delete(entity);
             } else {
                 shrapnel.durability -= 1;
             },

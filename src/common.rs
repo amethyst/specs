@@ -18,8 +18,6 @@
 //! ```
 
 use std::convert::AsRef;
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 use std::io::Write;
 use std::marker::PhantomData;
 
@@ -28,43 +26,7 @@ use futures::{Async, Future};
 use futures::executor::{spawn, Notify, Spawn};
 
 use {Component, Entities, Entity, Fetch, Join, RunningTime, System, WriteStorage};
-
-/// A boxed error implementing `Debug`, `Display` and `Error`.
-pub struct BoxedErr(pub Box<Error + Send + Sync + 'static>);
-
-impl BoxedErr {
-    /// Creates a new boxed error.
-    pub fn new<T>(err: T) -> Self
-    where
-        T: Error + Send + Sync + 'static,
-    {
-        BoxedErr(Box::new(err))
-    }
-}
-
-impl AsRef<Error> for BoxedErr {
-    fn as_ref(&self) -> &(Error + 'static) {
-        self.0.as_ref()
-    }
-}
-
-impl Debug for BoxedErr {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        write!(f, "{:?}", self.as_ref())
-    }
-}
-
-impl Display for BoxedErr {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        write!(f, "{}", self.as_ref())
-    }
-}
-
-impl Error for BoxedErr {
-    fn description(&self) -> &str {
-        self.as_ref().description()
-    }
-}
+use error::BoxedErr;
 
 /// A boxed, thread-safe future with `T` as item and `BoxedErr` as error type.
 pub type BoxedFuture<T> = Box<Future<Item = T, Error = BoxedErr> + Send + Sync + 'static>;
@@ -166,7 +128,8 @@ impl Errors {
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct Merge<F> {
-    #[derivative(Default(value = "PhantomData"))] future_type: PhantomData<F>,
+    #[derivative(Default(value = "PhantomData"))]
+    future_type: PhantomData<F>,
     spawns: Vec<(Entity, Spawn<F>)>,
 }
 

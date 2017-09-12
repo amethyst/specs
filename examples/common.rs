@@ -7,7 +7,8 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 use futures::{Future, Poll};
 use futures::future::Lazy;
 use specs::*;
-use specs::common::{BoxedErr, BoxedFuture, Errors, Merge};
+use specs::common::{BoxedFuture, Errors, Merge};
+use specs::error::BoxedErr;
 
 struct MyFloat(f32);
 
@@ -72,7 +73,6 @@ impl Error for MyErr {
 
 fn future_sqrt(num: f32) -> MyFuture {
     use futures::lazy;
-    use specs::common::BoxedErr;
 
     let lazy: Lazy<_, Result<_, MyErr>> = lazy(move || Ok(num.sqrt()));
     let future = lazy.map(MyFloat).map_err(BoxedErr::new);

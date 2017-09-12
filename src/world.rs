@@ -6,6 +6,7 @@ use mopa::Any;
 use shred::{Fetch, FetchMut, Resource, Resources};
 
 use {Index, Join, ParJoin, ReadStorage, Storage, UnprotectedStorage, WriteStorage};
+use error::WrongGeneration;
 use storage::{AnyStorage, MaskedStorage};
 
 const COMPONENT_NOT_REGISTERED: &str = "No component with the given id. Did you forget to register \
@@ -25,20 +26,41 @@ pub struct Allocator {
 }
 
 impl Allocator {
-    fn kill(&mut self, delete: &[Entity]) {
-        for entity in delete {
+    fn kill(&mut self, delete: &[Entity]) -> Result<(), WrongGeneration> {
+        for &entity in delete {
+            let id = entity.id() as usize;
+
+            if !self.is_alive(entity) {
+                return self.del_err(entity);
+            }
+
             self.alive.remove(entity.id());
             self.raised.remove(entity.id());
-            let id = entity.id() as usize;
             self.generations[id].die();
             if id < self.start_from.load(Ordering::Relaxed) {
                 self.start_from.store(id, Ordering::Relaxed);
             }
         }
+
+        Ok(())
     }
 
-    fn kill_atomic(&self, e: Entity) {
+    fn kill_atomic(&self, e: Entity) -> Result<(), WrongGeneration> {
+        if !self.is_alive(e) {
+            return self.del_err(e);
+        }
+
         self.killed.add_atomic(e.id());
+
+        Ok(())
+    }
+
+    fn del_err(&self, e: Entity) -> Result<(), WrongGeneration> {
+        Err(WrongGeneration {
+            action: "delete",
+            actual_gen: self.generations[e.id() as usize],
+            entity: e,
+        })
     }
 
     /// Return `true` if the entity is alive.
@@ -290,8 +312,8 @@ impl EntitiesRes {
     /// Deletes an entity atomically.
     /// The associated components will be
     /// deleted as soon as you call `World::maintain`.
-    pub fn delete(&self, e: Entity) {
-        self.alloc.kill_atomic(e);
+    pub fn delete(&self, e: Entity) -> Result<(), WrongGeneration> {
+        self.alloc.kill_atomic(e)
     }
 
     /// Returns `true` if the specified entity is
@@ -756,14 +778,15 @@ impl World {
     }
 
     /// Deletes an entity and its components.
-    pub fn delete_entity(&mut self, entity: Entity) {
-        self.delete_entities(&[entity]);
+    pub fn delete_entity(&mut self, entity: Entity) -> Result<(), WrongGeneration> {
+        self.delete_entities(&[entity])
     }
 
     /// Deletes the specified entities and their components.
-    pub fn delete_entities(&mut self, delete: &[Entity]) {
+    pub fn delete_entities(&mut self, delete: &[Entity]) -> Result<(), WrongGeneration> {
         self.delete_components(delete);
-        self.entities_mut().alloc.kill(delete);
+
+        self.entities_mut().alloc.kill(delete)
     }
 
     /// Deletes all entities and their components.
@@ -771,7 +794,11 @@ impl World {
         use join::Join;
 
         let entities: Vec<_> = (&*self.entities()).join().collect();
-        self.delete_entities(&entities);
+
+        self.delete_entities(&entities).expect(
+            "Bug: previously collected entities are not valid \
+             even though access should be exclusive",
+        );
     }
 
     /// Checks if an entity is alive.
@@ -931,5 +958,15 @@ mod tests {
 
         world.maintain();
         assert!(world.read::<Pos>().get(e).is_some());
+    }
+
+    #[test]
+    fn delete_twice() {
+        let mut world = World::new();
+
+        let e = world.create_entity().build();
+
+        world.delete_entity(e).unwrap();
+        assert!(world.entities().delete(e).is_err());
     }
 }
