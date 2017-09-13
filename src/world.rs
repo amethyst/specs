@@ -159,7 +159,64 @@ impl Allocator {
     }
 }
 
-/// Abstract component type. Doesn't have to be Copy or even Clone.
+/// Abstract component type.
+/// Doesn't have to be Copy or even Clone.
+///
+/// ## Storages
+///
+/// Components are stored in separated collections for maximum
+/// cache efficiency. The `Storage` associated type allows
+/// to specify which collection should be used.
+/// Depending on how many entities have this component and how
+/// often it is accessed, you will want different storages.
+///
+/// The most common ones are `VecStorage` (use if almost every entity has that component),
+/// `DenseVecStorage` (if you expect many entities to have the component) and
+/// `HashMapStorage` (for very rare components).
+///
+/// ## Examples
+///
+/// ```
+/// use specs::{Component, VecStorage};
+///
+/// pub struct Position {
+///     pub x: f32,
+///     pub y: f32,
+/// }
+///
+/// impl Component for Position {
+///     type Storage = VecStorage<Self>;
+/// }
+/// ```
+///
+/// ```
+/// use specs::{Component, DenseVecStorage};
+///
+/// pub enum Light {
+///     // (Variants would have additional data)
+///     Directional,
+///     SpotLight,
+/// }
+///
+/// impl Component for Light {
+///     type Storage = DenseVecStorage<Self>;
+/// }
+/// ```
+///
+/// ```
+/// use specs::{Component, HashMapStorage};
+///
+/// pub struct Camera {
+///     // In an ECS, the camera would not itself have a position;
+///     // you would just attach a `Position` component to the same
+///     // entity.
+///     matrix: [f32; 16],
+/// }
+///
+/// impl Component for Camera {
+///     type Storage = HashMapStorage<Self>;
+/// }
+/// ```
 pub trait Component: Any + Sized {
     /// Associated storage type for this component.
     type Storage: UnprotectedStorage<Self> + Any + Send + Sync;
@@ -252,6 +309,7 @@ impl<'a> EntityBuilder<'a> {
     ///
     /// Panics if the component hasn't been `register()`ed in the
     /// `World`.
+    #[inline]
     pub fn with<T: Component>(self, c: T) -> Self {
         self.with_id(c, 0)
     }
@@ -262,6 +320,7 @@ impl<'a> EntityBuilder<'a> {
     ///
     /// Panics if the component hasn't been `register_with_id()`ed in the
     /// `World`.
+    #[inline]
     pub fn with_id<T: Component>(self, c: T, id: usize) -> Self {
         {
             let mut storage = self.world.write_with_id(id);
@@ -273,6 +332,7 @@ impl<'a> EntityBuilder<'a> {
 
     /// Finishes the building and returns
     /// the entity.
+    #[inline]
     pub fn build(self) -> Entity {
         self.entity
     }
@@ -364,6 +424,7 @@ impl Generation {
     }
 
     /// Returns `true` if entities of this `Generation` are alive.
+    #[inline]
     pub fn is_alive(&self) -> bool {
         self.0 > 0
     }
@@ -570,7 +631,7 @@ impl Drop for LazyUpdate {
 /// the borrowing rules of Rust (multiple reads xor one write),
 /// you will get a panic.
 ///
-/// # Component / Resources ids
+/// ## Component / Resources ids
 ///
 /// Components and resources may, in addition to their type, be identified
 /// by an id of type `usize`. The convenience methods dealing
@@ -580,6 +641,37 @@ impl Drop for LazyUpdate {
 /// registered/added, it will panic when run. Add all components with
 /// `World::register` before running any systems. Also add all resources
 /// with `World::add_resource`.
+///
+/// ## Examples
+///
+/// ```
+/// # use specs::{Component, VecStorage};
+/// # struct Pos { x: f32, y: f32, } impl Component for Pos { type Storage = VecStorage<Self>; }
+/// # struct Vel { x: f32, y: f32, } impl Component for Vel { type Storage = VecStorage<Self>; }
+/// # struct DeltaTime(f32);
+/// use specs::World;
+///
+/// let mut world = World::new();
+/// world.register::<Pos>();
+/// world.register::<Vel>();
+///
+/// world.add_resource(DeltaTime(0.02));
+///
+/// world.create_entity()
+///     .with(Pos { x: 1.0, y: 2.0 })
+///     .with(Vel { x: -1.0, y: 0.0 })
+///     .build();
+///
+/// world.create_entity()
+///     .with(Pos { x: 3.0, y: 5.0 })
+///     .with(Vel { x: 1.0, y: 0.0 })
+///     .build();
+///
+/// world.create_entity()
+///     .with(Pos { x: 0.0, y: 1.0 })
+///     .with(Vel { x: 0.0, y: 1.0 })
+///     .build();
+/// ```
 pub struct World {
     /// The resources used for this world.
     pub res: Resources,
@@ -650,6 +742,7 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed mutably.
+    /// Panics if the component has not been registered.
     pub fn read<T: Component>(&self) -> ReadStorage<T> {
         self.read_with_id(0)
     }
@@ -662,6 +755,7 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed.
+    /// Panics if the component has not been registered.
     pub fn write<T: Component>(&self) -> WriteStorage<T> {
         self.write_with_id(0)
     }
@@ -697,6 +791,7 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed mutably.
+    /// Panics if the resource has not been added.
     pub fn read_resource_with_id<T: Resource>(&self, id: usize) -> Fetch<T> {
         self.res.try_fetch(id).expect(RESOURCE_NOT_ADDED)
     }
@@ -706,6 +801,7 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed.
+    /// Panics if the resource has not been added.
     pub fn write_resource_with_id<T: Resource>(&self, id: usize) -> FetchMut<T> {
         self.res.try_fetch_mut(id).expect(RESOURCE_NOT_ADDED)
     }
@@ -718,6 +814,7 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed mutably.
+    /// Panics if the resource has not been added.
     pub fn read_resource<T: Resource>(&self) -> Fetch<T> {
         self.read_resource_with_id(0)
     }
@@ -730,6 +827,7 @@ impl World {
     /// # Panics
     ///
     /// Panics if it is already borrowed.
+    /// Panics if the resource has not been added.
     pub fn write_resource<T: Resource>(&self) -> FetchMut<T> {
         self.write_resource_with_id(0)
     }
