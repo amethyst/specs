@@ -213,11 +213,14 @@ pub use storage::{BTreeStorage, DenseVecStorage, DistinctStorage, Entry, Flagged
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
                 Generation, LazyUpdate, World};
 
-#[cfg(feature = "serialize")]
-pub use storage::{MergeError, PackedData};
-
 #[cfg(feature = "common")]
 pub mod common;
+
+#[cfg(feature = "rudy")]
+pub use storage::RudyStorage;
+
+#[cfg(feature = "serialize")]
+pub use storage::{MergeError, PackedData};
 
 /// A wrapper for a fetched `Entities` resource.
 /// Note that this is just `Fetch<Entities>`, so

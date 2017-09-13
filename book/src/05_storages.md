@@ -81,3 +81,14 @@ just leaves uninitialized gaps where we don't have any component.
 Therefore it would be a waste of memory to use this storage for
 rare components, but it's best suited for commonly used components
 (like transform values).
+
+
+## `RudyStorage` (Experimental)
+
+There is an experimental `RudyStorage`, which can be enabled with the `rudy` feature
+flag. It uses [the `rudy` crate][ru], the Rust implementation of [Judy Arrays][ja].
+
+[ja]: http://judy.sourceforge.net
+[ru]: https://crates.io/crates/rudy
+
+Its benefits are not clear yet.
