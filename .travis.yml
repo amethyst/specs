@@ -3,7 +3,20 @@ rust:
 - nightly
 - stable
 
-cache: cargo
+cache:
+  cargo: true
+  apt: true
+
+addons:
+  apt:
+    packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - binutils-dev
+      - cmake
+    sources:
+      - kalakris-cmake
 
 branches:
   only:
@@ -12,6 +25,7 @@ branches:
     - master
 
 before_script:
+- cargo install --force cargo-travis
 - export PATH="$PATH:$HOME/.cargo/bin"
 
 script:
@@ -32,6 +46,9 @@ script:
 - cargo test --manifest-path ./specs-derive/Cargo.toml --verbose
 
 after_success: |
+  if [ "$TRAVIS_RUST_VERSION" == "stable" ]; then
+    cargo coveralls --exclude-pattern tests/;
+  fi
   [ $TRAVIS_BRANCH = master ] &&
   [ $TRAVIS_PULL_REQUEST = false ] &&
   [ $TRAVIS_RUST_VERSION = stable ] &&
