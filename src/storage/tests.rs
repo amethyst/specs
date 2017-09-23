@@ -204,18 +204,15 @@ mod test {
         type Storage = RudyStorage<Self>;
     }
 
-    #[derive(Clone, Debug)]
-    struct Cnull(u32);
-    impl Default for Cnull {
-        fn default() -> Cnull {
-            Cnull(0)
-        }
-    }
+    #[derive(Debug, Default, PartialEq)]
+    struct Cnull;
+
     impl From<u32> for Cnull {
-        fn from(v: u32) -> Cnull {
-            Cnull(v)
+        fn from(_: u32) -> Self {
+            Cnull
         }
     }
+
     impl Component for Cnull {
         type Storage = NullStorage<Self>;
     }
@@ -466,6 +463,20 @@ mod test {
     #[test]
     fn dummy_test_clear() {
         test_clear::<Cnull>();
+    }
+
+    #[test]
+    fn test_null_insert_twice() {
+        let mut w = World::new();
+
+        w.register::<Cnull>();
+        let e = w.create_entity().build();
+
+        let mut null = w.write::<Cnull>();
+
+        assert_eq!(null.get(e), None);
+        assert_eq!(null.insert(e, Cnull), InsertResult::Inserted);
+        assert_eq!(null.insert(e, Cnull), InsertResult::Updated(Cnull));
     }
 
     #[test]

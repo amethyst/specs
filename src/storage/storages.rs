@@ -127,7 +127,6 @@ unsafe impl<T> DistinctStorage for DenseVecStorage<T> {}
 
 /// A null storage type, used for cases where the component
 /// doesn't contain any data and instead works as a simple flag.
-#[derive(Default)]
 pub struct NullStorage<T>(T);
 
 impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
@@ -142,7 +141,7 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
     }
 
     unsafe fn get_mut(&mut self, _: Index) -> &mut T {
-        panic!("One does not simply modify a NullStorage")
+        &mut self.0
     }
 
     unsafe fn insert(&mut self, _: Index, _: T) {}
@@ -152,7 +151,20 @@ impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
     }
 }
 
-/// This is safe because mutating doesn't work and panics instead
+impl<T> Default for NullStorage<T>
+where
+    T: Default,
+{
+    fn default() -> Self {
+        use std::mem::size_of;
+
+        assert_eq!(size_of::<T>(), 0, "NullStorage can only be used with ZST");
+
+        NullStorage(Default::default())
+    }
+}
+
+/// This is safe because you cannot mutate ZSTs.
 unsafe impl<T> DistinctStorage for NullStorage<T> {}
 
 /// Vector storage. Uses a simple `Vec`. Supposed to have maximum
