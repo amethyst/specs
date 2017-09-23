@@ -86,7 +86,7 @@ where
 pub unsafe trait DistinctStorage {}
 
 /// The status of an `insert()`ion into a storage.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum InsertResult<T> {
     /// The value was inserted and there was no value before
     Inserted,
