@@ -7,6 +7,7 @@
 * Make `common::Errors` atomic and more convenient ([#255], [#262])
 * Add `World::delete_all` to clear the world ([#257])
 * Fix insertion into occupied `NullStorage` entry ([#269])
+* Add `Storage::drain` method ([#273])
 
 [#203]: https://github.com/slide-rs/specs/pull/203
 [#243]: https://github.com/slide-rs/specs/pull/243
@@ -21,9 +22,10 @@
 [#260]: https://github.com/slide-rs/specs/pull/260
 [#262]: https://github.com/slide-rs/specs/pull/262
 [#265]: https://github.com/slide-rs/specs/pull/265
-[#269]: https://github.com/slide-rs/specs/pull/269
+[#273]: https://github.com/slide-rs/specs/pull/273
 
 ## 0.9.3
+
 * Add `specs-derive` crate, custom `#[derive]` for components ([#192])
 * Add lazy updates: insert and remove components, execute closures on world ([#214], [#221])
 

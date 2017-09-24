@@ -17,9 +17,11 @@ use hibitset::{BitSet, BitSetNot};
 use mopa::Any;
 use shred::Fetch;
 
+use self::drain::Drain;
 use {Component, EntitiesRes, Entity, Index, Join, ParJoin};
 
 mod data;
+mod drain;
 mod restrict;
 mod flagged;
 #[cfg(feature = "serialize")]
@@ -233,6 +235,14 @@ where
     /// Clears the contents of the storage.
     pub fn clear(&mut self) {
         self.data.clear();
+    }
+
+    /// Creates a draining storage wrapper which can be `.join`ed
+    /// to get a draining iterator.
+    pub fn drain(&mut self) -> Drain<T> {
+        Drain {
+            data: &mut self.data,
+        }
     }
 }
 
