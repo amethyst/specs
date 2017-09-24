@@ -25,7 +25,7 @@ branches:
     - master
 
 before_script:
-- cargo install --force cargo-travis
+- which cargo-coveralls || cargo install cargo-travis
 - export PATH="$PATH:$HOME/.cargo/bin"
 
 script:
