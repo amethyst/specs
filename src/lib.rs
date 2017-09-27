@@ -216,8 +216,8 @@ pub use shred::AsyncDispatcher;
 
 pub use storage::{BTreeStorage, Change, ChangeEvents, DenseVecStorage, DistinctStorage, Entry,
                   FlaggedStorage, HashMapStorage, InsertResult, MaskedStorage, NormalRestriction,
-                  NullStorage, ParallelRestriction, ReadStorage, RestrictedStorage, Storage,
-                  TrackedStorage, UnprotectedStorage, VecStorage, WriteStorage};
+                  OccupiedEntry, NullStorage, ParallelRestriction, ReadStorage, RestrictedStorage, Storage,
+                  StorageEntry, TrackedStorage, UnprotectedStorage, VacantEntry, VecStorage, WriteStorage};
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
                 Generation, LazyUpdate, World};
 
