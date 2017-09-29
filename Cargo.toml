@@ -32,7 +32,7 @@ derivative = "1"
 fnv = "1.0"
 hibitset = "0.3.0"
 mopa = "0.2"
-shred = "0.4.6"
+shred = "0.5.0"
 shred-derive = "0.3"
 tuple_utils = "0.2"
 rayon = "0.8.2"
@@ -52,6 +52,9 @@ serialize = ["serde", "serde_derive"]
 cgmath =  { version = "0.14", features = ["eders"] }
 rand = "0.3"
 serde_json = "1.0"
+
+[[example]]
+name = "async"
 
 [[example]]
 name = "basic"
