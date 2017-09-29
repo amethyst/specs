@@ -7,7 +7,7 @@ use shred::{Fetch, FetchMut, Resource, Resources};
 
 use {Index, Join, ParJoin, ReadStorage, Storage, UnprotectedStorage, WriteStorage};
 use error::WrongGeneration;
-use storage::{AnyStorage, MaskedStorage};
+use storage::{AnyStorage, DenseVecStorage, MaskedStorage};
 
 const COMPONENT_NOT_REGISTERED: &str = "No component with the given id. Did you forget to register \
                                         the component with `World::register::<ComponentName>()`?";
@@ -950,6 +950,14 @@ impl World {
             }
         }
     }
+}
+
+unsafe impl Send for World {}
+
+unsafe impl Sync for World {}
+
+impl Component for World {
+    type Storage = DenseVecStorage<Self>;
 }
 
 impl Default for World {
