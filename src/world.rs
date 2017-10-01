@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crossbeam::sync::TreiberStack;
@@ -955,6 +956,12 @@ impl World {
 unsafe impl Send for World {}
 
 unsafe impl Sync for World {}
+
+impl Borrow<Resources> for World {
+    fn borrow(&self) -> &Resources {
+        &self.res
+    }
+}
 
 impl Component for World {
     type Storage = DenseVecStorage<Self>;
