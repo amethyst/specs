@@ -190,11 +190,9 @@ extern crate tuple_utils;
 
 #[cfg(feature = "common")]
 extern crate futures;
-#[cfg(feature = "serialize")]
-extern crate serde;
-#[cfg(feature = "serialize")]
+#[cfg(feature = "serde")]
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
 #[cfg(feature = "rudy")]
 extern crate rudy;
@@ -219,7 +217,7 @@ pub mod common;
 #[cfg(feature = "rudy")]
 pub use storage::RudyStorage;
 
-#[cfg(feature = "serialize")]
+#[cfg(feature = "serde")]
 pub use storage::{MergeError, PackedData};
 
 /// A wrapper for a fetched `Entities` resource.

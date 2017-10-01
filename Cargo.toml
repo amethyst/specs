@@ -38,15 +38,13 @@ tuple_utils = "0.2"
 rayon = "0.8.2"
 
 futures = { version = "0.1", optional = true }
-serde = { version = "1.0", optional = true }
-serde_derive = { version = "1.0", optional = true }
+serde = { version = "1.0", optional = true, features = ["serde_derive"] }
 
 # enable rudy via --features rudy
 rudy = { version = "0.1", optional = true }
 
 [features]
 common = ["futures"]
-serialize = ["serde", "serde_derive"]
 
 [dev-dependencies]
 cgmath =  { version = "0.14", features = ["eders"] }
@@ -74,7 +72,7 @@ required-features = ["common"]
 
 [[example]]
 name = "serialize"
-required-features = ["serialize"]
+required-features = ["serde"]
 
 [workspace]
 members = ["specs-derive"]

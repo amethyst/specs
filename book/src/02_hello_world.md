@@ -6,7 +6,7 @@ First of all, thanks for trying out `specs`. Let's
 set it up first. Add the following line to your `Cargo.toml`:
 
 ```toml
-specs = "0.9"
+specs = "0.10"
 ```
 
 And add this to your crate root (`main.rs` or `lib.rs`):

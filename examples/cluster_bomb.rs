@@ -160,7 +160,7 @@ fn main() {
             break;
         }
 
-        dispatcher.dispatch(&mut world.res);
+        dispatcher.dispatch(&world.res);
 
         // Maintain dynamically added and removed entities in dispatch.
         // This is what actually executes changes done by `LazyUpdate`.
