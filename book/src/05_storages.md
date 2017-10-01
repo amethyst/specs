@@ -52,16 +52,16 @@ fairly well.
 
 ## `DenseVecStorage`
 
-This storage uses two `Vec`s, one containing the actual data and the other
+This storage uses two `Vec`\`s, one containing the actual data and the other
 one which provides a mapping from the entity id to the index for the data vec
 (it's a redirection table). This is useful when your component is bigger
 than a `usize` because it consumes less RAM.
 
 ## `HashMapStorage`
 
-This should be used for components which are associated to very few entities, 
+This should be used for components which are associated to very few entities,
 because it provides a lower insertion cost and is packed together more tightly.
-You should not use it for frequently used components, because the hashing cost would definitely 
+You should not use it for frequently used components, because the hashing cost would definitely
 be noticeable.
 
 ## `NullStorage`
