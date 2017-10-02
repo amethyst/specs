@@ -45,7 +45,7 @@ fn main() {
         .add(Merge::<MyFuture>::new(), "merge_my_float", &[])
         .build();
 
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&world.res);
 
     world.write_resource::<Errors>().print_and_exit();
 }

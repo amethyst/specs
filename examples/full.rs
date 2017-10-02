@@ -218,12 +218,12 @@ fn main() {
         .add(JoinParallel, "join_par", &[])
         .build();
 
-    dispatcher.dispatch(&mut w.res);
+    dispatcher.dispatch(&w.res);
     w.maintain();
 
     // Insert a component, associated with `e`.
     w.write().insert(e, CompFloat(4.0));
 
-    dispatcher.dispatch(&mut w.res);
+    dispatcher.dispatch(&w.res);
     w.maintain();
 }

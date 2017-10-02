@@ -64,5 +64,5 @@ fn main() {
     let mut dispatcher = DispatcherBuilder::new().add(SysA, "sys_a", &[]).build();
 
     // This dispatches all the systems in parallel (but blocking).
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&world.res);
 }

@@ -3,7 +3,7 @@
 pub use self::data::{ReadStorage, WriteStorage};
 pub use self::flagged::FlaggedStorage;
 pub use self::restrict::{Entry, NormalRestriction, ParallelRestriction, RestrictedStorage};
-#[cfg(feature = "serialize")]
+#[cfg(feature = "serde")]
 pub use self::ser::{MergeError, PackedData};
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
@@ -24,7 +24,7 @@ mod data;
 mod drain;
 mod restrict;
 mod flagged;
-#[cfg(feature = "serialize")]
+#[cfg(feature = "serde")]
 mod ser;
 mod storages;
 #[cfg(test)]

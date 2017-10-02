@@ -698,7 +698,7 @@ mod test {
     }
 }
 
-#[cfg(feature = "serialize")]
+#[cfg(feature = "serde")]
 mod serialize_test {
     extern crate serde_json;
 
