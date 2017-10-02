@@ -20,11 +20,11 @@ use serde::de::DeserializeOwned;
 ///
 /// ```rust,no_run
 /// extern crate specs;
-/// #[macro_use] extern crate serde_derive;
+/// #[macro_use] extern crate serde;
 /// use std::collections::HashMap;
 /// use std::ops::Range;
 /// use specs::{Component, Entity, DenseVecStorage};
-/// use specs::saveload::marker::{Marker, MarkerAllocator};
+/// use specs::saveload::{Marker, MarkerAllocator};
 ///
 /// // Marker for entities that should be synced over network
 /// #[derive(Clone, Copy, Serialize, Deserialize)]
