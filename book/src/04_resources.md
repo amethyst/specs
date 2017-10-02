@@ -40,9 +40,9 @@ So we can now rewrite our system:
 ```rust,ignore
 use specs::{Fetch, ReadStorage, System, WriteStorage};
 
-struct PosUpdate;
+struct UpdatePos;
 
-impl<'a> System<'a> for PosUpdate {
+impl<'a> System<'a> for UpdatePos {
     type SystemData = (Fetch<'a, DeltaTime>,
                        ReadStorage<'a, Velocity>,
                        WriteStorage<'a, Position>);

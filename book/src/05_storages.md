@@ -59,9 +59,9 @@ than a `usize` because it consumes less RAM.
 
 ## `HashMapStorage`
 
-This should be used for components which are associated to very few entities, 
+This should be used for components which are associated to very few entities,
 because it provides a lower insertion cost and is packed together more tightly.
-You should not use it for frequently used components, because the hashing cost would definitely 
+You should not use it for frequently used components, because the hashing cost would definitely
 be noticeable.
 
 ## `NullStorage`

@@ -44,6 +44,8 @@ method call can be exchanged for `par_join`:
     }
 ```
 
-The `par_join` method produces a type implementing `rayon`s `ParallelIterator`
+The `par_join` method produces a type implementing [`rayon`s `ParallelIterator`][ra]
 trait which provides lots of helper methods to manipulate the iteration,
 the same way as the normal `Iterator` trait does.
+
+[ra]: https://crates.io/crates/rayon
