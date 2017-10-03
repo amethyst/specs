@@ -11,10 +11,10 @@ use serde::ser::Serialize;
 use serde::de::DeserializeOwned;
 
 
-/// This trait should be implemetened by component which is gonna be used as marker.
+/// This trait should be implemetened by a component which is going to be used as marker.
 /// This marker should be set to entity that should be serialized.
-/// If serialization strategy needs to set marker to some entity it should use
-/// new marker allocated for `Marker::Allocator`.
+/// If serialization strategy needs to set marker to some entity
+/// then it should use newly allocated marker from `Marker::Allocator`.
 ///
 /// ## Example
 ///
@@ -91,35 +91,35 @@ pub trait Marker: Component + DeserializeOwned + Serialize + Copy {
     fn id(&self) -> Self::Identifier;
 
     /// Update marker with new value.
-    /// It must preserve internal `Identifier`.
+    /// It must preserve the internal `Identifier`.
     ///
     /// ## Panics
     ///
     /// Allowed to panic if `self.id() != update.id()`.
-    /// But usually implementer may ignore `update.id()` value
+    /// But usually implementer may ignore the value of the `update.id()`
     /// as deserialization algorithm ensures `id()`s match.
     fn update(&mut self, update: Self) {
         ::std::mem::drop(update);
     }
 }
 
-/// This allocator is used with `Marker` trait.
-/// It provides method for allocation of `Marker`s.
-/// And also should provide `Marker -> Entity` mapping
-/// `maintain` method can be implemented for cleanup and actualization.
-/// See docs for `Marker` for example.
+/// This allocator is used with the `Marker` trait.
+/// It provides method for allocation new `Marker`s.
+/// It should also provide a `Marker -> Entity` mapping.
+/// The `maintain` method can be implemented for cleanup and actualization.
+/// See docs for `Marker` for an example.
 pub trait MarkerAllocator<M: Marker>: Resource {
     /// Allocate new `Marker`.
     /// Stores mapping `Marker` -> `Entity`.
-    /// If _id_ argument is `Some(id)` then new marker will have this `id`.
-    /// Otherwise allocator creates marker with new unique id.
+    /// If _id_ argument is `Some(id)` then the new marker will have this `id`.
+    /// Otherwise allocator creates marker with a new unique id.
     fn allocate(&mut self, entity: Entity, id: Option<M::Identifier>) -> M;
 
     /// Get `Entity` by `Marker::Identifier`
     fn get(&self, id: M::Identifier) -> Option<Entity>;
 
     /// Create new unique marker `M` and attach it to entity.
-    /// Or get old marker if already marked.
+    /// Or get old marker if this entity is already marked.
     fn mark<'a>(&mut self, entity: Entity, storage: &mut WriteStorage<'a, M>) -> M {
         match storage.get(entity).cloned() {
             Some(marker) => marker,
@@ -131,7 +131,8 @@ pub trait MarkerAllocator<M: Marker>: Resource {
         }
     }
 
-    /// Find `Entity` by `Marker` with same id and update `Marker` attached instance.
+    /// Find an `Entity` by a `Marker` with same id
+    /// and update `Marker` attached to the instance.
     /// Or create new entity and mark it.
     fn get_marked<'a>(
         &mut self,

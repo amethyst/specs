@@ -142,8 +142,10 @@ macro_rules! impl_components {
         impl_components!(@ $($a|$b),*);
     };
 
+    // List depleted. End of recursion
     (@) => {};
 
+    // Cut head of the list and call macro again
     (@ $ah:ident|$bh:ident $(,$a:ident|$b:ident)*) => {
         // Call again for tail
         impl_components!($($a|$b),*);

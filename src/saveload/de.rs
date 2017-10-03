@@ -16,7 +16,7 @@ struct DeserializeEntity<'a, 'b: 'a, M: Marker, E, T: Components<M::Identifier, 
     storages: &'a mut <T as Storages<'b>>::WriteStorages,
     markers: &'a mut WriteStorage<'b, M>,
     allocator: &'a mut FetchMut<'b, M::Allocator>,
-    pd: PhantomData<(M, E, T)>,
+    pd: PhantomData<(E, T)>,
 }
 
 impl<'de, 'a, 'b: 'a, M, E, T> DeserializeSeed<'de> for DeserializeEntity<'a, 'b, M, E, T>
@@ -58,7 +58,7 @@ struct VisitEntities<'a, 'b: 'a, M: Marker, E, T: Components<M::Identifier, E>> 
     storages: &'a mut <T as Storages<'b>>::WriteStorages,
     markers: &'a mut WriteStorage<'b, M>,
     allocator: &'a mut FetchMut<'b, M::Allocator>,
-    pd: PhantomData<(M, E, T)>,
+    pd: PhantomData<(E, T)>,
 }
 
 impl<'de, 'a, 'b: 'a, M, E, T> Visitor<'de> for VisitEntities<'a, 'b, M, E, T>

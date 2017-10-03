@@ -11,7 +11,8 @@ use saveload::marker::{Marker, MarkerAllocator};
 /// Serialize components from specified storages via `SerializableComponent::save`
 /// of all marked entities with provided serializer.
 /// When the component gets serialized with `SerializableComponent::save` method
-/// closure passed in `ids` argument mark unmarked `Entity` and they get serialized recursively.
+/// the closure passed in `ids` argument marks unmarked `Entity` (the marker of which was requested)
+/// and it will get serialized recursively.
 /// For serializing without such recursion see `serialize` function.
 pub fn serialize_recursive<'a, M, E, T, S>(
     entities: &Entities<'a>,
@@ -60,10 +61,10 @@ where
 /// Serialize components from specified storages via `SerializableComponent::save`
 /// of all marked entities with provided serializer.
 /// When the component gets serialized with `SerializableComponent::save` method
-/// closure passed in `ids` arguemnt returns `None` for unmarked `Entity`.
+/// the closure passed in `ids` arguemnt returns `None` for unmarked `Entity`.
 /// In this case `SerializableComponent::save` may perform workaround (forget about `Entity`)
 /// or fail.
-/// So function doesn't recursively mark referenced entities.
+/// So the function doesn't recursively mark referenced entities.
 /// For recursive marking see `serialize_recursive`
 pub fn serialize<'a, M, E, T, S>(
     entities: &Entities<'a>,
@@ -89,9 +90,9 @@ where
 }
 
 /// This type implements `Serialize` so that it may be used in generic environment
-/// where `Serialize` implementer is expected.
+/// where `Serialize` implementation is expected.
 /// It may be constructed manually with `WorldSerialize::new`.
-/// Or fetched by `System` as `SystemData`.
+/// Or fetched from `System` as `SystemData`.
 /// Serializes components in tuple `T` with marker `M`.
 #[derive(SystemData)]
 pub struct WorldSerialize<'a, M: Marker, E, T: Components<M::Identifier, E>> {
@@ -143,7 +144,7 @@ where
     T: Components<M::Identifier, E>,
 {
     /// Remove all marked entities
-    /// Use it if you want to delete entities that was just serialized
+    /// Use this if you want to delete entities that were just serialized
     pub fn remove_serialized(&mut self) {
         for (entity, _) in (&*self.entities, &self.markers.check()).join() {
             let _ = self.entities.delete(entity);
