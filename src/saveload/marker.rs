@@ -4,11 +4,11 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use shred::Resource;
 use {Component, DenseVecStorage, Entities, Entity, Join, ReadStorage, WriteStorage};
+use shred::Resource;
 
-use serde::ser::Serialize;
 use serde::de::DeserializeOwned;
+use serde::ser::Serialize;
 
 
 /// This trait should be implemetened by a component which is going to be used as marker.
@@ -18,7 +18,7 @@ use serde::de::DeserializeOwned;
 ///
 /// ## Example
 ///
-/// ```rust,no_run
+/// ```rust
 /// extern crate specs;
 /// #[macro_use] extern crate serde;
 /// use std::collections::HashMap;
@@ -78,7 +78,22 @@ use serde::de::DeserializeOwned;
 ///     }
 /// }
 ///
-/// fn main() {}
+/// fn main() {
+///     use specs::World;
+///
+///     let mut world = World::new();
+///     world.register::<NetMarker>();
+///
+///     let mut node = NetNode {
+///         range: 0..100,
+///         mapping: HashMap::new(),
+///     };
+///
+///     let entity = world.create_entity().build();
+///     let (marker, added) = node.mark(entity, &mut world.write::<NetMarker>());
+///     assert!(added);
+///     assert_eq!(node.get_marked(marker.id(), &world.entities(), &mut world.write::<NetMarker>()), entity);
+/// }
 /// ```
 pub trait Marker: Component + DeserializeOwned + Serialize + Copy {
     /// Id of the marker
@@ -120,13 +135,13 @@ pub trait MarkerAllocator<M: Marker>: Resource {
 
     /// Create new unique marker `M` and attach it to entity.
     /// Or get old marker if this entity is already marked.
-    fn mark<'a>(&mut self, entity: Entity, storage: &mut WriteStorage<'a, M>) -> M {
+    fn mark<'a>(&mut self, entity: Entity, storage: &mut WriteStorage<'a, M>) -> (M, bool) {
         match storage.get(entity).cloned() {
-            Some(marker) => marker,
+            Some(marker) => (marker, false),
             None => {
                 let marker = self.allocate(entity, None);
                 storage.insert(entity, marker);
-                marker
+                (marker, true)
             }
         }
     }

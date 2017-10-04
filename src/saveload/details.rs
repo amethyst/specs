@@ -5,8 +5,8 @@ use serde::ser::Serialize;
 
 use {Component, Entity, ReadStorage, SystemData, WriteStorage};
 
-use saveload::marker::Marker;
 use error::NoError;
+use saveload::marker::Marker;
 
 #[derive(Serialize, Deserialize)]
 #[serde(bound = "")]

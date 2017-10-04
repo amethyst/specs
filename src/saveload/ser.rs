@@ -36,19 +36,18 @@ where
         let mut add = vec![];
         {
             let mut ids = |entity| -> Option<M::Identifier> {
-                match markers.get(entity).cloned() {
-                    Some(marker) => Some(marker.id()),
-                    None => {
-                        let marker = allocator.mark(entity, markers);
-                        add.push((entity, marker));
-                        Some(marker.id())
-                    }
+                let (marker, added) = allocator.mark(entity, markers);
+                if added {
+                    add.push((entity, marker));
                 }
+                Some(marker.id())
             };
             for (entity, marker) in to_serialize {
                 serseq.serialize_element(&EntityData::<M, E, T> {
                     marker,
-                    components: T::save(entity, storages, &mut ids).map_err(ser::Error::custom)?,
+                    components: T::save(entity, storages, &mut ids).map_err(
+                        ser::Error::custom,
+                    )?,
                 })?;
             }
         }
@@ -136,7 +135,7 @@ macro_rules! world_serialize_new_functions {
     };
 }
 
-world_serialize_new_functions!(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O);
+world_serialize_new_functions!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
 
 impl<'a, M, E, T> WorldSerialize<'a, M, E, T>
 where

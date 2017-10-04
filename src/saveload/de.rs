@@ -1,4 +1,3 @@
-
 use std::fmt::{self, Display, Formatter};
 use std::marker::PhantomData;
 
@@ -47,7 +46,7 @@ where
         let ids = |marker: M::Identifier| Some(allocator.get_marked(marker, entities, markers));
         match T::load(entity, data.components, storages, ids) {
             Ok(()) => Ok(()),
-            Err(err) => Err(de::Error::custom(err))
+            Err(err) => Err(de::Error::custom(err)),
         }
     }
 }
@@ -83,7 +82,9 @@ where
             markers: self.markers,
             allocator: self.allocator,
             pd: self.pd,
-        })?.is_some() {}
+        })?
+            .is_some()
+        {}
 
         Ok(())
     }
