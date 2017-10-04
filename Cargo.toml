@@ -3,20 +3,11 @@ name = "specs"
 version = "0.10.0"
 description = """
 Specs is an Entity-Component System library written in Rust.
-Unlike most other ECS libraries out there, it provides
-
-* easy parallelism
-* high flexibility
-    * contains 5 different storages for components, which can be extended by the user
-    * it's types are mostly not coupled, so you can easily write some part yourself and
-      still use Specs
-    * `System`s may read from and write to components and resources, can depend on each
-      other and you can use barriers to force several stages in system execution
-* high performance for real-world applications
 """
 documentation = "https://docs.rs/specs/"
 repository = "https://github.com/slide-rs/specs"
 homepage = "https://slide-rs.github.io/specs-website/"
+readme = "README.md"
 keywords = ["gamedev"]
 categories = ["concurrency"]
 license = "Apache-2.0"
@@ -45,6 +36,9 @@ rudy = { version = "0.1", optional = true }
 
 [features]
 common = ["futures"]
+
+[package.metadata.docs.rs]
+features = ["common", "serde"]
 
 [dev-dependencies]
 cgmath =  { version = "0.14", features = ["eders"] }
@@ -76,3 +70,4 @@ required-features = ["serde"]
 
 [workspace]
 members = ["specs-derive"]
+
