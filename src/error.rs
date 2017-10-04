@@ -128,3 +128,22 @@ impl StdError for WrongGeneration {
          (e.g. because the entity has been deleted)"
     }
 }
+
+
+/// An error type which cannot be instantiated.
+/// Used as a placeholder for associated error types if
+/// something cannot fail.
+#[derive(Debug)]
+pub enum NoError {}
+
+impl Display for NoError {
+    fn fmt(&self, _: &mut Formatter) -> FmtResult {
+        match *self {}
+    }
+}
+
+impl StdError for NoError {
+    fn description(&self) -> &str {
+        match *self {}
+    }
+}

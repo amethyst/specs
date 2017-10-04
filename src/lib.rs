@@ -193,6 +193,9 @@ extern crate futures;
 #[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde;
+#[cfg(feature = "serde")]
+#[macro_use]
+extern crate shred_derive;
 
 #[cfg(feature = "rudy")]
 extern crate rudy;
@@ -213,6 +216,9 @@ pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, En
 
 #[cfg(feature = "common")]
 pub mod common;
+
+#[cfg(feature = "serde")]
+pub mod saveload;
 
 #[cfg(feature = "rudy")]
 pub use storage::RudyStorage;
