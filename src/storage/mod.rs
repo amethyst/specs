@@ -266,36 +266,36 @@ pub enum StorageEntry<'a, 'b: 'a, T: 'b, D: 'b> {
     Vacant(VacantEntry<'a, 'b, T, D>),
 }
 
+pub enum EntryError {
+    EntityIsDead(Entity),
+}
+
 impl<'a, 'b, T, D> StorageEntry<'a, 'b, T, D>
     where T: Component,
           D: DerefMut<Target = MaskedStorage<T>>
 {
 
     /// Inserts a component if the entity does not contain a component.
-    ///
-    /// Returns `None` if the entity passed in to get the `Entry` was dead.
-    pub fn or_insert(self, component: T) -> Option<&'a mut T> {
-        match self {
-            StorageEntry::Occupied(occupied) => occupied.storage.get_mut(occupied.entity),
-            StorageEntry::Vacant(vacant) => {
-                let insert_result = vacant.storage.insert(vacant.entity, component);
-                if let InsertResult::EntityIsDead(_) = insert_result {
-                    None
-                }
-                else {
-                    vacant.storage.get_mut(vacant.entity)
-                }
-            }
-        }
+    pub fn or_insert(self, component: T) -> &'a mut T {
+        self.or_insert_with(|| component)
     }
 
     /// Inserts a component using a default function.
-    ///
-    /// Returns `None` if the entity passed in to get the `Entry` was dead.
-    pub fn or_insert_with<F>(self, component: F) -> Option<&'a mut T>
+    pub fn or_insert_with<F>(self, component: F) -> &'a mut T
         where F: FnOnce() -> T,
     {
-        self.or_insert(component())
+        match self {
+            StorageEntry::Occupied(occupied) => occupied.storage.get_mut(occupied.entity).unwrap(),
+            StorageEntry::Vacant(vacant) => {
+                let insert_result = vacant.storage.insert(vacant.entity, component());
+                if let InsertResult::EntityIsDead(_) = insert_result {
+                    panic!("Entry with an invalid entity");
+                }
+                else {
+                    vacant.storage.get_mut(vacant.entity).unwrap()
+                }
+            }
+        }
     }
 
     /// Returns the entity of the current entry.
@@ -324,14 +324,19 @@ where
     /// Returns an entry to the component associated to the entity.
     ///
     /// Note: This does not immediately error if the entity is dead.
-    pub fn entry<'a>(&'a mut self, e: Entity) -> StorageEntry<'a, 'e, T, D>
+    pub fn entry<'a>(&'a mut self, e: Entity) -> Result<StorageEntry<'a, 'e, T, D>, EntryError>
         where 'e: 'a,
     {
-        if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
-            StorageEntry::Occupied(OccupiedEntry { entity: e, storage: self })
+        if self.entities.is_alive(e) {
+            if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
+                Ok(StorageEntry::Occupied(OccupiedEntry { entity: e, storage: self }))
+            }
+            else {
+                Ok(StorageEntry::Vacant(VacantEntry { entity: e, storage: self }))
+            }
         }
         else {
-            StorageEntry::Vacant(VacantEntry { entity: e, storage: self })
+            Err(EntryError::EntityIsDead(e))
         }
     }
 

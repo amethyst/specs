@@ -559,6 +559,52 @@ mod test {
     }
 
     #[test]
+    fn storage_entry() {
+        let mut w = World::new();
+        w.register::<Cvec>();
+
+        let e1 = w.create_entity().build();
+        let e2 = w.create_entity().with(Cvec(10)).build();
+
+        let e3 = w.create_entity().build();
+        let e4 = w.create_entity().with(Cvec(10)).build();
+
+        let mut s1 = w.write::<Cvec>();
+        if let Ok(entry) = s1.entry(e1) {
+            entry.or_insert(Cvec(5));
+        }
+
+        if let Ok(entry) = s1.entry(e2) {
+            entry.or_insert(Cvec(5));
+        }
+
+        let mut increment = 0;
+        if let Ok(entry) = s1.entry(e3) {
+            entry.or_insert_with(|| {
+                increment += 1;
+                Cvec(5)
+            });
+
+            assert_eq!(increment, 1);
+        }
+
+        if let Ok(entry) = s1.entry(e4) {
+            entry.or_insert_with(|| {
+                increment += 1;
+                Cvec(5)
+            });
+
+            // Should not have been incremented.
+            assert_eq!(increment, 1);
+        }
+
+        assert_eq!(*s1.get(e1).unwrap(), Cvec(5));
+        assert_eq!(*s1.get(e2).unwrap(), Cvec(10));
+        assert_eq!(*s1.get(e3).unwrap(), Cvec(5));
+        assert_eq!(*s1.get(e4).unwrap(), Cvec(10));
+    }
+
+    #[test]
     #[should_panic]
     fn wrong_storage() {
         use join::Join;
