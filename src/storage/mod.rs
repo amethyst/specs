@@ -194,7 +194,7 @@ where
 }
 
 /// An entry to a storage which has a component associated to the entity.
-pub struct OccupiedEntry<'a, 'b: 'a, T: 'b, D: 'b> {
+pub struct OccupiedEntry<'a, 'b: 'a, T: 'a, D: 'a> {
     entity: Entity,
     storage: &'a mut Storage<'b, T, D>,
 }
@@ -214,30 +214,33 @@ impl<'a, 'b, T, D> OccupiedEntry<'a, 'b, T, D>
           D: DerefMut<Target = MaskedStorage<T>>,
 {
     /// Get a mutable reference to the component associated with the entity.
-    pub fn get_mut(&mut self) -> Option<&mut T> {
-        self.storage.get_mut(self.entity)
+    pub fn get_mut(self) -> &'a mut T {
+        match self.storage.get_mut(self.entity) {
+            Some(component) => component,
+            None => { panic!("`OccupiedEntry` on an entity without a component."); },
+        }
     }
 
     /// Inserts a value into the storage and returns the old one.
-    ///
-    /// Return value can be `None` if the entity passed in was dead.
-    pub fn insert(&mut self, component: T) -> Option<T> {
+    pub fn insert(&mut self, component: T) -> T {
         match self.storage.insert(self.entity, component) {
-            InsertResult::Updated(old) => Some(old),
-            _ => None,
+            InsertResult::Updated(old) => old,
+            InsertResult::Inserted => { panic!("`OccupiedEntry` on an entity without a component."); },
+            InsertResult::EntityIsDead(_) => { panic!("`OccupiedEntry` on a dead entity: {:?}.", self.entity); },
         }
     }
 
     /// Removes the component from the storage and returns it.
-    ///
-    /// Return value can be `None` if the entity passed in was dead.
-    pub fn remove(&mut self) -> Option<T> {
-        self.storage.remove(self.entity)
+    pub fn remove(self) -> T {
+        match self.storage.remove(self.entity) {
+            Some(old) => old,
+            None => { panic!("`OccupiedEntry` on an entity without a component."); },
+        }
     }
 }
 
 /// An entry to a storage which does not have a component associated to the entity.
-pub struct VacantEntry<'a, 'b: 'a, T: 'b, D: 'b> {
+pub struct VacantEntry<'a, 'b: 'a, T: 'a, D: 'a> {
     entity: Entity,
     storage: &'a mut Storage<'b, T, D>,
 }
@@ -246,28 +249,28 @@ impl<'a, 'b, T, D> VacantEntry<'a, 'b, T, D>
     where T: Component,
           D: DerefMut<Target = MaskedStorage<T>>,
 {
-    /// Inserts a value into the storage and returns the old one.
-    ///
-    /// Return value can be `None` if the entity passed in was dead.
-    pub fn insert(&mut self, component: T) -> Option<T> {
+    /// Inserts a value into the storage.
+    pub fn insert(self, component: T) -> &'a mut T {
         match self.storage.insert(self.entity, component) {
-            InsertResult::Updated(old) => Some(old),
-            _ => None,
+            InsertResult::Updated(_) => { panic!("`VacantEntry` on an entity with a component."); },
+            InsertResult::Inserted => {
+                match self.storage.get_mut(self.entity) {
+                    Some(component) => component,
+                    None => { panic!("Storage insertion into entity {:?} failed on `VacantEntry`", self.entity); },
+                }
+            },
+            InsertResult::EntityIsDead(_) => { panic!("`VacantEntry` on a dead entity: {:?}.", self.entity); },
         }
     }
 }
 
 /// Entry to a storage for convenient filling of components or removal based on whether
 /// the entity has a component.
-pub enum StorageEntry<'a, 'b: 'a, T: 'b, D: 'b> {
+pub enum StorageEntry<'a, 'b: 'a, T: 'a, D: 'a> {
     /// Entry variant that is returned if the entity does has a component.
     Occupied(OccupiedEntry<'a, 'b, T, D>),
     /// Entry variant that is returned if the entity does not have a component.
     Vacant(VacantEntry<'a, 'b, T, D>),
-}
-
-pub enum EntryError {
-    EntityIsDead(Entity),
 }
 
 impl<'a, 'b, T, D> StorageEntry<'a, 'b, T, D>
@@ -280,29 +283,14 @@ impl<'a, 'b, T, D> StorageEntry<'a, 'b, T, D>
         self.or_insert_with(|| component)
     }
 
-    /// Inserts a component using a default function.
+    /// Inserts a component using a lazily called function that is only called
+    /// when inserting the component.
     pub fn or_insert_with<F>(self, component: F) -> &'a mut T
         where F: FnOnce() -> T,
     {
         match self {
-            StorageEntry::Occupied(occupied) => occupied.storage.get_mut(occupied.entity).unwrap(),
-            StorageEntry::Vacant(vacant) => {
-                let insert_result = vacant.storage.insert(vacant.entity, component());
-                if let InsertResult::EntityIsDead(_) = insert_result {
-                    panic!("Entry with an invalid entity");
-                }
-                else {
-                    vacant.storage.get_mut(vacant.entity).unwrap()
-                }
-            }
-        }
-    }
-
-    /// Returns the entity of the current entry.
-    pub fn entity(&self) -> &Entity {
-        match self {
-            &StorageEntry::Occupied(ref occupied) => &occupied.entity,
-            &StorageEntry::Vacant(ref vacant) => &vacant.entity,
+            StorageEntry::Occupied(occupied) => occupied.get_mut(),
+            StorageEntry::Vacant(vacant) => vacant.insert(component()),
         }
     }
 }
@@ -323,8 +311,29 @@ where
 
     /// Returns an entry to the component associated to the entity.
     ///
-    /// Note: This does not immediately error if the entity is dead.
-    pub fn entry<'a>(&'a mut self, e: Entity) -> Result<StorageEntry<'a, 'e, T, D>, EntryError>
+    /// Behaves somewhat similarly to `std::collections::HashMap`'s entry api.
+    ///
+    ///## Example
+    /// 
+    /// ```rust
+    ///# extern crate specs;
+    ///# struct Comp {
+    ///#    field: u32
+    ///# }
+    ///# impl specs::Component for Comp {
+    ///#    type Storage = specs::DenseVecStorage<Self>;
+    ///# }
+    ///# fn main() {
+    ///# let mut world = specs::World::new();
+    ///# world.register::<Comp>();
+    ///# let entity = world.create_entity().build();
+    ///# let mut storage = world.write::<Comp>();
+    /// if let Ok(entry) = storage.entry(entity) {
+    ///     entry.or_insert(Comp { field: 55 });
+    /// }
+    ///# }
+    /// ```
+    pub fn entry<'a>(&'a mut self, e: Entity) -> Result<StorageEntry<'a, 'e, T, D>, ::error::EntryIsDead>
         where 'e: 'a,
     {
         if self.entities.is_alive(e) {
@@ -336,7 +345,7 @@ where
             }
         }
         else {
-            Err(EntryError::EntityIsDead(e))
+            Err(::error::EntryIsDead(e))
         }
     }
 
