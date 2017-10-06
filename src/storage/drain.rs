@@ -1,9 +1,9 @@
 use hibitset::BitSet;
 
+use Index;
 use join::Join;
 use storage::MaskedStorage;
 use world::Component;
-use Index;
 
 /// A draining storage wrapper which has a `Join` implementation
 /// that removes the components.

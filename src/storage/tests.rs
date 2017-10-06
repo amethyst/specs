@@ -519,9 +519,9 @@ mod test {
     #[test]
     fn par_restricted_storage() {
         use join::ParJoin;
-        use std::sync::Mutex;
-        use std::collections::HashSet;
         use rayon::iter::ParallelIterator;
+        use std::collections::HashSet;
+        use std::sync::Mutex;
 
         let mut w = World::new();
         w.register::<Cvec>();

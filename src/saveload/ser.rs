@@ -45,9 +45,7 @@ where
             for (entity, marker) in to_serialize {
                 serseq.serialize_element(&EntityData::<M, E, T> {
                     marker,
-                    components: T::save(entity, storages, &mut ids).map_err(
-                        ser::Error::custom,
-                    )?,
+                    components: T::save(entity, storages, &mut ids).map_err(ser::Error::custom)?,
                 })?;
             }
         }

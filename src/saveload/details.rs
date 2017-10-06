@@ -4,7 +4,6 @@ use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 
 use {Component, Entity, ReadStorage, SystemData, WriteStorage};
-
 use error::NoError;
 use saveload::marker::Marker;
 
@@ -16,14 +15,14 @@ pub struct EntityData<M: Marker, E, T: Components<M::Identifier, E>> {
 }
 
 /// This trait should be implemented in order to allow component
-/// to be serializeble with `SerializeSystem`.
+/// to be serializable with `SerializeSystem`.
 /// It is automatically implemented for all
 /// `Component + DeserializeOwned + Serialize + Copy`
 pub trait SaveLoadComponent<M>: Component {
     /// Serializable data representation for component
     type Data: Serialize + DeserializeOwned;
 
-    /// Error may occur duing serialization or deserialization of component
+    /// Error may occur during serialization or deserialization of component
     type Error: Error;
 
     /// Convert this component into serializable form (`Data`) using
@@ -55,7 +54,7 @@ where
     }
 }
 
-/// Helper trait defines storages tuples for components tuple
+/// Helper trait defines storages tuples for components tuple.
 pub trait Storages<'a> {
     /// Storages for read
     type ReadStorages: SystemData<'a> + 'a;
@@ -63,8 +62,8 @@ pub trait Storages<'a> {
     type WriteStorages: SystemData<'a> + 'a;
 }
 
-/// This trait is implemented by any tuple where all elements are
-/// `Component + Serialize + DeserializeOwned`
+/// This trait is implemented for all tuples where all elements are
+/// `Component + Serialize + DeserializeOwned`.
 pub trait Components<M, E>: for<'a> Storages<'a> {
     /// Serializable and deserializable intermediate representation
     type Data: Serialize + DeserializeOwned;
@@ -138,7 +137,7 @@ macro_rules! impl_components {
             }
         }
 
-        // Recursivly implement for smaller tuple
+        // Recursively implement for smaller tuple
         impl_components!(@ $($a|$b),*);
     };
 

@@ -92,7 +92,10 @@ use serde::ser::Serialize;
 ///     let entity = world.create_entity().build();
 ///     let (marker, added) = node.mark(entity, &mut world.write::<NetMarker>());
 ///     assert!(added);
-///     assert_eq!(node.get_marked(marker.id(), &world.entities(), &mut world.write::<NetMarker>()), entity);
+///     assert_eq!(
+///         node.get_marked(marker.id(), &world.entities(), &mut world.write::<NetMarker>()),
+///         entity
+///     );
 /// }
 /// ```
 pub trait Marker: Component + DeserializeOwned + Serialize + Copy {

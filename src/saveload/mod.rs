@@ -1,4 +1,4 @@
-//! Save and load entites from various formats with serde
+//! Save and load entities from various formats with serde.
 
 mod de;
 mod details;
