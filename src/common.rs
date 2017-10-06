@@ -273,8 +273,10 @@ mod test {
             type Error = BoxedErr;
 
             fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-                task::current(); // This function called purely to see if we can.
-                // Futures will expect to be able to call this function without panicking.
+                // This function called purely to see if we can.
+                // Futures will expect to be able to call this function without
+                // panicking.
+                task::current();
                 self.result.poll()
             }
         }

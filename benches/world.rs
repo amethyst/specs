@@ -84,7 +84,9 @@ fn delete_later(b: &mut test::Bencher) {
 #[bench]
 fn maintain_noop(b: &mut test::Bencher) {
     let mut w = World::new();
-    b.iter(|| { w.maintain(); });
+    b.iter(|| {
+        w.maintain();
+    });
 }
 
 #[bench]
@@ -145,9 +147,8 @@ fn join_multi_threaded(b: &mut test::Bencher) {
     }
 
     b.iter(|| {
-        world
-            .read::<CompInt>()
-            .par_join()
-            .for_each(|comp| { black_box(comp.0 * comp.0); })
+        world.read::<CompInt>().par_join().for_each(|comp| {
+            black_box(comp.0 * comp.0);
+        })
     })
 }

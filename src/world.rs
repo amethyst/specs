@@ -506,7 +506,9 @@ impl LazyUpdate {
     where
         C: Component + Send + Sync,
     {
-        self.execute(move |world| { world.write::<C>().insert(e, c); });
+        self.execute(move |world| {
+            world.write::<C>().insert(e, c);
+        });
     }
 
     /// Lazily inserts components for entities.
@@ -577,7 +579,9 @@ impl LazyUpdate {
     where
         C: Component + Send + Sync,
     {
-        self.execute(move |world| { world.write::<C>().remove(e); });
+        self.execute(move |world| {
+            world.write::<C>().remove(e);
+        });
     }
 
     /// Lazily executes a closure with world access.
@@ -1066,7 +1070,9 @@ mod tests {
         };
         {
             let lazy = world.read_resource::<LazyUpdate>();
-            lazy.execute(move |world| { world.write::<Pos>().insert(e, Pos); });
+            lazy.execute(move |world| {
+                world.write::<Pos>().insert(e, Pos);
+            });
         }
 
         world.maintain();

@@ -10,9 +10,9 @@ use storage::MaskedStorage;
 use world::EntityIndex;
 
 /// Specifies that the `RestrictedStorage` cannot run in parallel.
-pub enum NormalRestriction { }
+pub enum NormalRestriction {}
 /// Specifies that the `RestrictedStorage` can run in parallel.
-pub enum ParallelRestriction { }
+pub enum ParallelRestriction {}
 
 /// Similar to a `MaskedStorage` and a `Storage` combined, but restricts usage
 /// to only getting and modifying the components. That means nothing that would

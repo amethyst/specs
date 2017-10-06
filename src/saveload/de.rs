@@ -4,12 +4,10 @@ use std::marker::PhantomData;
 use serde::de::{self, Deserialize, DeserializeSeed, Deserializer, SeqAccess, Visitor};
 
 use {Entities, FetchMut, WriteStorage};
-
 use saveload::{Components, EntityData, Storages};
 use saveload::marker::{Marker, MarkerAllocator};
 
-
-/// Wrapper for `Entity` and tuple of `WriteStorage`s that implements `serde::Deserialize`
+/// Wrapper for `Entity` and tuple of `WriteStorage`s that implements `serde::Deserialize`.
 struct DeserializeEntity<'a, 'b: 'a, M: Marker, E, T: Components<M::Identifier, E>> {
     entities: &'a Entities<'b>,
     storages: &'a mut <T as Storages<'b>>::WriteStorages,
@@ -44,6 +42,7 @@ where
             .map_err(de::Error::custom)?
             .update(data.marker);
         let ids = |marker: M::Identifier| Some(allocator.get_marked(marker, entities, markers));
+
         match T::load(entity, data.components, storages, ids) {
             Ok(()) => Ok(()),
             Err(err) => Err(de::Error::custom(err)),
@@ -90,8 +89,7 @@ where
     }
 }
 
-
-/// Deserialize entities
+/// Deserialize entities according to markers.
 pub fn deserialize<'a, 'de, D, M, E, T>(
     entities: &Entities<'a>,
     storages: &mut <T as Storages<'a>>::WriteStorages,
@@ -114,8 +112,8 @@ where
     })
 }
 
-
-/// `DeerializeSeed` implementation for `World`
+/// Struct which implements `DeserializeSeed` to allow serializing
+/// components from `World`.
 #[derive(SystemData)]
 pub struct WorldDeserialize<'a, M: Marker, E, T: Components<M::Identifier, E>> {
     entities: Entities<'a>,

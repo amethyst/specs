@@ -415,8 +415,8 @@ fn par_join_two_components() {
 
 #[test]
 fn par_join_many_entities_and_systems() {
-    use std::sync::Mutex;
     use rayon::iter::ParallelIterator;
+    use std::sync::Mutex;
 
     let failed = Mutex::new(vec![]);
     let mut world = create_world();
@@ -428,9 +428,9 @@ fn par_join_many_entities_and_systems() {
         type SystemData = (Entities<'a>, WriteStorage<'a, CompInt>);
 
         fn run(&mut self, (entities, mut ints): Self::SystemData) {
-            (&mut ints, &*entities)
-                .par_join()
-                .for_each(|(int, _)| { int.0 += 1; });
+            (&mut ints, &*entities).par_join().for_each(|(int, _)| {
+                int.0 += 1;
+            });
         }
     }
     let mut builder = DispatcherBuilder::new();
