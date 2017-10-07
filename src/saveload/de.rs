@@ -71,7 +71,7 @@ where
         write!(formatter, "Sequence of serialized entities")
     }
 
-    fn visit_seq<A>(mut self, mut seq: A) -> Result<(), A::Error>
+    fn visit_seq<A>(self, mut seq: A) -> Result<(), A::Error>
     where
         A: SeqAccess<'de>,
     {

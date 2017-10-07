@@ -10,8 +10,7 @@ use shred::Resource;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 
-
-/// This trait should be implemetened by a component which is going to be used as marker.
+/// This trait should be implemented by a component which is going to be used as marker.
 /// This marker should be set to entity that should be serialized.
 /// If serialization strategy needs to set marker to some entity
 /// then it should use newly allocated marker from `Marker::Allocator`.
