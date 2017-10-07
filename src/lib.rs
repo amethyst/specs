@@ -41,10 +41,17 @@
 //! Or alternatively, if you import the `specs-derive` crate, you can use a
 //! custom `#[derive]` macro:
 //!
-//! ```rust,ignore
+//! ```rust
+//! # extern crate specs;
+//! #[macro_use]
+//! extern crate specs_derive;
+//!
+//! use specs::VecStorage;
+//!
 //! #[derive(Component)]
 //! #[component(VecStorage)]
 //! struct MyComp;
+//! # fn main() {}
 //! ```
 //!
 //! You can choose different storages according to your needs.
@@ -230,12 +237,33 @@ pub use storage::{MergeError, PackedData};
 /// Note that this is just `Fetch<Entities>`, so
 /// you can easily use it in your system:
 ///
-/// ```ignore
-/// type SystemData = (Entities<'a>, ...);
+/// ```
+/// # use specs::{Entities, System};
+/// # struct Sys;
+/// # impl<'a> System<'a> for Sys {
+/// type SystemData = (Entities<'a>, /* ... */);
+/// # fn run(&mut self, _: Self::SystemData) {}
+/// # }
 /// ```
 ///
 /// Please note that you should call `World::maintain`
 /// after creating / deleting entities with this resource.
+///
+/// When `.join`ing on `Entities`, you will need to do it like this:
+///
+/// ```
+/// use specs::{Entities, Join};
+///
+/// # use specs::{Component, VecStorage, World};
+/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
+/// # let mut world = World::new(); world.register::<Pos>();
+/// # let entities = world.entities(); let positions = world.read::<Pos>();
+/// for (e, pos) in (&*entities, &positions).join() {
+///     // Do something
+/// #   let _ = e;
+/// #   let _ = pos;
+/// }
+/// ```
 pub type Entities<'a> = Fetch<'a, EntitiesRes>;
 
 /// An index is basically the id of an `Entity`.

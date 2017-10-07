@@ -298,6 +298,37 @@ impl Entity {
 
 /// The entity builder, allowing to
 /// build an entity together with its components.
+///
+/// ## Examples
+///
+/// ```
+/// use specs::{Component, DenseVecStorage, HashMapStorage, World};
+///
+/// struct Health(f32);
+///
+/// impl Component for Health {
+///     type Storage = HashMapStorage<Self>;
+/// }
+///
+/// struct Pos {
+///     x: f32,
+///     y: f32,
+/// }
+///
+/// impl Component for Pos {
+///     type Storage = DenseVecStorage<Self>;
+/// }
+///
+/// let mut world = World::new();
+/// world.register::<Health>();
+/// world.register::<Pos>();
+///
+/// let entity = world
+///     .create_entity() // This call returns `EntityBuilder`
+///     .with(Health(4.0))
+///     .with(Pos { x: 1.0, y: 3.0 })
+///     .build(); // Returns the `Entity`
+/// ```
 pub struct EntityBuilder<'a> {
     entity: Entity,
     world: &'a mut World,
@@ -331,8 +362,7 @@ impl<'a> EntityBuilder<'a> {
         self
     }
 
-    /// Finishes the building and returns
-    /// the entity.
+    /// Finishes the building and returns the entity.
     #[inline]
     pub fn build(self) -> Entity {
         self.entity
@@ -662,17 +692,20 @@ impl Drop for LazyUpdate {
 ///
 /// world.add_resource(DeltaTime(0.02));
 ///
-/// world.create_entity()
+/// world
+///     .create_entity()
 ///     .with(Pos { x: 1.0, y: 2.0 })
 ///     .with(Vel { x: -1.0, y: 0.0 })
 ///     .build();
 ///
-/// world.create_entity()
+/// world
+///     .create_entity()
 ///     .with(Pos { x: 3.0, y: 5.0 })
 ///     .with(Vel { x: 1.0, y: 0.0 })
 ///     .build();
 ///
-/// world.create_entity()
+/// world
+///     .create_entity()
 ///     .with(Pos { x: 0.0, y: 1.0 })
 ///     .with(Vel { x: 0.0, y: 1.0 })
 ///     .build();
@@ -696,6 +729,25 @@ impl World {
     ///
     /// Does nothing if the component was already
     /// registered.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use specs::{Component, DenseVecStorage, World};
+    ///
+    /// struct Pos {
+    ///     x: f32,
+    ///     y: f32,
+    /// }
+    ///
+    /// impl Component for Pos {
+    ///     type Storage = DenseVecStorage<Self>;
+    /// }
+    ///
+    /// let mut world = World::new();
+    /// world.register::<Pos>();
+    /// // Register all other components like this
+    /// ```
     pub fn register<T: Component>(&mut self) {
         self.register_with_id::<T>(0);
     }
@@ -722,6 +774,37 @@ impl World {
     /// Adds a resource with the default ID (`0`).
     ///
     /// If the resource already exists it will be overwritten.
+    ///
+    /// ## Difference between resources and components
+    ///
+    /// While components exist per entity, resources are like globals in the `World`.
+    /// Components are stored in component storages, which are resources themselves.
+    ///
+    /// Everything that is `Any + Send + Sync` can be a resource.
+    ///
+    /// ## Built-in resources
+    ///
+    /// There are two built-in resources:
+    ///
+    /// * `LazyUpdate` and
+    /// * `EntitiesRes`
+    ///
+    /// Both of them should only be fetched immutably, which is why
+    /// the latter one has a type def for convenience: `Entities` which
+    /// is just `Fetch<EntitiesRes>`. Both resources are special and need
+    /// to execute code at the end of the frame, which is done in `World::maintain`.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use specs::World;
+    ///
+    /// # let timer = ();
+    /// # let server_con = ();
+    /// let mut world = World::new();
+    /// world.add_resource(timer);
+    /// world.add_resource(server_con);
+    /// ```
     pub fn add_resource<T: Resource>(&mut self, res: T) {
         self.add_resource_with_id(res, 0);
     }
@@ -744,7 +827,7 @@ impl World {
     /// Convenience method for `read_with_id`, using the default component
     /// id (`0`).
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// Panics if it is already borrowed mutably.
     /// Panics if the component has not been registered.
@@ -757,7 +840,7 @@ impl World {
     /// Convenience method for `write_with_id`, using the default component
     /// id (`0`).
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// Panics if it is already borrowed.
     /// Panics if the component has not been registered.
@@ -767,7 +850,7 @@ impl World {
 
     /// Fetches a component's storage with a specified id for reading.
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// Panics if it is already borrowed mutably.
     /// Also panics if the component is not registered with `World::register`.
@@ -793,7 +876,7 @@ impl World {
 
     /// Fetches a resource with a specified id for reading.
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// Panics if it is already borrowed mutably.
     /// Panics if the resource has not been added.
@@ -803,7 +886,7 @@ impl World {
 
     /// Fetches a resource with a specified id for writing.
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// Panics if it is already borrowed.
     /// Panics if the resource has not been added.
@@ -816,7 +899,7 @@ impl World {
     /// Convenience method for `read_resource_with_id`, using the default component
     /// id (`0`).
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// Panics if it is already borrowed mutably.
     /// Panics if the resource has not been added.
@@ -866,7 +949,7 @@ impl World {
     /// This makes it easy to create a whole collection
     /// of them.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```
     /// use specs::World;

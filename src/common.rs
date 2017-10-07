@@ -70,7 +70,7 @@ impl Errors {
 
     /// A convenience method which allows nicer error handling.
     ///
-    /// ## Example
+    /// ## Examples
     ///
     /// ```
     /// # use specs::common::Errors;
