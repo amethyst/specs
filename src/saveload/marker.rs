@@ -4,11 +4,45 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use {Component, DenseVecStorage, Entities, Entity, Join, ReadStorage, WriteStorage};
+use {Component, DenseVecStorage, Entities, Entity, EntityBuilder, Join, ReadStorage, WriteStorage};
 use shred::Resource;
 
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
+
+impl<'a> EntityBuilder<'a> {
+    /// Add a `Marker` to the entity by fetching the associated allocator.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use specs::saveload::{U64Marker, U64MarkerAllocator};
+    /// use specs::World;
+    ///
+    /// let mut world = World::new();
+    /// world.register::<U64Marker>();
+    /// world.add_resource(U64MarkerAllocator::new());
+    ///
+    /// world
+    ///     .create_entity()
+    ///     /* .with(Component1) */
+    ///     .marked::<U64Marker>()
+    ///     .build();
+    /// ```
+    ///
+    /// ## Panics
+    ///
+    /// Panics in case there's no allocator added to the `World`.
+    pub fn marked<M>(self) -> Self
+    where
+        M: Marker,
+    {
+        let mut alloc = self.world.write_resource::<M::Allocator>();
+        alloc.mark(self.entity, &mut self.world.write::<M>());
+
+        self
+    }
+}
 
 /// This trait should be implemented by a component which is going to be used as marker.
 /// This marker should be set to entity that should be serialized.
