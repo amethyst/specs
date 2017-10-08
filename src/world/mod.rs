@@ -70,8 +70,10 @@ impl<'a> Iterator for CreateIter<'a> {
 ///     .build(); // Returns the `Entity`
 /// ```
 pub struct EntityBuilder<'a> {
-    entity: Entity,
-    world: &'a mut World,
+    /// The (already created) entity for which components will be inserted.
+    pub entity: Entity,
+    /// A reference to the `World` for component insertions.
+    pub world: &'a World,
 }
 
 impl<'a> EntityBuilder<'a> {
@@ -387,7 +389,7 @@ impl World {
 
     /// Allows building an entity with its
     /// components.
-    pub fn create_entity(&mut self) -> EntityBuilder {
+    pub fn create_entity(&self) -> EntityBuilder {
         let entity = self.entities_mut().alloc.allocate();
 
         EntityBuilder {

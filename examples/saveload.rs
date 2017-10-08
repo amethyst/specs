@@ -5,7 +5,7 @@ extern crate specs;
 
 use specs::{Component, RunNow, System, VecStorage, World};
 use specs::error::NoError;
-use specs::saveload::{MarkerAllocator, U64Marker, U64MarkerAllocator, WorldDeserialize,
+use specs::saveload::{U64Marker, U64MarkerAllocator, WorldDeserialize,
                       WorldSerialize};
 
 const ENTITIES: &str = "
@@ -59,26 +59,21 @@ fn main() {
     world.register::<Mass>();
     world.register::<U64Marker>();
 
-    let a = world
+    world.add_resource(U64MarkerAllocator::new());
+
+    world
         .create_entity()
         .with(Pos { x: 1.0, y: 2.0 })
         .with(Mass(0.5))
+        .marked::<U64Marker>()
         .build();
 
-    let b = world
+    world
         .create_entity()
         .with(Pos { x: 7.0, y: 2.0 })
         .with(Mass(4.5))
+        .marked::<U64Marker>()
         .build();
-
-    {
-        world.add_resource(U64MarkerAllocator::new());
-        let mut markers = world.write::<U64Marker>();
-        let mut allocator = world.write_resource::<U64MarkerAllocator>();
-
-        allocator.mark(a, &mut markers);
-        allocator.mark(b, &mut markers);
-    }
 
     struct Serialize;
 
