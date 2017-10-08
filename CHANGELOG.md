@@ -2,15 +2,17 @@
 
 * Add `saveload` module for easy entity serialization ([#275])
 * Improve docs, book and examples ([#278], [#281], [#283], [#285])
-* Add `EntityBuilder::marked` convenience method
+* Add `EntityBuilder::marked` convenience method ([#287])
 
 [#275]: https://github.com/slide-rs/specs/pull/275
 [#278]: https://github.com/slide-rs/specs/pull/278
 [#281]: https://github.com/slide-rs/specs/pull/281
 [#283]: https://github.com/slide-rs/specs/pull/283
 [#285]: https://github.com/slide-rs/specs/pull/285
+[#287]: https://github.com/slide-rs/specs/pull/287
 
 ## 0.10.0
+
 * Separate `CheckStorage` into two variants and fix soundness issues ([#203])
 * Fix `Merge` system and add test for it ([#243], [#248])
 * Add more examples, docs, tests, benchmarks ([#249], [#251], [#254], [#256], [#258])

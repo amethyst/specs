@@ -389,7 +389,7 @@ impl World {
 
     /// Allows building an entity with its
     /// components.
-    pub fn create_entity(&mut self) -> EntityBuilder {
+    pub fn create_entity(&self) -> EntityBuilder {
         let entity = self.entities_mut().alloc.allocate();
 
         EntityBuilder {
