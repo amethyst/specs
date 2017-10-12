@@ -26,9 +26,10 @@ world.add_resource(DeltaTime(0.05)); // Let's use some start value
 To update the delta time, just use
 
 ```rust,ignore
-let delta = world.write_resource::<DeltaTime>();
+let mut delta = world.write_resource::<DeltaTime>();
 *delta = DeltaTime(0.04);
 ```
+
 ## Accessing resources from a system
 
 As you might have guessed, there's a type implementing system data
