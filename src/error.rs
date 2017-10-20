@@ -146,19 +146,3 @@ impl StdError for NoError {
         match *self {}
     }
 }
-
-/// Storage entry error when the request entity was dead.
-#[derive(Debug)]
-pub struct EntryIsDead(pub Entity);
-
-impl Display for EntryIsDead {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        write!(f, "Attempted to get an entry for entity {:?} after it died.", self.0)
-    }
-}
-
-impl StdError for EntryIsDead {
-    fn description(&self) -> &str {
-        "Attempted to get a storage entry for an entity that is no longer valid/alive"
-    }
-}

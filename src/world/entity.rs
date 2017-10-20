@@ -8,7 +8,7 @@ use error::WrongGeneration;
 /// Internally used structure for `Entity` allocation.
 #[derive(Default, Debug)]
 pub struct Allocator {
-    pub(super) generations: Vec<Generation>,
+    pub(crate) generations: Vec<Generation>,
 
     alive: BitSet,
     raised: AtomicBitSet,
@@ -230,7 +230,7 @@ impl Entity {
 /// entities with this struct.
 #[derive(Debug, Default)]
 pub struct EntitiesRes {
-    pub(super) alloc: Allocator,
+    pub(crate) alloc: Allocator,
 }
 
 impl EntitiesRes {
@@ -294,7 +294,7 @@ unsafe impl<'a> ParJoin for &'a EntitiesRes {}
 /// it bumps the `Generation` by 1. This allows to avoid using components
 /// from the entities that were deleted.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Generation(i32);
+pub struct Generation(pub(crate) i32);
 
 impl Generation {
     #[cfg(test)]
