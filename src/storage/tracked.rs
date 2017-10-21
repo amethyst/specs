@@ -20,7 +20,8 @@ impl Change {
     fn add(&mut self, change: Change) {
         let new = match (*self, change) {
             (Change::None, new) => new,
-            (Change::Inserted, _) => Change::Inserted,
+            (Change::Inserted, Change::Modified) => Change::Inserted,
+            (Change::Inserted, Change::Removed) => Change::None,
             (Change::Modified, Change::Modified) => Change::Modified,
             (Change::Modified, Change::Removed) => Change::Removed,
             (Change::Removed, Change::Inserted) => Change::Modified,
@@ -144,11 +145,12 @@ where
     }
 
     fn insert_change(changes: &mut Vec<Change>, id: Index, val: Change) {
+        use std::cmp::max;
         use std::iter::repeat;
 
         let ind = id as usize;
         let len = changes.len();
-        changes.extend(repeat(Change::None).take((ind + 1) - len));
+        changes.extend(repeat(Change::None).take(max(ind + 1, len) - len));
 
         changes[ind].add(val);
     }
@@ -323,5 +325,54 @@ mod tests {
 
         w.write::<Comp>().remove(a);
         ev_eq!(w => a: Change::Removed);
+    }
+
+    #[test]
+    fn remove_insert_mix() {
+        let mut w = world();
+        let w = &mut w;
+
+        let a = w.create_entity().with(Comp(0)).build();
+        reset(w);
+        ev_eq!(w =>);
+
+        w.write::<Comp>().remove(a);
+        ev_eq!(w => a: Change::Removed);
+
+        w.write::<Comp>().insert(a, Comp(1));
+        maint(w);
+        ev_eq!(w => a: Change::Modified);
+
+        w.write::<Comp>().remove(a);
+        ev_eq!(w => a: Change::Removed);
+
+        reset(w);
+        let b = w.create_entity().with(Comp(5)).build();
+        ev_eq!(w => b: Change::Inserted);
+
+        w.delete_entity(b).unwrap();
+        ev_eq!(w =>);
+    }
+
+    #[test]
+    fn join_changed() {
+        use Join;
+
+        let mut w = world();
+        let w = &mut w;
+
+        let a = w.create_entity().with(Comp(0)).build();
+        let b = w.create_entity().with(Comp(1)).build();
+        maint(w);
+
+        let vec = w.read::<Comp>().changed_tracked().join().collect::<Vec<_>>();
+        assert_eq!(vec, vec![a.id(), b.id()]);
+
+        w.write().insert(a, Comp(10));
+        let c = w.create_entity().with(Comp(2)).build();
+        maint(w);
+
+        let vec = w.read::<Comp>().changed_tracked().join().collect::<Vec<_>>();
+        assert_eq!(vec, vec![a.id(), c.id()]);
     }
 }
