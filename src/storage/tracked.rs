@@ -161,7 +161,7 @@ where
         }
     }
 
-    /// Resets the tracked storage. This clears all change events and the `changed` bitset.
+    /// Resets the tracked storage. This clears all change events.
     /// You most likely want to do this at the end of every frame.
     pub fn reset_tracked(&mut self) {
         let (set, inner) = self.data.open_mut();
