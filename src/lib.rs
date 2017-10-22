@@ -214,10 +214,10 @@ pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut, Fetch
 #[cfg(not(target_os = "emscripten"))]
 pub use shred::AsyncDispatcher;
 
-pub use storage::{BTreeStorage, DenseVecStorage, DistinctStorage, Entry, FlaggedStorage,
-                  HashMapStorage, InsertResult, MaskedStorage, NormalRestriction, NullStorage,
-                  ParallelRestriction, ReadStorage, RestrictedStorage, Storage,
-                  UnprotectedStorage, VecStorage, WriteStorage};
+pub use storage::{BTreeStorage, Change, ChangeEvents, DenseVecStorage, DistinctStorage, Entry,
+                  FlaggedStorage, HashMapStorage, InsertResult, MaskedStorage, NormalRestriction,
+                  NullStorage, ParallelRestriction, ReadStorage, RestrictedStorage, Storage,
+                  TrackedStorage, UnprotectedStorage, VecStorage, WriteStorage};
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
                 Generation, LazyUpdate, World};
 
