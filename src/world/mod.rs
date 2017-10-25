@@ -387,8 +387,10 @@ impl World {
         self.write_resource()
     }
 
-    /// Allows building an entity with its
-    /// components.
+    /// Allows building an entity with its components.
+    ///
+    /// **You have to ensure that the component storages you're
+    /// writing to are not borrowed!**
     pub fn create_entity(&self) -> EntityBuilder {
         let entity = self.entities_mut().alloc.allocate();
 

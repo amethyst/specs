@@ -9,8 +9,8 @@ extern crate quote;
 extern crate syn;
 
 use proc_macro::TokenStream;
-use syn::{Ident, MacroInput, MetaItem, NestedMetaItem};
 use quote::Tokens;
+use syn::{Ident, MacroInput, MetaItem, NestedMetaItem};
 
 /// Custom derive macro for the `Component` trait.
 ///
@@ -41,7 +41,8 @@ fn impl_component(ast: &MacroInput) -> Tokens {
     let name = &ast.ident;
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
-    let storage = ast.attrs.first()
+    let storage = ast.attrs
+        .first()
         .and_then(|attr| match attr.value {
             MetaItem::List(ref ident, ref items) if ident == "component" => items.first(),
             _ => None,

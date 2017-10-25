@@ -63,6 +63,16 @@ impl Allocator {
         }
     }
 
+    pub fn entity(&self, id: Index) -> Entity {
+        let gen = match self.generations.get(id as usize) {
+            Some(g) if !g.is_alive() && self.raised.contains(id) => g.raised(),
+            Some(g) => *g,
+            None => Generation(1),
+        };
+
+        Entity(id, gen)
+    }
+
     /// Attempt to move the `start_from` value
     pub fn update_start_from(&self, start_from: usize) {
         loop {
@@ -246,8 +256,13 @@ impl EntitiesRes {
         self.alloc.kill_atomic(e)
     }
 
-    /// Returns `true` if the specified entity is
-    /// alive.
+    /// Returns an entity with a given `id`. There's no guarantee for validity,
+    /// meaning the entity could be not alive.
+    pub fn entity(&self, id: Index) -> Entity {
+        self.alloc.entity(id)
+    }
+
+    /// Returns `true` if the specified entity is alive.
     #[inline]
     pub fn is_alive(&self, e: Entity) -> bool {
         self.alloc.is_alive(e)
