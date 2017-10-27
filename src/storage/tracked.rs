@@ -319,7 +319,7 @@ mod tests {
 
     #[test]
     fn insert() {
-        let w = world();
+        let mut w = world();
         ev_eq!(w =>);
 
         let a = w.create_entity().with(Comp(1)).build();
@@ -328,8 +328,8 @@ mod tests {
 
     #[test]
     fn modified() {
-        let w = world();
-        let w = &w;
+        let mut w = world();
+        let w = &mut w;
         ev_eq!(w =>);
 
         let a = w.create_entity().with(Comp(1)).build();
