@@ -389,9 +389,22 @@ impl World {
 
     /// Allows building an entity with its components.
     ///
-    /// **You have to ensure that the component storages you're
-    /// writing to are not borrowed!**
-    pub fn create_entity(&self) -> EntityBuilder {
+    /// This takes a mutable reference to the `World`, since no
+    /// component storage this builder accesses may be borrowed.
+    /// If it's necessary that you borrow a resource from the `World`
+    /// while this builder is alive, you can use `create_entity_unchecked`.
+    pub fn create_entity(&mut self) -> EntityBuilder {
+        self.create_entity_unchecked()
+    }
+
+    /// Allows building an entity with its components.
+    ///
+    /// **You have to make sure that no component storage is borrowed
+    /// during the building!**
+    ///
+    /// This variant is only recommended if you need to borrow a resource
+    /// during the entity building. If possible, try to use `create_entity`.
+    pub fn create_entity_unchecked(&self) -> EntityBuilder {
         let entity = self.entities_mut().alloc.allocate();
 
         EntityBuilder {
