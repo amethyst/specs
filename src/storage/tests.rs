@@ -586,16 +586,15 @@ mod test {
         // Verify that lazy closures are called only when inserted.
         {
             let mut increment = 0;
-            let mut lazy_increment = |entity: Entity, valid: u32| {
-                if let Ok(entry) = s1.entry(entity) {
+            let mut lazy_increment =
+                |entity: Entity, valid: u32| if let Ok(entry) = s1.entry(entity) {
                     entry.or_insert_with(|| {
                         increment += 1;
                         Cvec(5)
                     });
 
                     assert_eq!(increment, valid);
-                }
-            };
+                };
 
             lazy_increment(e3, 1);
             lazy_increment(e4, 1);
@@ -605,7 +604,7 @@ mod test {
         {
             let mut occupied = |entity, value| {
                 assert_eq!(*s1.get(entity).unwrap(), value);
-                
+
                 match s1.entry(entity) {
                     Ok(StorageEntry::Occupied(occupied)) => assert_eq!(*occupied.get_mut(), value),
                     _ => panic!("Entity not occupied {:?}", entity),
@@ -620,12 +619,14 @@ mod test {
 
         // Swap between occupied and vacant depending on the type of entry.
         {
-            let mut toggle = |entity: Entity| {
-                match s1.entry(entity) {
-                    Ok(StorageEntry::Occupied(occupied)) => { occupied.remove(); },
-                    Ok(StorageEntry::Vacant(vacant)) => { vacant.insert(Cvec(15)); },
-                    Err(_) => { },
+            let mut toggle = |entity: Entity| match s1.entry(entity) {
+                Ok(StorageEntry::Occupied(occupied)) => {
+                    occupied.remove();
                 }
+                Ok(StorageEntry::Vacant(vacant)) => {
+                    vacant.insert(Cvec(15));
+                }
+                Err(_) => {}
             };
 
             toggle(e5);

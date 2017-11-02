@@ -20,6 +20,7 @@ use shred::Fetch;
 
 use self::drain::Drain;
 use {Component, EntitiesRes, Entity, Index, Join, ParJoin};
+use error::WrongGeneration;
 
 mod data;
 mod drain;
@@ -200,8 +201,9 @@ pub struct OccupiedEntry<'a, 'b: 'a, T: 'a, D: 'a> {
 }
 
 impl<'a, 'b, T, D> OccupiedEntry<'a, 'b, T, D>
-    where T: Component,
-          D: Deref<Target = MaskedStorage<T>>,
+where
+    T: Component,
+    D: Deref<Target = MaskedStorage<T>>,
 {
     /// Get a reference to the component associated with the entity.
     pub fn get(&self) -> &T {
@@ -210,8 +212,9 @@ impl<'a, 'b, T, D> OccupiedEntry<'a, 'b, T, D>
 }
 
 impl<'a, 'b, T, D> OccupiedEntry<'a, 'b, T, D>
-    where T: Component,
-          D: DerefMut<Target = MaskedStorage<T>>,
+where
+    T: Component,
+    D: DerefMut<Target = MaskedStorage<T>>,
 {
     /// Get a mutable reference to the component associated with the entity.
     pub fn get_mut(self) -> &'a mut T {
@@ -220,7 +223,7 @@ impl<'a, 'b, T, D> OccupiedEntry<'a, 'b, T, D>
 
     /// Inserts a value into the storage and returns the old one.
     pub fn insert(&mut self, mut component: T) -> T {
-        std::mem::swap(&mut component, unsafe { self.storage.data.inner.get_mut(self.entity.id()) });
+        std::mem::swap(&mut component, self.get_mut());
         component
     }
 
@@ -237,10 +240,10 @@ pub struct VacantEntry<'a, 'b: 'a, T: 'a, D: 'a> {
 }
 
 impl<'a, 'b, T, D> VacantEntry<'a, 'b, T, D>
-    where T: Component,
-          D: DerefMut<Target = MaskedStorage<T>>,
+where
+    T: Component,
+    D: DerefMut<Target = MaskedStorage<T>>,
 {
-
     /// Inserts a value into the storage.
     pub fn insert(self, component: T) -> &'a mut T {
         let id = self.entity.id();
@@ -262,10 +265,10 @@ pub enum StorageEntry<'a, 'b: 'a, T: 'a, D: 'a> {
 }
 
 impl<'a, 'b, T, D> StorageEntry<'a, 'b, T, D>
-    where T: Component,
-          D: DerefMut<Target = MaskedStorage<T>>
+where
+    T: Component,
+    D: DerefMut<Target = MaskedStorage<T>>,
 {
-
     /// Inserts a component if the entity does not contain a component.
     pub fn or_insert(self, component: T) -> &'a mut T {
         self.or_insert_with(|| component)
@@ -273,8 +276,9 @@ impl<'a, 'b, T, D> StorageEntry<'a, 'b, T, D>
 
     /// Inserts a component using a lazily called function that is only called
     /// when inserting the component.
-    pub fn or_insert_with<F>(self, component: F) -> &'a mut T
-        where F: FnOnce() -> T,
+    pub fn or_insert_with<F>(self, default: F) -> &'a mut T
+    where
+        F: FnOnce() -> T,
     {
         match self {
             StorageEntry::Occupied(occupied) => occupied.get_mut(),
@@ -302,7 +306,7 @@ where
     /// Behaves somewhat similarly to `std::collections::HashMap`'s entry api.
     ///
     /// ## Example
-    /// 
+    ///
     /// ```rust
     /// # extern crate specs;
     /// # struct Comp {
@@ -321,24 +325,30 @@ where
     ///  }
     /// # }
     /// ```
-    pub fn entry<'a>(&'a mut self, e: Entity) -> Result<StorageEntry<'a, 'e, T, D>, ::error::WrongGeneration>
-        where 'e: 'a,
+    pub fn entry<'a>(&'a mut self, e: Entity) -> Result<StorageEntry<'a, 'e, T, D>, WrongGeneration>
+    where
+        'e: 'a,
     {
         if self.entities.is_alive(e) {
             if self.data.mask.contains(e.id()) {
-                Ok(StorageEntry::Occupied(OccupiedEntry { entity: e, storage: self }))
+                Ok(StorageEntry::Occupied(OccupiedEntry {
+                    entity: e,
+                    storage: self,
+                }))
+            } else {
+                Ok(StorageEntry::Vacant(VacantEntry {
+                    entity: e,
+                    storage: self,
+                }))
             }
-            else {
-                Ok(StorageEntry::Vacant(VacantEntry { entity: e, storage: self }))
-            }
-        }
-        else {
+        } else {
             let gen = self.entities
                 .alloc
-                .generations.get(e.id() as usize)
-                .map(|gen| *gen)
+                .generations
+                .get(e.id() as usize)
+                .cloned()
                 .unwrap_or(::Generation(1));
-            Err(::error::WrongGeneration {
+            Err(WrongGeneration {
                 action: "attempting to get an entry to a storage",
                 actual_gen: gen,
                 entity: e,

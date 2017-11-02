@@ -188,9 +188,9 @@ impl<'a> System<'a> for Spawn {
             mut ball,
             mut rect,
             mut color,
-            mut requests
-        ): Self::SystemData
-){
+            mut requests,
+        ): Self::SystemData,
+    ) {
         use cgmath::Zero;
         use rand::Rng;
 
