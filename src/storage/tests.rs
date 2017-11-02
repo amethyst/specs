@@ -606,7 +606,9 @@ mod test {
                 assert_eq!(*s1.get(entity).unwrap(), value);
 
                 match s1.entry(entity) {
-                    Ok(StorageEntry::Occupied(occupied)) => assert_eq!(*occupied.get_mut(), value),
+                    Ok(StorageEntry::Occupied(mut occupied)) => {
+                        assert_eq!(*occupied.get_mut(), value)
+                    }
                     _ => panic!("Entity not occupied {:?}", entity),
                 }
             };

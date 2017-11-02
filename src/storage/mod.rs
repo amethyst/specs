@@ -217,7 +217,13 @@ where
     D: DerefMut<Target = MaskedStorage<T>>,
 {
     /// Get a mutable reference to the component associated with the entity.
-    pub fn get_mut(self) -> &'a mut T {
+    pub fn get_mut(&mut self) -> &mut T {
+        unsafe { self.storage.data.inner.get_mut(self.entity.id()) }
+    }
+
+    /// Converts the `OccupiedEntry` into a mutable reference bounded by
+    /// the storage's lifetime.
+    pub fn into_mut(self) -> &'a mut T {
         unsafe { self.storage.data.inner.get_mut(self.entity.id()) }
     }
 
@@ -281,8 +287,8 @@ where
         F: FnOnce() -> T,
     {
         match self {
-            StorageEntry::Occupied(occupied) => occupied.get_mut(),
-            StorageEntry::Vacant(vacant) => vacant.insert(component()),
+            StorageEntry::Occupied(occupied) => occupied.into_mut(),
+            StorageEntry::Vacant(vacant) => vacant.insert(default()),
         }
     }
 }
