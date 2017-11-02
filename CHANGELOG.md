@@ -3,7 +3,9 @@
 * Add `saveload` module for easy entity serialization ([#275])
 * Improve docs, book and examples ([#278], [#281], [#283], [#285])
 * Add `EntityBuilder::marked` convenience method ([#287])
+* Add `StorageEntry` for easier handling of inserting/removing component ([#274])
 
+[#274]: https://github.com/slide-rs/specs/pull/274
 [#275]: https://github.com/slide-rs/specs/pull/275
 [#278]: https://github.com/slide-rs/specs/pull/278
 [#281]: https://github.com/slide-rs/specs/pull/281

@@ -559,6 +559,87 @@ mod test {
     }
 
     #[test]
+    fn storage_entry() {
+        let mut w = World::new();
+        w.register::<Cvec>();
+
+        let e1 = w.create_entity().build();
+        let e2 = w.create_entity().with(Cvec(10)).build();
+
+        let e3 = w.create_entity().build();
+        let e4 = w.create_entity().with(Cvec(10)).build();
+
+        let e5 = w.create_entity().build();
+        let e6 = w.create_entity().with(Cvec(10)).build();
+
+        let mut s1 = w.write::<Cvec>();
+
+        // Basic entry usage.
+        if let Ok(entry) = s1.entry(e1) {
+            entry.or_insert(Cvec(5));
+        }
+
+        if let Ok(entry) = s1.entry(e2) {
+            entry.or_insert(Cvec(5));
+        }
+
+        // Verify that lazy closures are called only when inserted.
+        {
+            let mut increment = 0;
+            let mut lazy_increment =
+                |entity: Entity, valid: u32| if let Ok(entry) = s1.entry(entity) {
+                    entry.or_insert_with(|| {
+                        increment += 1;
+                        Cvec(5)
+                    });
+
+                    assert_eq!(increment, valid);
+                };
+
+            lazy_increment(e3, 1);
+            lazy_increment(e4, 1);
+        }
+
+        // Sanity checks that the entry is occupied after insertions.
+        {
+            let mut occupied = |entity, value| {
+                assert_eq!(*s1.get(entity).unwrap(), value);
+
+                match s1.entry(entity) {
+                    Ok(StorageEntry::Occupied(mut occupied)) => {
+                        assert_eq!(*occupied.get_mut(), value)
+                    }
+                    _ => panic!("Entity not occupied {:?}", entity),
+                }
+            };
+
+            occupied(e1, Cvec(5));
+            occupied(e2, Cvec(10));
+            occupied(e3, Cvec(5));
+            occupied(e4, Cvec(10));
+        }
+
+        // Swap between occupied and vacant depending on the type of entry.
+        {
+            let mut toggle = |entity: Entity| match s1.entry(entity) {
+                Ok(StorageEntry::Occupied(occupied)) => {
+                    occupied.remove();
+                }
+                Ok(StorageEntry::Vacant(vacant)) => {
+                    vacant.insert(Cvec(15));
+                }
+                Err(_) => {}
+            };
+
+            toggle(e5);
+            toggle(e6);
+        }
+
+        assert_eq!(s1.get(e5), Some(&Cvec(15)));
+        assert_eq!(s1.get(e6), None);
+    }
+
+    #[test]
     #[should_panic]
     fn wrong_storage() {
         use join::Join;

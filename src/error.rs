@@ -129,7 +129,6 @@ impl StdError for WrongGeneration {
     }
 }
 
-
 /// An error type which cannot be instantiated.
 /// Used as a placeholder for associated error types if
 /// something cannot fail.
