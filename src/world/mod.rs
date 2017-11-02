@@ -501,6 +501,14 @@ impl World {
             }
         }
     }
+
+    /// Adds the given bundle of resources/components.
+    pub fn add_bundle<B>(&mut self, bundle: B)
+    where
+        B: Bundle,
+    {
+        bundle.add_to_world(self);
+    }
 }
 
 unsafe impl Send for World {}
@@ -528,4 +536,10 @@ impl Default for World {
             storages: Default::default(),
         }
     }
+}
+
+/// Trait used to bundle up resources/components for easy registration with `World`.
+pub trait Bundle {
+    /// Add resources/components to `world`.
+    fn add_to_world(self, world: &mut World);
 }
