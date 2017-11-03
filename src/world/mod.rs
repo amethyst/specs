@@ -17,13 +17,15 @@ mod lazy;
 mod tests;
 
 #[cfg(not(feature = "nightly"))]
-/// Note: Enable nightly feature to get the component type
-/// printed instead of just a vague catch all message.
 const COMPONENT_NOT_REGISTERED: &str = "No component with the given id. Did you forget to register \
-                                        the component with `World::register::<ComponentName>()`?";
+                                        the component with `World::register::<ComponentName>()`? \
+                                        Note: Enable `nightly` feature to get the exact component \
+                                        type printed out.";
 #[cfg(not(feature = "nightly"))]
 const RESOURCE_NOT_ADDED: &str = "No resource with the given id. Did you forget to add \
-                                  the resource with `World::add_resource(resource)`?";
+                                  the resource with `World::add_resource(resource)`?
+                                  Note: Enable `nightly` feature to get the exact resource \
+                                  type printed out.";
 
 #[cfg(feature = "nightly")]
 fn nightly_component_message<T>(id: usize) -> String {

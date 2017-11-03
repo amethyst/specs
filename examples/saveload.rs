@@ -5,8 +5,7 @@ extern crate specs;
 
 use specs::{Component, RunNow, System, VecStorage, World};
 use specs::error::NoError;
-use specs::saveload::{U64Marker, U64MarkerAllocator, WorldDeserialize,
-                      WorldSerialize};
+use specs::saveload::{U64Marker, U64MarkerAllocator, WorldDeserialize, WorldSerialize};
 
 const ENTITIES: &str = "
 [

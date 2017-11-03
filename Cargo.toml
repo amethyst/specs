@@ -39,7 +39,7 @@ common = ["futures"]
 nightly = []
 
 [package.metadata.docs.rs]
-features = ["common", "serde", "nightly"]
+features = ["common", "serde"]
 
 [dev-dependencies]
 cgmath =  { version = "0.14", features = ["eders"] }
