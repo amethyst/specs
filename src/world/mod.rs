@@ -17,18 +17,27 @@ mod lazy;
 mod tests;
 
 #[cfg(not(feature = "nightly"))]
-const COMPONENT_NOT_REGISTERED: &str = "No component with the given id. Did you forget to register \
-                                        the component with `World::register::<ComponentName>()`? \
-                                        Note: Enable `nightly` feature to get the exact component \
-                                        type printed out.";
-#[cfg(not(feature = "nightly"))]
-const RESOURCE_NOT_ADDED: &str = "No resource with the given id. Did you forget to add \
-                                  the resource with `World::add_resource(resource)`?
-                                  Note: Enable `nightly` feature to get the exact resource \
-                                  type printed out.";
+fn component_message<T>(id: usize) -> String {
+
+    let (message, function) = if id == 0 {
+        ("Unregistered component".to_string(), "World::register::<ComponentName>()".to_string())
+    } else {
+        (
+            format!("Unregistered component with id `{}`", id),
+            format!("World::register_with_id::<ComponentName>({})", id),
+        )
+    };
+    format!(
+        "{}. Did you forget to register \
+        the component with `{}`? \
+        Note: Enable `nightly` feature to get the exact component \
+        type printed out.",
+        message, function,
+    )
+}
 
 #[cfg(feature = "nightly")]
-fn nightly_component_message<T>(id: usize) -> String {
+fn component_message<T>(id: usize) -> String {
     let type_name = unsafe { ::std::intrinsics::type_name::<T>() };
     let (message, function) = if id == 0 {
         (
@@ -53,8 +62,19 @@ fn nightly_component_message<T>(id: usize) -> String {
     )
 }
 
+#[cfg(not(feature = "nightly"))]
+fn resource_message<T>(id: usize) -> String {
+    format!(
+        "No resource with the id `{}`. Did you forget to add \
+        the resource with `World::add_resource(resource)`?
+        Note: Enable `nightly` feature to get the exact resource \
+        type printed out.",
+        id,
+    )
+}
+
 #[cfg(feature = "nightly")]
-fn nightly_resource_message<T>(id: usize) -> String {
+fn resource_message<T>(id: usize) -> String {
     let type_name = unsafe { ::std::intrinsics::type_name::<T>() };
     let (message, function) = if id == 0 {
         (
@@ -369,13 +389,7 @@ impl World {
         let entities = self.entities();
         let resource = self.res.try_fetch::<MaskedStorage<T>>(id);
 
-
-        #[cfg(not(feature = "nightly"))]
-        let expect_message = COMPONENT_NOT_REGISTERED;
-        #[cfg(feature = "nightly")]
-        let expect_message = &nightly_component_message::<T>(id);
-
-        Storage::new(entities, resource.expect(expect_message))
+        Storage::new(entities, resource.expect(&component_message::<T>(id)))
     }
 
     /// Fetches a component's storage with a specified id for writing.
@@ -388,12 +402,7 @@ impl World {
         let entities = self.entities();
         let resource = self.res.try_fetch_mut::<MaskedStorage<T>>(id);
 
-        #[cfg(not(feature = "nightly"))]
-        let expect_message = COMPONENT_NOT_REGISTERED;
-        #[cfg(feature = "nightly")]
-        let expect_message = &nightly_component_message::<T>(id);
-
-        Storage::new(entities, resource.expect(expect_message))
+        Storage::new(entities, resource.expect(&component_message::<T>(id)))
     }
 
     /// Fetches a resource with a specified id for reading.
@@ -403,12 +412,7 @@ impl World {
     /// Panics if it is already borrowed mutably.
     /// Panics if the resource has not been added.
     pub fn read_resource_with_id<T: Resource>(&self, id: usize) -> Fetch<T> {
-        #[cfg(not(feature = "nightly"))]
-        let expect_message = RESOURCE_NOT_ADDED;
-        #[cfg(feature = "nightly")]
-        let expect_message = &nightly_resource_message::<T>(id);
-
-        self.res.try_fetch(id).expect(expect_message)
+        self.res.try_fetch(id).expect(&resource_message::<T>(id))
     }
 
     /// Fetches a resource with a specified id for writing.
@@ -418,12 +422,7 @@ impl World {
     /// Panics if it is already borrowed.
     /// Panics if the resource has not been added.
     pub fn write_resource_with_id<T: Resource>(&self, id: usize) -> FetchMut<T> {
-        #[cfg(not(feature = "nightly"))]
-        let expect_message = RESOURCE_NOT_ADDED;
-        #[cfg(feature = "nightly")]
-        let expect_message = &nightly_resource_message::<T>(id);
-
-        self.res.try_fetch_mut(id).expect(expect_message)
+        self.res.try_fetch_mut(id).expect(&resource_message::<T>(id))
     }
 
     /// Fetches a resource with the default id for reading.
