@@ -16,9 +16,11 @@ before_script:
 - export PATH="$PATH:$HOME/.cargo/bin"
 
 script:
-- cargo build --all-features --verbose
-- cargo test --all-features --verbose
+- cargo build --features="common,serde,rudy" --verbose
+- cargo test --features="common,serde,rudy" --verbose
 - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
+    cargo build --all-features --verbose;
+    cargo test --all-features --verbose;
     cargo bench --verbose --no-run --all-features;
   fi
 - cargo build --manifest-path ./specs-derive/Cargo.toml --verbose
