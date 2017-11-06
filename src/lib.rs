@@ -1,5 +1,6 @@
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![cfg_attr(feature = "nightly", feature(core_intrinsics))]
+#![recursion_limit="1024"]
 
 //! # SPECS Parallel ECS
 //!
@@ -218,7 +219,7 @@ pub use shred::AsyncDispatcher;
 pub use storage::{BTreeStorage, Change, ChangeEvents, DenseVecStorage, DistinctStorage, Entry,
                   FlaggedStorage, HashMapStorage, InsertResult, MaskedStorage, NormalRestriction,
                   NullStorage, OccupiedEntry, ParallelRestriction, ReadStorage, RestrictedStorage,
-                  Storage, StorageEntry, TrackedStorage, UnprotectedStorage, VacantEntry,
+                  SideStorage, Storage, StorageEntry, TrackedStorage, UnprotectedStorage, VacantEntry,
                   VecStorage, WriteStorage};
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
                 Generation, LazyUpdate, World};

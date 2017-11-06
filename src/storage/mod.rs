@@ -5,6 +5,7 @@ pub use self::flagged::FlaggedStorage;
 pub use self::restrict::{Entry, NormalRestriction, ParallelRestriction, RestrictedStorage};
 #[cfg(feature = "serde")]
 pub use self::ser::{MergeError, PackedData};
+pub use self::side::SideStorage;
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
@@ -28,6 +29,7 @@ mod restrict;
 mod flagged;
 #[cfg(feature = "serde")]
 mod ser;
+mod side;
 mod storages;
 #[cfg(test)]
 mod tests;
