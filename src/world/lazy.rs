@@ -40,6 +40,7 @@ impl LazyUpdate {
     ///
     /// impl Component for Pos {
     ///     type Storage = VecStorage<Self>;
+    ///     type Metadata = ();
     /// }
     ///
     /// struct InsertPos;
@@ -73,6 +74,7 @@ impl LazyUpdate {
     ///
     /// impl Component for Pos {
     ///     type Storage = VecStorage<Self>;
+    ///     type Metadata = ();
     /// }
     ///
     /// struct InsertPos;
@@ -112,6 +114,7 @@ impl LazyUpdate {
     ///
     /// impl Component for Pos {
     ///     type Storage = VecStorage<Self>;
+    ///     type Metadata = ();
     /// }
     ///
     /// struct RemovePos;
@@ -146,6 +149,7 @@ impl LazyUpdate {
     ///
     /// impl Component for Pos {
     ///     type Storage = VecStorage<Self>;
+    ///     type Metadata = ();
     /// }
     ///
     /// struct Execution;

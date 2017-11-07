@@ -1,10 +1,14 @@
 
 use Index;
 
-pub trait SideStorage<T> {
-    fn storage<S: 'static>(&self) -> &S { panic!("No storages were set for this SideStorage"); }
-    fn mut_storage<S: 'static>(&mut self) -> &mut S { panic!("No storages were set for this SideStorage"); }
+pub trait Metadata<T>: Default {
+    /// Grabs the specific metadata immutably without borrowing the storage.
+    fn meta<S: 'static>(&self) -> &S { panic!("No metadata was set for this component"); }
+    /// Grabs the specific metadata mutably without borrowing the storage.
+    fn mut_meta<S: 'static>(&mut self) -> &mut S { panic!("No metadata was set for this component"); }
 
+    // These methods shouldn't normally be used, mainly just for plumbing purposes where you disassociate the
+    // `T::Storage` from its `T::Metadata`.
     fn clean<F>(&mut self, _: &F)
     where
         F: Fn(Index) -> bool { }
@@ -14,19 +18,14 @@ pub trait SideStorage<T> {
     fn remove(&mut self, _: Index, _: &T) { }
 }
 
-pub trait GetStorage<S> {
-    fn storage(&self) -> &S;
-    fn mut_storage(&mut self) -> &mut S;
-}
-
-impl<T> SideStorage<T> for () { }
+impl<T> Metadata<T> for () { }
 
 macro_rules! tuple_storage {
     ( $( $index:tt => $arg:ident, )* ) => {
-        impl<T, $( $arg ),*> SideStorage<T> for ( $( $arg, )* )
-            where $( $arg: SideStorage<T> + 'static ),*
+        impl<T, $( $arg ),*> Metadata<T> for ( $( $arg, )* )
+            where $( $arg: Metadata<T> + Default + 'static ),*
         {
-            fn storage<S>(&self) -> &S
+            fn meta<S>(&self) -> &S
                 where S: 'static
             {
                 use std::any::TypeId;
@@ -41,7 +40,7 @@ macro_rules! tuple_storage {
 
                 panic!("Storage does not exist for this component")
             }
-            fn mut_storage<S>(&mut self) -> &mut S
+            fn mut_meta<S>(&mut self) -> &mut S
                 where S: 'static
             {
                 use std::any::TypeId;
@@ -89,3 +88,4 @@ tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, 7 => H, 
 tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, 7 => H, 8 => I, );
 tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, 7 => H, 8 => I, 9 => J, );
 tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, 7 => H, 8 => I, 9 => J, 10 => K, );
+tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, 7 => H, 8 => I, 9 => J, 10 => K, 11 => L, );

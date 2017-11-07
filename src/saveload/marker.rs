@@ -68,6 +68,7 @@ impl<'a> EntityBuilder<'a> {
 ///
 /// impl Component for NetMarker {
 ///     type Storage = DenseVecStorage<Self>;
+///     type Metadata = ();
 /// }
 ///
 /// impl Marker for NetMarker {
@@ -212,6 +213,7 @@ pub trait MarkerAllocator<M: Marker>: Resource {
 pub struct U64Marker(pub u64);
 impl Component for U64Marker {
     type Storage = DenseVecStorage<Self>;
+    type Metadata = ();
 }
 
 impl Marker for U64Marker {

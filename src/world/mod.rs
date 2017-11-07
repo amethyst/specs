@@ -601,7 +601,7 @@ impl Borrow<Resources> for World {
 
 impl Component for World {
     type Storage = DenseVecStorage<Self>;
-    type SideStorage = ();
+    type Metadata = ();
 }
 
 impl Default for World {

@@ -44,6 +44,7 @@ mod tests {
 
         impl Component for Comp {
             type Storage = DenseVecStorage<Self>;
+            type Metadata = ();
         }
 
         let mut world = World::new();

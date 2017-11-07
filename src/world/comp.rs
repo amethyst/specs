@@ -1,6 +1,6 @@
 use mopa::Any;
 
-use {SideStorage, UnprotectedStorage};
+use {Metadata, UnprotectedStorage};
 
 /// Abstract component type.
 /// Doesn't have to be Copy or even Clone.
@@ -64,5 +64,6 @@ pub trait Component: Any + Sized {
     /// Associated storage type for this component.
     type Storage: UnprotectedStorage<Self> + Any + Send + Sync;
     /// Side storages.
-    type SideStorage: SideStorage<Self>;
+    type Metadata: Metadata<Self> + Send + Sync;
 }
+

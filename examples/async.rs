@@ -10,6 +10,7 @@ struct Vel(f32);
 
 impl Component for Vel {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Debug)]
@@ -17,6 +18,7 @@ struct Pos(f32);
 
 impl Component for Pos {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 struct SysA;

@@ -18,6 +18,7 @@ impl Component for CompInt {
     // Storage is used to store all data for components of this type
     // VecStorage is meant to be used for components that are in almost every entity
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Debug)]
@@ -26,6 +27,7 @@ struct CompBool(bool);
 impl Component for CompBool {
     // HashMapStorage is better for components that are met rarely
     type Storage = HashMapStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Debug)]
@@ -33,6 +35,7 @@ struct CompFloat(f32);
 
 impl Component for CompFloat {
     type Storage = DenseVecStorage<Self>;
+    type Metadata = ();
 }
 
 // -- Resources --

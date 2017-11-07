@@ -1,11 +1,11 @@
 //! Storage types
 
 pub use self::data::{ReadStorage, WriteStorage};
-pub use self::flagged::FlaggedStorage;
+pub use self::flagged::Flagged;
 pub use self::restrict::{Entry, NormalRestriction, ParallelRestriction, RestrictedStorage};
 #[cfg(feature = "serde")]
 pub use self::ser::{MergeError, PackedData};
-pub use self::side::SideStorage;
+pub use self::meta::Metadata;
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
@@ -29,7 +29,7 @@ mod restrict;
 mod flagged;
 #[cfg(feature = "serde")]
 mod ser;
-mod side;
+mod meta;
 mod storages;
 #[cfg(test)]
 mod tests;
@@ -111,7 +111,7 @@ pub enum InsertResult<T> {
 #[derivative(Default(bound = ""))]
 pub struct MaskedStorage<T: Component> {
     mask: BitSet,
-    inner: T::Storage,
+    wrapped: WrappedStorage<T>,
 }
 
 impl<T: Component> MaskedStorage<T> {
@@ -121,15 +121,15 @@ impl<T: Component> MaskedStorage<T> {
         Default::default()
     }
 
-    fn open_mut(&mut self) -> (&BitSet, &mut T::Storage) {
-        (&self.mask, &mut self.inner)
+    fn open_mut(&mut self) -> (&BitSet, &mut WrappedStorage<T>) {
+        (&self.mask, &mut self.wrapped)
     }
 
     /// Clear the contents of this storage.
     pub fn clear(&mut self) {
         let mask = &mut self.mask;
         unsafe {
-            self.inner.clean(|i| mask.contains(i));
+            self.wrapped.clean(|i| mask.contains(i));
         }
         mask.clear();
     }
@@ -137,7 +137,7 @@ impl<T: Component> MaskedStorage<T> {
     /// Remove an element by a given index.
     pub fn remove(&mut self, id: Index) -> Option<T> {
         if self.mask.remove(id) {
-            Some(unsafe { self.inner.remove(id) })
+            Some(unsafe { self.wrapped.remove(id) })
         } else {
             None
         }
@@ -147,6 +147,62 @@ impl<T: Component> MaskedStorage<T> {
 impl<T: Component> Drop for MaskedStorage<T> {
     fn drop(&mut self) {
         self.clear();
+    }
+}
+
+#[derive(Derivative)]
+#[derivative(Default(bound = ""))]
+/// Associates the component's storage with its metadata.
+pub struct WrappedStorage<T: Component> {
+    inner: T::Storage,
+    meta: T::Metadata,
+}
+
+impl<T> Deref for WrappedStorage<T>
+    where T: Component
+{
+    type Target = T::Storage;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T> DerefMut for WrappedStorage<T>
+    where T: Component
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
+impl<T> UnprotectedStorage<T> for WrappedStorage<T>
+    where T: Component
+{
+    unsafe fn clean<F>(&mut self, f: F)
+    where
+        F: Fn(Index) -> bool
+    {
+        self.meta.clean(&f);
+        self.inner.clean(f);
+    }
+    unsafe fn get(&self, id: Index) -> &T {
+        let component = self.inner.get(id);
+        self.meta.get(id, &component);
+        component
+    }
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
+        let mut component = self.inner.get_mut(id);
+        self.meta.get_mut(id, &mut component);
+        component
+    }
+    unsafe fn insert(&mut self, id: Index, value: T) {
+        self.meta.insert(id, &value);
+        self.inner.insert(id, value);
+    }
+    unsafe fn remove(&mut self, id: Index) -> T {
+        let removed = self.inner.remove(id);
+        self.meta.remove(id, &removed);
+        removed
     }
 }
 
@@ -178,7 +234,7 @@ where
     /// Tries to read the data associated with an `Entity`.
     pub fn get(&self, e: Entity) -> Option<&T> {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
-            Some(unsafe { self.data.inner.get(e.id()) })
+            Some(unsafe { self.data.wrapped.get(e.id()) })
         } else {
             None
         }
@@ -193,6 +249,10 @@ where
     /// that the storage will have a component for a specific entity.
     pub fn check(&self) -> BitSet {
         self.data.mask.clone()
+    }
+
+    pub fn meta<S: 'static>(&self) -> &S {
+        self.data.wrapped.meta.meta()
     }
 }
 
@@ -209,7 +269,7 @@ where
 {
     /// Get a reference to the component associated with the entity.
     pub fn get(&self) -> &T {
-        unsafe { self.storage.data.inner.get(self.entity.id()) }
+        unsafe { self.storage.data.wrapped.get(self.entity.id()) }
     }
 }
 
@@ -220,13 +280,13 @@ where
 {
     /// Get a mutable reference to the component associated with the entity.
     pub fn get_mut(&mut self) -> &mut T {
-        unsafe { self.storage.data.inner.get_mut(self.entity.id()) }
+        unsafe { self.storage.data.wrapped.get_mut(self.entity.id()) }
     }
 
     /// Converts the `OccupiedEntry` into a mutable reference bounded by
     /// the storage's lifetime.
     pub fn into_mut(self) -> &'a mut T {
-        unsafe { self.storage.data.inner.get_mut(self.entity.id()) }
+        unsafe { self.storage.data.wrapped.get_mut(self.entity.id()) }
     }
 
     /// Inserts a value into the storage and returns the old one.
@@ -257,8 +317,8 @@ where
         let id = self.entity.id();
         self.storage.data.mask.add(id);
         unsafe {
-            self.storage.data.inner.insert(id, component);
-            self.storage.data.inner.get_mut(id)
+            self.storage.data.wrapped.insert(id, component);
+            self.storage.data.wrapped.get_mut(id)
         }
     }
 }
@@ -303,7 +363,7 @@ where
     /// Tries to mutate the data associated with an `Entity`.
     pub fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
-            Some(unsafe { self.data.inner.get_mut(e.id()) })
+            Some(unsafe { self.data.wrapped.get_mut(e.id()) })
         } else {
             None
         }
@@ -370,11 +430,11 @@ where
         if self.entities.is_alive(e) {
             let id = e.id();
             if self.data.mask.contains(id) {
-                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id) });
+                std::mem::swap(&mut v, unsafe { self.data.wrapped.get_mut(id) });
                 InsertResult::Updated(v)
             } else {
                 self.data.mask.add(id);
-                unsafe { self.data.inner.insert(id, v) };
+                unsafe { self.data.wrapped.insert(id, v) };
                 InsertResult::Inserted
             }
         } else {
@@ -403,6 +463,10 @@ where
             data: &mut self.data,
         }
     }
+
+    pub fn mut_meta<S: 'static>(&mut self) -> &mut S {
+        self.data.wrapped.meta.mut_meta()
+    }
 }
 
 unsafe impl<'a, T: Component, D> DistinctStorage for Storage<'a, T, D>
@@ -417,11 +481,11 @@ where
     D: Deref<Target = MaskedStorage<T>>,
 {
     type Type = &'a T;
-    type Value = &'a T::Storage;
+    type Value = &'a WrappedStorage<T>;
     type Mask = &'a BitSet;
 
     fn open(self) -> (Self::Mask, Self::Value) {
-        (&self.data.mask, &self.data.inner)
+        (&self.data.mask, &self.data.wrapped)
     }
 
     unsafe fn get(v: &mut Self::Value, i: Index) -> &'a T {
@@ -455,7 +519,7 @@ where
     D: DerefMut<Target = MaskedStorage<T>>,
 {
     type Type = &'a mut T;
-    type Value = &'a mut T::Storage;
+    type Value = &'a mut WrappedStorage<T>;
     type Mask = &'a BitSet;
 
     fn open(self) -> (Self::Mask, Self::Value) {
