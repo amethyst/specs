@@ -5,7 +5,7 @@ use storage::MaskedStorage;
 
 /// A storage with read access.
 ///
-/// This is just a typedef for a fetched component storage.
+/// This is just a type alias for a fetched component storage.
 ///
 /// The main functionality it provides is listed in the following,
 /// however make sure to also check out the documentation for the
@@ -94,6 +94,9 @@ use storage::MaskedStorage;
 ///
 /// These operations can't mutate anything; if you want to do
 /// insertions or modify components, you need to use `WriteStorage`.
+/// Note that you can also use `LazyUpdate` , which does insertions on
+/// `World::maintain`. This allows more concurrency and is designed
+/// to be used for entity initialization.
 pub type ReadStorage<'a, T> = Storage<'a, T, Fetch<'a, MaskedStorage<T>>>;
 
 impl<'a, T> SystemData<'a> for ReadStorage<'a, T>
@@ -118,7 +121,7 @@ where
 
 /// A storage with read and write access.
 ///
-/// In addition to `ReadStorage`, a storage with mutable access allows to:
+/// Additionally to what `ReadStorage` can do a storage with mutable access allows:
 ///
 /// ## Retrieve components mutably
 ///
@@ -163,7 +166,8 @@ where
 /// assert_eq!(res, InsertResult::Updated(Pos(0.1)));
 /// ```
 ///
-/// There's also an Entry-API similar to the one provided by `std`.
+/// There's also an Entry-API similar to the one provided by
+/// `std::collections::HashMap`.
 ///
 pub type WriteStorage<'a, T> = Storage<'a, T, FetchMut<'a, MaskedStorage<T>>>;
 
