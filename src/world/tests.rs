@@ -101,3 +101,23 @@ fn delete_twice() {
     world.delete_entity(e).unwrap();
     assert!(world.entities().delete(e).is_err());
 }
+
+#[test]
+fn test_bundle() {
+    let mut world = World::new();
+
+    pub struct SomeResource {
+        pub v: u32,
+    }
+
+    pub struct TestBundle;
+
+    impl Bundle for TestBundle {
+        fn add_to_world(self, world: &mut World) {
+            world.add_resource(SomeResource { v: 12 });
+        }
+    }
+
+    world.add_bundle(TestBundle);
+    assert_eq!(12, world.read_resource::<SomeResource>().v);
+}
