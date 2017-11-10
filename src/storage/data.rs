@@ -29,8 +29,9 @@ use storage::MaskedStorage;
 /// # ;
 /// ```
 ///
-/// This joins the position and the velocity storage, thus only components
-/// that exist in both storages are iterated over.
+/// This joins the position and the velocity storage, which means it only
+/// iterates over the components of entities that have both a position
+/// **and** a velocity.
 ///
 /// ## Retrieving single components
 ///
