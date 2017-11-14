@@ -4,14 +4,14 @@ extern crate specs;
 use specs::{Component, DispatcherBuilder, Entities, Entity, Fetch, FetchMut, HashMapStorage,
             InsertResult, Join, ParJoin, ReadStorage, System, VecStorage, World, WriteStorage};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct CompInt(i8);
 
 impl Component for CompInt {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct CompBool(bool);
 
 impl Component for CompBool {
@@ -461,4 +461,24 @@ fn par_join_many_entities_and_systems() {
             n
         );
     }
+}
+
+#[test]
+fn getting_specific_entity_with_join() {
+    let mut world = create_world();
+    world.create_entity().with(CompInt(1)).with(CompBool(true)).build();
+
+    let ints = world.read::<CompInt>();
+    let mut bools = world.write::<CompBool>();
+    let entity = world.entities().join().next().unwrap();
+
+    assert_eq!(
+        Some((&CompInt(1), &mut CompBool(true))),
+        (&ints, &mut bools).join().get(entity)
+    );
+    bools.remove(entity);
+    assert_eq!(
+        None,
+        (&ints, &mut bools).join().get(entity)
+    );
 }
