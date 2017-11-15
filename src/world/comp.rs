@@ -29,6 +29,7 @@ use {Metadata, UnprotectedStorage};
 ///
 /// impl Component for Position {
 ///     type Storage = VecStorage<Self>;
+///     type Metadata = ();
 /// }
 /// ```
 ///
@@ -43,6 +44,7 @@ use {Metadata, UnprotectedStorage};
 ///
 /// impl Component for Light {
 ///     type Storage = DenseVecStorage<Self>;
+///     type Metadata = ();
 /// }
 /// ```
 ///
@@ -58,12 +60,13 @@ use {Metadata, UnprotectedStorage};
 ///
 /// impl Component for Camera {
 ///     type Storage = HashMapStorage<Self>;
+///     type Metadata = ();
 /// }
 /// ```
 pub trait Component: Any + Sized {
     /// Associated storage type for this component.
     type Storage: UnprotectedStorage<Self> + Any + Send + Sync;
-    /// Side storages.
+    /// External data observing the data being accessed and modified.
     type Metadata: Metadata<Self> + Send + Sync;
 }
 

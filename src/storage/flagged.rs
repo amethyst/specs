@@ -3,10 +3,11 @@ use hibitset::BitSet;
 
 use {Index, Join, Metadata};
 use world::EntityIndex;
+use storage::meta::{Associate, AssociateMut};
 
 /// Wrapper storage that stores modifications to components in a bitset.
 ///
-/// **Note:** Joining over all components of a `FlaggedStorage`
+/// **Note:** Joining over all components of a `Flagged`
 /// mutably will flag all components.**
 ///
 /// What you want to instead is to use `check()` or `restrict()` to first
@@ -19,12 +20,17 @@ use world::EntityIndex;
 /// ```rust
 /// extern crate specs;
 ///
-/// use specs::{Component, Entities, FlaggedStorage, Join, System, VecStorage, WriteStorage};
+/// use specs::{Component, Entities, Flagged, Join, System, DenseVecStorage, WriteStorage};
+///
+/// #[derive(Metadata)]
+/// pub struct CompMetadata {
+///    pub flagged: Flagged,
+/// }
 ///
 /// pub struct Comp(u32);
 /// impl Component for Comp {
 ///     type Storage = DenseVecStorage<Self>;
-///     type Metadata = (Flagged,)
+///     type Metadata = Flagged;
 /// }
 ///
 /// pub struct CompSystem;
@@ -65,12 +71,12 @@ use world::EntityIndex;
 ///         }
 ///
 ///         // To iterate over the flagged/modified components:
-///         for flagged_comp in (comps.associated::<Flagged>()).join() {
+///         for flagged_comp in (comps.meta().flagged).join() {
 ///             // ...
 ///         }
 ///
 ///         // Clears the tracked storage every frame with this system.
-///         (&mut comps).open().1.clear_flags();
+///         comps.mut_meta().flagged.clear_flags();
 ///     }
 /// }
 ///# fn main() { }
@@ -81,9 +87,6 @@ pub struct Flagged {
 }
 
 impl<T> Metadata<T> for Flagged {
-    fn meta<S: 'static>(&self) -> &S { panic!("Called `meta` on a concrete Metadata type."); }
-    fn mut_meta<S: 'static>(&mut self) -> &mut S { panic!("Called `mut_meta` on a concrete Metadata type."); }
-
     fn clean<F>(&mut self, _: &F)
     where
         F: Fn(Index) -> bool
@@ -124,17 +127,27 @@ impl Flagged {
 }
 
 impl<'a> Join for &'a Flagged {
-    type Type = <&'a BitSet as Join>::Type;
-    type Value = <&'a BitSet as Join>::Value;
+    type Type = ();
+    type Value = ();
     type Mask = &'a BitSet;
-
     fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, ())
     }
-
     unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
-        let () = *v;
-        0
+        ()
     }
 }
 
+impl<'a, T> Associate<T> for &'a Flagged {
+    type Mask = &'a BitSet;
+    fn mask(self) -> Self::Mask {
+        &self.mask
+    }
+}
+
+impl<'a, T> AssociateMut<T> for &'a Flagged {
+    type Mask = BitSet;
+    fn mut_mask(self) -> Self::Mask {
+        self.mask.clone()
+    }
+}

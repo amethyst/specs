@@ -1,14 +1,13 @@
 
-use Index;
+use std::ops::{Deref, DerefMut};
+
+use hibitset::{BitSet, BitSetAnd, BitSetLike};
+
+use storage::{MaskedStorage, Storage, WrappedStorage, UnprotectedStorage};
+
+use {Component, Index, Join};
 
 pub trait Metadata<T>: Default {
-    /// Grabs the specific metadata immutably without borrowing the storage.
-    fn meta<S: 'static>(&self) -> &S { panic!("No metadata was set for this component"); }
-    /// Grabs the specific metadata mutably without borrowing the storage.
-    fn mut_meta<S: 'static>(&mut self) -> &mut S { panic!("No metadata was set for this component"); }
-
-    // These methods shouldn't normally be used, mainly just for plumbing purposes where you disassociate the
-    // `T::Storage` from its `T::Metadata`.
     fn clean<F>(&mut self, _: &F)
     where
         F: Fn(Index) -> bool { }
@@ -18,74 +17,97 @@ pub trait Metadata<T>: Default {
     fn remove(&mut self, _: Index, _: &T) { }
 }
 
+pub trait Associate<T> {
+    type Mask: BitSetLike;
+    fn mask(self) -> Self::Mask;
+}
+
+pub trait AssociateMut<T> {
+    type Mask: BitSetLike;
+    fn mut_mask(self) -> Self::Mask;
+}
+
+pub struct Associated<'a, 'e: 'a, T, D, M, F>
+where F: for<'f> Fn(&'f T::Metadata) -> &'f M,
+      T: Component,
+      D: 'a,
+{
+    pub(crate) storage: &'a Storage<'e, T, D>,
+    pub(crate) pick: F,
+}
+
+pub struct AssociatedMut<'a, 'e: 'a, T, D, M, F>
+where F: for<'f> Fn(&'f T::Metadata) -> &'f M,
+      T: Component,
+      D: 'a,
+{
+    pub(crate) storage: &'a mut Storage<'e, T, D>,
+    pub(crate) pick: F,
+}
+
+/*
+impl<'a, 'e, T, D, M, F> Join for Associated<'a, 'e, T, D, M, F>
+    where T: Component,
+          D: Deref<Target = MaskedStorage<T>>,
+          F: Fn() -> &M{
+
+}
+*/
+
 impl<T> Metadata<T> for () { }
 
-macro_rules! tuple_storage {
-    ( $( $index:tt => $arg:ident, )* ) => {
-        impl<T, $( $arg ),*> Metadata<T> for ( $( $arg, )* )
-            where $( $arg: Metadata<T> + Default + 'static ),*
-        {
-            fn meta<S>(&self) -> &S
-                where S: 'static
-            {
-                use std::any::TypeId;
-                let s_type = TypeId::of::<S>();
-                $(
-                    if s_type == TypeId::of::<$arg>() {
-                        unsafe {
-                            return &*(&self.$index as *const $arg as *const S)
-                        }
-                    }
-                )*
-
-                panic!("Storage does not exist for this component")
-            }
-            fn mut_meta<S>(&mut self) -> &mut S
-                where S: 'static
-            {
-                use std::any::TypeId;
-                let s_type = TypeId::of::<S>();
-                $(
-                    if s_type == TypeId::of::<$arg>() {
-                        unsafe {
-                            return &mut *(&mut self.$index as *mut $arg as *mut S)
-                        }
-                    }
-                )*
-
-                panic!("Storage does not exist for this component")
-            }
-
-            fn clean<CF>(&mut self, f: &CF)
-                where
-                    CF: Fn(Index) -> bool {
-                $( self.$index.clean(&f); )*
-            }
-            fn get(&self, id: Index, value: &T) {
-                $( self.$index.get(id, value); )*
-            }
-            fn get_mut(&mut self, id: Index, value: &mut T) {
-                $( self.$index.get_mut(id, value); )*
-            }
-            fn insert(&mut self, id: Index, value: &T) {
-                $( self.$index.insert(id, value); )*
-            }
-            fn remove(&mut self, id: Index, value: &T) {
-                $( self.$index.remove(id, value); )*
-            }
-        }
+impl<'a, 'b, 'e, T, D, M, F> Join for &'a Associated<'b, 'e, T, D, M, F>
+    where T: Component,
+          M: Metadata<T>,
+          &'a M: Associate<T>,
+          D: Deref<Target = MaskedStorage<T>>,
+          F: for<'f> Fn(&'f T::Metadata) -> &'f M,
+{
+    type Type = &'a T;
+    type Value = &'a WrappedStorage<T>;
+    type Mask = BitSetAnd<&'a BitSet, <&'a M as Associate<T>>::Mask>;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        let specific = (self.pick)(&self.storage.data.wrapped.meta);
+        let storage_mask = &self.storage.data.mask;
+        (BitSetAnd(storage_mask, specific.mask()), &self.storage.data.wrapped)
+    }
+    unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
+        v.get(id)
     }
 }
 
-tuple_storage!( 0 => A, );
-tuple_storage!( 0 => A, 1 => B, );
-tuple_storage!( 0 => A, 1 => B, 2 => C, );
-tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, );
-tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, );
-tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, );
-tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, );
-tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, 7 => H, );
-tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, 7 => H, 8 => I, );
-tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, 7 => H, 8 => I, 9 => J, );
-tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, 7 => H, 8 => I, 9 => J, 10 => K, );
-tuple_storage!( 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, 7 => H, 8 => I, 9 => J, 10 => K, 11 => L, );
+impl<'a, 'b, 'e, T, D, M, F> Join for &'a mut AssociatedMut<'b, 'e, T, D, M, F>
+    where T: Component,
+          M: Metadata<T>,
+          &'a M: AssociateMut<T>,
+          D: DerefMut<Target = MaskedStorage<T>>,
+          F: for<'f> Fn(&'f T::Metadata) -> &'f M,
+{
+    type Type = &'a T;
+    type Value = &'a WrappedStorage<T>;
+    type Mask = BitSetAnd<&'a BitSet, <&'a M as AssociateMut<T>>::Mask>;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        let specific = (self.pick)(&self.storage.data.wrapped.meta);
+        let storage_mask = &self.storage.data.mask;
+        (BitSetAnd(storage_mask, specific.mut_mask()), &self.storage.data.wrapped)
+    }
+    unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
+        v.get(id)
+    }
+}
+
+/*
+impl Join for Associated {
+    type Type = &'a T;
+    type Value = (&'a Storage<'e, T, D>, &'a M);
+    type Mask = BitSetAnd<&'a BitSet, M::Mask>;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        let picked = self.pick(self.storage.meta());
+        let mask = BitSetAnd(self.storage.data.mask, picked.mask());
+        (mask, (self.storage, picked))
+    }
+    unsafe fn get((storage, metadata): &mut Self::Value, id: Index) -> Self::Type {
+        
+    }
+}
+*/

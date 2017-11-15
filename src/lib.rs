@@ -105,12 +105,14 @@
 //!
 //! impl Component for Vel {
 //!     type Storage = VecStorage<Self>;
+//!     type Metadata = ();
 //! }
 //!
 //! struct Pos(f32);
 //!
 //! impl Component for Pos {
 //!     type Storage = VecStorage<Self>;
+//!     type Metadata = ();
 //! }
 //!
 //! struct SysA;
@@ -220,7 +222,7 @@ pub use storage::{BTreeStorage, Change, ChangeEvents, DenseVecStorage, DistinctS
                   Flagged, HashMapStorage, InsertResult, MaskedStorage, Metadata, NormalRestriction,
                   NullStorage, OccupiedEntry, ParallelRestriction, ReadStorage, RestrictedStorage,
                   Storage, StorageEntry, TrackedStorage, UnprotectedStorage, VacantEntry,
-                  VecStorage, WriteStorage};
+                  VecStorage, WrappedStorage, WriteStorage};
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
                 Generation, LazyUpdate, World};
 

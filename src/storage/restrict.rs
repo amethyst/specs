@@ -26,6 +26,7 @@ pub enum ParallelRestriction {}
 /// struct SomeComp(u32);
 /// impl Component for SomeComp {
 ///     type Storage = VecStorage<Self>;
+///     type Metadata = ();
 /// }
 ///
 /// struct RestrictedSystem;

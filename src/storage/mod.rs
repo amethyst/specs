@@ -5,7 +5,7 @@ pub use self::flagged::Flagged;
 pub use self::restrict::{Entry, NormalRestriction, ParallelRestriction, RestrictedStorage};
 #[cfg(feature = "serde")]
 pub use self::ser::{MergeError, PackedData};
-pub use self::meta::Metadata;
+pub use self::meta::{Associate, AssociateMut, Associated, AssociatedMut, Metadata};
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
@@ -110,8 +110,8 @@ pub enum InsertResult<T> {
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct MaskedStorage<T: Component> {
-    mask: BitSet,
-    wrapped: WrappedStorage<T>,
+    pub(crate) mask: BitSet,
+    pub(crate) wrapped: WrappedStorage<T>,
 }
 
 impl<T: Component> MaskedStorage<T> {
@@ -240,6 +240,17 @@ where
         }
     }
 
+    pub fn associate<'a, F, M>(&'a self, f: F) -> Associated<'a, 'e, T, D, M, F>
+    where F: for<'f> Fn(&'f T::Metadata) -> &'f M,
+          M: 'a,
+          &'a M: Associate<T>,
+    {
+        Associated {
+            storage: self,
+            pick: f,
+        }
+    }
+
     /// Returns a copy of the `BitSet` of the storage. This allows you to
     /// do some methods on the actual storage without worrying about borrowing
     /// semantics.
@@ -251,8 +262,8 @@ where
         self.data.mask.clone()
     }
 
-    pub fn meta<S: 'static>(&self) -> &S {
-        self.data.wrapped.meta.meta()
+    pub fn meta(&self) -> &T::Metadata {
+        &self.data.wrapped.meta
     }
 }
 
@@ -369,6 +380,18 @@ where
         }
     }
 
+    pub fn associate_mut<'a, M, F>(&'a mut self, f: F) -> AssociatedMut<'a, 'e, T, D, M, F>
+    where F: for<'f> Fn(&'f T::Metadata) -> &'f M,
+          M: 'a,
+          &'a M: AssociateMut<T>,
+    {
+        AssociatedMut {
+            storage: self,
+            pick: f,
+        }
+    }
+
+
     /// Returns an entry to the component associated to the entity.
     ///
     /// Behaves somewhat similarly to `std::collections::HashMap`'s entry api.
@@ -382,6 +405,7 @@ where
     /// # }
     /// # impl specs::Component for Comp {
     /// #    type Storage = specs::DenseVecStorage<Self>;
+    /// #    type Metadata = ();
     /// # }
     /// # fn main() {
     /// # let mut world = specs::World::new();
@@ -464,8 +488,8 @@ where
         }
     }
 
-    pub fn mut_meta<S: 'static>(&mut self) -> &mut S {
-        self.data.wrapped.meta.mut_meta()
+    pub fn mut_meta(&mut self) -> &mut T::Metadata {
+        &mut self.data.wrapped.meta
     }
 }
 

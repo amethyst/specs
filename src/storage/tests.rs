@@ -151,9 +151,14 @@ mod test {
             &mut self.0
         }
     }
+
+    #[derive(Metadata)]
+    pub struct CvecMeta {
+        pub flagged: Flagged,
+    }
     impl Component for FlaggedCvec {
         type Storage = DenseVecStorage<Self>;
-        type Metadata = (Flagged,);
+        type Metadata = CvecMeta;
     }
 
     #[derive(PartialEq, Eq, Debug)]
@@ -756,11 +761,11 @@ mod test {
             }
         }
 
-        s1.mut_meta::<Flagged>().clear_flags();
+        s1.mut_meta().flagged.clear_flags();
 
         // Cleared flags
         for (entity, _) in (entities, &s1.check()).join() {
-            assert!(!s1.meta::<Flagged>().flagged(&entity));
+            assert!(!s1.meta().flagged.flagged(&entity));
         }
 
         // Modify components to flag.
@@ -772,7 +777,7 @@ mod test {
         for (entity, _) in (entities, &s1.check()).join() {
             // Should only be modified if the entity had both components
             // Which means only half of them should have it.
-            if s1.meta::<Flagged>().flagged(&entity) {
+            if s1.meta().flagged.flagged(&entity) {
                 println!("Flagged: {:?}", entity.index());
                 // Only every other component was flagged.
                 assert!(entity.index() % 2 == 0);
@@ -780,9 +785,9 @@ mod test {
         }
 
         // Iterate over all flagged entities.
-        for (entity, _) in (&*w.entities(), s1.meta::<Flagged>()).join() {
+        for (entity, _) in (&*w.entities(), s1.associate(|meta| meta.flagged)).join() {
             // All entities in here should be flagged.
-            assert!(s1.meta::<Flagged>().flagged(&entity));
+            assert!(s1.meta().flagged.flagged(&entity));
         }
     }
 }

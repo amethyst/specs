@@ -17,7 +17,7 @@ use {Component, DenseVecStorage, Index, MaskedStorage, Storage, UnprotectedStora
 ///
 /// ## Maintain
 ///
-/// By maintaining the `FlaggedStorage`, the inner storage and the cache
+/// By maintaining the `Flagged`, the inner storage and the cache
 /// will be searched for unequal elements, generating `Modified` events for those.
 ///
 /// ## Frames
