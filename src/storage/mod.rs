@@ -5,7 +5,7 @@ pub use self::flagged::Flagged;
 pub use self::restrict::{Entry, NormalRestriction, ParallelRestriction, RestrictedStorage};
 #[cfg(feature = "serde")]
 pub use self::ser::{MergeError, PackedData};
-pub use self::meta::{Associate, AssociateMut, Associated, AssociatedMut, Metadata};
+pub use self::meta::{HasMeta, Metadata};
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
@@ -240,17 +240,6 @@ where
         }
     }
 
-    pub fn associate<'a, F, M>(&'a self, f: F) -> Associated<'a, 'e, T, D, M, F>
-    where F: for<'f> Fn(&'f T::Metadata) -> &'f M,
-          M: 'a,
-          &'a M: Associate<T>,
-    {
-        Associated {
-            storage: self,
-            pick: f,
-        }
-    }
-
     /// Returns a copy of the `BitSet` of the storage. This allows you to
     /// do some methods on the actual storage without worrying about borrowing
     /// semantics.
@@ -264,6 +253,12 @@ where
 
     pub fn meta(&self) -> &T::Metadata {
         &self.data.wrapped.meta
+    }
+
+    pub fn find<M>(&self) -> &M
+        where T::Metadata: HasMeta<M>,
+    {
+        self.meta().find()
     }
 }
 
@@ -380,18 +375,6 @@ where
         }
     }
 
-    pub fn associate_mut<'a, M, F>(&'a mut self, f: F) -> AssociatedMut<'a, 'e, T, D, M, F>
-    where F: for<'f> Fn(&'f T::Metadata) -> &'f M,
-          M: 'a,
-          &'a M: AssociateMut<T>,
-    {
-        AssociatedMut {
-            storage: self,
-            pick: f,
-        }
-    }
-
-
     /// Returns an entry to the component associated to the entity.
     ///
     /// Behaves somewhat similarly to `std::collections::HashMap`'s entry api.
@@ -488,8 +471,14 @@ where
         }
     }
 
-    pub fn mut_meta(&mut self) -> &mut T::Metadata {
+    pub fn meta_mut(&mut self) -> &mut T::Metadata {
         &mut self.data.wrapped.meta
+    }
+
+    pub fn find_mut<M>(&mut self) -> &mut M
+        where T::Metadata: HasMeta<M>,
+    {
+        self.meta_mut().find_mut()
     }
 }
 

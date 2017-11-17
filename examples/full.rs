@@ -4,8 +4,8 @@ extern crate shred;
 extern crate shred_derive;
 extern crate specs;
 
-use specs::{Component, DenseVecStorage, DispatcherBuilder, Entities, Entity, HashMapStorage, Join,
-            ParJoin, ReadStorage, System, VecStorage, World, WriteStorage};
+use specs::{Component, DenseVecStorage, DispatcherBuilder, Entities, Entity, HashMapStorage, Index,
+            Join, Metadata, ParJoin, ReadStorage, System, VecStorage, World, WriteStorage};
 
 // -- Components --
 // A component exists for 0..n
@@ -18,7 +18,31 @@ impl Component for CompInt {
     // Storage is used to store all data for components of this type
     // VecStorage is meant to be used for components that are in almost every entity
     type Storage = VecStorage<Self>;
-    type Metadata = ();
+    type Metadata = (Test, Test2, Test3);
+}
+
+#[derive(Debug, Default)]
+struct Test { inc: u32 }
+impl<T> Metadata<T> for Test {
+    fn insert(&mut self, _: Index, _: &T) {
+        self.inc += 1;
+    }
+}
+
+#[derive(Debug, Default)]
+struct Test2 { inc: u32 }
+impl<T> Metadata<T> for Test2 {
+    fn remove(&mut self, _: Index, _: &T) {
+        self.inc += 1;
+    }
+}
+
+#[derive(Debug, Default)]
+struct Test3 { inc: u32 }
+impl<T> Metadata<T> for Test3 {
+    fn get_mut(&mut self, _: Index, _: &mut T) {
+        self.inc += 1;
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -229,4 +253,20 @@ fn main() {
 
     dispatcher.dispatch(&w.res);
     w.maintain();
+
+    {
+        let i = w.read::<CompInt>();
+        let test = i.meta::<Test>();
+        let test2 = i.meta::<Test2>();
+        let test3 = i.meta::<Test3>();
+
+        println!("{:?} {:?} {:?}", test, test2, test3);
+    }
+
+    {
+        let mut i = w.write::<CompInt>();
+        let mut test = i.mut_meta::<Test>();
+
+        println!("{:?}", test);
+    }
 }

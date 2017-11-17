@@ -219,7 +219,7 @@ pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut, Fetch
 pub use shred::AsyncDispatcher;
 
 pub use storage::{BTreeStorage, Change, ChangeEvents, DenseVecStorage, DistinctStorage, Entry,
-                  Flagged, HashMapStorage, InsertResult, MaskedStorage, Metadata, NormalRestriction,
+                  Flagged, HashMapStorage, HasMeta, InsertResult, MaskedStorage, Metadata, NormalRestriction,
                   NullStorage, OccupiedEntry, ParallelRestriction, ReadStorage, RestrictedStorage,
                   Storage, StorageEntry, TrackedStorage, UnprotectedStorage, VacantEntry,
                   VecStorage, WrappedStorage, WriteStorage};

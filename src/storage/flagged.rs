@@ -3,7 +3,6 @@ use hibitset::BitSet;
 
 use {Index, Join, Metadata};
 use world::EntityIndex;
-use storage::meta::{Associate, AssociateMut};
 
 /// Wrapper storage that stores modifications to components in a bitset.
 ///
@@ -76,12 +75,12 @@ use storage::meta::{Associate, AssociateMut};
 ///         }
 ///
 ///         // Clears the tracked storage every frame with this system.
-///         comps.mut_meta().flagged.clear_flags();
+///         comps.find_mut::<Flagged>().clear_flags();
 ///     }
 /// }
 ///# fn main() { }
 /// ```
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Flagged {
     mask: BitSet,
 }
@@ -138,16 +137,15 @@ impl<'a> Join for &'a Flagged {
     }
 }
 
-impl<'a, T> Associate<T> for &'a Flagged {
-    type Mask = &'a BitSet;
-    fn mask(self) -> Self::Mask {
-        &self.mask
+impl Join for Flagged {
+    type Type = ();
+    type Value = ();
+    type Mask = BitSet;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        (self.mask, ())
+    }
+    unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
+        ()
     }
 }
 
-impl<'a, T> AssociateMut<T> for &'a Flagged {
-    type Mask = BitSet;
-    fn mut_mask(self) -> Self::Mask {
-        self.mask.clone()
-    }
-}

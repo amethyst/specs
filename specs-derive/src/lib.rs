@@ -84,11 +84,28 @@ fn impl_metadata(ast: &DeriveInput) -> Tokens {
         Body::Enum(_) => panic!("Metadata does not work with enums currently"),
         Body::Struct(ref variant) => match *variant {
             VariantData::Struct(ref fields) => fields.clone(),
-            _ => panic!("Unnamed/empty metadata is not supported"),
+            VariantData::Tuple(ref fields) => {
+                fields.iter().enumerate().map(|(counter, field)| {
+                    let mut field = field.clone();
+                    field.ident = Some(Ident::new(counter.to_string()));
+                    field
+                }).collect::<Vec<_>>()
+            }
+            VariantData::Unit => Vec::new(),
         }
     };
 
+    let count = field.iter().count();
+    let name_list = (0..count).map(|_| name).cloned().collect::<Vec<_>>();
+    let impl_generics_list = (0..count).map(|_| &impl_generics).collect::<Vec<_>>();
+    let ty_generics_list = (0..count).map(|_| &ty_generics).collect::<Vec<_>>();
+    let where_clause_list = (0..count).map(|_| where_clause).collect::<Vec<_>>();
+
+    let ref field_ty = field.iter().map(|field| field.ty.clone()).collect::<Vec<_>>();
+    let field_ty_2 = field_ty;
+    let field_ty_3 = field_ty;
     let ref field_name = field.iter().filter_map(|field| field.ident.clone()).collect::<Vec<_>>();
+    let field_name_2 = field_name;
 
     quote! {
         impl<T, #impl_generics> ::specs::Metadata<T> for #name #ty_generics #where_clause {
@@ -111,5 +128,16 @@ fn impl_metadata(ast: &DeriveInput) -> Tokens {
                 #( ::specs::Metadata::<T>::remove(&mut self.#field_name, id, value); )*
             }
         }
+
+        #(
+            impl<#impl_generics_list> ::specs::HasMeta<#field_ty> for #name_list #ty_generics_list #where_clause_list {
+                fn find(&self) -> &#field_ty_2 {
+                    &self.#field_name
+                }
+                fn find_mut(&mut self) -> &mut #field_ty_3 {
+                    &mut self.#field_name_2
+                }
+            }
+        )*
     }
 }
