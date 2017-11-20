@@ -175,25 +175,6 @@ impl<'a> Iterator for CreateIterAtomic<'a> {
     }
 }
 
-/// Any type that contains an entity's index.
-///
-/// e.g. Entry, Entity, etc.
-pub trait EntityIndex {
-    fn index(&self) -> Index;
-}
-
-impl EntityIndex for Entity {
-    fn index(&self) -> Index {
-        self.id()
-    }
-}
-
-impl<'a> EntityIndex for &'a Entity {
-    fn index(&self) -> Index {
-        (*self).index()
-    }
-}
-
 /// `Entity` type, as seen by the user.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Entity(Index, Generation);

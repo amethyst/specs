@@ -7,7 +7,6 @@ use hibitset::BitSet;
 
 use {Component, Entities, Entity, Index, Join, ParJoin, Storage, UnprotectedStorage};
 use storage::MaskedStorage;
-use world::EntityIndex;
 
 /// Specifies that the `RestrictedStorage` cannot run in parallel.
 pub enum NormalRestriction {}
@@ -91,7 +90,7 @@ where
     /// the storage has it or not.
     pub fn get_unchecked(&self, entry: &Entry<'rf, T>) -> &T {
         entry.assert_same_storage(self.data.borrow());
-        unsafe { self.data.borrow().get(entry.index()) }
+        unsafe { self.data.borrow().get(entry.id) }
     }
 }
 
@@ -105,7 +104,7 @@ where
     /// the storage has it or not.
     pub fn get_mut_unchecked(&mut self, entry: &Entry<'rf, T>) -> &mut T {
         entry.assert_same_storage(self.data.borrow());
-        unsafe { self.data.borrow_mut().get_mut(entry.index()) }
+        unsafe { self.data.borrow_mut().get_mut(entry.id) }
     }
 }
 
@@ -191,7 +190,7 @@ where
         let (mask, data) = self.data.open_mut();
         RestrictedStorage {
             bitset: mask,
-            data,
+            data: data,
             entities: &self.entities,
             phantom: PhantomData,
         }
@@ -206,7 +205,7 @@ where
         let (mask, data) = self.data.open_mut();
         RestrictedStorage {
             bitset: mask,
-            data,
+            data: data,
             entities: &self.entities,
             phantom: PhantomData,
         }
@@ -257,20 +256,3 @@ where
     }
 }
 
-impl<'rf, T> EntityIndex for Entry<'rf, T>
-where
-    T: Component,
-{
-    fn index(&self) -> Index {
-        self.id
-    }
-}
-
-impl<'a, 'rf, T> EntityIndex for &'a Entry<'rf, T>
-where
-    T: Component,
-{
-    fn index(&self) -> Index {
-        (*self).index()
-    }
-}

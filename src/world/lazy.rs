@@ -175,7 +175,7 @@ impl LazyUpdate {
         let lazy = &mut self.stack;
 
         while let Some(l) = lazy.pop() {
-            l.update(&world);
+            l.update(world);
         }
     }
 }
