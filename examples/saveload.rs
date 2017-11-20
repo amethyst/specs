@@ -40,6 +40,7 @@ struct Pos {
 
 impl Component for Pos {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -47,6 +48,7 @@ struct Mass(f32);
 
 impl Component for Mass {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 fn main() {

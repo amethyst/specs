@@ -1,9 +1,5 @@
 
-use std::ops::{Deref, DerefMut};
-
-use hibitset::{BitSet, BitSetAnd, BitSetLike};
-
-use storage::{MaskedStorage, Storage, WrappedStorage, UnprotectedStorage};
+use std::marker::PhantomData;
 
 use Index;
 
@@ -36,4 +32,5 @@ pub trait HasMeta<M> {
 }
 
 impl<T> Metadata<T> for () { }
+impl<T> Metadata<T> for PhantomData<T> { }
 

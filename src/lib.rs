@@ -37,6 +37,7 @@
 //!
 //! impl Component for MyComp {
 //!     type Storage = VecStorage<Self>;
+//!     type Metadata = ();
 //! }
 //! ```
 //!
@@ -260,7 +261,7 @@ pub use storage::{MergeError, PackedData};
 /// use specs::{Entities, Join};
 ///
 /// # use specs::{Component, VecStorage, World};
-/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
+/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; type Metadata = (); }
 /// # let mut world = World::new(); world.register::<Pos>();
 /// # let entities = world.entities(); let positions = world.read::<Pos>();
 /// for (e, pos) in (&*entities, &positions).join() {

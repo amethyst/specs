@@ -1,7 +1,7 @@
 
 use hibitset::BitSet;
 
-use {Index, Join, Metadata};
+use {Index, Join, HasMeta, Metadata};
 use world::EntityIndex;
 
 /// Wrapper storage that stores modifications to components in a bitset.
@@ -20,11 +20,6 @@ use world::EntityIndex;
 /// extern crate specs;
 ///
 /// use specs::{Component, Entities, Flagged, Join, System, DenseVecStorage, WriteStorage};
-///
-/// #[derive(Metadata)]
-/// pub struct CompMetadata {
-///    pub flagged: Flagged,
-/// }
 ///
 /// pub struct Comp(u32);
 /// impl Component for Comp {
@@ -70,7 +65,7 @@ use world::EntityIndex;
 ///         }
 ///
 ///         // To iterate over the flagged/modified components:
-///         for flagged_comp in (comps.meta().flagged).join() {
+///         for (flagged_comp, _) in (&comps, comps.find::<Flagged>()).join() {
 ///             // ...
 ///         }
 ///
@@ -83,24 +78,6 @@ use world::EntityIndex;
 #[derive(Clone, Default)]
 pub struct Flagged {
     mask: BitSet,
-}
-
-impl<T> Metadata<T> for Flagged {
-    fn clean<F>(&mut self, _: &F)
-    where
-        F: Fn(Index) -> bool
-    {
-        self.mask.clear();
-    }
-    fn get_mut(&mut self, id: Index, _: &mut T) {
-        self.mask.add(id);
-    }
-    fn insert(&mut self, id: Index, _: &T) {
-        self.mask.add(id);
-    }
-    fn remove(&mut self, id: Index, _: &T) {
-        self.mask.remove(id);
-    }
 }
 
 impl Flagged {
@@ -125,6 +102,33 @@ impl Flagged {
     }
 }
 
+impl<T> Metadata<T> for Flagged {
+    fn clean<F>(&mut self, _: &F)
+    where
+        F: Fn(Index) -> bool
+    {
+        self.mask.clear();
+    }
+    fn get_mut(&mut self, id: Index, _: &mut T) {
+        self.mask.add(id);
+    }
+    fn insert(&mut self, id: Index, _: &T) {
+        self.mask.add(id);
+    }
+    fn remove(&mut self, id: Index, _: &T) {
+        self.mask.remove(id);
+    }
+}
+
+impl HasMeta<Self> for Flagged {
+    fn find(&self) -> &Self {
+        self
+    }
+    fn find_mut(&mut self) -> &mut Self {
+        self
+    }
+}
+
 impl<'a> Join for &'a Flagged {
     type Type = ();
     type Value = ();
@@ -132,7 +136,7 @@ impl<'a> Join for &'a Flagged {
     fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, ())
     }
-    unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
+    unsafe fn get(_: &mut Self::Value, _: Index) -> Self::Type {
         ()
     }
 }
@@ -144,7 +148,7 @@ impl Join for Flagged {
     fn open(self) -> (Self::Mask, Self::Value) {
         (self.mask, ())
     }
-    unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
+    unsafe fn get(_: &mut Self::Value, _: Index) -> Self::Type {
         ()
     }
 }

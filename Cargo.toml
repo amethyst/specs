@@ -81,9 +81,6 @@ required-features = ["serde"]
 [[example]]
 name = "meta"
 
-[[example]]
-name = "meta_test"
-
 [workspace]
 members = ["specs-derive"]
 

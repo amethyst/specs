@@ -19,6 +19,7 @@ fn main() {
     }
     impl Component for CompSerialize {
         type Storage = VecStorage<Self>;
+        type Metadata = ();
     }
 
     #[derive(SystemData)]

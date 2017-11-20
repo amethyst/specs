@@ -19,8 +19,8 @@ use storage::MaskedStorage;
 /// ```
 /// # use specs::*;
 /// #
-/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
-/// # struct Vel; impl Component for Vel { type Storage = VecStorage<Self>; }
+/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; type Metadata = (); }
+/// # struct Vel; impl Component for Vel { type Storage = VecStorage<Self>; type Metadata = (); }
 /// #
 /// # let mut world = World::new(); world.register::<Pos>(); world.register::<Vel>();
 /// # let pos_storage = world.read::<Pos>();
@@ -42,9 +42,9 @@ use storage::MaskedStorage;
 /// ```
 /// # use specs::*;
 /// # #[derive(Debug, PartialEq)]
-/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
+/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; type Metadata = (); }
 /// # #[derive(Debug, PartialEq)]
-/// # struct Vel; impl Component for Vel { type Storage = VecStorage<Self>; }
+/// # struct Vel; impl Component for Vel { type Storage = VecStorage<Self>; type Metadata = (); }
 /// #
 /// # let mut world = World::new(); world.register::<Pos>(); world.register::<Vel>();
 /// let entity1 = world.create_entity()
@@ -78,6 +78,7 @@ use storage::MaskedStorage;
 ///
 /// impl Component for Pos {
 ///     type Storage = VecStorage<Self>;
+///     type Metadata = ();
 /// }
 ///
 /// struct Sys;
@@ -131,7 +132,7 @@ where
 /// ```
 /// # use specs::*;
 /// # #[derive(Debug, PartialEq)]
-/// # struct Pos(f32); impl Component for Pos { type Storage = VecStorage<Self>; }
+/// # struct Pos(f32); impl Component for Pos { type Storage = VecStorage<Self>; type Metadata = (); }
 /// #
 /// # let mut world = World::new(); world.register::<Pos>();
 /// let entity = world.create_entity()
@@ -155,7 +156,7 @@ where
 /// ```
 /// # use specs::*;
 /// # #[derive(Debug, PartialEq)]
-/// # struct Pos(f32); impl Component for Pos { type Storage = VecStorage<Self>; }
+/// # struct Pos(f32); impl Component for Pos { type Storage = VecStorage<Self>; type Metadata = (); }
 /// #
 /// # let mut world = World::new(); world.register::<Pos>();
 /// let entity = world.create_entity()

@@ -129,6 +129,15 @@ fn impl_metadata(ast: &DeriveInput) -> Tokens {
             }
         }
 
+        impl<#impl_generics> ::specs::HasMeta<Self> for #name #ty_generics #where_clause {
+            fn find(&self) -> &Self {
+                self
+            }
+            fn find_mut(&mut self) -> &mut Self {
+                self
+            }
+        }
+
         #(
             impl<#impl_generics_list> ::specs::HasMeta<#field_ty> for #name_list #ty_generics_list #where_clause_list {
                 fn find(&self) -> &#field_ty_2 {

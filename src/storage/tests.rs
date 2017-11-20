@@ -152,13 +152,9 @@ mod test {
         }
     }
 
-    #[derive(Metadata)]
-    pub struct CvecMeta {
-        pub flagged: Flagged,
-    }
     impl Component for FlaggedCvec {
         type Storage = DenseVecStorage<Self>;
-        type Metadata = CvecMeta;
+        type Metadata = Flagged;
     }
 
     #[derive(PartialEq, Eq, Debug)]
@@ -753,19 +749,19 @@ mod test {
         for i in 0..15 {
             // Test insertion flagging
             s1.insert(Entity::new(i, Generation::new(1)), i.into());
-            assert!(s1.meta::<Flagged>().flagged(Entity::new(i, Generation::new(1))));
+            assert!(s1.find::<Flagged>().flagged(Entity::new(i, Generation::new(1))));
 
             if i % 2 == 0 {
                 s2.insert(Entity::new(i, Generation::new(1)), i.into());
-                assert!(s2.meta::<Flagged>().flagged(Entity::new(i, Generation::new(1))));
+                assert!(s2.find::<Flagged>().flagged(Entity::new(i, Generation::new(1))));
             }
         }
 
-        s1.mut_meta().flagged.clear_flags();
+        s1.find_mut::<Flagged>().clear_flags();
 
         // Cleared flags
         for (entity, _) in (entities, &s1.check()).join() {
-            assert!(!s1.meta().flagged.flagged(&entity));
+            assert!(!s1.find::<Flagged>().flagged(&entity));
         }
 
         // Modify components to flag.
@@ -777,7 +773,7 @@ mod test {
         for (entity, _) in (entities, &s1.check()).join() {
             // Should only be modified if the entity had both components
             // Which means only half of them should have it.
-            if s1.meta().flagged.flagged(&entity) {
+            if s1.find::<Flagged>().flagged(&entity) {
                 println!("Flagged: {:?}", entity.index());
                 // Only every other component was flagged.
                 assert!(entity.index() % 2 == 0);
@@ -785,9 +781,9 @@ mod test {
         }
 
         // Iterate over all flagged entities.
-        for (entity, _) in (&*w.entities(), s1.associate(|meta| meta.flagged)).join() {
+        for (entity, _, _) in (&*w.entities(), &s1, s1.find::<Flagged>()).join() {
             // All entities in here should be flagged.
-            assert!(s1.meta().flagged.flagged(&entity));
+            assert!(s1.find::<Flagged>().flagged(&entity));
         }
     }
 }

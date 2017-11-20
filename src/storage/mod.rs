@@ -150,9 +150,9 @@ impl<T: Component> Drop for MaskedStorage<T> {
     }
 }
 
+/// Wraps the Component's `Storage` and `Metadata` together.
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
-/// Associates the component's storage with its metadata.
 pub struct WrappedStorage<T: Component> {
     inner: T::Storage,
     meta: T::Metadata,
@@ -251,14 +251,17 @@ where
         self.data.mask.clone()
     }
 
+    /*
     pub fn meta(&self) -> &T::Metadata {
         &self.data.wrapped.meta
     }
+    */
 
     pub fn find<M>(&self) -> &M
         where T::Metadata: HasMeta<M>,
     {
-        self.meta().find()
+        self.data.wrapped.meta.find()
+        //self.meta().find()
     }
 }
 
@@ -471,14 +474,17 @@ where
         }
     }
 
+    /*
     pub fn meta_mut(&mut self) -> &mut T::Metadata {
         &mut self.data.wrapped.meta
     }
+    */
 
     pub fn find_mut<M>(&mut self) -> &mut M
         where T::Metadata: HasMeta<M>,
     {
-        self.meta_mut().find_mut()
+        self.data.wrapped.meta.find_mut()
+        //self.meta_mut().find_mut()
     }
 }
 
