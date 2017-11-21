@@ -101,9 +101,11 @@ macro_rules! tests {
 
             impl Component for CompInt {
                 type Storage = $storage;
+                type Metadata = ();
             }
             impl Component for CompBool {
                 type Storage = $storage;
+                type Metadata = ();
             }
 
             setup!(NUM => [ CompInt, CompBool ]);
