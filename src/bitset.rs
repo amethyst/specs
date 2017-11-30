@@ -1,6 +1,6 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
 
-use hibitset::{BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr, BitSetXor};
+use hibitset::{AtomicBitSet, BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr, BitSetXor};
 
 use {Index, Join, ParJoin};
 
@@ -28,6 +28,8 @@ macro_rules! define_bit_join {
 
 define_bit_join!(impl<()()> for BitSet);
 define_bit_join!(impl<('a)()> for &'a BitSet);
+define_bit_join!(impl<()()> for AtomicBitSet);
+define_bit_join!(impl<('a)()> for &'a AtomicBitSet);
 define_bit_join!(impl<()(A)> for BitSetNot<A>);
 define_bit_join!(impl<('a)(A)> for &'a BitSetNot<A>);
 define_bit_join!(impl<()(A, B)> for BitSetAnd<A, B>);
