@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+* Implementations of Join for owned BitSets, including AtomicBitset. ([#303])
+* Add `Bundle` for registering multiple resources and components at once. ([#296])
+* Add `TrackedStorage`, a more ergonomic variant to `FlaggedStorage` ([#291])
+* Add `nightly` feature flag for unstable features. ([#290])
 * Add `saveload` module for easy entity serialization ([#275])
 * Improve docs, book and examples ([#278], [#281], [#283], [#285])
 * Add `EntityBuilder::marked` convenience method ([#287])
@@ -12,6 +16,10 @@
 [#283]: https://github.com/slide-rs/specs/pull/283
 [#285]: https://github.com/slide-rs/specs/pull/285
 [#287]: https://github.com/slide-rs/specs/pull/287
+[#290]: https://github.com/slide-rs/specs/pull/290
+[#291]: https://github.com/slide-rs/specs/pull/291
+[#296]: https://github.com/slide-rs/specs/pull/296
+[#303]: https://github.com/slide-rs/specs/pull/303
 
 ## 0.10.0
 
