@@ -14,7 +14,7 @@ use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
 
-use hibitset::{BitSet, BitSetNot};
+use hibitset::{BitSet, BitSetAnd, BitSetLike, BitSetNot};
 use mopa::Any;
 use shred::Fetch;
 
@@ -507,4 +507,59 @@ pub trait UnprotectedStorage<T>: Default + Sized {
 
     /// Removes the data associated with an `Index`.
     unsafe fn remove(&mut self, id: Index) -> T;
+}
+
+// TODO: move to it's own file
+/// `UnprotectedStorage`s that track modifications, insertions, and
+/// removals of components.
+pub trait Tracked<'a> {
+    /// A `Join`able structure that iterates over modifies components.
+    type Modified: Join + 'a;
+    /// A `Join`able structure that iterates over inserted components.
+    type Inserted: Join + 'a;
+    /// A `Join`able structure that iterates over removed components.
+    type Removed: Join + 'a;
+    /// Join iterator over all modified components.
+    fn modified(&'a self) -> Self::Modified;
+    /// Join iterator over all inserted components.
+    fn inserted(&'a self) -> Self::Inserted;
+    /// Join iterator over all removed components.
+    fn removed(&'a self) -> Self::Removed;
+}
+
+impl<'e, T, D> Storage<'e, T, D>
+where
+    T: Component,
+    for<'a> T::Storage: Tracked<'a>,
+    D: DerefMut<Target = MaskedStorage<T>>,
+{
+    /// Whether the component the entity is associated with was flagged as modified.
+    pub fn was_modified<E: AsRef<Entity>>(&self, e: E) -> bool {
+        self.entities.is_alive(*e.as_ref()) && self.open().1.modified().open().0.contains(e.as_ref().id())
+    }
+
+    /// Whether the component the entity is associated with was flagged as inserted.
+    pub fn was_inserted<E: AsRef<Entity>>(&self, e: E) -> bool {
+        self.entities.is_alive(*e.as_ref()) && self.open().1.inserted().open().0.contains(e.as_ref().id())
+    }
+
+    /// Whether the component the entity is associated with was flagged as removed.
+    pub fn was_removed<E: AsRef<Entity>>(&self, e: E) -> bool {
+        self.entities.is_alive(*e.as_ref()) && self.open().1.removed().open().0.contains(e.as_ref().id())
+    }
+
+    /// A bitset? over modified components
+    pub fn modified(&self) -> <T::Storage as Tracked>::Modified {
+        self.open().1.modified()
+    }
+
+    /// A bitset? over inserted components
+    pub fn inserted(&self) -> <T::Storage as Tracked>::Inserted {
+        self.open().1.inserted()
+    }
+
+    /// A bitset? over removed components
+    pub fn removed(&self) -> <T::Storage as Tracked>::Removed {
+        self.open().1.removed()
+    }
 }

@@ -21,7 +21,7 @@ travis-ci = { repository = "slide-rs/specs" }
 crossbeam = "0.3.0"
 derivative = "1"
 fnv = "1.0"
-hibitset = { git = "https://github.com/slide-rs/hibitset" }
+hibitset = { git = "https://github.com/slide-rs/hibitset", commit = "d4c2b537e1953dc2cc07009bf6fd8b788a327a01", version = "0.3.2" }
 mopa = "0.2"
 shred = "0.5.0"
 shred-derive = "0.3"
