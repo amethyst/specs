@@ -8,7 +8,7 @@ pub use self::ser::{MergeError, PackedData};
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
-pub use self::tracked::{Change, ChangeEvents, TrackedStorage};
+pub use self::track::{Capacity, DefaultCapacity, Tracked, Populate, Flag, ModifiedFlag, InsertedFlag, RemovedFlag};
 
 use std;
 use std::marker::PhantomData;
@@ -30,7 +30,7 @@ mod ser;
 mod storages;
 #[cfg(test)]
 mod tests;
-mod tracked;
+mod track;
 
 /// An inverted storage type, only useful to iterate entities
 /// that do not have a particular component type.
