@@ -16,6 +16,7 @@ mod map_test {
     struct Comp<T>(T);
     impl<T: Any + Send + Sync> Component for Comp<T> {
         type Storage = VecStorage<Self>;
+        type Metadata = ();
     }
 
     fn ent(i: Index) -> Entity {
@@ -118,6 +119,7 @@ mod test {
     struct CMarker;
     impl Component for CMarker {
         type Storage = NullStorage<Self>;
+        type Metadata = ();
     }
 
     #[derive(PartialEq, Eq, Debug)]
@@ -134,6 +136,7 @@ mod test {
     }
     impl Component for Cvec {
         type Storage = VecStorage<Self>;
+        type Metadata = ();
     }
 
     #[derive(PartialEq, Eq, Debug)]
@@ -148,8 +151,10 @@ mod test {
             &mut self.0
         }
     }
+
     impl Component for FlaggedCvec {
-        type Storage = FlaggedStorage<Self, VecStorage<Self>>;
+        type Storage = DenseVecStorage<Self>;
+        type Metadata = Flagged;
     }
 
     #[derive(PartialEq, Eq, Debug)]
@@ -166,6 +171,7 @@ mod test {
     }
     impl Component for Cmap {
         type Storage = HashMapStorage<Self>;
+        type Metadata = ();
     }
 
     #[derive(PartialEq, Eq, Debug)]
@@ -182,6 +188,7 @@ mod test {
     }
     impl Component for CBtree {
         type Storage = BTreeStorage<Self>;
+        type Metadata = ();
     }
 
     #[derive(PartialEq, Eq, Debug)]
@@ -202,6 +209,7 @@ mod test {
     #[cfg(feature = "rudy")]
     impl Component for CRudy {
         type Storage = RudyStorage<Self>;
+        type Metadata = ();
     }
 
     #[derive(Debug, Default, PartialEq)]
@@ -215,6 +223,7 @@ mod test {
 
     impl Component for Cnull {
         type Storage = NullStorage<Self>;
+        type Metadata = ();
     }
 
     fn test_add<T: Component + From<u32> + Debug + Eq>() {
@@ -740,19 +749,19 @@ mod test {
         for i in 0..15 {
             // Test insertion flagging
             s1.insert(Entity::new(i, Generation::new(1)), i.into());
-            assert!(s1.open().1.flagged(Entity::new(i, Generation::new(1))));
+            assert!(s1.find::<Flagged>().flagged(Entity::new(i, Generation::new(1))));
 
             if i % 2 == 0 {
                 s2.insert(Entity::new(i, Generation::new(1)), i.into());
-                assert!(s2.open().1.flagged(Entity::new(i, Generation::new(1))));
+                assert!(s2.find::<Flagged>().flagged(Entity::new(i, Generation::new(1))));
             }
         }
 
-        (&mut s1).open().1.clear_flags();
+        s1.find_mut::<Flagged>().clear_flags();
 
         // Cleared flags
         for (entity, _) in (entities, &s1.check()).join() {
-            assert!(!s1.open().1.flagged(&entity));
+            assert!(!s1.find::<Flagged>().flagged(&entity));
         }
 
         // Modify components to flag.
@@ -764,7 +773,7 @@ mod test {
         for (entity, _) in (entities, &s1.check()).join() {
             // Should only be modified if the entity had both components
             // Which means only half of them should have it.
-            if s1.open().1.flagged(&entity) {
+            if s1.find::<Flagged>().flagged(&entity) {
                 println!("Flagged: {:?}", entity.index());
                 // Only every other component was flagged.
                 assert!(entity.index() % 2 == 0);
@@ -772,9 +781,9 @@ mod test {
         }
 
         // Iterate over all flagged entities.
-        for (entity, _) in (&*w.entities(), s1.open().1).join() {
+        for (entity, _, _) in (&*w.entities(), &s1, s1.find::<Flagged>()).join() {
             // All entities in here should be flagged.
-            assert!(s1.open().1.flagged(&entity));
+            assert!(s1.find::<Flagged>().flagged(&entity));
         }
     }
 }
@@ -793,6 +802,7 @@ mod serialize_test {
     }
     impl Component for CompTest {
         type Storage = VecStorage<Self>;
+        type Metadata = ();
     }
 
     #[test]

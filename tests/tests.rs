@@ -9,6 +9,7 @@ struct CompInt(i8);
 
 impl Component for CompInt {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Debug)]
@@ -16,6 +17,7 @@ struct CompBool(bool);
 
 impl Component for CompBool {
     type Storage = HashMapStorage<Self>;
+    type Metadata = ();
 }
 
 fn create_world() -> World {

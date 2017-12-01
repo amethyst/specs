@@ -117,6 +117,7 @@ impl Transform {
 
 impl Component for Transform {
     type Storage = TrackedStorage<Self>;
+    type Metadata = ();
 }
 
 fn main() {

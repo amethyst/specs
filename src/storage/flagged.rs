@@ -1,13 +1,12 @@
-use std::marker::PhantomData;
 
 use hibitset::BitSet;
 
-use {Index, Join, UnprotectedStorage};
+use {Index, Join, HasMeta, Metadata};
 use world::EntityIndex;
 
 /// Wrapper storage that stores modifications to components in a bitset.
 ///
-/// **Note:** Joining over all components of a `FlaggedStorage`
+/// **Note:** Joining over all components of a `Flagged`
 /// mutably will flag all components.**
 ///
 /// What you want to instead is to use `check()` or `restrict()` to first
@@ -20,13 +19,12 @@ use world::EntityIndex;
 /// ```rust
 /// extern crate specs;
 ///
-/// use specs::{Component, Entities, FlaggedStorage, Join, System, VecStorage, WriteStorage};
+/// use specs::{Component, Entities, Flagged, Join, System, DenseVecStorage, WriteStorage};
 ///
 /// pub struct Comp(u32);
 /// impl Component for Comp {
-///     // `FlaggedStorage` acts as a wrapper around another storage.
-///     // You can put any store inside of here (e.g. HashMapStorage, VecStorage, etc.)
-///     type Storage = FlaggedStorage<Self, VecStorage<Self>>;
+///     type Storage = DenseVecStorage<Self>;
+///     type Metadata = Flagged;
 /// }
 ///
 /// pub struct CompSystem;
@@ -67,55 +65,22 @@ use world::EntityIndex;
 ///         }
 ///
 ///         // To iterate over the flagged/modified components:
-///         for flagged_comp in ((&comps).open().1).join() {
+///         for (flagged_comp, _) in (&comps, comps.find::<Flagged>()).join() {
 ///             // ...
 ///         }
 ///
 ///         // Clears the tracked storage every frame with this system.
-///         (&mut comps).open().1.clear_flags();
+///         comps.find_mut::<Flagged>().clear_flags();
 ///     }
 /// }
 ///# fn main() { }
 /// ```
-#[derive(Derivative)]
-#[derivative(Default(bound = "T: Default"))]
-pub struct FlaggedStorage<C, T> {
+#[derive(Clone, Default)]
+pub struct Flagged {
     mask: BitSet,
-    storage: T,
-    phantom: PhantomData<C>,
 }
 
-impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
-    unsafe fn clean<F>(&mut self, has: F)
-    where
-        F: Fn(Index) -> bool,
-    {
-        self.mask.clear();
-        self.storage.clean(has);
-    }
-
-    unsafe fn get(&self, id: Index) -> &C {
-        self.storage.get(id)
-    }
-
-    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
-        // calling `.iter()` on an unconstrained mutable storage will flag everything
-        self.mask.add(id);
-        self.storage.get_mut(id)
-    }
-
-    unsafe fn insert(&mut self, id: Index, comp: C) {
-        self.mask.add(id);
-        self.storage.insert(id, comp);
-    }
-
-    unsafe fn remove(&mut self, id: Index) -> C {
-        self.mask.remove(id);
-        self.storage.remove(id)
-    }
-}
-
-impl<C, T: UnprotectedStorage<C>> FlaggedStorage<C, T> {
+impl Flagged {
     /// Whether the component that belongs to the given entity was flagged or not.
     pub fn flagged<E: EntityIndex>(&self, entity: E) -> bool {
         self.mask.contains(entity.index())
@@ -137,32 +102,54 @@ impl<C, T: UnprotectedStorage<C>> FlaggedStorage<C, T> {
     }
 }
 
-impl<'a, C, T: UnprotectedStorage<C>> Join for &'a FlaggedStorage<C, T> {
-    type Type = &'a C;
-    type Value = &'a T;
-    type Mask = &'a BitSet;
-
-    fn open(self) -> (Self::Mask, Self::Value) {
-        (&self.mask, &self.storage)
+impl<T> Metadata<T> for Flagged {
+    fn clean<F>(&mut self, _: &F)
+    where
+        F: Fn(Index) -> bool
+    {
+        self.mask.clear();
     }
+    fn get_mut(&mut self, id: Index, _: &mut T) {
+        self.mask.add(id);
+    }
+    fn insert(&mut self, id: Index, _: &T) {
+        self.mask.add(id);
+    }
+    fn remove(&mut self, id: Index, _: &T) {
+        self.mask.remove(id);
+    }
+}
 
-    unsafe fn get(v: &mut Self::Value, id: Index) -> &'a C {
-        v.get(id)
+impl HasMeta<Self> for Flagged {
+    fn find(&self) -> &Self {
+        self
+    }
+    fn find_mut(&mut self) -> &mut Self {
+        self
     }
 }
 
-impl<'a, C, T: UnprotectedStorage<C>> Join for &'a mut FlaggedStorage<C, T> {
-    type Type = &'a mut C;
-    type Value = &'a mut T;
+impl<'a> Join for &'a Flagged {
+    type Type = ();
+    type Value = ();
     type Mask = &'a BitSet;
-
     fn open(self) -> (Self::Mask, Self::Value) {
-        (&self.mask, &mut self.storage)
+        (&self.mask, ())
     }
-
-    unsafe fn get(v: &mut Self::Value, id: Index) -> &'a mut C {
-        // similar issue here as the `Storage<T, A, D>` implementation
-        let value: *mut Self::Value = v as *mut Self::Value;
-        (*value).get_mut(id)
+    unsafe fn get(_: &mut Self::Value, _: Index) -> Self::Type {
+        ()
     }
 }
+
+impl Join for Flagged {
+    type Type = ();
+    type Value = ();
+    type Mask = BitSet;
+    fn open(self) -> (Self::Mask, Self::Value) {
+        (self.mask, ())
+    }
+    unsafe fn get(_: &mut Self::Value, _: Index) -> Self::Type {
+        ()
+    }
+}
+

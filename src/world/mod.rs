@@ -126,6 +126,7 @@ impl<'a> Iterator for CreateIter<'a> {
 ///
 /// impl Component for Health {
 ///     type Storage = HashMapStorage<Self>;
+///     type Metadata = ();
 /// }
 ///
 /// struct Pos {
@@ -135,6 +136,7 @@ impl<'a> Iterator for CreateIter<'a> {
 ///
 /// impl Component for Pos {
 ///     type Storage = DenseVecStorage<Self>;
+///     type Metadata = ();
 /// }
 ///
 /// let mut world = World::new();
@@ -212,8 +214,8 @@ impl<'a> EntityBuilder<'a> {
 ///
 /// ```
 /// # use specs::{Component, VecStorage};
-/// # struct Pos { x: f32, y: f32, } impl Component for Pos { type Storage = VecStorage<Self>; }
-/// # struct Vel { x: f32, y: f32, } impl Component for Vel { type Storage = VecStorage<Self>; }
+/// # struct Pos { x: f32, y: f32, } impl Component for Pos { type Storage = VecStorage<Self>; type Metadata = (); }
+/// # struct Vel { x: f32, y: f32, } impl Component for Vel { type Storage = VecStorage<Self>; type Metadata = (); }
 /// # struct DeltaTime(f32);
 /// use specs::World;
 ///
@@ -273,6 +275,7 @@ impl World {
     ///
     /// impl Component for Pos {
     ///     type Storage = DenseVecStorage<Self>;
+    ///     type Metadata = ();
     /// }
     ///
     /// let mut world = World::new();
@@ -601,6 +604,7 @@ impl Borrow<Resources> for World {
 
 impl Component for World {
     type Storage = DenseVecStorage<Self>;
+    type Metadata = ();
 }
 
 impl Default for World {

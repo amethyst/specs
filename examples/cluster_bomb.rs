@@ -19,6 +19,7 @@ struct ClusterBomb {
 impl Component for ClusterBomb {
     // This uses `HashMapStorage`, because only some entities are cluster bombs.
     type Storage = HashMapStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Debug)]
@@ -28,6 +29,7 @@ struct Shrapnel {
 impl Component for Shrapnel {
     // This uses `HashMapStorage`, because only some entities are shrapnels.
     type Storage = HashMapStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Debug, Clone)]
@@ -35,6 +37,7 @@ struct Pos(f32, f32);
 impl Component for Pos {
     // This uses `VecStorage`, because all entities have a position.
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Debug)]
@@ -42,6 +45,7 @@ struct Vel(f32, f32);
 impl Component for Vel {
     // This uses `DenseVecStorage`, because nearly all entities have a velocity.
     type Storage = DenseVecStorage<Self>;
+    type Metadata = ();
 }
 
 struct ClusterBombSystem;

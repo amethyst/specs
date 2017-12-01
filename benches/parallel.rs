@@ -21,6 +21,7 @@ struct Pos(Vec2);
 
 impl Component for Pos {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -28,6 +29,7 @@ struct Vel(Vec2);
 
 impl Component for Vel {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -35,6 +37,7 @@ struct Force(Vec2);
 
 impl Component for Force {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -42,6 +45,7 @@ struct InvMass(f32);
 
 impl Component for InvMass {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -49,6 +53,7 @@ struct Lifetime(f32);
 
 impl Component for Lifetime {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -58,6 +63,7 @@ struct Ball {
 
 impl Component for Ball {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -68,6 +74,7 @@ struct Rect {
 
 impl Component for Rect {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -78,6 +85,7 @@ enum Spawner {
 
 impl Component for Spawner {
     type Storage = HashMapStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -85,6 +93,7 @@ struct SpawnRequests(usize);
 
 impl Component for SpawnRequests {
     type Storage = HashMapStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -96,6 +105,7 @@ struct Collision {
 
 impl Component for Collision {
     type Storage = DenseVecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -106,6 +116,7 @@ struct Room {
 
 impl Component for Room {
     type Storage = HashMapStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -116,6 +127,7 @@ enum Color {
 
 impl Component for Color {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -123,6 +135,7 @@ struct KillsEnemy;
 
 impl Component for KillsEnemy {
     type Storage = NullStorage<Self>;
+    type Metadata = ();
 }
 
 // -- Resources --

@@ -25,10 +25,12 @@ impl Future for MyFuture {
 
 impl Component for MyFloat {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 impl Component for MyFuture {
     type Storage = DenseVecStorage<Self>;
+    type Metadata = ();
 }
 
 fn main() {

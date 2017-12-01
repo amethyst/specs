@@ -1,5 +1,6 @@
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![cfg_attr(feature = "nightly", feature(core_intrinsics))]
+#![recursion_limit="1024"]
 
 //! # SPECS Parallel ECS
 //!
@@ -36,6 +37,7 @@
 //!
 //! impl Component for MyComp {
 //!     type Storage = VecStorage<Self>;
+//!     type Metadata = ();
 //! }
 //! ```
 //!
@@ -104,12 +106,14 @@
 //!
 //! impl Component for Vel {
 //!     type Storage = VecStorage<Self>;
+//!     type Metadata = ();
 //! }
 //!
 //! struct Pos(f32);
 //!
 //! impl Component for Pos {
 //!     type Storage = VecStorage<Self>;
+//!     type Metadata = ();
 //! }
 //!
 //! struct SysA;
@@ -216,10 +220,10 @@ pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut, Fetch
 pub use shred::AsyncDispatcher;
 
 pub use storage::{BTreeStorage, Change, ChangeEvents, DenseVecStorage, DistinctStorage, Entry,
-                  FlaggedStorage, HashMapStorage, InsertResult, MaskedStorage, NormalRestriction,
+                  Flagged, HashMapStorage, HasMeta, InsertResult, MaskedStorage, Metadata, NormalRestriction,
                   NullStorage, OccupiedEntry, ParallelRestriction, ReadStorage, RestrictedStorage,
                   Storage, StorageEntry, TrackedStorage, UnprotectedStorage, VacantEntry,
-                  VecStorage, WriteStorage};
+                  VecStorage, WrappedStorage, WriteStorage};
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
                 Generation, LazyUpdate, World};
 
@@ -257,7 +261,7 @@ pub use storage::{MergeError, PackedData};
 /// use specs::{Entities, Join};
 ///
 /// # use specs::{Component, VecStorage, World};
-/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
+/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; type Metadata = (); }
 /// # let mut world = World::new(); world.register::<Pos>();
 /// # let entities = world.entities(); let positions = world.read::<Pos>();
 /// for (e, pos) in (&*entities, &positions).join() {

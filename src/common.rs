@@ -262,6 +262,7 @@ mod test {
 
         impl Component for TestComponent {
             type Storage = NullStorage<Self>;
+            type Metadata = ();
         }
 
         struct TestFuture {
@@ -283,6 +284,7 @@ mod test {
 
         impl Component for TestFuture {
             type Storage = VecStorage<Self>;
+            type Metadata = ();
         }
 
         #[derive(Debug)]

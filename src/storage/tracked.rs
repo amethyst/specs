@@ -17,7 +17,7 @@ use {Component, DenseVecStorage, Index, MaskedStorage, Storage, UnprotectedStora
 ///
 /// ## Maintain
 ///
-/// By maintaining the `FlaggedStorage`, the inner storage and the cache
+/// By maintaining the `Flagged`, the inner storage and the cache
 /// will be searched for unequal elements, generating `Modified` events for those.
 ///
 /// ## Frames
@@ -118,6 +118,7 @@ where
     /// impl Component for Comp {
     ///     // Will use `DenseVecStorage` by default.
     ///     type Storage = TrackedStorage<Self>;
+    ///     type Metadata = ();
     /// }
     ///
     /// let mut w = World::new();
@@ -129,7 +130,7 @@ where
     /// assert_eq!(change, Change::Inserted);
     /// ```
     pub fn change_events_tracked(&self) -> &[Change] {
-        self.data.inner.change_events()
+        self.data.wrapped.change_events()
     }
 }
 
@@ -282,6 +283,7 @@ mod tests {
 
     impl Component for Comp {
         type Storage = TrackedStorage<Self>;
+        type Metadata = ();
     }
 
     fn world() -> World {

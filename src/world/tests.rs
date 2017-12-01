@@ -6,12 +6,14 @@ struct Pos;
 
 impl Component for Pos {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 struct Vel;
 
 impl Component for Vel {
     type Storage = VecStorage<Self>;
+    type Metadata = ();
 }
 
 #[test]
