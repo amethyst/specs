@@ -727,7 +727,6 @@ mod test {
     #[test]
     fn flagged() {
         use join::Join;
-        use world::EntityIndex;
 
         let mut w = World::new();
         w.register_with_id::<FlaggedCvec>(1);
@@ -765,9 +764,9 @@ mod test {
             // Should only be modified if the entity had both components
             // Which means only half of them should have it.
             if s1.open().1.flagged(&entity) {
-                println!("Flagged: {:?}", entity.index());
+                println!("Flagged: {:?}", entity.id());
                 // Only every other component was flagged.
-                assert!(entity.index() % 2 == 0);
+                assert!(entity.id() % 2 == 0);
             }
         }
 

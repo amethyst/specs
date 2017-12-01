@@ -150,6 +150,12 @@ impl Errors {
     }
 }
 
+impl Default for Errors {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A system which merges `Ready` futures into the persistent storage.
 /// Please note that your `World` has to contain a component storage
 /// for `F` and `F::Item`.

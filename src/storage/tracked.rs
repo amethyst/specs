@@ -70,9 +70,8 @@ impl Change {
             (None, new) => new,
             (Inserted, Modified) => Inserted,
             (Inserted, Removed) => None,
-            (Modified, Modified) => Modified,
+            (Modified, Modified) | (Removed, Inserted) => Modified,
             (Modified, Removed) => Removed,
-            (Removed, Inserted) => Modified,
             (old, new) => panic!("Didn't expect change from {:?} to {:?}", old, new),
         };
 
