@@ -737,44 +737,26 @@ mod test {
         let mut s1: Storage<FlaggedCvec, _> = w.write_with_id(1);
         let mut s2: Storage<FlaggedCvec, _> = w.write_with_id(2);
 
+        let mut modified = BitSet::new();
+        let mut inserted = BitSet::new();
+        let mut removed = BitSet::new();
+        let mut modified_id = s1.track_modified();
+        let mut inserted_id = s1.track_inserted();
+        let mut removed_id = s1.track_removed();
+
         for i in 0..15 {
             // Test insertion flagging
             s1.insert(Entity::new(i, Generation::new(1)), i.into());
-            assert!(s1.open().1.flagged(Entity::new(i, Generation::new(1))));
 
             if i % 2 == 0 {
                 s2.insert(Entity::new(i, Generation::new(1)), i.into());
-                assert!(s2.open().1.flagged(Entity::new(i, Generation::new(1))));
             }
         }
 
-        (&mut s1).open().1.clear_flags();
+        s1.populate_inserted(&mut inserted_id, &mut inserted);
 
-        // Cleared flags
-        for (entity, _) in (entities, s1.mask()).join() {
-            assert!(!s1.open().1.flagged(&entity));
-        }
-
-        // Modify components to flag.
-        for (c1, c2) in (&mut s1, &s2).join() {
-            println!("{:?} {:?}", c1, c2);
-            c1.0 += c2.0;
-        }
-
-        for (entity, _) in (entities, s1.mask()).join() {
-            // Should only be modified if the entity had both components
-            // Which means only half of them should have it.
-            if s1.open().1.flagged(&entity) {
-                println!("Flagged: {:?}", entity.index());
-                // Only every other component was flagged.
-                assert!(entity.index() % 2 == 0);
-            }
-        }
-
-        // Iterate over all flagged entities.
-        for (entity, _) in (&*w.entities(), s1.open().1).join() {
-            // All entities in here should be flagged.
-            assert!(s1.open().1.flagged(&entity));
+        for (entity, _) in (entities, &s1).join() {
+            assert!(inserted.contains(entity.id()));
         }
     }
 }
