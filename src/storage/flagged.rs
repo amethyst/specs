@@ -1,10 +1,13 @@
 
 use std::marker::PhantomData;
 
-use hibitset::{BitSet, BitSetLike};
+use shrev::EventChannel;
 
-use {Index, Join, Tracked, UnprotectedStorage};
-use world::EntityIndex;
+use {Flag, Index, Tracked, UnprotectedStorage};
+
+const MODIFY_CAPACITY: usize = 5000;
+const INSERT_CAPACITY: usize = 3000;
+const REMOVE_CAPACITY: usize = 3000;
 
 /// Wrapper storage that stores modifications to components in a bitset.
 ///
@@ -78,14 +81,27 @@ use world::EntityIndex;
 /// }
 ///# fn main() { }
 /// ```
-#[derive(Derivative)]
-#[derivative(Default(bound = "T: Default"))]
 pub struct FlaggedStorage<C, T> {
-    modified: EventChannel<Index>,
-    removed: EventChannel<Index>,
-    inserted: EventChannel<Index>,
+    modified: EventChannel<Flag>,
+    inserted: EventChannel<Flag>,
+    removed: EventChannel<Flag>,
     storage: T,
     phantom: PhantomData<C>,
+}
+
+impl<C, T> Default for FlaggedStorage<C, T>
+where
+    T: Default
+{
+    fn default() -> Self {
+        FlaggedStorage {
+            modified: EventChannel::with_capacity(MODIFY_CAPACITY),
+            inserted: EventChannel::with_capacity(INSERT_CAPACITY),
+            removed: EventChannel::with_capacity(REMOVE_CAPACITY),
+            storage: T::default(),
+            phantom: PhantomData,
+        }
+    }
 }
 
 impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
@@ -93,9 +109,6 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
     where
         B: BitSetLike,
     {
-        self.modified.clear();
-        self.inserted.clear();
-        self.removed.clear();
         self.storage.clean(has);
     }
 
@@ -105,74 +118,39 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         // calling `.iter()` on an unconstrained mutable storage will flag everything
-        self.modified.add(id);
+        self.modified.single_write(Flag::Flag(id));
         self.storage.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
-        self.inserted.add(id);
+        self.inserted.single_write(Flag::Flag(id));
         self.storage.insert(id, comp);
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
-        self.removed.remove(id);
+        self.removed.single_write(Flag::Flag(id));
         self.storage.remove(id)
     }
 }
 
-/*
-impl<C, T: UnprotectedStorage<C>> FlaggedStorage<C, T> {
-    /// All components will be cleared of being flagged.
-    pub fn clear_flags(&mut self) {
-        self.modified.clear();
-        self.inserted.clear();
-        self.removed.clear();
-    }
-
-    /// Removes the inserted flag for the component of the given entity.
-    pub fn unflag_inserted<E: EntityIndex>(&mut self, entity: E) {
-        self.inserted.remove(entity.index());
-    }
-
-    /// Flags a single component as inserted.
-    pub fn flag_inserted<E: EntityIndex>(&mut self, entity: E) {
-        self.inserted.add(entity.index());
-    }
-
-    /// Removes the modified flag for the component of the given entity.
-    pub fn unflag_modified<E: EntityIndex>(&mut self, entity: E) {
-        self.modified.remove(entity.index());
-    }
-
-    /// Flags a single component as modified.
-    pub fn flag_modified<E: EntityIndex>(&mut self, entity: E) {
-        self.modified.add(entity.index());
-    }
-
-    /// Removes the removed flag for the component of the given entity.
-    pub fn unflag_removed<E: EntityIndex>(&mut self, entity: E) {
-        self.removed.remove(entity.index());
-    }
-
-    /// Flags a single component as removed.
-    pub fn flag_removed<E: EntityIndex>(&mut self, entity: E) {
-        self.removed.add(entity.index());
-    }
-}
-*/
-
-impl<'a, C, T> Tracked<'a> for FlaggedStorage<C, T> {
-    type Modified = &'a BitSet;
-    type Inserted = &'a BitSet;
-    type Removed = &'a BitSet;
-    fn modified(&'a self) -> Self::Modified {
+impl<C, T> Tracked for FlaggedStorage<C, T> {
+    fn modified(&self) -> &EventChannel<Flag> {
         &self.modified
     }
-    fn inserted(&'a self) -> Self::Inserted {
+    fn modified_mut(&mut self) -> &mut EventChannel<Flag> {
+        &mut self.modified
+    }
+    fn inserted(&self) -> &EventChannel<Flag> {
         &self.inserted
     }
-    fn removed(&'a self) -> Self::Removed {
+    fn inserted_mut(&mut self) -> &mut EventChannel<Flag> {
+        &mut self.inserted
+    }
+    fn removed(&self) -> &EventChannel<Flag> {
         &self.removed
+    }
+    fn removed_mut(&mut self) -> &mut EventChannel<Flag> {
+        &mut self.removed
     }
 }
 
