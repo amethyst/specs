@@ -194,6 +194,7 @@ extern crate hibitset;
 extern crate mopa;
 extern crate rayon;
 extern crate shred;
+extern crate shrev;
 extern crate tuple_utils;
 
 #[cfg(feature = "common")]
@@ -216,8 +217,8 @@ pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut, Fetch
 pub use shred::AsyncDispatcher;
 
 pub use storage::{BTreeStorage, Change, ChangeEvents, DenseVecStorage, DistinctStorage, Entry,
-                  FlaggedStorage, HashMapStorage, InsertResult, MaskedStorage, NormalRestriction,
-                  NullStorage, OccupiedEntry, ParallelRestriction, ReadStorage, RestrictedStorage,
+                  Flag, FlaggedStorage, HashMapStorage, InsertResult, MaskedStorage, NormalRestriction,
+                  NullStorage, OccupiedEntry, ParallelRestriction, Populate, ReadStorage, RestrictedStorage,
                   Storage, StorageEntry, Tracked, TrackedStorage, UnprotectedStorage, VacantEntry,
                   VecStorage, WriteStorage};
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
