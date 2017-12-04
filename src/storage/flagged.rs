@@ -81,9 +81,9 @@ use world::EntityIndex;
 #[derive(Derivative)]
 #[derivative(Default(bound = "T: Default"))]
 pub struct FlaggedStorage<C, T> {
-    modified: BitSet,
-    removed: BitSet,
-    inserted: BitSet,
+    modified: EventChannel<Index>,
+    removed: EventChannel<Index>,
+    inserted: EventChannel<Index>,
     storage: T,
     phantom: PhantomData<C>,
 }
@@ -120,6 +120,7 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
     }
 }
 
+/*
 impl<C, T: UnprotectedStorage<C>> FlaggedStorage<C, T> {
     /// All components will be cleared of being flagged.
     pub fn clear_flags(&mut self) {
@@ -158,6 +159,7 @@ impl<C, T: UnprotectedStorage<C>> FlaggedStorage<C, T> {
         self.removed.add(entity.index());
     }
 }
+*/
 
 impl<'a, C, T> Tracked<'a> for FlaggedStorage<C, T> {
     type Modified = &'a BitSet;

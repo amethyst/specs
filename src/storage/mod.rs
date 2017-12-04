@@ -506,18 +506,16 @@ pub trait UnprotectedStorage<T>: Default + Sized {
 /// `UnprotectedStorage`s that track modifications, insertions, and
 /// removals of components.
 pub trait Tracked<'a> {
-    /// A `Join`able structure that iterates over modifies components.
-    type Modified: Join + 'a;
-    /// A `Join`able structure that iterates over inserted components.
-    type Inserted: Join + 'a;
-    /// A `Join`able structure that iterates over removed components.
-    type Removed: Join + 'a;
     /// Join iterator over all modified components.
-    fn modified(&'a self) -> Self::Modified;
+    fn modified(&'a self) -> EventChannel<Index>;
     /// Join iterator over all inserted components.
-    fn inserted(&'a self) -> Self::Inserted;
+    fn inserted(&'a self) -> EventChannel<Index>;
     /// Join iterator over all removed components.
-    fn removed(&'a self) -> Self::Removed;
+    fn removed(&'a self) -> EventChannel<Index>;
+
+    fn track_modified(&self) -> ReaderId<Index>;
+    fn track_inserted(&self) -> ReaderId<Index>;
+    fn track_removed(&self) -> ReaderId<Index>;
 }
 
 impl<'e, T, D> Storage<'e, T, D>
@@ -527,18 +525,18 @@ where
     D: DerefMut<Target = MaskedStorage<T>>,
 {
     /// Whether the component the entity is associated with was flagged as modified.
-    pub fn was_modified<E: AsRef<Entity>>(&self, e: E) -> bool {
-        self.entities.is_alive(*e.as_ref()) && self.open().1.modified().open().0.contains(e.as_ref().id())
+    pub fn was_modified(&self, entity: Entity) -> bool {
+        self.entities.is_alive(entity) && self.open().1.modified().open().0.contains(entity.id())
     }
 
     /// Whether the component the entity is associated with was flagged as inserted.
-    pub fn was_inserted<E: AsRef<Entity>>(&self, e: E) -> bool {
-        self.entities.is_alive(*e.as_ref()) && self.open().1.inserted().open().0.contains(e.as_ref().id())
+    pub fn was_inserted(&self, entity: Entity) -> bool {
+        self.entities.is_alive(entity) && self.open().1.inserted().open().0.contains(entity.id())
     }
 
     /// Whether the component the entity is associated with was flagged as removed.
-    pub fn was_removed<E: AsRef<Entity>>(&self, e: E) -> bool {
-        self.entities.is_alive(*e.as_ref()) && self.open().1.removed().open().0.contains(e.as_ref().id())
+    pub fn was_removed(&self, entity: Entity) -> bool {
+        self.entities.is_alive(entity) && self.open().1.removed().open().0.contains(entity.id())
     }
 
     /// A bitset? over modified components
@@ -554,5 +552,9 @@ where
     /// A bitset? over removed components
     pub fn removed(&self) -> <T::Storage as Tracked>::Removed {
         self.open().1.removed()
+    }
+
+    pub fn populate_modified(&self, readerid: &mut ReaderId, bitset: &mut BitSet) {
+
     }
 }
