@@ -9,22 +9,26 @@ const MODIFY_CAPACITY: usize = 5000;
 const INSERT_CAPACITY: usize = 3000;
 const REMOVE_CAPACITY: usize = 3000;
 
-/// Wrapper storage that stores modifications to components in a bitset.
+/// Wrapper storage that tracks modifications, insertions, and removals of components
+/// through an `EventChannel`.
 ///
 /// **Note:** Joining over all components of a `FlaggedStorage`
-/// mutably will flag all components.**
+/// mutably will flag all components.
 ///
 /// What you want to instead is to use `check()` or `restrict()` to first
-/// get the entities which contain the component,
-/// and then conditionally set the component
-/// after a call to `get_mut_unchecked()` or `get_mut()`.
+/// get the entities which contain the component and then conditionally
+/// set the component after a call to `get_mut_unchecked()` or `get_mut()`.
 ///
 /// # Examples
 ///
 /// ```rust
 /// extern crate specs;
+/// extern crate shrev;
+/// extern crate hibitset;
 ///
-/// use specs::{Component, Entities, FlaggedStorage, Join, System, VecStorage, WriteStorage};
+/// use specs::{Component, Entities, Flag, FlaggedStorage, Join, System, VecStorage, WriteStorage};
+/// use shrev::ReaderId;
+/// use hibitset::BitSet;
 ///
 /// pub struct Comp(u32);
 /// impl Component for Comp {
@@ -33,10 +37,28 @@ const REMOVE_CAPACITY: usize = 3000;
 ///     type Storage = FlaggedStorage<Self, VecStorage<Self>>;
 /// }
 ///
-/// pub struct CompSystem;
+/// pub struct CompSystem {
+///     // This keeps track of the last modification events the system read.
+///     modified_id: Option<ReaderId<Flag>>, 
+///     modified: BitSet,
+/// }
+///
 /// impl<'a> System<'a> for CompSystem {
 ///     type SystemData = (Entities<'a>, WriteStorage<'a, Comp>);
 ///     fn run(&mut self, (entities, mut comps): Self::SystemData) {
+///         // If we aren't tracking the modification yet, then we should set that up.
+///         // Ideally you wouldn't have this in the system, but outside when you create
+///         // the system and put it in the dispatcher.
+///         if let None = self.modified_id {
+///             self.modified_id = Some(comps.track_modified());
+///         }
+///
+///         let reader_id = self.modified_id.as_mut().unwrap();
+///         
+///         // This allows us to use the modification events in a `Join`. Otherwise we
+///         // would have to iterate through the events which may not be in order.
+///         comps.populate_modified(reader_id, &mut self.modified);
+///
 ///         // Iterates over all components like normal.
 ///         for comp in (&comps).join() {
 ///             // ...
@@ -44,39 +66,27 @@ const REMOVE_CAPACITY: usize = 3000;
 ///
 ///         // **Never do this**
 ///         // This will flag all components as modified regardless of whether the inner loop
-///         // did modify their data.
+///         // actually modified the component.
 ///         //
-///         // Only do this if you have a bunch of other components to filter out the ones you
-///         // want to modify.
+///         // Only do this if you have other filters, like some other components to filter
+///         // out the ones you want to modify.
 ///         for comp in (&mut comps).join() {
 ///             // ...
 ///         }
 ///
 ///         // Instead do something like:
-///         for (entity, _) in (&*entities, &comps.check()).join() {
-///             if true { // check whether this component should be modified.
-///                 match comps.get_mut(entity) {
-///                     Some(component) => { /* ... */ },
-///                     None => { /* ... */ },
-///                 }
-///             }
-///         }
-///
-///         // Or alternatively:
+///#        let condition = true;
 ///         for (entity, (mut entry, mut restrict)) in (&*entities, &mut comps.restrict_mut()).join() {
-///             if true { // check whether this component should be modified.
+///             if condition { // check whether this component should be modified.
 ///                  let mut comp = restrict.get_mut_unchecked(&mut entry);
 ///                  // ...
 ///             }
 ///         }
 ///
 ///         // To iterate over the flagged/modified components:
-///         for flagged_comp in ((&comps).open().1).join() {
+///         for comp in (&comps, &self.modified).join() {
 ///             // ...
 ///         }
-///
-///         // Clears the tracked storage every frame with this system.
-///         (&mut comps).open().1.clear_flags();
 ///     }
 /// }
 ///# fn main() { }
