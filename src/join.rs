@@ -7,7 +7,7 @@ use rayon::iter::internal::{bridge_unindexed, Folder, UnindexedConsumer, Unindex
 use tuple_utils::Split;
 
 use world::Entity;
-use Index;
+use {Index, Entities};
 
 /// BitAnd is a helper method to & bitsets together resulting in a tree.
 pub trait BitAnd {
@@ -123,9 +123,9 @@ impl<J: Join> JoinIter<J> {
 
 impl<J: Join> JoinIter<J> {
     /// Allows getting joined values for specific entity.
-    pub fn get(&mut self, e: Entity) -> Option<J::Type> {
-        if self.keys.contains(e.id()) {
-            Some(unsafe { J::get(&mut self.values, e.id()) })
+    pub fn get(&mut self, entity: Entity, entities: &Entities) -> Option<J::Type> {
+        if self.keys.contains(entity.id()) && entities.is_alive(entity) {
+            Some(unsafe { J::get(&mut self.values, entity.id()) })
         } else {
             None
         }

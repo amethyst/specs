@@ -468,17 +468,28 @@ fn getting_specific_entity_with_join() {
     let mut world = create_world();
     world.create_entity().with(CompInt(1)).with(CompBool(true)).build();
 
+    let entity = {
+        let ints = world.read::<CompInt>();
+        let mut bools = world.write::<CompBool>();
+        let entity = world.entities().join().next().unwrap();
+
+        assert_eq!(
+            Some((&CompInt(1), &mut CompBool(true))),
+            (&ints, &mut bools).join().get(entity, &world.entities())
+        );
+        bools.remove(entity);
+        assert_eq!(
+            None,
+            (&ints, &mut bools).join().get(entity, &world.entities())
+        );
+        entity
+    };
+    world.delete_entity(entity);
+    world.create_entity().with(CompInt(2)).with(CompBool(false)).build();
     let ints = world.read::<CompInt>();
     let mut bools = world.write::<CompBool>();
-    let entity = world.entities().join().next().unwrap();
-
-    assert_eq!(
-        Some((&CompInt(1), &mut CompBool(true))),
-        (&ints, &mut bools).join().get(entity)
-    );
-    bools.remove(entity);
     assert_eq!(
         None,
-        (&ints, &mut bools).join().get(entity)
+        (&ints, &mut bools).join().get(entity, &world.entities())
     );
 }
