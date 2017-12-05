@@ -26,7 +26,7 @@ const REMOVE_CAPACITY: usize = 3000;
 /// extern crate shrev;
 /// extern crate hibitset;
 ///
-/// use specs::{Component, Entities, Flag, FlaggedStorage, Join, System, VecStorage, WriteStorage};
+/// use specs::{Component, Entities, ModifiedFlag, FlaggedStorage, Join, System, VecStorage, WriteStorage};
 /// use shrev::ReaderId;
 /// use hibitset::BitSet;
 ///
