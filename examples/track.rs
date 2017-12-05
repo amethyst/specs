@@ -14,7 +14,7 @@ impl Component for TrackedComponent {
 
 #[derive(Default)]
 struct SysA {
-    modified_id: Option<ReaderId<Flag>>,
+    modified_id: Option<ReaderId<ModifiedFlag>>,
     modified: BitSet,
 }
 impl<'a> System<'a> for SysA {
