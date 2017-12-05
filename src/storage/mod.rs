@@ -8,7 +8,7 @@ pub use self::ser::{MergeError, PackedData};
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
-pub use self::tracked::{Change, ChangeEvents, TrackedStorage};
+pub use self::track::{Tracked, Populate, Flag, ModifiedFlag, InsertedFlag, RemovedFlag};
 
 use std;
 use std::marker::PhantomData;
@@ -17,7 +17,6 @@ use std::ops::{Deref, DerefMut, Not};
 use hibitset::{BitSet, BitSetNot};
 use mopa::Any;
 use shred::Fetch;
-use shrev::{EventChannel, EventReadData, ReaderId};
 
 use self::drain::Drain;
 use {Component, EntitiesRes, Entity, Index, Join, ParJoin};
@@ -32,7 +31,7 @@ mod ser;
 mod storages;
 #[cfg(test)]
 mod tests;
-mod tracked;
+mod track;
 
 /// An inverted storage type, only useful to iterate entities
 /// that do not have a particular component type.
@@ -509,182 +508,3 @@ pub trait UnprotectedStorage<T>: Default + Sized {
     /// Removes the data associated with an `Index`.
     unsafe fn remove(&mut self, id: Index) -> T;
 }
-
-// TODO: move to it's own file
-/// `UnprotectedStorage`s that track modifications, insertions, and
-/// removals of components.
-pub trait Tracked {
-    /// Event channel tracking modified components.
-    fn modified(&self) -> &EventChannel<Flag>;
-    /// Mutable event channel tracking modified components.
-    fn modified_mut(&mut self) -> &mut EventChannel<Flag>;
-    /// Event channel tracking inserted components.
-    fn inserted(&self) -> &EventChannel<Flag>;
-    /// Mutable event channel tracking inserted components.
-    fn inserted_mut(&mut self) -> &mut EventChannel<Flag>;
-    /// Event channel tracking removed components.
-    fn removed(&self) -> &EventChannel<Flag>;
-    /// Mutable event channel tracking removed components.
-    fn removed_mut(&mut self) -> &mut EventChannel<Flag>;
-
-    /// Tracks component modified events.
-    fn track_modified(&self) -> ReaderId<Flag> {
-        self.modified().register_reader()
-    }
-    /// Tracks component inserted events.
-    fn track_inserted(&self) -> ReaderId<Flag> {
-        self.inserted().register_reader()
-    }
-    /// Tracks component removed events.
-    fn track_removed(&self) -> ReaderId<Flag> {
-        self.removed().register_reader()
-    }
-    /// Tracks modified, inserted, and removed events.
-    fn track(&self) -> (ReaderId<Flag>, ReaderId<Flag>, ReaderId<Flag>) {
-        (
-            self.track_modified(),
-            self.track_inserted(),
-            self.track_removed(),
-        )
-    }
-}
-
-impl<'e, T, D> Storage<'e, T, D>
-where
-    T: Component,
-    T::Storage: Tracked,
-    D: Deref<Target = MaskedStorage<T>>,
-{
-    /// Returns the event channel tracking modified components.
-    pub fn modified(&self) -> &EventChannel<Flag> {
-        self.open().1.modified()
-    }
-
-    /// Returns the event channel tracking inserted components.
-    pub fn inserted(&self) -> &EventChannel<Flag> {
-        self.open().1.inserted()
-    }
-
-    /// Returns the event channel tracking removed components.
-    pub fn removed(&self) -> &EventChannel<Flag> {
-        self.open().1.removed()
-    }
-
-    /// Starts tracking modified events.
-    pub fn track_modified(&self) -> ReaderId<Flag> {
-        self.open().1.track_modified()
-    }
-
-    /// Starts tracking inserted events.
-    pub fn track_inserted(&self) -> ReaderId<Flag> {
-        self.open().1.track_inserted()
-    }
-
-    /// Starts tracking removed events.
-    pub fn track_removed(&self) -> ReaderId<Flag> {
-        self.open().1.track_removed()
-    }
-
-    /// Reads events from the modified `EventChannel` and populates a bitset using the events.
-    pub fn populate_modified(&self, reader_id: &mut ReaderId<Flag>, bitset: &mut BitSet) {
-        self.modified().read(reader_id).populate(bitset);
-    }
-
-    /// Reads events from the inserted `EventChannel` and populates a bitset using the events.
-    pub fn populate_inserted(&self, reader_id: &mut ReaderId<Flag>, bitset: &mut BitSet) {
-        self.inserted().read(reader_id).populate(bitset);
-    }
-
-    /// Reads events from the removed `EventChannel` and populates a bitset using the events.
-    pub fn populate_removed(&self, reader_id: &mut ReaderId<Flag>, bitset: &mut BitSet) {
-        self.removed().read(reader_id).populate(bitset);
-    }
-}
-
-impl<'e, T, D> Storage<'e, T, D>
-where
-    T: Component,
-    T::Storage: Tracked,
-    D: DerefMut<Target = MaskedStorage<T>>,
-{
-    /// Returns the event channel tracking modified components mutably.
-    pub fn modified_mut(&mut self) -> &mut EventChannel<Flag> {
-        self.open().1.modified_mut()
-    }
-
-    /// Returns the event channel tracking inserted components mutably.
-    pub fn inserted_mut(&mut self) -> &mut EventChannel<Flag> {
-        self.open().1.inserted_mut()
-    }
-
-    /// Returns the event channel tracking removed components mutably.
-    pub fn removed_mut(&mut self) -> &mut EventChannel<Flag> {
-        self.open().1.removed_mut()
-    }
-
-    /// Flags an index as modified.
-    pub fn flag_modified(&mut self, id: Index) {
-        self.modified_mut().single_write(Flag::Flag(id));
-    }
-
-    /// Unflags an index as modified.
-    pub fn unflag_modified(&mut self, id: Index) {
-        self.modified_mut().single_write(Flag::Unflag(id));
-    }
-
-    /// Flags an index as inserted.
-    pub fn flag_inserted(&mut self, id: Index) {
-        self.inserted_mut().single_write(Flag::Flag(id));
-    }
-
-    /// Unflags an index as inserted.
-    pub fn unflag_inserted(&mut self, id: Index) {
-        self.inserted_mut().single_write(Flag::Unflag(id));
-    }
-
-    /// Flags an index as removed.
-    pub fn flag_removed(&mut self, id: Index) {
-        self.removed_mut().single_write(Flag::Flag(id));
-    }
-
-    /// Unflags an index as removed.
-    pub fn unflag_removed(&mut self, id: Index) {
-        self.removed_mut().single_write(Flag::Unflag(id));
-    }
-}
-
-/// Event for flagging or unflagging an index.
-pub enum Flag {
-    /// Flags an index.
-    Flag(Index),
-    /// Unflags an index.
-    Unflag(Index),
-}
-
-/// Clears and populates a bitset with an event channel's contents.
-pub trait Populate {
-    /// Clears and populates a bitset.
-    fn populate(self, bitset: &mut BitSet);
-}
-
-impl<'a> Populate for EventReadData<'a, Flag> {
-    fn populate(self, bitset: &mut BitSet) {
-        bitset.clear();
-
-        let iterator = match self {
-            EventReadData::Data(iterator) => iterator,
-            EventReadData::Overflow(iterator, amount) => {
-                eprintln!("Populating ring buffer overflowed {} times!", amount);
-                iterator
-            }
-        };
-
-        for item in iterator {
-            match item {
-                &Flag::Flag(index) => bitset.add(index),
-                &Flag::Unflag(index) => bitset.remove(index),
-            };
-        }
-    }
-}
-
