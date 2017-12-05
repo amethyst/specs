@@ -24,9 +24,7 @@ fnv = "1.0"
 hibitset = { version = "0.4.1", features = ["parallel"] }
 mopa = "0.2"
 shred = "0.5.0"
-#shrev = "0.6.0"
-# temporary until shrev is released with this
-shrev = { git = "https://github.com/Rhuagh/shrev-rs", branch = "refactor/generic-reader", commit = "9c43ea87e5659ff508c981358194ad374e1c6144", version = "0.6" }
+shrev = "0.7.0"
 shred-derive = "0.3"
 tuple_utils = "0.2"
 rayon = "0.8.2"
@@ -65,9 +63,6 @@ name = "cluster_bomb"
 
 [[example]]
 name = "bitset"
-
-[[example]]
-name = "tracked"
 
 [[example]]
 name = "track"

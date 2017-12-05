@@ -80,19 +80,28 @@ where
         self.open().1.track_removed()
     }
 
-    /// Reads events from the modified `EventChannel` and populates a bitset using the events.
-    pub fn populate_modified(&self, reader_id: &mut ReaderId<ModifiedFlag>, bitset: &mut BitSet) {
-        self.modified().read(reader_id).populate(bitset);
+    /// Reads events from the modified `EventChannel` and populates a structure using the events.
+    pub fn populate_modified<P>(&self, reader_id: &mut ReaderId<ModifiedFlag>, value: &mut P)
+    where
+        for<'a> EventReadData<'a, ModifiedFlag>: Populate<P>,
+    {
+        self.modified().read(reader_id).populate(value);
     }
 
-    /// Reads events from the inserted `EventChannel` and populates a bitset using the events.
-    pub fn populate_inserted(&self, reader_id: &mut ReaderId<InsertedFlag>, bitset: &mut BitSet) {
-        self.inserted().read(reader_id).populate(bitset);
+    /// Reads events from the inserted `EventChannel` and populates a structure using the events.
+    pub fn populate_inserted<P>(&self, reader_id: &mut ReaderId<InsertedFlag>, value: &mut P)
+    where
+        for<'a> EventReadData<'a, InsertedFlag>: Populate<P>,
+    {
+        self.inserted().read(reader_id).populate(value);
     }
 
-    /// Reads events from the removed `EventChannel` and populates a bitset using the events.
-    pub fn populate_removed(&self, reader_id: &mut ReaderId<RemovedFlag>, bitset: &mut BitSet) {
-        self.removed().read(reader_id).populate(bitset);
+    /// Reads events from the removed `EventChannel` and populates a structure using the events.
+    pub fn populate_removed<P>(&self, reader_id: &mut ReaderId<RemovedFlag>, value: &mut P)
+    where
+        for<'a> EventReadData<'a, RemovedFlag>: Populate<P>,
+    {
+        self.removed().read(reader_id).populate(value);
     }
 }
 
@@ -198,8 +207,6 @@ where
     F: AsRef<Flag>,
 {
     fn populate(self, bitset: &mut BitSet) {
-        bitset.clear();
-
         let iterator = match self {
             EventReadData::Data(iterator) => iterator,
             EventReadData::Overflow(iterator, amount) => {
