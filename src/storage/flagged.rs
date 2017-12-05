@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 
 use shrev::EventChannel;
 
-use {Flag, Index, Tracked, UnprotectedStorage};
+use {Flag, ModifiedFlag, InsertedFlag, RemovedFlag, Index, Tracked, UnprotectedStorage};
 
 const MODIFY_CAPACITY: usize = 5000;
 const INSERT_CAPACITY: usize = 3000;
@@ -39,7 +39,7 @@ const REMOVE_CAPACITY: usize = 3000;
 ///
 /// pub struct CompSystem {
 ///     // This keeps track of the last modification events the system read.
-///     modified_id: Option<ReaderId<Flag>>, 
+///     modified_id: Option<ReaderId<ModifiedFlag>>, 
 ///     modified: BitSet,
 /// }
 ///
@@ -102,9 +102,9 @@ const REMOVE_CAPACITY: usize = 3000;
 ///# fn main() { }
 /// ```
 pub struct FlaggedStorage<C, T> {
-    modified: EventChannel<Flag>,
-    inserted: EventChannel<Flag>,
-    removed: EventChannel<Flag>,
+    modified: EventChannel<ModifiedFlag>,
+    inserted: EventChannel<InsertedFlag>,
+    removed: EventChannel<RemovedFlag>,
     storage: T,
     phantom: PhantomData<C>,
 }
@@ -138,38 +138,38 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         // calling `.iter()` on an unconstrained mutable storage will flag everything
-        self.modified.single_write(Flag::Flag(id));
+        self.modified.single_write(Flag::Flag(id).into());
         self.storage.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
-        self.inserted.single_write(Flag::Flag(id));
+        self.inserted.single_write(Flag::Flag(id).into());
         self.storage.insert(id, comp);
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
-        self.removed.single_write(Flag::Flag(id));
+        self.removed.single_write(Flag::Flag(id).into());
         self.storage.remove(id)
     }
 }
 
 impl<C, T> Tracked for FlaggedStorage<C, T> {
-    fn modified(&self) -> &EventChannel<Flag> {
+    fn modified(&self) -> &EventChannel<ModifiedFlag> {
         &self.modified
     }
-    fn modified_mut(&mut self) -> &mut EventChannel<Flag> {
+    fn modified_mut(&mut self) -> &mut EventChannel<ModifiedFlag> {
         &mut self.modified
     }
-    fn inserted(&self) -> &EventChannel<Flag> {
+    fn inserted(&self) -> &EventChannel<InsertedFlag> {
         &self.inserted
     }
-    fn inserted_mut(&mut self) -> &mut EventChannel<Flag> {
+    fn inserted_mut(&mut self) -> &mut EventChannel<InsertedFlag> {
         &mut self.inserted
     }
-    fn removed(&self) -> &EventChannel<Flag> {
+    fn removed(&self) -> &EventChannel<RemovedFlag> {
         &self.removed
     }
-    fn removed_mut(&mut self) -> &mut EventChannel<Flag> {
+    fn removed_mut(&mut self) -> &mut EventChannel<RemovedFlag> {
         &mut self.removed
     }
 }
