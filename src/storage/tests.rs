@@ -543,7 +543,7 @@ mod test {
                 let (mut components2, mut components2_mut) =
                     (components2.lock().unwrap(), components2_mut.lock().unwrap());
                 components2.push(restricted.get_unchecked(&entry).0);
-                components2_mut.push(restricted.get_mut_unchecked(&entry).0);
+                components2_mut.push(restricted.get_unchecked(&entry).0);
             });
         let components2 = components2.into_inner().unwrap();
         assert_eq!(

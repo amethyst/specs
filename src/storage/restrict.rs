@@ -104,7 +104,7 @@ where
     }
 }
 
-impl<'rf, 'st, B, T, R, RT> RestrictedStorage<'rf, 'st, B, T, R, RT>
+impl<'rf, 'st, B, T, R> RestrictedStorage<'rf, 'st, B, T, R, NormalRestriction>
 where
     T: Component,
     R: BorrowMut<T::Storage>,
