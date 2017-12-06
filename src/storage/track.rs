@@ -34,14 +34,6 @@ pub trait Tracked {
     fn track_removed(&self) -> ReaderId<RemovedFlag> {
         self.removed().register_reader()
     }
-    /// Tracks modified, inserted, and removed events.
-    fn track(&self) -> (ReaderId<ModifiedFlag>, ReaderId<InsertedFlag>, ReaderId<RemovedFlag>) {
-        (
-            self.track_modified(),
-            self.track_inserted(),
-            self.track_removed(),
-        )
-    }
 }
 
 impl<'e, T, D> Storage<'e, T, D>
@@ -223,5 +215,25 @@ where
             };
         }
     }
+}
+
+/// Ring buffer capacities for specific events.
+pub trait Capacity {
+    /// Modification flags capacity.
+    const Modify: usize;
+    /// Insertion flags capacity.
+    const Insert: usize;
+    /// Removal flags capacity.
+    const Remove: usize;
+}
+
+/// Default capacity for ring buffer.
+///
+/// 5000 modification flags, 3000 insertion flags, and 3000 removal.
+pub enum DefaultCapacity { }
+impl Capacity for DefaultCapacity {
+    const Modify: usize = 5000;
+    const Insert: usize = 3000;
+    const Remove: usize = 3000;
 }
 
