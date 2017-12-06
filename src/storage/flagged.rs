@@ -3,11 +3,7 @@ use std::marker::PhantomData;
 
 use shrev::EventChannel;
 
-use {Flag, ModifiedFlag, InsertedFlag, RemovedFlag, Index, Tracked, UnprotectedStorage};
-
-const MODIFY_CAPACITY: usize = 5000;
-const INSERT_CAPACITY: usize = 3000;
-const REMOVE_CAPACITY: usize = 3000;
+use {Capacity, DefaultCapacity, DenseVecStorage, Flag, Index, InsertedFlag, ModifiedFlag, RemovedFlag, Tracked, UnprotectedStorage};
 
 /// Wrapper storage that tracks modifications, insertions, and removals of components
 /// through an `EventChannel`.
@@ -101,30 +97,35 @@ const REMOVE_CAPACITY: usize = 3000;
 /// }
 ///# fn main() { }
 /// ```
-pub struct FlaggedStorage<C, T> {
+pub struct FlaggedStorage<C, T = DenseVecStorage<C>, Capacity = DefaultCapacity> {
     modified: EventChannel<ModifiedFlag>,
     inserted: EventChannel<InsertedFlag>,
     removed: EventChannel<RemovedFlag>,
     storage: T,
-    phantom: PhantomData<C>,
+    phantom: PhantomData<(C, Capacity)>,
 }
 
-impl<C, T> Default for FlaggedStorage<C, T>
+impl<C, T, Cap> Default for FlaggedStorage<C, T, Cap>
 where
-    T: Default
+    T: Default,
+    Cap: Capacity,
 {
     fn default() -> Self {
         FlaggedStorage {
-            modified: EventChannel::with_capacity(MODIFY_CAPACITY),
-            inserted: EventChannel::with_capacity(INSERT_CAPACITY),
-            removed: EventChannel::with_capacity(REMOVE_CAPACITY),
+            modified: EventChannel::with_capacity(Cap::Modify),
+            inserted: EventChannel::with_capacity(Cap::Insert),
+            removed: EventChannel::with_capacity(Cap::Remove),
             storage: T::default(),
             phantom: PhantomData,
         }
     }
 }
 
-impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
+impl<C, T, Cap> UnprotectedStorage<C> for FlaggedStorage<C, T, Cap>
+where
+    T: UnprotectedStorage<C>,
+    Cap: Capacity,
+{
     unsafe fn clean<F>(&mut self, has: F)
     where
         F: Fn(Index) -> bool,
@@ -153,7 +154,7 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
     }
 }
 
-impl<C, T> Tracked for FlaggedStorage<C, T> {
+impl<C, T, Cap> Tracked for FlaggedStorage<C, T, Cap> {
     fn modified(&self) -> &EventChannel<ModifiedFlag> {
         &self.modified
     }

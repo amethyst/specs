@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+* Remove `FlaggedStorage` (new storage uses the same name) and `TrackedStorage` in favor of `Tracked` api. ([#305])
 * Add `saveload` module for easy entity serialization ([#275])
 * Improve docs, book and examples ([#278], [#281], [#283], [#285])
 * Add `EntityBuilder::marked` convenience method ([#287])
@@ -12,6 +13,7 @@
 [#283]: https://github.com/slide-rs/specs/pull/283
 [#285]: https://github.com/slide-rs/specs/pull/285
 [#287]: https://github.com/slide-rs/specs/pull/287
+[#305]: https://github.com/slide-rs/specs/pull/305
 
 ## 0.10.0
 
