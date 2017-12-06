@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+* Remove `FlaggedStorage` (new storage uses the same name) and `TrackedStorage` in favor of `Tracked` api. ([#305])
 * Implementations of Join for owned BitSets, including AtomicBitset. ([#303])
 * Add `Bundle` for registering multiple resources and components at once. ([#296])
 * Add `TrackedStorage`, a more ergonomic variant to `FlaggedStorage` ([#291])
@@ -20,6 +21,7 @@
 [#291]: https://github.com/slide-rs/specs/pull/291
 [#296]: https://github.com/slide-rs/specs/pull/296
 [#303]: https://github.com/slide-rs/specs/pull/303
+[#305]: https://github.com/slide-rs/specs/pull/305
 
 ## 0.10.0
 

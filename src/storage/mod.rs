@@ -8,7 +8,7 @@ pub use self::ser::{MergeError, PackedData};
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
-pub use self::track::{Tracked, Populate, Flag, ModifiedFlag, InsertedFlag, RemovedFlag};
+pub use self::track::{Capacity, DefaultCapacity, Tracked, Populate, Flag, ModifiedFlag, InsertedFlag, RemovedFlag};
 
 use std;
 use std::marker::PhantomData;
