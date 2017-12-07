@@ -1,4 +1,4 @@
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![cfg_attr(feature = "nightly", feature(core_intrinsics))]
 
 //! # SPECS Parallel ECS
