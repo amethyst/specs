@@ -379,7 +379,9 @@ impl World {
         self.write_with_id(0)
     }
 
-    /// Fetches a component's storage with a specified id for reading.
+    /// Fetches a component's storage with a specified component id for reading.
+    /// ID is for components registered with an ID, and does not correspond to
+    /// entity IDs. For basic setups, use an ID of 0 or use the read() function.
     ///
     /// ## Panics
     ///
@@ -393,6 +395,8 @@ impl World {
     }
 
     /// Fetches a component's storage with a specified id for writing.
+    /// ID is for components registered with an ID, and does not correspond to
+    /// entity IDs. For basic setups, use an ID of 0 or use the write() function.
     ///
     /// # Panics
     ///
@@ -406,6 +410,9 @@ impl World {
     }
 
     /// Fetches a resource with a specified id for reading.
+    /// ID is for resources registered with an ID, and does not correspond to
+    /// entity IDs. For basic setups, use an ID of 0 or use the read_resource()
+    /// function.
     ///
     /// ## Panics
     ///
@@ -416,6 +423,9 @@ impl World {
     }
 
     /// Fetches a resource with a specified id for writing.
+    /// ID is for resources registered with an ID, and does not correspond to
+    /// entity IDs. For basic setups, use an ID of 0 or use the write_resource()
+    /// function.
     ///
     /// ## Panics
     ///
