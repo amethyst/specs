@@ -23,11 +23,13 @@ impl<'a> System<'a> for SysA {
         ReadStorage<'a, TrackedComponent>,
     );
     fn run(&mut self, (entities, tracked): Self::SystemData) {
-        if let None = self.modified_id {
-            self.modified_id = Some(tracked.track_modified());
-        }
-
-        let reader_id = self.modified_id.as_mut().unwrap();
+        let reader_id = match self.modified_id {
+            Some(ref mut id) => id,
+            None => {
+                self.modified_id = Some(tracked.track_modified());
+                self.modified_id.as_mut().unwrap()
+            }
+        };
 
         tracked.populate_modified(reader_id, &mut self.modified);
 
