@@ -220,11 +220,11 @@ where
 /// Ring buffer capacities for specific events.
 pub trait Capacity {
     /// Modification flags capacity.
-    const Modify: usize;
+    const MODIFY: usize;
     /// Insertion flags capacity.
-    const Insert: usize;
+    const INSERT: usize;
     /// Removal flags capacity.
-    const Remove: usize;
+    const REMOVE: usize;
 }
 
 /// Default capacity for ring buffer.
@@ -232,8 +232,8 @@ pub trait Capacity {
 /// 5000 modification flags, 3000 insertion flags, and 3000 removal.
 pub enum DefaultCapacity { }
 impl Capacity for DefaultCapacity {
-    const Modify: usize = 5000;
-    const Insert: usize = 3000;
-    const Remove: usize = 3000;
+    const MODIFY: usize = 5000;
+    const INSERT: usize = 3000;
+    const REMOVE: usize = 3000;
 }
 
