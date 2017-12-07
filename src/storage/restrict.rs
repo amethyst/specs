@@ -194,19 +194,10 @@ where
 {
     /// Builds an immutable `RestrictedStorage` out of a `Storage`. Allows deferred
     /// unchecked access to the entity's component.
+    /// 
+    /// This is returned as a `ParallelRestriction` version since you can only get
+    /// immutable components with this which is safe for parallel by default.
     pub fn restrict<'rf>(
-        &'rf self,
-    ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &T::Storage, NormalRestriction> {
-        RestrictedStorage {
-            bitset: &self.data.mask,
-            data: &self.data.inner,
-            entities: &self.entities,
-            phantom: PhantomData,
-        }
-    }
-
-    /// Builds an immutable, parallel `RestrictedStorage`.
-    pub fn par_restrict<'rf>(
         &'rf self,
     ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &T::Storage, ParallelRestriction> {
         RestrictedStorage {
