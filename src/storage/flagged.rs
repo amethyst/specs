@@ -102,9 +102,9 @@ where
 {
     fn default() -> Self {
         FlaggedStorage {
-            modified: EventChannel::with_capacity(Cap::Modify),
-            inserted: EventChannel::with_capacity(Cap::Insert),
-            removed: EventChannel::with_capacity(Cap::Remove),
+            modified: EventChannel::with_capacity(Cap::MODIFY),
+            inserted: EventChannel::with_capacity(Cap::INSERT),
+            removed: EventChannel::with_capacity(Cap::REMOVE),
             storage: T::default(),
             phantom: PhantomData,
         }
