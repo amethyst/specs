@@ -72,19 +72,9 @@ use {Capacity, DefaultCapacity, DenseVecStorage, Flag, Index, InsertedFlag, Modi
 ///
 ///         // Instead do something like:
 ///#        let condition = true;
-///         for (entity, _) in (&*entities, &comps.check()).join() {
+///         for (entity, (entry, restrict)) in (&*entities, &mut comps.restrict()).join() {
 ///             if condition { // check whether this component should be modified.
-///                 match comps.get_mut(entity) {
-///                     Some(component) => { /* ... */ },
-///                     None => { /* ... */ },
-///                 }
-///             }
-///         }
-///
-///         // Or alternatively:
-///         for (entity, (mut entry, mut restrict)) in (&*entities, &mut comps.restrict()).join() {
-///             if condition { // check whether this component should be modified.
-///                  let mut comp = restrict.get_mut_unchecked(&mut entry);
+///                  let mut comp = restrict.get_mut_unchecked(&entry);
 ///                  // ...
 ///             }
 ///         }
@@ -112,9 +102,9 @@ where
 {
     fn default() -> Self {
         FlaggedStorage {
-            modified: EventChannel::with_capacity(Cap::Modify),
-            inserted: EventChannel::with_capacity(Cap::Insert),
-            removed: EventChannel::with_capacity(Cap::Remove),
+            modified: EventChannel::with_capacity(Cap::MODIFY),
+            inserted: EventChannel::with_capacity(Cap::INSERT),
+            removed: EventChannel::with_capacity(Cap::REMOVE),
             storage: T::default(),
             phantom: PhantomData,
         }
