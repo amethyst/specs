@@ -10,9 +10,24 @@ use storage::MaskedStorage;
 use world::EntityIndex;
 
 /// Specifies that the `RestrictedStorage` cannot run in parallel.
+///
+/// A mutable `RestrictedStorage` can call `get`, `get_mut`, `get_unchecked` and
+/// `get_mut_unchecked` for deferred access while an immutable version can only
+/// call the immutable accessors.
 pub enum NormalRestriction {}
-/// Specifies that the `RestrictedStorage` can run in parallel.
-pub enum ParallelRestriction {}
+/// Specifies that the `RestrictedStorage` can run in parallel mutably.
+///
+/// This means the storage can only call `get_mut_unchecked` and `get_unchecked`.
+pub enum MutableParallelRestriction {}
+/// Specifies that the `RestrictedStorage` can run in parallel immutably.
+/// 
+/// This means that the storage can call `get`, `get_unchecked`.
+pub enum ImmutableParallelRestriction {}
+
+/// Restrictions that are allowed to access `Storage::get`.
+pub trait ImmutableRestriction: Sized {}
+impl ImmutableRestriction for NormalRestriction { }
+impl ImmutableRestriction for ImmutableParallelRestriction { }
 
 /// Similar to a `MaskedStorage` and a `Storage` combined, but restricts usage
 /// to only getting and modifying the components. That means nothing that would
@@ -62,7 +77,7 @@ where
 }
 
 unsafe impl<'rf, 'st: 'rf, B, T, R> ParJoin
-    for &'rf mut RestrictedStorage<'rf, 'st, B, T, R, ParallelRestriction>
+    for &'rf mut RestrictedStorage<'rf, 'st, B, T, R, MutableParallelRestriction>
 where
     T: Component,
     R: BorrowMut<T::Storage> + 'rf,
@@ -70,12 +85,13 @@ where
 {
 }
 
-unsafe impl<'rf, 'st: 'rf, B, T, R> ParJoin
-    for &'rf RestrictedStorage<'rf, 'st, B, T, R, ParallelRestriction>
+unsafe impl<'rf, 'st: 'rf, B, T, R, RT> ParJoin
+    for &'rf RestrictedStorage<'rf, 'st, B, T, R, RT>
 where
     T: Component,
-    R: Borrow<T::Storage> + 'rf,
+    R: BorrowMut<T::Storage> + 'rf,
     B: Borrow<BitSet> + 'rf,
+    RT: ImmutableRestriction,
 {
 }
 
@@ -85,17 +101,6 @@ where
     R: Borrow<T::Storage>,
     B: Borrow<BitSet>,
 {
-    /// Attempts to get the component related to the entity.
-    ///
-    /// Functions similar to the normal `Storage::get` implementation.
-    pub fn get(&self, entity: Entity) -> Option<&T> {
-        if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
-            Some(unsafe { self.data.borrow().get(entity.id()) })
-        } else {
-            None
-        }
-    }
-
     /// Gets the component related to the current entry without checking whether
     /// the storage has it or not.
     pub fn get_unchecked(&self, entry: &Entry<'rf, T>) -> &T {
@@ -104,7 +109,7 @@ where
     }
 }
 
-impl<'rf, 'st, B, T, R> RestrictedStorage<'rf, 'st, B, T, R, NormalRestriction>
+impl<'rf, 'st, B, T, R, RT> RestrictedStorage<'rf, 'st, B, T, R, RT>
 where
     T: Component,
     R: BorrowMut<T::Storage>,
@@ -118,6 +123,28 @@ where
     }
 }
 
+impl<'rf, 'st, B, T, R, RT> RestrictedStorage<'rf, 'st, B, T, R, RT>
+where
+    T: Component,
+    R: Borrow<T::Storage>,
+    B: Borrow<BitSet>,
+    // Only non parallel and immutable parallel storages can access this.
+    RT: ImmutableRestriction,
+{
+    /// Attempts to get the component related to the entity.
+    ///
+    /// Functions similar to the normal `Storage::get` implementation.
+    /// 
+    /// This only works for non-parallel or immutably parallel `RestrictedStorage`.
+    pub fn get(&self, entity: Entity) -> Option<&T> {
+        if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
+            Some(unsafe { self.data.borrow().get(entity.id()) })
+        } else {
+            None
+        }
+    }
+}
+
 impl<'rf, 'st, B, T, R> RestrictedStorage<'rf, 'st, B, T, R, NormalRestriction>
 where
     T: Component,
@@ -128,7 +155,8 @@ where
     ///
     /// Functions similar to the normal `Storage::get_mut` implementation.
     ///
-    /// Note: This only works if this is a non-parallel `RestrictedStorage`.
+    /// This only works if this is a non-parallel `RestrictedStorage`,
+    /// otherwise you could access the same component mutably in two different threads.
     pub fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
             Some(unsafe { self.data.borrow_mut().get_mut(entity.id()) })
@@ -234,7 +262,7 @@ where
     /// aside from the current iteration.
     pub fn par_restrict_mut<'rf>(
         &'rf mut self,
-    ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &mut T::Storage, ParallelRestriction> {
+    ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &mut T::Storage, MutableParallelRestriction> {
         let (mask, data) = self.data.open_mut();
         RestrictedStorage {
             bitset: mask,
@@ -306,3 +334,4 @@ where
         (*self).index()
     }
 }
+
