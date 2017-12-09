@@ -183,8 +183,6 @@
 //!
 //! See the repository's examples directory for more examples.
 //!
-//!
-//!
 
 extern crate crossbeam;
 #[macro_use]
@@ -251,7 +249,8 @@ pub use storage::{MergeError, PackedData};
 /// Please note that you should call `World::maintain`
 /// after creating / deleting entities with this resource.
 ///
-/// When `.join`ing on `Entities`, you will need to do it like this:
+/// When `.join`ing on `Entities`, you will need to do it like this
+/// (**note the `&*entities`**):
 ///
 /// ```
 /// use specs::{Entities, Join};
