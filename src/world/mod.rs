@@ -247,7 +247,7 @@ impl<'a> EntityBuilder<'a> {
 ///     let pos_storage = world.read::<Pos>();
 ///     let vel_storage = world.read::<Vel>();
 ///
-///     // `World::get` allows to get a component from it:
+///     // `Storage::get` allows to get a component from it:
 ///     assert_eq!(pos_storage.get(b), Some(&Pos { x: 3.0, y: 5.0 }));
 ///     assert_eq!(vel_storage.get(c), Some(&Vel { x: 0.0, y: 1.0 }));
 /// }

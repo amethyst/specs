@@ -124,7 +124,9 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 ///
 ///     let entities = world.read_resource::<EntitiesRes>();
 ///     // note: `EntitiesRes` is the fetched resource; we get back
-///     // `Fetch<EntitiesRes>` which has a typedef as `Entities`.
+///     // `Fetch<EntitiesRes>`.
+///     // `Fetch<EntitiesRes>` can also be referred to by `Entities` which
+///     // is a shorthand type definition to the former type.
 ///
 ///     let joined: Vec<_> = (&*entities, &pos, &vel).join().collect(); // note the `&*entities`
 ///     assert_eq!(joined, vec![(ent, &Pos, &Vel)]);
