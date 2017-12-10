@@ -66,6 +66,77 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 /// The purpose of the `Join` trait is to provide a way
 /// to access multiple storages at the same time with
 /// the merged bit set.
+///
+/// Joining component storages means that you'll only get values where
+/// for a given entity every storage has an associated component.
+///
+/// ## Example
+///
+/// ```
+/// # use specs::*;
+/// # #[derive(Debug, PartialEq)]
+/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
+/// # #[derive(Debug, PartialEq)]
+/// # struct Vel; impl Component for Vel { type Storage = VecStorage<Self>; }
+/// let mut world = World::new();
+///
+/// world.register::<Pos>();
+/// world.register::<Vel>();
+///
+/// {
+///     let pos = world.read::<Pos>();
+///     let vel = world.read::<Vel>();
+///
+///     // There are no entities yet, so no pair will be returned.
+///     let joined: Vec<_> = (&pos, &vel).join().collect();
+///     assert_eq!(joined, vec![]);
+/// }
+///
+/// world
+///     .create_entity()
+///     .with(Pos)
+///     .build();
+///
+/// {
+///     let pos = world.read::<Pos>();
+///     let vel = world.read::<Vel>();
+///
+///     // Although there is an entity, it only has `Pos`.
+///     let joined: Vec<_> = (&pos, &vel).join().collect();
+///     assert_eq!(joined, vec![]);
+/// }
+///
+/// let ent = world.create_entity()
+///     .with(Pos)
+///     .with(Vel)
+///     .build();
+///
+/// {
+///     let pos = world.read::<Pos>();
+///     let vel = world.read::<Vel>();
+///
+///     // Now there is one entity that has both a `Vel` and a `Pos`.
+///     let joined: Vec<_> = (&pos, &vel).join().collect();
+///     assert_eq!(joined, vec![(&Pos, &Vel)]);
+///
+///     // If we want to get the entity the components are associated to,
+///     // we need to join over `Entities`:
+///
+///     let entities = world.read_resource::<EntitiesRes>();
+///     // note: `EntitiesRes` is the fetched resource; we get back
+///     // `Fetch<EntitiesRes>`.
+///     // `Fetch<EntitiesRes>` can also be referred to by `Entities` which
+///     // is a shorthand type definition to the former type.
+///
+///     let joined: Vec<_> = (&*entities, &pos, &vel).join().collect(); // note the `&*entities`
+///     assert_eq!(joined, vec![(ent, &Pos, &Vel)]);
+/// }
+/// ```
+///
+/// ## Iterating over a single storage
+///
+/// `Join` can also be used to iterate over a single
+/// storage, just by writing `(&storage).join()`.
 pub trait Join {
     /// Type of joined components.
     type Type;

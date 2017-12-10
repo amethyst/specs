@@ -183,8 +183,6 @@
 //!
 //! See the repository's examples directory for more examples.
 //!
-//!
-//!
 
 extern crate crossbeam;
 #[macro_use]
@@ -251,7 +249,11 @@ pub use storage::{MergeError, PackedData};
 /// Please note that you should call `World::maintain`
 /// after creating / deleting entities with this resource.
 ///
-/// When `.join`ing on `Entities`, you will need to do it like this:
+/// When joining `Entities` you will need to first dereference
+/// `Entities` / `Fetch<EntitiesRes>` to get the underlying `EntitiesRes`,
+/// then you will need to re-reference it since only the referenced
+/// `Entities` has an implementation for `Join`.
+/// (**in code: `&*entities`**):
 ///
 /// ```
 /// use specs::{Entities, Join};

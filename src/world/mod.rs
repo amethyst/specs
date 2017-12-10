@@ -18,7 +18,6 @@ mod tests;
 
 #[cfg(not(feature = "nightly"))]
 fn component_message<T>(id: usize) -> String {
-
     let (message, function) = if id == 0 {
         ("Unregistered component".to_string(), "World::register::<ComponentName>()".to_string())
     } else {
@@ -212,7 +211,9 @@ impl<'a> EntityBuilder<'a> {
 ///
 /// ```
 /// # use specs::{Component, VecStorage};
+/// # #[derive(Debug, PartialEq)]
 /// # struct Pos { x: f32, y: f32, } impl Component for Pos { type Storage = VecStorage<Self>; }
+/// # #[derive(Debug, PartialEq)]
 /// # struct Vel { x: f32, y: f32, } impl Component for Vel { type Storage = VecStorage<Self>; }
 /// # struct DeltaTime(f32);
 /// use specs::World;
@@ -229,17 +230,42 @@ impl<'a> EntityBuilder<'a> {
 ///     .with(Vel { x: -1.0, y: 0.0 })
 ///     .build();
 ///
-/// world
+/// let b = world
 ///     .create_entity()
 ///     .with(Pos { x: 3.0, y: 5.0 })
 ///     .with(Vel { x: 1.0, y: 0.0 })
 ///     .build();
 ///
-/// world
+/// let c = world
 ///     .create_entity()
 ///     .with(Pos { x: 0.0, y: 1.0 })
 ///     .with(Vel { x: 0.0, y: 1.0 })
 ///     .build();
+///
+/// {
+///     // `World::read` returns a component storage.
+///     let pos_storage = world.read::<Pos>();
+///     let vel_storage = world.read::<Vel>();
+///
+///     // `Storage::get` allows to get a component from it:
+///     assert_eq!(pos_storage.get(b), Some(&Pos { x: 3.0, y: 5.0 }));
+///     assert_eq!(vel_storage.get(c), Some(&Vel { x: 0.0, y: 1.0 }));
+/// }
+///
+/// let empty = world.create_entity().build();
+///
+/// {
+///     // This time, we write to the `Pos` storage:
+///     let mut pos_storage = world.write::<Pos>();
+///     let vel_storage = world.read::<Vel>();
+///
+///     assert!(pos_storage.get(empty).is_none());
+///
+///     // You can also insert components after creating the entity:
+///     pos_storage.insert(empty, Pos { x: 3.1, y: 4.15 });
+///
+///     assert!(pos_storage.get(empty).is_some());
+/// }
 /// ```
 pub struct World {
     /// The resources used for this world.
