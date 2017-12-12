@@ -59,7 +59,7 @@ use world::EntityIndex;
 ///         }
 ///
 ///         // Or alternatively:
-///         for (entity, (mut entry, mut restrict)) in (&*entities, &mut comps.restrict()).join() {
+///         for (entity, (mut entry, mut restrict)) in (&*entities, &mut comps.restrict_mut()).join() {
 ///             if true { // check whether this component should be modified.
 ///                  let mut comp = restrict.get_mut_unchecked(&mut entry);
 ///                  // ...

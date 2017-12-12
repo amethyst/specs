@@ -1,7 +1,7 @@
 use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
 use std::marker::PhantomData;
-use std::ops::DerefMut;
+use std::ops::{Deref, DerefMut};
 
 use hibitset::BitSet;
 
@@ -37,7 +37,7 @@ pub enum ParallelRestriction {}
 ///     fn run(&mut self, (entities, mut some_comps): Self::SystemData) {
 ///         for (entity, (mut entry, restricted)) in (
 ///             &*entities,
-///             &mut some_comps.restrict()
+///             &mut some_comps.restrict_mut()
 ///         ).join() {
 ///             // Check if the reference is fine to mutate.
 ///             if restricted.get_unchecked(&entry).0 < 5 {
@@ -66,6 +66,15 @@ unsafe impl<'rf, 'st: 'rf, B, T, R> ParJoin
 where
     T: Component,
     R: BorrowMut<T::Storage> + 'rf,
+    B: Borrow<BitSet> + 'rf,
+{
+}
+
+unsafe impl<'rf, 'st: 'rf, B, T, R> ParJoin
+    for &'rf RestrictedStorage<'rf, 'st, B, T, R, ParallelRestriction>
+where
+    T: Component,
+    R: Borrow<T::Storage> + 'rf,
     B: Borrow<BitSet> + 'rf,
 {
 }
@@ -177,6 +186,29 @@ where
     }
 }
 
+
+impl<'st, T, D> Storage<'st, T, D>
+where
+    T: Component,
+    D: Deref<Target = MaskedStorage<T>>,
+{
+    /// Builds an immutable `RestrictedStorage` out of a `Storage`. Allows deferred
+    /// unchecked access to the entity's component.
+    /// 
+    /// This is returned as a `ParallelRestriction` version since you can only get
+    /// immutable components with this which is safe for parallel by default.
+    pub fn restrict<'rf>(
+        &'rf self,
+    ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &T::Storage, ParallelRestriction> {
+        RestrictedStorage {
+            bitset: &self.data.mask,
+            data: &self.data.inner,
+            entities: &self.entities,
+            phantom: PhantomData,
+        }
+    }
+}
+
 impl<'st, T, D> Storage<'st, T, D>
 where
     T: Component,
@@ -185,7 +217,7 @@ where
     /// Builds a mutable `RestrictedStorage` out of a `Storage`. Allows restricted
     /// access to the inner components without allowing invalidating the
     /// bitset for iteration in `Join`.
-    pub fn restrict<'rf>(
+    pub fn restrict_mut<'rf>(
         &'rf mut self,
     ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &mut T::Storage, NormalRestriction> {
         let (mask, data) = self.data.open_mut();
@@ -200,7 +232,7 @@ where
     /// Builds a mutable, parallel `RestrictedStorage`,
     /// does not allow mutably getting other components
     /// aside from the current iteration.
-    pub fn par_restrict<'rf>(
+    pub fn par_restrict_mut<'rf>(
         &'rf mut self,
     ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &mut T::Storage, ParallelRestriction> {
         let (mask, data) = self.data.open_mut();

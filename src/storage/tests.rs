@@ -495,7 +495,7 @@ mod test {
             components.insert(c);
         }
 
-        for (entry, restricted) in (&mut s1.restrict()).join() {
+        for (entry, restricted) in (&mut s1.restrict_mut()).join() {
             let c1 = { restricted.get_unchecked(&entry).0 };
 
             let c2 = { restricted.get_mut_unchecked(&entry).0 };
@@ -537,7 +537,7 @@ mod test {
         let components2 = Mutex::new(Vec::new());
         let components2_mut = Mutex::new(Vec::new());
 
-        (&mut s1.par_restrict())
+        (&mut s1.par_restrict_mut())
             .par_join()
             .for_each(|(entry, restricted)| {
                 let (mut components2, mut components2_mut) =
@@ -654,7 +654,7 @@ mod test {
             s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
             s2.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
         }
-        for ((s1_entry, _), (_, s2_restricted)) in (&mut s1.restrict(), &mut s2.restrict()).join() {
+        for ((s1_entry, _), (_, s2_restricted)) in (&mut s1.restrict_mut(), &mut s2.restrict_mut()).join() {
             // verify that the assert fails if the storage is not the original.
             s2_restricted.get_unchecked(&s1_entry);
         }
@@ -677,7 +677,7 @@ mod test {
             s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
             s2.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
         }
-        (&mut s1.par_restrict(), &mut s2.par_restrict())
+        (&mut s1.par_restrict_mut(), &mut s2.par_restrict_mut())
             .par_join()
             .for_each(|((s1_entry, _), (_, s2_restricted))| {
                 // verify that the assert fails if the storage is not the original.
