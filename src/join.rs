@@ -194,8 +194,67 @@ impl<J: Join> JoinIter<J> {
 
 impl<J: Join> JoinIter<J> {
     /// Allows getting joined values for specific entity.
+    /// 
+    /// ## Example
+    ///
+    /// ```
+    /// # use specs::*;
+    /// # #[derive(Debug, PartialEq)]
+    /// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
+    /// # #[derive(Debug, PartialEq)]
+    /// # struct Vel; impl Component for Vel { type Storage = VecStorage<Self>; }
+    /// let mut world = World::new();
+    ///
+    /// world.register::<Pos>();
+    /// world.register::<Vel>();
+    /// 
+    /// // This entity could be stashed anywhere (into `Component`, `Resource`, `System`s data, etc.) as it's just a number.
+    /// let entity = world
+    ///     .create_entity()
+    ///     .with(Pos)
+    ///     .with(Vel)
+    ///     .build();
+    /// 
+    /// // Later
+    /// {
+    ///     let mut pos = world.write::<Pos>();
+    ///     let vel = world.read::<Vel>();
+    ///     
+    ///     assert_eq!(
+    ///         Some((&mut Pos, &Vel)),
+    ///         (&mut pos, &vel).join().get(entity, &world.entities()),
+    ///         "The entity that was stashed still has the needed components and is alive."
+    ///     );
+    /// }
+    /// 
+    /// // The entity has found nice spot and doesn't need to move anymore.
+    /// world.write::<Vel>().remove(entity);
+    /// 
+    /// // Even later
+    /// {
+    ///     let mut pos = world.write::<Pos>();
+    ///     let vel = world.read::<Vel>();
+    ///     
+    ///     assert_eq!(
+    ///         None,
+    ///         (&mut pos, &vel).join().get(entity, &world.entities()),
+    ///         "The entity doesn't have velocity anymore."
+    ///     );
+    /// }
+    /// ```
     pub fn get(&mut self, entity: Entity, entities: &Entities) -> Option<J::Type> {
         if self.keys.contains(entity.id()) && entities.is_alive(entity) {
+            Some(unsafe { J::get(&mut self.values, entity.id()) })
+        } else {
+            None
+        }
+    }
+
+    /// Allows getting joined values for specific entity.
+    /// 
+    /// This method doesn't check if the entity is alive, so it should only be used if it actually is.
+    pub fn get_unchecked(&mut self, entity: Entity) -> Option<J::Type> {
+        if self.keys.contains(entity.id()) {
             Some(unsafe { J::get(&mut self.values, entity.id()) })
         } else {
             None
