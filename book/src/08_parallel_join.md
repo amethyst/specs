@@ -1,8 +1,9 @@
-# [DRAFT] Parallel Join
+# Parallel Join
 
 As mentioned in the chapter dedicated on how to [dispatch][c3] systems,
-Specs automatically parallelizes system execution when there is non-conflicting
-component requirements between them (mutability XOR aliasing).
+Specs automatically parallelizes system execution when there are non-conflicting
+system data requirements (every system data may only be accessed
+mutably once xor immutably from multiple systems).
 
 [c3]: ./03_dispatcher.html
 
@@ -28,24 +29,24 @@ To fix this inefficiency and to parallelize the joining, the `join`
 method call can be exchanged for `par_join`:
 
 ```rust,ignore
-    fn run(&mut self, (vel, mut pos): Self::SystemData) {
-        use specs::ParJoin;
-        use rayon::iter::ParallelIterator;
+fn run(&mut self, (vel, mut pos): Self::SystemData) {
+    use rayon::preulude::*;
+    use specs::ParJoin;
 
-        // Parallel joining behaves similarly to normal joining
-        // with the difference that iteration can potentially be
-        // executed in parallel by a thread pool—the same way as
-        // the systems are executed.
-        (&vel, &mut pos).par_join()
-            .for_each(|(vel, pos)| {
-                pos.x += vel.x * 0.05;
-                pos.y += vel.y * 0.05;
-            });
-    }
+    // Parallel joining behaves similarly to normal joining
+    // with the difference that iteration can potentially be
+    // executed in parallel by a thread pool.
+    (&vel, &mut pos)
+        .par_join()
+        .for_each(|(vel, pos)| {
+            pos.x += vel.x * 0.05;
+            pos.y += vel.y * 0.05;
+        });
+}
 ```
 
 The `par_join` method produces a type implementing [`rayon`s `ParallelIterator`][ra]
 trait which provides lots of helper methods to manipulate the iteration,
 the same way as the normal `Iterator` trait does.
 
-[ra]: https://crates.io/crates/rayon
+[ra]: https://docs.rs/rayon/0.9.0/rayon/iter/trait.ParallelIterator.html
