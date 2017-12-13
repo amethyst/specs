@@ -484,7 +484,7 @@ fn getting_specific_entity_with_join() {
         );
         entity
     };
-    world.delete_entity(entity);
+    world.delete_entity(entity).unwrap();
     world.create_entity().with(CompInt(2)).with(CompBool(false)).build();
     let ints = world.read::<CompInt>();
     let mut bools = world.write::<CompBool>();
