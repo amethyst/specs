@@ -190,25 +190,30 @@ where
     }
 }
 
-/*
 impl<'rf, 'st: 'rf, B, T, R, RT> Join for &'rf mut DeferredStorage<'rf, 'st, B, T, R, RT>
 where
     T: Component,
     R: BorrowMut<T::Storage>,
     B: Borrow<BitSet>,
 {
-    type Type = PairedStorage<'rf, 'st, T, &'rf mut T::Storage, B>;
-    type Value = &'rf mut T::Storage;
-    type Mask = BitSet;
+    type Type = PairedStorage<'rf, 'st, T, &'rf mut T::Storage, &'rf BitSet>;
+    type Value = (&'rf mut T::Storage, &'rf Entities<'st>, &'rf BitSet);
+    type Mask = &'rf BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
-        (self.bitset.borrow(), self.storage.borrow_mut())
+        let bitset = self.bitset.borrow();
+        (bitset, (self.data.borrow_mut(), self.entities, bitset))
     }
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         let value: &'rf mut Self::Value = &mut *(value as *mut Self::Value);
-        PairedStorage(id, value)
+        PairedStorage {
+            index: id,
+            storage: value.0,
+            entities: value.1,
+            bitset: value.2,
+            phantom: PhantomData,
+        }
     }
 }
-*/
 
 
 impl<'st, T, D> Storage<'st, T, D>
@@ -273,7 +278,7 @@ where
 /// as long as the `PairedStorage<C, S>` exists.
 ///
 /// This implements `Deref` and `DerefMut` to get the component.
-pub struct PairedStorage<'rf, 'st: 'rf, C, S, B> {
+pub struct PairedStorage<'rf, 'st: 'rf, C, S, B, Restrict> {
     index: Index,
     storage: S,
     bitset: B,
@@ -281,7 +286,7 @@ pub struct PairedStorage<'rf, 'st: 'rf, C, S, B> {
     phantom: PhantomData<C>,
 }
 
-impl<'rf, 'st, C, S, B> Deref for PairedStorage<'rf, 'st, C, S, B>
+impl<'rf, 'st, C, S, B, Restrict> Deref for PairedStorage<'rf, 'st, C, S, B, Restrict>
 where
     C: Component,
     S: Borrow<C::Storage>,
@@ -294,7 +299,7 @@ where
     }
 }
 
-impl<'rf, 'st, C, S, B> DerefMut for PairedStorage<'rf, 'st, C, S, B>
+impl<'rf, 'st, C, S, B, Restrict> DerefMut for PairedStorage<'rf, 'st, C, S, B, Restrict>
 where
     C: Component,
     S: BorrowMut<C::Storage>,
