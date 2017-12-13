@@ -250,12 +250,15 @@ impl<J: Join> JoinIter<J> {
         }
     }
 
-    /// Allows getting joined values for specific entity.
+    /// Allows getting joined values for specific raw index.
     /// 
-    /// This method doesn't check if the entity is alive, so it should only be used if it actually is.
-    pub fn get_unchecked(&mut self, entity: Entity) -> Option<J::Type> {
-        if self.keys.contains(entity.id()) {
-            Some(unsafe { J::get(&mut self.values, entity.id()) })
+    /// The raw index for an `Entity` can be retrieved using `Entity::id` method.
+    ///
+    /// As this method operates on raw indices, there is no check to see if the entity is still alive,
+    /// so the caller should ensure it instead.
+    pub fn get_unchecked(&mut self, index: Index) -> Option<J::Type> {
+        if self.keys.contains(index) {
+            Some(unsafe { J::get(&mut self.values, index) })
         } else {
             None
         }
