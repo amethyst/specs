@@ -89,7 +89,7 @@ unsafe impl<'rf, 'st: 'rf, B, T, R, RT> ParJoin
     for &'rf RestrictedStorage<'rf, 'st, B, T, R, RT>
 where
     T: Component,
-    R: BorrowMut<T::Storage> + 'rf,
+    R: Borrow<T::Storage> + 'rf,
     B: Borrow<BitSet> + 'rf,
     RT: ImmutableRestriction,
 {
@@ -227,7 +227,7 @@ where
     /// immutable components with this which is safe for parallel by default.
     pub fn restrict<'rf>(
         &'rf self,
-    ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &T::Storage, ParallelRestriction> {
+    ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &T::Storage, ImmutableParallelRestriction> {
         RestrictedStorage {
             bitset: &self.data.mask,
             data: &self.data.inner,
