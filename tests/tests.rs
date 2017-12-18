@@ -1,8 +1,8 @@
 extern crate rayon;
 extern crate specs;
 
-use specs::{Component, DispatcherBuilder, Entities, Entity, Fetch, FetchMut, HashMapStorage,
-            InsertResult, Join, ParJoin, ReadStorage, System, VecStorage, World, WriteStorage};
+use specs::prelude::*;
+use specs::storage::InsertResult;
 
 #[derive(Clone, Debug)]
 struct CompInt(i8);

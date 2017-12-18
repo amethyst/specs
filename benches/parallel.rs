@@ -7,9 +7,7 @@ extern crate test;
 
 use cgmath::Vector2;
 use rand::thread_rng;
-use specs::{Component, DenseVecStorage, DispatcherBuilder, Entities, Entity, Fetch,
-            HashMapStorage, Join, NullStorage, ReadStorage, RunningTime, System, VecStorage,
-            World, WriteStorage};
+use specs::prelude::*;
 use test::Bencher;
 
 type Vec2 = Vector2<f32>;

@@ -6,12 +6,13 @@ use rayon::iter::ParallelIterator;
 use rayon::iter::internal::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
 use tuple_utils::Split;
 
-use Index;
+use world::Index;
 
 /// `BitAnd` is a helper method to & bitsets together resulting in a tree.
 pub trait BitAnd {
+    /// The combined bitsets.
     type Value: BitSetLike;
-
+    /// Combines `Self` into a single `BitSetLike` through `BitSetAnd`.
     fn and(self) -> Self::Value;
 }
 
@@ -21,7 +22,6 @@ where
     A: BitSetLike,
 {
     type Value = A;
-
     fn and(self) -> Self::Value {
         self.0
     }
@@ -62,7 +62,6 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N}
 bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O}
 bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 
-
 /// The purpose of the `Join` trait is to provide a way
 /// to access multiple storages at the same time with
 /// the merged bit set.
@@ -73,7 +72,7 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 /// ## Example
 ///
 /// ```
-/// # use specs::*;
+/// # use specs::prelude::*;
 /// # #[derive(Debug, PartialEq)]
 /// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
 /// # #[derive(Debug, PartialEq)]
@@ -344,4 +343,3 @@ define_open!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O}
 define_open!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 define_open!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
 define_open!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R);
-

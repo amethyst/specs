@@ -56,10 +56,10 @@ fn impl_component(ast: &MacroInput) -> Tokens {
             _ => None,
         })
         .cloned()
-        .unwrap_or(Ident::new("::specs::DenseVecStorage"));
+        .unwrap_or(Ident::new("::specs::storage::DenseVecStorage"));
 
     quote! {
-        impl #impl_generics ::specs::Component for #name #ty_generics #where_clause {
+        impl #impl_generics ::specs::world::Component for #name #ty_generics #where_clause {
             type Storage = #storage<#name>;
         }
     }
