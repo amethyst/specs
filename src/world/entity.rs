@@ -1,9 +1,45 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
+use shred::Fetch;
 
-use {Index, Join, ParJoin};
 use error::WrongGeneration;
+use join::{Join, ParJoin};
+
+/// An index is basically the id of an `Entity`.
+pub type Index = u32;
+
+/// A wrapper for a fetched `Entities` resource.
+/// Note that this is just `Fetch<Entities>`, so
+/// you can easily use it in your system:
+///
+/// ```
+/// # use specs::prelude::*;
+/// # struct Sys;
+/// # impl<'a> System<'a> for Sys {
+/// type SystemData = (Entities<'a>, /* ... */);
+/// # fn run(&mut self, _: Self::SystemData) {}
+/// # }
+/// ```
+///
+/// Please note that you should call `World::maintain`
+/// after creating / deleting entities with this resource.
+///
+/// When `.join`ing on `Entities`, you will need to do it like this:
+///
+/// ```
+/// use specs::prelude::*;
+///
+/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
+/// # let mut world = World::new(); world.register::<Pos>();
+/// # let entities = world.entities(); let positions = world.read::<Pos>();
+/// for (e, pos) in (&*entities, &positions).join() {
+///     // Do something
+/// #   let _ = e;
+/// #   let _ = pos;
+/// }
+/// ```
+pub type Entities<'a> = Fetch<'a, EntitiesRes>;
 
 /// Internally used structure for `Entity` allocation.
 #[derive(Default, Debug)]
@@ -17,6 +53,7 @@ pub struct Allocator {
 }
 
 impl Allocator {
+    /// Kills a list of entities immediately.
     pub fn kill(&mut self, delete: &[Entity]) -> Result<(), WrongGeneration> {
         for &entity in delete {
             let id = entity.id() as usize;
@@ -36,6 +73,7 @@ impl Allocator {
         Ok(())
     }
 
+    /// Kills and entity atomically (will be updated when the allocator is maintained).
     pub fn kill_atomic(&self, e: Entity) -> Result<(), WrongGeneration> {
         if !self.is_alive(e) {
             return self.del_err(e);
@@ -46,7 +84,7 @@ impl Allocator {
         Ok(())
     }
 
-    pub fn del_err(&self, e: Entity) -> Result<(), WrongGeneration> {
+    pub(crate) fn del_err(&self, e: Entity) -> Result<(), WrongGeneration> {
         Err(WrongGeneration {
             action: "delete",
             actual_gen: self.generations[e.id() as usize],
@@ -63,6 +101,7 @@ impl Allocator {
         }
     }
 
+    /// Returns the current alive entity with the given `Index`.
     pub fn entity(&self, id: Index) -> Entity {
         let gen = match self.generations.get(id as usize) {
             Some(g) if !g.is_alive() && self.raised.contains(id) => g.raised(),
@@ -101,7 +140,13 @@ impl Allocator {
 
                 let gen = self.generations
                     .get(i as usize)
-                    .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
+                    .map(|&gen| {
+                        if gen.is_alive() {
+                            gen
+                        } else {
+                            gen.raised()
+                        }
+                    })
                     .unwrap_or(Generation(1));
 
                 return Entity(i as Index, gen);
@@ -129,6 +174,8 @@ impl Allocator {
         panic!("No entities left to allocate")
     }
 
+    /// Maintains the allocated entities, mainly dealing with atomically
+    /// allocated or killed entities.
     pub fn merge(&mut self) -> Vec<Entity> {
         use hibitset::BitSetLike;
 
@@ -179,6 +226,7 @@ impl<'a> Iterator for CreateIterAtomic<'a> {
 ///
 /// e.g. Entry, Entity, etc.
 pub trait EntityIndex {
+    /// Returns the index of an entity-like structure.
     fn index(&self) -> Index;
 }
 
@@ -289,7 +337,13 @@ impl<'a> Join for &'a EntitiesRes {
         let gen = v.alloc
             .generations
             .get(idx as usize)
-            .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
+            .map(|&gen| {
+                if gen.is_alive() {
+                    gen
+                } else {
+                    gen.raised()
+                }
+            })
             .unwrap_or(Generation(1));
         Entity(idx, gen)
     }

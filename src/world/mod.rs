@@ -1,14 +1,14 @@
 pub use self::comp::Component;
-pub use self::entity::{Allocator, CreateIterAtomic, EntitiesRes, Entity, EntityIndex, Generation};
+pub use self::entity::{Allocator, CreateIterAtomic, Entities, EntitiesRes, Entity, EntityIndex, Generation, Index};
 pub use self::lazy::{LazyBuilder, LazyUpdate};
 
 use std::borrow::Borrow;
 
 use shred::{Fetch, FetchMut, Resource, Resources};
 
-use {ReadStorage, Storage, WriteStorage};
 use error::WrongGeneration;
 use storage::{AnyStorage, DenseVecStorage, MaskedStorage};
+use storage::{ReadStorage, Storage, WriteStorage};
 
 mod comp;
 mod entity;
@@ -19,7 +19,10 @@ mod tests;
 #[cfg(not(feature = "nightly"))]
 fn component_message<T>(id: usize) -> String {
     let (message, function) = if id == 0 {
-        ("Unregistered component".to_string(), "World::register::<ComponentName>()".to_string())
+        (
+            "Unregistered component".to_string(),
+            "World::register::<ComponentName>()".to_string(),
+        )
     } else {
         (
             format!("Unregistered component with id `{}`", id),
@@ -28,9 +31,9 @@ fn component_message<T>(id: usize) -> String {
     };
     format!(
         "{}. Did you forget to register \
-        the component with `{}`? \
-        Note: Enable `nightly` feature to get the exact component \
-        type printed out.",
+         the component with `{}`? \
+         Note: Enable `nightly` feature to get the exact component \
+         type printed out.",
         message, function,
     )
 }
@@ -47,8 +50,7 @@ fn component_message<T>(id: usize) -> String {
         (
             format!(
                 "Component `{}` with id `{}` was unregistered.",
-                type_name,
-                id
+                type_name, id
             ),
             format!("World::register_with_id::<{}>({})", type_name, id),
         )
@@ -56,8 +58,7 @@ fn component_message<T>(id: usize) -> String {
 
     format!(
         "{}. Did you forget to register the component with `{}`",
-        message,
-        function
+        message, function
     )
 }
 
@@ -84,8 +85,7 @@ fn resource_message<T>(id: usize) -> String {
         (
             format!(
                 "No resource `{}` with id `{}` exists in the world",
-                type_name,
-                id
+                type_name, id
             ),
             format!("World::add_resource_with_id::<{}>(..., {})", type_name, id),
         )
@@ -93,8 +93,7 @@ fn resource_message<T>(id: usize) -> String {
 
     format!(
         "{}. Did you forget to add the resource with `{}`",
-        message,
-        function
+        message, function
     )
 }
 
@@ -119,7 +118,7 @@ impl<'a> Iterator for CreateIter<'a> {
 /// ## Examples
 ///
 /// ```
-/// use specs::{Component, DenseVecStorage, HashMapStorage, World};
+/// use specs::prelude::*;
 ///
 /// struct Health(f32);
 ///
@@ -210,13 +209,12 @@ impl<'a> EntityBuilder<'a> {
 /// ## Examples
 ///
 /// ```
-/// # use specs::{Component, VecStorage};
+/// use specs::prelude::*;
 /// # #[derive(Debug, PartialEq)]
 /// # struct Pos { x: f32, y: f32, } impl Component for Pos { type Storage = VecStorage<Self>; }
 /// # #[derive(Debug, PartialEq)]
 /// # struct Vel { x: f32, y: f32, } impl Component for Vel { type Storage = VecStorage<Self>; }
 /// # struct DeltaTime(f32);
-/// use specs::World;
 ///
 /// let mut world = World::new();
 /// world.register::<Pos>();
@@ -290,7 +288,7 @@ impl World {
     /// ## Examples
     ///
     /// ```
-    /// use specs::{Component, DenseVecStorage, World};
+    /// use specs::prelude::*;
     ///
     /// struct Pos {
     ///     x: f32,
@@ -354,7 +352,7 @@ impl World {
     /// ## Examples
     ///
     /// ```
-    /// use specs::World;
+    /// use specs::prelude::*;
     ///
     /// # let timer = ();
     /// # let server_con = ();
@@ -458,7 +456,9 @@ impl World {
     /// Panics if it is already borrowed.
     /// Panics if the resource has not been added.
     pub fn write_resource_with_id<T: Resource>(&self, id: usize) -> FetchMut<T> {
-        self.res.try_fetch_mut(id).expect(&resource_message::<T>(id))
+        self.res
+            .try_fetch_mut(id)
+            .expect(&resource_message::<T>(id))
     }
 
     /// Fetches a resource with the default id for reading.
@@ -534,7 +534,7 @@ impl World {
     /// ## Examples
     ///
     /// ```
-    /// use specs::World;
+    /// use specs::prelude::*;
     ///
     /// let mut world = World::new();
     /// let five_entities: Vec<_> = world.create_iter().take(5).collect();

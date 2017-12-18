@@ -80,7 +80,7 @@ macro_rules! gap {
 macro_rules! tests {
     ($mod:ident => $storage:ty) => {
         mod $mod {
-            use specs::{Component, Entity, World};
+            use specs::prelude::*;
 
             pub static NUM: u32 = 100_000;
 
@@ -122,9 +122,9 @@ macro_rules! tests {
     }
 }
 
-tests!(vec_storage => ::specs::VecStorage<Self>);
-tests!(dense_vec_storage => ::specs::DenseVecStorage<Self>);
-tests!(hashmap_storage => ::specs::HashMapStorage<Self>);
-tests!(btree_storage => ::specs::BTreeStorage<Self>);
+tests!(vec_storage => ::specs::storage::VecStorage<Self>);
+tests!(dense_vec_storage => ::specs::storage::DenseVecStorage<Self>);
+tests!(hashmap_storage => ::specs::storage::HashMapStorage<Self>);
+tests!(btree_storage => ::specs::storage::BTreeStorage<Self>);
 #[cfg(feature = "rudy")]
-tests!(rudy_storage => ::specs::RudyStorage<Self>);
+tests!(rudy_storage => ::specs::storage::RudyStorage<Self>);

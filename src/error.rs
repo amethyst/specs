@@ -60,8 +60,7 @@ pub enum Error {
     /// Wrong generation error.
     WrongGeneration(WrongGeneration),
 
-    #[doc(hidden)]
-    __NonExhaustive,
+    #[doc(hidden)] __NonExhaustive,
 }
 
 impl Display for Error {
@@ -115,9 +114,7 @@ impl Display for WrongGeneration {
         write!(
             f,
             "Tried to {} entity {:?}, but the generation is wrong; it should be {:?}",
-            self.action,
-            self.entity,
-            self.actual_gen
+            self.action, self.entity, self.actual_gen
         )
     }
 }
