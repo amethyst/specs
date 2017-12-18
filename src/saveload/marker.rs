@@ -4,8 +4,10 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use {Component, DenseVecStorage, Entities, Entity, EntityBuilder, Join, ReadStorage, WriteStorage};
+use join::Join;
 use shred::Resource;
+use storage::{DenseVecStorage, ReadStorage, WriteStorage};
+use world::{Component, Entities, Entity, EntityBuilder};
 
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
@@ -16,8 +18,8 @@ impl<'a> EntityBuilder<'a> {
     /// ## Examples
     ///
     /// ```
+    /// use specs::prelude::*;
     /// use specs::saveload::{U64Marker, U64MarkerAllocator};
-    /// use specs::World;
     ///
     /// let mut world = World::new();
     /// world.register::<U64Marker>();
@@ -56,7 +58,8 @@ impl<'a> EntityBuilder<'a> {
 /// #[macro_use] extern crate serde;
 /// use std::collections::HashMap;
 /// use std::ops::Range;
-/// use specs::{Component, Entity, DenseVecStorage};
+///
+/// use specs::prelude::*;
 /// use specs::saveload::{Marker, MarkerAllocator};
 ///
 /// // Marker for entities that should be synced over network
@@ -112,8 +115,6 @@ impl<'a> EntityBuilder<'a> {
 /// }
 ///
 /// fn main() {
-///     use specs::World;
-///
 ///     let mut world = World::new();
 ///     world.register::<NetMarker>();
 ///

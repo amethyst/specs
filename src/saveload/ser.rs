@@ -3,7 +3,10 @@ use std::marker::PhantomData;
 
 use serde::ser::{self, Serialize, SerializeSeq, Serializer};
 
-use {Entities, FetchMut, Join, ReadStorage, WriteStorage};
+use join::Join;
+use shred::FetchMut;
+use storage::{ReadStorage, WriteStorage};
+use world::Entities;
 
 use saveload::{Components, EntityData, Storages};
 use saveload::marker::{Marker, MarkerAllocator};
@@ -53,7 +56,6 @@ where
     }
     serseq.end()
 }
-
 
 /// Serialize components from specified storages via `SerializableComponent::save`
 /// of all marked entities with provided serializer.

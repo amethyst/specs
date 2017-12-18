@@ -4,7 +4,8 @@ use std::collections::BTreeMap;
 
 use fnv::FnvHashMap;
 
-use {DistinctStorage, Index, UnprotectedStorage};
+use storage::{DistinctStorage, UnprotectedStorage};
+use world::Index;
 
 #[cfg(feature = "rudy")]
 use rudy::rudymap::RudyMap;

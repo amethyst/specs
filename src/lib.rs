@@ -30,7 +30,7 @@
 //! [`Component`]: trait.Component.html
 //!
 //! ```rust
-//! use specs::{Component, VecStorage};
+//! use specs::prelude::*;
 //!
 //! struct MyComp;
 //!
@@ -47,7 +47,7 @@
 //! #[macro_use]
 //! extern crate specs_derive;
 //!
-//! use specs::VecStorage;
+//! use specs::prelude::*;
 //!
 //! #[derive(Component)]
 //! #[component(VecStorage)]
@@ -94,8 +94,7 @@
 //! ```rust
 //! extern crate specs;
 //!
-//! use specs::{Component, DispatcherBuilder, Join, ReadStorage, System, VecStorage,
-//!             WriteStorage, World};
+//! use specs::prelude::*;
 //!
 //! // A component contains data which is
 //! // associated with an entity.
@@ -168,7 +167,7 @@
 //! You can also easily create new entities on the fly:
 //!
 //! ```
-//! use specs::{Entities, FetchMut, System, WriteStorage};
+//! use specs::prelude::*;
 //!
 //! struct EnemySpawner;
 //!
@@ -207,76 +206,25 @@ extern crate shred_derive;
 #[cfg(feature = "rudy")]
 extern crate rudy;
 
-pub use join::{Join, JoinIter, JoinParIter, ParJoin};
-pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut, FetchMut, RunNow,
-                RunningTime, System, SystemData};
-
-#[cfg(not(target_os = "emscripten"))]
-pub use shred::AsyncDispatcher;
-
-pub use storage::{BTreeStorage, Capacity, DefaultCapacity, DenseVecStorage, DistinctStorage, Entry,
-                  Flag, FlaggedStorage, HashMapStorage, ImmutableParallelRestriction, InsertedFlag, InsertResult,
-                  MaskedStorage, ModifiedFlag, MutableParallelRestriction, NullStorage, OccupiedEntry, Populate, ReadStorage,
-                  RemovedFlag, RestrictedStorage, SequentialRestriction, Storage, StorageEntry, Tracked,
-                  UnprotectedStorage, VacantEntry, VecStorage, WriteStorage};
-pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
-                Generation, LazyBuilder, LazyUpdate, World};
-
 #[cfg(feature = "common")]
+/// Common functionality between crates using specs.
 pub mod common;
 
 #[cfg(feature = "serde")]
+/// Serialization/deserialization for the world state.
 pub mod saveload;
 
-#[cfg(feature = "rudy")]
-pub use storage::RudyStorage;
-
-#[cfg(feature = "serde")]
-pub use storage::{MergeError, PackedData};
-
-/// A wrapper for a fetched `Entities` resource.
-/// Note that this is just `Fetch<Entities>`, so
-/// you can easily use it in your system:
+/// Implementations and structures related to bitsets.
 ///
-/// ```
-/// # use specs::{Entities, System};
-/// # struct Sys;
-/// # impl<'a> System<'a> for Sys {
-/// type SystemData = (Entities<'a>, /* ... */);
-/// # fn run(&mut self, _: Self::SystemData) {}
-/// # }
-/// ```
-///
-/// Please note that you should call `World::maintain`
-/// after creating / deleting entities with this resource.
-///
-/// When joining `Entities` you will need to first dereference
-/// `Entities` / `Fetch<EntitiesRes>` to get the underlying `EntitiesRes`,
-/// then you will need to re-reference it since only the referenced
-/// `Entities` has an implementation for `Join`.
-/// (**in code: `&*entities`**):
-///
-/// ```
-/// use specs::{Entities, Join};
-///
-/// # use specs::{Component, VecStorage, World};
-/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
-/// # let mut world = World::new(); world.register::<Pos>();
-/// # let entities = world.entities(); let positions = world.read::<Pos>();
-/// for (e, pos) in (&*entities, &positions).join() {
-///     // Do something
-/// #   let _ = e;
-/// #   let _ = pos;
-/// }
-/// ```
-pub type Entities<'a> = Fetch<'a, EntitiesRes>;
-
-/// An index is basically the id of an `Entity`.
-pub type Index = u32;
-
+/// Normally used for `Join`s and filtering entities.
+pub mod bitset;
+/// Specs errors.
 pub mod error;
-
-mod bitset;
-mod join;
-mod storage;
-mod world;
+/// Joining of components for iteration over entities with specific components.
+pub mod join;
+/// Commonly used traits, structs, enums, etc. for ease of use.
+pub mod prelude;
+/// Component storages, implementations for component joins, etc.
+pub mod storage;
+/// Entities, resources, components, and general world management.
+pub mod world;

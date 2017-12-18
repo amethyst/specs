@@ -1,6 +1,6 @@
 use mopa::Any;
 
-use UnprotectedStorage;
+use storage::UnprotectedStorage;
 
 /// Abstract component type.
 /// Doesn't have to be Copy or even Clone.
@@ -20,7 +20,7 @@ use UnprotectedStorage;
 /// ## Examples
 ///
 /// ```
-/// use specs::{Component, VecStorage};
+/// use specs::prelude::*;
 ///
 /// pub struct Position {
 ///     pub x: f32,
@@ -33,7 +33,7 @@ use UnprotectedStorage;
 /// ```
 ///
 /// ```
-/// use specs::{Component, DenseVecStorage};
+/// use specs::prelude::*;
 ///
 /// pub enum Light {
 ///     // (Variants would have additional data)
@@ -47,7 +47,7 @@ use UnprotectedStorage;
 /// ```
 ///
 /// ```
-/// use specs::{Component, HashMapStorage};
+/// use specs::prelude::*;
 ///
 /// pub struct Camera {
 ///     // In an ECS, the camera would not itself have a position;

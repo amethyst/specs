@@ -1,5 +1,5 @@
 use super::*;
-use Join;
+use join::Join;
 use storage::VecStorage;
 
 struct Pos;

@@ -7,8 +7,7 @@ use rand::distributions::{IndependentSample, Range};
 
 use rayon::iter::ParallelIterator;
 
-use specs::{Component, DenseVecStorage, DispatcherBuilder, Entities, Fetch, HashMapStorage, Join,
-            LazyUpdate, ParJoin, ReadStorage, System, VecStorage, World, WriteStorage};
+use specs::prelude::*;
 
 const TAU: f32 = 2. * std::f32::consts::PI;
 

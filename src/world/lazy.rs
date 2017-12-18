@@ -1,6 +1,6 @@
 use crossbeam::sync::TreiberStack;
 
-use {Component, EntitiesRes, Entity, World};
+use world::{Component, EntitiesRes, Entity, World};
 
 /// Like `EntityBuilder`, but inserts the component
 /// lazily, meaning on `maintain`.
@@ -81,7 +81,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// # let mut world = World::new();
     /// struct Pos(f32, f32);
     ///
@@ -110,7 +110,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// #
     /// struct Pos(f32, f32);
     ///
@@ -143,7 +143,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// #
     /// struct Pos(f32, f32);
     ///
@@ -182,7 +182,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// #
     /// struct Pos;
     ///
@@ -216,7 +216,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// #
     /// struct Pos;
     ///
