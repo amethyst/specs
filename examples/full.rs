@@ -4,8 +4,7 @@ extern crate shred;
 extern crate shred_derive;
 extern crate specs;
 
-use specs::{Component, DenseVecStorage, DispatcherBuilder, Entities, Entity, HashMapStorage, Join,
-            ParJoin, ReadStorage, System, VecStorage, World, WriteStorage};
+use specs::prelude::*;
 
 // -- Components --
 // A component exists for 0..n

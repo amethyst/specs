@@ -1,6 +1,6 @@
 use crossbeam::sync::TreiberStack;
 
-use {Component, Entity, World};
+use world::{Component, Entity, World};
 
 trait LazyUpdateInternal: Send + Sync {
     fn update(self: Box<Self>, world: &World);
@@ -34,7 +34,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// #
     /// struct Pos(f32, f32);
     ///
@@ -67,7 +67,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// #
     /// struct Pos(f32, f32);
     ///
@@ -106,7 +106,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// #
     /// struct Pos;
     ///
@@ -140,7 +140,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// #
     /// struct Pos;
     ///

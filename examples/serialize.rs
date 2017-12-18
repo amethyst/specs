@@ -9,8 +9,8 @@ extern crate specs;
 fn main() {
     use serde::Serialize;
     use serde_json::{from_str as json_from_str, Serializer};
-    use specs::{Component, DispatcherBuilder, Entities, Join, PackedData, System, VecStorage,
-                World, WriteStorage};
+    use specs::prelude::*;
+    use specs::storage::PackedData;
 
     #[derive(Debug, Serialize, Deserialize)]
     struct CompSerialize {

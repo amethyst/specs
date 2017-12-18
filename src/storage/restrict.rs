@@ -5,9 +5,9 @@ use std::ops::{Deref, DerefMut};
 
 use hibitset::BitSet;
 
-use {Component, Entities, Entity, Index, Join, ParJoin, Storage, UnprotectedStorage};
-use storage::MaskedStorage;
-use world::EntityIndex;
+use join::{Join, ParJoin};
+use storage::{MaskedStorage, Storage, UnprotectedStorage};
+use world::{Component, Entities, Entity, EntityIndex, Index};
 
 /// Specifies that the `RestrictedStorage` cannot run in parallel.
 pub enum NormalRestriction {}
@@ -22,7 +22,7 @@ pub enum ParallelRestriction {}
 /// Example Usage:
 ///
 /// ```rust
-/// # use specs::{Join, System, Component, RestrictedStorage, WriteStorage, VecStorage, Entities};
+/// # use specs::prelude::*;
 /// struct SomeComp(u32);
 /// impl Component for SomeComp {
 ///     type Storage = VecStorage<Self>;
@@ -267,8 +267,7 @@ where
         write!(
             formatter,
             "Entry {{ id: {}, pointer: {:?} }}",
-            self.id,
-            self.pointer
+            self.id, self.pointer
         )
     }
 }

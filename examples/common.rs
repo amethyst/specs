@@ -6,7 +6,7 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use futures::{Future, Poll};
 use futures::future::Lazy;
-use specs::*;
+use specs::prelude::*;
 use specs::common::{BoxedFuture, Errors, Merge};
 use specs::error::BoxedErr;
 
