@@ -4,7 +4,8 @@ extern crate rayon;
 extern crate specs;
 extern crate test;
 
-use specs::{Component, HashMapStorage, Join, ParJoin, VecStorage, World};
+use specs::prelude::*;
+use specs::storage::HashMapStorage;
 
 #[derive(Clone, Debug)]
 struct CompInt(i32);
@@ -56,8 +57,10 @@ fn create_pure(b: &mut test::Bencher) {
 fn delete_now(b: &mut test::Bencher) {
     let mut w = World::new();
     let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_entity().build()).collect();
-    b.iter(|| if let Some(id) = eids.pop() {
-        w.delete_entity(id).unwrap()
+    b.iter(|| {
+        if let Some(id) = eids.pop() {
+            w.delete_entity(id).unwrap()
+        }
     });
 }
 
@@ -67,8 +70,10 @@ fn delete_now_with_storage(b: &mut test::Bencher) {
     let mut eids: Vec<_> = (0..10_000_000)
         .map(|_| w.create_entity().with(CompInt(1)).build())
         .collect();
-    b.iter(|| if let Some(id) = eids.pop() {
-        w.delete_entity(id).unwrap()
+    b.iter(|| {
+        if let Some(id) = eids.pop() {
+            w.delete_entity(id).unwrap()
+        }
     });
 }
 
@@ -76,8 +81,10 @@ fn delete_now_with_storage(b: &mut test::Bencher) {
 fn delete_later(b: &mut test::Bencher) {
     let mut w = World::new();
     let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_entity().build()).collect();
-    b.iter(|| if let Some(id) = eids.pop() {
-        w.entities().delete(id).unwrap()
+    b.iter(|| {
+        if let Some(id) = eids.pop() {
+            w.entities().delete(id).unwrap()
+        }
     });
 }
 
@@ -125,8 +132,10 @@ fn join_single_threaded(b: &mut test::Bencher) {
         }
     }
 
-    b.iter(|| for comp in world.read::<CompInt>().join() {
-        black_box(comp.0 * comp.0);
+    b.iter(|| {
+        for comp in world.read::<CompInt>().join() {
+            black_box(comp.0 * comp.0);
+        }
     })
 }
 

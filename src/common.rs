@@ -26,8 +26,11 @@ use crossbeam::sync::MsQueue;
 use futures::{Async, Future};
 use futures::executor::{spawn, Notify, Spawn};
 
-use {Component, Entities, Entity, Fetch, Join, RunningTime, System, WriteStorage};
 use error::BoxedErr;
+use join::Join;
+use shred::{Fetch, RunningTime, System};
+use storage::WriteStorage;
+use world::{Component, Entities, Entity};
 
 /// A boxed, thread-safe future with `T` as item and `BoxedErr` as error type.
 pub type BoxedFuture<T> = Box<Future<Item = T, Error = BoxedErr> + Send + Sync + 'static>;
@@ -217,7 +220,6 @@ impl Notify for NotifyIgnore {
 
 static NOTIFY_IGNORE: &&NotifyIgnore = &&NotifyIgnore;
 
-
 fn retain_mut<T, F>(vec: &mut Vec<T>, mut f: F)
 where
     F: FnMut(&mut T) -> bool,
@@ -249,11 +251,10 @@ mod test {
     use futures::future::{result, Future, FutureResult};
     use futures::task;
 
-    use Component;
-    use DispatcherBuilder;
     use common::{BoxedErr, Errors, Merge};
+    use shred::DispatcherBuilder;
     use storage::{NullStorage, VecStorage};
-    use world::World;
+    use world::{Component, World};
 
     #[test]
     fn test_merge() {

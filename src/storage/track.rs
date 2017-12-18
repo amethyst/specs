@@ -1,10 +1,11 @@
-
+use std::iter::Extend;
 use std::ops::{Deref, DerefMut};
 
-use hibitset::{BitSet};
-use shrev::{EventChannel, EventReadData, ReaderId};
+use shrev::{EventChannel, ReaderId};
 
-use {Component, Index, Join, MaskedStorage, Storage};
+use join::Join;
+use storage::{MaskedStorage, Storage};
+use world::{Component, Index};
 
 /// `UnprotectedStorage`s that track modifications, insertions, and
 /// removals of components.
@@ -13,27 +14,16 @@ pub trait Tracked {
     fn modified(&self) -> &EventChannel<ModifiedFlag>;
     /// Mutable event channel tracking modified components.
     fn modified_mut(&mut self) -> &mut EventChannel<ModifiedFlag>;
+
     /// Event channel tracking inserted components.
     fn inserted(&self) -> &EventChannel<InsertedFlag>;
     /// Mutable event channel tracking inserted components.
     fn inserted_mut(&mut self) -> &mut EventChannel<InsertedFlag>;
+
     /// Event channel tracking removed components.
     fn removed(&self) -> &EventChannel<RemovedFlag>;
     /// Mutable event channel tracking removed components.
     fn removed_mut(&mut self) -> &mut EventChannel<RemovedFlag>;
-
-    /// Tracks component modified events.
-    fn track_modified(&self) -> ReaderId<ModifiedFlag> {
-        self.modified().register_reader()
-    }
-    /// Tracks component inserted events.
-    fn track_inserted(&self) -> ReaderId<InsertedFlag> {
-        self.inserted().register_reader()
-    }
-    /// Tracks component removed events.
-    fn track_removed(&self) -> ReaderId<RemovedFlag> {
-        self.removed().register_reader()
-    }
 }
 
 impl<'e, T, D> Storage<'e, T, D>
@@ -57,43 +47,28 @@ where
         self.open().1.removed()
     }
 
-    /// Starts tracking modified events.
-    pub fn track_modified(&self) -> ReaderId<ModifiedFlag> {
-        self.open().1.track_modified()
-    }
-
-    /// Starts tracking inserted events.
-    pub fn track_inserted(&self) -> ReaderId<InsertedFlag> {
-        self.open().1.track_inserted()
-    }
-
-    /// Starts tracking removed events.
-    pub fn track_removed(&self) -> ReaderId<RemovedFlag> {
-        self.open().1.track_removed()
-    }
-
     /// Reads events from the modified `EventChannel` and populates a structure using the events.
-    pub fn populate_modified<P>(&self, reader_id: &mut ReaderId<ModifiedFlag>, value: &mut P)
+    pub fn populate_modified<E>(&self, reader_id: &mut ReaderId<ModifiedFlag>, value: &mut E)
     where
-        for<'a> EventReadData<'a, ModifiedFlag>: Populate<P>,
+        E: Extend<Index>,
     {
-        self.modified().read(reader_id).populate(value);
+        value.extend(self.modified().read(reader_id).map(|flag| *flag.as_ref()));
     }
 
     /// Reads events from the inserted `EventChannel` and populates a structure using the events.
-    pub fn populate_inserted<P>(&self, reader_id: &mut ReaderId<InsertedFlag>, value: &mut P)
+    pub fn populate_inserted<E>(&self, reader_id: &mut ReaderId<InsertedFlag>, value: &mut E)
     where
-        for<'a> EventReadData<'a, InsertedFlag>: Populate<P>,
+        E: Extend<Index>,
     {
-        self.inserted().read(reader_id).populate(value);
+        value.extend(self.inserted().read(reader_id).map(|flag| *flag.as_ref()));
     }
 
     /// Reads events from the removed `EventChannel` and populates a structure using the events.
-    pub fn populate_removed<P>(&self, reader_id: &mut ReaderId<RemovedFlag>, value: &mut P)
+    pub fn populate_removed<E>(&self, reader_id: &mut ReaderId<RemovedFlag>, value: &mut E)
     where
-        for<'a> EventReadData<'a, RemovedFlag>: Populate<P>,
+        E: Extend<Index>,
     {
-        self.removed().read(reader_id).populate(value);
+        value.extend(self.removed().read(reader_id).map(|flag| *flag.as_ref()));
     }
 }
 
@@ -118,67 +93,59 @@ where
         self.open().1.removed_mut()
     }
 
-    /// Flags an index as modified.
-    pub fn flag_modified(&mut self, id: Index) {
-        self.modified_mut().single_write(Flag::Flag(id).into());
+    /// Starts tracking modified events.
+    pub fn track_modified(&mut self) -> ReaderId<ModifiedFlag> {
+        self.open().1.modified_mut().register_reader()
     }
 
-    /// Unflags an index as modified.
-    pub fn unflag_modified(&mut self, id: Index) {
-        self.modified_mut().single_write(Flag::Unflag(id).into());
+    /// Starts tracking inserted events.
+    pub fn track_inserted(&mut self) -> ReaderId<InsertedFlag> {
+        self.open().1.inserted_mut().register_reader()
+    }
+
+    /// Starts tracking removed events.
+    pub fn track_removed(&mut self) -> ReaderId<RemovedFlag> {
+        self.open().1.removed_mut().register_reader()
+    }
+
+    /// Flags an index as modified.
+    pub fn flag_modified(&mut self, id: Index) {
+        self.modified_mut().single_write(id.into());
     }
 
     /// Flags an index as inserted.
     pub fn flag_inserted(&mut self, id: Index) {
-        self.inserted_mut().single_write(Flag::Flag(id).into());
-    }
-
-    /// Unflags an index as inserted.
-    pub fn unflag_inserted(&mut self, id: Index) {
-        self.inserted_mut().single_write(Flag::Unflag(id).into());
+        self.inserted_mut().single_write(id.into());
     }
 
     /// Flags an index as removed.
     pub fn flag_removed(&mut self, id: Index) {
-        self.removed_mut().single_write(Flag::Flag(id).into());
+        self.removed_mut().single_write(id.into());
     }
-
-    /// Unflags an index as removed.
-    pub fn unflag_removed(&mut self, id: Index) {
-        self.removed_mut().single_write(Flag::Unflag(id).into());
-    }
-}
-
-/// Event for flagging or unflagging an index.
-#[derive(Clone, Copy)]
-pub enum Flag {
-    /// Flags an index.
-    Flag(Index),
-    /// Unflags an index.
-    Unflag(Index),
 }
 
 macro_rules! flag {
     ( $( $name:ident ),* ) => {
-        $( 
+        $(
             /// Flag with additional type safety against which kind of
             /// operations were done.
-            pub struct $name(Flag);
+            #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+            pub struct $name(Index);
             impl Deref for $name {
-                type Target = Flag;
+                type Target = Index;
                 fn deref(&self) -> &Self::Target {
                     &self.0
                 }
             }
 
-            impl AsRef<Flag> for $name {
-                fn as_ref(&self) -> &Flag {
+            impl AsRef<Index> for $name {
+                fn as_ref(&self) -> &Index {
                     &self.0
                 }
             }
 
-            impl From<Flag> for $name {
-                fn from(flag: Flag) -> Self {
+            impl From<Index> for $name {
+                fn from(flag: Index) -> Self {
                     $name(flag)
                 }
             }
@@ -186,54 +153,5 @@ macro_rules! flag {
     }
 }
 
+// Separate types for type safety reasons.
 flag!(ModifiedFlag, InsertedFlag, RemovedFlag);
-
-/// Clears and populates a structure with an event channel's contents.
-pub trait Populate<T> {
-    /// Clears and populates a structure.
-    fn populate(self, t: &mut T);
-}
-
-impl<'a, F> Populate<BitSet> for EventReadData<'a, F>
-where
-    F: AsRef<Flag>,
-{
-    fn populate(self, bitset: &mut BitSet) {
-        let iterator = match self {
-            EventReadData::Data(iterator) => iterator,
-            EventReadData::Overflow(iterator, amount) => {
-                eprintln!("Populating ring buffer overflowed {} times!", amount);
-                iterator
-            }
-        };
-
-        for item in iterator {
-            let flag: &Flag = item.as_ref();
-            match flag {
-                &Flag::Flag(index) => bitset.add(index),
-                &Flag::Unflag(index) => bitset.remove(index),
-            };
-        }
-    }
-}
-
-/// Ring buffer capacities for specific events.
-pub trait Capacity {
-    /// Modification flags capacity.
-    const MODIFY: usize;
-    /// Insertion flags capacity.
-    const INSERT: usize;
-    /// Removal flags capacity.
-    const REMOVE: usize;
-}
-
-/// Default capacity for ring buffer.
-///
-/// 5000 modification flags, 3000 insertion flags, and 3000 removal.
-pub enum DefaultCapacity { }
-impl Capacity for DefaultCapacity {
-    const MODIFY: usize = 5000;
-    const INSERT: usize = 3000;
-    const REMOVE: usize = 3000;
-}
-

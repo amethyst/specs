@@ -3,8 +3,9 @@ use std::ops::{Deref, DerefMut};
 use serde::{Deserialize, Serialize, Serializer};
 use serde::ser::SerializeStruct;
 
-use {Component, Entity, Index, Join, Storage, UnprotectedStorage};
-use storage::MaskedStorage;
+use join::Join;
+use storage::{MaskedStorage, Storage, UnprotectedStorage};
+use world::{Component, Entity, Index};
 
 /// The error type returned
 /// by [`Storage::merge`].

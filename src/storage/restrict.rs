@@ -5,9 +5,9 @@ use std::ops::{Deref, DerefMut};
 
 use hibitset::BitSet;
 
-use {Component, Entities, Entity, Index, Join, ParJoin, Storage, UnprotectedStorage};
-use storage::MaskedStorage;
-use world::EntityIndex;
+use join::{Join, ParJoin};
+use storage::{MaskedStorage, Storage, UnprotectedStorage};
+use world::{Component, Entities, Entity, EntityIndex, Index};
 
 /// Specifies that the `RestrictedStorage` cannot run in parallel.
 ///
@@ -37,7 +37,7 @@ impl ImmutableAliasing for ImmutableParallelRestriction { }
 /// Example Usage:
 ///
 /// ```rust
-/// # use specs::{Join, System, Component, RestrictedStorage, WriteStorage, VecStorage, Entities};
+/// # use specs::prelude::*;
 /// struct SomeComp(u32);
 /// impl Component for SomeComp {
 ///     type Storage = VecStorage<Self>;
@@ -214,7 +214,6 @@ where
     }
 }
 
-
 impl<'st, T, D> Storage<'st, T, D>
 where
     T: Component,
@@ -222,7 +221,7 @@ where
 {
     /// Builds an immutable `RestrictedStorage` out of a `Storage`. Allows deferred
     /// unchecked access to the entity's component.
-    /// 
+    ///
     /// This is returned as a `ParallelRestriction` version since you can only get
     /// immutable components with this which is safe for parallel by default.
     pub fn restrict<'rf>(
@@ -295,8 +294,7 @@ where
         write!(
             formatter,
             "Entry {{ id: {}, pointer: {:?} }}",
-            self.id,
-            self.pointer
+            self.id, self.pointer
         )
     }
 }

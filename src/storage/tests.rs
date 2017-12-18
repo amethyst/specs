@@ -1,7 +1,7 @@
 use mopa::Any;
 
 use super::*;
-use {Component, Entity, Generation, Index, World};
+use world::{Component, Entity, Generation, Index, World};
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
@@ -612,15 +612,16 @@ mod test {
         // Verify that lazy closures are called only when inserted.
         {
             let mut increment = 0;
-            let mut lazy_increment =
-                |entity: Entity, valid: u32| if let Ok(entry) = s1.entry(entity) {
+            let mut lazy_increment = |entity: Entity, valid: u32| {
+                if let Ok(entry) = s1.entry(entity) {
                     entry.or_insert_with(|| {
                         increment += 1;
                         Cvec(5)
                     });
 
                     assert_eq!(increment, valid);
-                };
+                }
+            };
 
             lazy_increment(e3, 1);
             lazy_increment(e4, 1);
@@ -680,7 +681,9 @@ mod test {
             s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
             s2.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
         }
-        for ((s1_entry, _), (_, s2_restricted)) in (&mut s1.restrict_mut(), &mut s2.restrict_mut()).join() {
+        for ((s1_entry, _), (_, s2_restricted)) in
+            (&mut s1.restrict_mut(), &mut s2.restrict_mut()).join()
+        {
             // verify that the assert fails if the storage is not the original.
             s2_restricted.get_unchecked(&s1_entry);
         }
@@ -753,7 +756,6 @@ mod test {
     #[test]
     fn flagged() {
         use join::Join;
-        use world::EntityIndex;
 
         let mut w = World::new();
         w.register_with_id::<FlaggedCvec>(1);
@@ -763,12 +765,8 @@ mod test {
         let mut s1: Storage<FlaggedCvec, _> = w.write_with_id(1);
         let mut s2: Storage<FlaggedCvec, _> = w.write_with_id(2);
 
-        let mut modified = BitSet::new();
         let mut inserted = BitSet::new();
-        let mut removed = BitSet::new();
-        let mut modified_id = s1.track_modified();
         let mut inserted_id = s1.track_inserted();
-        let mut removed_id = s1.track_removed();
 
         for i in 0..15 {
             // Test insertion flagging
