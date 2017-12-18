@@ -3,9 +3,11 @@ use std::error::Error;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 
-use {Component, Entity, ReadStorage, SystemData, WriteStorage};
 use error::NoError;
 use saveload::marker::Marker;
+use shred::SystemData;
+use storage::{ReadStorage, WriteStorage};
+use world::{Component, Entity};
 
 #[derive(Serialize, Deserialize)]
 #[serde(bound = "")]

@@ -1,7 +1,7 @@
 use shred::{Fetch, FetchMut, ResourceId, Resources, SystemData};
 
-use {Component, EntitiesRes, Storage};
-use storage::MaskedStorage;
+use storage::{MaskedStorage, Storage};
+use world::{Component, EntitiesRes};
 
 /// A storage with read access.
 ///
@@ -27,7 +27,7 @@ use storage::MaskedStorage;
 /// something like this:
 ///
 /// ```
-/// # use specs::*;
+/// # use specs::prelude::*;
 /// #
 /// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
 /// # struct Vel; impl Component for Vel { type Storage = VecStorage<Self>; }
@@ -50,7 +50,7 @@ use storage::MaskedStorage;
 /// component by calling `Storage::get`:
 ///
 /// ```
-/// # use specs::*;
+/// # use specs::prelude::*;
 /// # #[derive(Debug, PartialEq)]
 /// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
 /// # #[derive(Debug, PartialEq)]
@@ -79,7 +79,7 @@ use storage::MaskedStorage;
 /// fetch it inside a system by simply adding it to the tuple:
 ///
 /// ```
-/// # use specs::*;
+/// # use specs::prelude::*;
 /// #[derive(Debug)]
 /// struct Pos {
 ///     x: f32,
@@ -149,7 +149,7 @@ where
 /// This works just like `Storage::get`, but returns a mutable reference:
 ///
 /// ```
-/// # use specs::*;
+/// # use specs::prelude::*;
 /// # #[derive(Debug, PartialEq)]
 /// # struct Pos(f32); impl Component for Pos { type Storage = VecStorage<Self>; }
 /// #
@@ -173,7 +173,8 @@ where
 /// again with `Storage::remove`.
 ///
 /// ```
-/// # use specs::*;
+/// # use specs::prelude::*;
+/// # use specs::storage::InsertResult;
 /// # #[derive(Debug, PartialEq)]
 /// # struct Pos(f32); impl Component for Pos { type Storage = VecStorage<Self>; }
 /// #

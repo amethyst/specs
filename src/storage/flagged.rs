@@ -1,9 +1,10 @@
-
 use std::marker::PhantomData;
 
 use shrev::EventChannel;
 
-use {Capacity, DefaultCapacity, DenseVecStorage, Flag, Index, InsertedFlag, ModifiedFlag, RemovedFlag, Tracked, UnprotectedStorage};
+use storage::{DenseVecStorage, Flag, InsertedFlag, ModifiedFlag, RemovedFlag, Tracked,
+              UnprotectedStorage};
+use world::Index;
 
 /// Wrapper storage that tracks modifications, insertions, and removals of components
 /// through an `EventChannel`.
@@ -22,9 +23,7 @@ use {Capacity, DefaultCapacity, DenseVecStorage, Flag, Index, InsertedFlag, Modi
 /// extern crate shrev;
 /// extern crate hibitset;
 ///
-/// use specs::{Component, Entities, ModifiedFlag, FlaggedStorage, Join, System, VecStorage, WriteStorage};
-/// use shrev::ReaderId;
-/// use hibitset::BitSet;
+/// use specs::prelude::*;
 ///
 /// pub struct Comp(u32);
 /// impl Component for Comp {
@@ -35,25 +34,16 @@ use {Capacity, DefaultCapacity, DenseVecStorage, Flag, Index, InsertedFlag, Modi
 ///
 /// pub struct CompSystem {
 ///     // This keeps track of the last modification events the system read.
-///     modified_id: Option<ReaderId<ModifiedFlag>>, 
+///     modified_id: ReaderId<ModifiedFlag>,
 ///     modified: BitSet,
 /// }
 ///
 /// impl<'a> System<'a> for CompSystem {
 ///     type SystemData = (Entities<'a>, WriteStorage<'a, Comp>);
 ///     fn run(&mut self, (entities, mut comps): Self::SystemData) {
-///         // If we aren't tracking the modification yet, then we should set that up.
-///         // Ideally you wouldn't have this in the system, but outside when you create
-///         // the system and put it in the dispatcher.
-///         if let None = self.modified_id {
-///             self.modified_id = Some(comps.track_modified());
-///         }
-///
-///         let reader_id = self.modified_id.as_mut().unwrap();
-///         
 ///         // This allows us to use the modification events in a `Join`. Otherwise we
 ///         // would have to iterate through the events which may not be in order.
-///         comps.populate_modified(reader_id, &mut self.modified);
+///         comps.populate_modified(&mut self.modified_id, &mut self.modified);
 ///
 ///         // Iterates over all components like normal.
 ///         for comp in (&comps).join() {
@@ -87,24 +77,23 @@ use {Capacity, DefaultCapacity, DenseVecStorage, Flag, Index, InsertedFlag, Modi
 /// }
 ///# fn main() { }
 /// ```
-pub struct FlaggedStorage<C, T = DenseVecStorage<C>, Capacity = DefaultCapacity> {
+pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
     modified: EventChannel<ModifiedFlag>,
     inserted: EventChannel<InsertedFlag>,
     removed: EventChannel<RemovedFlag>,
     storage: T,
-    phantom: PhantomData<(C, Capacity)>,
+    phantom: PhantomData<C>,
 }
 
-impl<C, T, Cap> Default for FlaggedStorage<C, T, Cap>
+impl<C, T> Default for FlaggedStorage<C, T>
 where
     T: Default,
-    Cap: Capacity,
 {
     fn default() -> Self {
         FlaggedStorage {
-            modified: EventChannel::with_capacity(Cap::MODIFY),
-            inserted: EventChannel::with_capacity(Cap::INSERT),
-            removed: EventChannel::with_capacity(Cap::REMOVE),
+            modified: EventChannel::new(),
+            inserted: EventChannel::new(),
+            removed: EventChannel::new(),
             storage: T::default(),
             phantom: PhantomData,
         }
@@ -131,6 +120,7 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
         self.inserted.single_write(Flag::Flag(id).into());
+        self.modified.single_write(Flag::Flag(id).into());
         self.storage.insert(id, comp);
     }
 
@@ -140,7 +130,7 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
     }
 }
 
-impl<C, T, Cap> Tracked for FlaggedStorage<C, T, Cap> {
+impl<C, T> Tracked for FlaggedStorage<C, T> {
     fn modified(&self) -> &EventChannel<ModifiedFlag> {
         &self.modified
     }
@@ -160,4 +150,3 @@ impl<C, T, Cap> Tracked for FlaggedStorage<C, T, Cap> {
         &mut self.removed
     }
 }
-

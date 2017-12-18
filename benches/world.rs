@@ -4,7 +4,7 @@ extern crate rayon;
 extern crate specs;
 extern crate test;
 
-use specs::{Component, HashMapStorage, Join, ParJoin, VecStorage, World};
+use specs::prelude::*;
 
 #[derive(Clone, Debug)]
 struct CompInt(i32);
