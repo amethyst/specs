@@ -48,6 +48,7 @@ use storage::UnprotectedStorage;
 ///
 /// ```
 /// use specs::prelude::*;
+/// use specs::storage::HashMapStorage;
 ///
 /// pub struct Camera {
 ///     // In an ECS, the camera would not itself have a position;
