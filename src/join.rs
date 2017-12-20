@@ -73,6 +73,7 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 ///
 /// ```
 /// # use specs::prelude::*;
+/// # use specs::world::EntitiesRes;
 /// # #[derive(Debug, PartialEq)]
 /// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
 /// # #[derive(Debug, PartialEq)]

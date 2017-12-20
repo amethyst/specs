@@ -5,6 +5,7 @@ extern crate shred_derive;
 extern crate specs;
 
 use specs::prelude::*;
+use specs::storage::HashMapStorage;
 
 // -- Components --
 // A component exists for 0..n
