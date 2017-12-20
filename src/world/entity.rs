@@ -43,7 +43,7 @@ pub type Entities<'a> = Fetch<'a, EntitiesRes>;
 
 /// Internally used structure for `Entity` allocation.
 #[derive(Default, Debug)]
-pub struct Allocator {
+pub(crate) struct Allocator {
     pub(crate) generations: Vec<Generation>,
 
     alive: BitSet,
