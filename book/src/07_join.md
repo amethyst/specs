@@ -4,16 +4,16 @@ In the last chapter, we learned how to access resources using `SystemData`.
 To access our components with it, we can just fetch a `ReadStorage` and use
 `Storage::get` to get the component associated to an entity. This works quite
 well if you want to access a single component, but what if you want to
-iterate over many components? Maybe some required, others optional, maybe even
-exclude component groups that have a certain component? If we wanted to do
-that using `Storage::get`, the code would become very ugly. So instead
-we worked out a way to conveniently specify that. And this concept is
+iterate over many components? Maybe some of them are required, others might
+be optional and maybe there is even a need to exclude some components?
+If we wanted to do that using only `Storage::get`, the code would become very ugly.
+So instead we worked out a way to conveniently specify that. This concept is
 known as "Joining".
 
 ## Basic joining
 
-We've already seen some basic examples in the last chapters, for
-example how to join over two storages:
+We've already seen some basic examples of joining in the last chapters, for
+example we saw how to join over two storages:
 
 ```rust,ignore
 for (pos, vel) in (&mut pos_storage, &vel_storage).join() {
@@ -25,14 +25,14 @@ This simply iterates over the position and velocity components of
 all entities that have both these components. That means all the
 specified components are **required**.
 
-Sometimes, you want to not only get the components of entities,
-but also the entity itself. To do that, we can simply join over
+Sometimes, we want not only get the components of entities,
+but also the entity value themselves. To do that, we can simply join over
 `&EntitiesRes`. We can get `&EntitiesRes` by de-referencing `Entities`
 and re-referencing the returned value.
 
 ```rust,ignore
 for (ent, pos, vel) in (&*entities, &mut pos_storage, &vel_storage).join() {
-    println!("Processing entitiy: {:?}", ent);
+    println!("Processing entity: {:?}", ent);
     *pos += *vel;
 }
 ```
@@ -40,11 +40,11 @@ for (ent, pos, vel) in (&*entities, &mut pos_storage, &vel_storage).join() {
 ## Optional components
 
 If we iterate over the `&EntitiesRes` as shown above, we can simply
-use the returned `Entitiy` values to get components from storages as usual.
+use the returned `Entity` values to get components from storages as usual.
 
 ```rust,ignore
 for (ent, pos, vel) in (&*entities, &mut pos_storage, &vel_storage).join() {
-    println!("Processing entitiy: {:?}", ent);
+    println!("Processing entity: {:?}", ent);
     *pos += *vel;
     
     let mass: Option<&mut Mass> = mass_storage.get_mut(ent);
@@ -66,7 +66,7 @@ mass based on the velocity. Thus, mass is an **optional** component here.
 
 If you want to filter your selection by excluding all entities
 with a certain component type, you can use the not operator (`!`)
-on respective component storage. Its return value is a unit (`()`).
+on the respective component storage. Its return value is a unit (`()`).
 
 ```rust,ignore
 for (ent, pos, vel, ()) in (
@@ -75,7 +75,7 @@ for (ent, pos, vel, ()) in (
     &vel_storage,
     !&freezed_storage,
 ).join() {
-    println!("Processing entitiy: {:?}", ent);
+    println!("Processing entity: {:?}", ent);
     *pos += *vel;
 }
 ```
@@ -96,8 +96,8 @@ The method call always returns an iterator. `Join` is implemented for
 * `&EntitiesRes` (returns `Entity` values)
 * bitsets
 
-The last point here is probably very interesting, because
-this allows for even more flexibility, as you will see in the next
+I think the last point here is pretty interesting, because
+it allows for even more flexibility, as you will see in the next
 section.
 
 ## Joining over bitsets
@@ -106,9 +106,9 @@ Specs is using `hibitset`, a library which provides layered bitsets
 (those were part of Specs once, but it was decided that a separate
 library could be useful for others).
 
-These bitsets are used for the component storages to determine for
-which entities the storage provides a component value. Also,
-entities are using bitsets, too. You can even create your
+These bitsets are used with the component storages to determine
+which entities the storage provides a component value for. Also,
+`Entities` is using bitsets, too. You can even create your
 own bitsets and add or remove entity ids:
 
 ```rust,ignore

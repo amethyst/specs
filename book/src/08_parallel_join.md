@@ -30,7 +30,7 @@ method call can be exchanged for `par_join`:
 
 ```rust,ignore
 fn run(&mut self, (vel, mut pos): Self::SystemData) {
-    use rayon::preulude::*;
+    use rayon::prelude::*;
     use specs::ParJoin;
 
     // Parallel joining behaves similarly to normal joining
