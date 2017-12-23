@@ -3,8 +3,8 @@ extern crate ron;
 extern crate serde;
 extern crate specs;
 
-use specs::prelude::*;
 use specs::error::NoError;
+use specs::prelude::*;
 use specs::saveload::{U64Marker, U64MarkerAllocator, WorldDeserialize, WorldSerialize};
 
 const ENTITIES: &str = "

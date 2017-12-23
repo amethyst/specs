@@ -1,6 +1,6 @@
 pub use self::comp::Component;
-pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, EntityIndex,
-                       Generation, Index};
+pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, EntityIndex, Generation,
+                       Index};
 pub use self::lazy::LazyUpdate;
 
 use self::entity::Allocator;
