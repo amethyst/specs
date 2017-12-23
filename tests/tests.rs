@@ -266,7 +266,6 @@ fn stillborn_entities() {
     }
 }
 
-
 #[test]
 fn dynamic_component() {
     // a simple test for the dynamic component feature.
@@ -334,8 +333,7 @@ fn join_two_components() {
                 } else {
                     panic!(
                         "Entity with compent values that shouldn't be: {:?} {:?}",
-                        int,
-                        boolean
+                        int, boolean
                     );
                 }
             }
@@ -442,11 +440,11 @@ fn par_join_many_entities_and_systems() {
         type SystemData = (Entities<'a>, ReadStorage<'a, CompInt>);
 
         fn run(&mut self, (entities, ints): Self::SystemData) {
-            (&ints, &*entities)
-                .par_join()
-                .for_each(|(int, entity)| if int.0 != 127 {
+            (&ints, &*entities).par_join().for_each(|(int, entity)| {
+                if int.0 != 127 {
                     self.0.lock().unwrap().push((entity.id(), int.0));
-                });
+                }
+            });
         }
     }
     let mut dispatcher = builder
@@ -457,8 +455,7 @@ fn par_join_many_entities_and_systems() {
     for &(id, n) in &*failed.lock().unwrap() {
         panic!(
             "Entity with id {} failed to count to 127. Count was {}",
-            id,
-            n
+            id, n
         );
     }
 }
