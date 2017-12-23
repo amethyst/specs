@@ -123,7 +123,6 @@ where
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
         self.inserted.single_write(Flag::Flag(id).into());
-        self.modified.single_write(Flag::Flag(id).into());
         self.storage.insert(id, comp);
     }
 

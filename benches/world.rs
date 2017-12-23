@@ -5,6 +5,7 @@ extern crate specs;
 extern crate test;
 
 use specs::prelude::*;
+use specs::storage::HashMapStorage;
 
 #[derive(Clone, Debug)]
 struct CompInt(i32);
