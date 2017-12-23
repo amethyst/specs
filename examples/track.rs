@@ -1,7 +1,6 @@
-
-extern crate specs;
-extern crate shrev;
 extern crate hibitset;
+extern crate shrev;
+extern crate specs;
 
 use specs::prelude::*;
 
@@ -27,10 +26,7 @@ impl SysA {
 }
 
 impl<'a> System<'a> for SysA {
-    type SystemData = (
-        Entities<'a>,
-        ReadStorage<'a, TrackedComponent>,
-    );
+    type SystemData = (Entities<'a>, ReadStorage<'a, TrackedComponent>);
     fn run(&mut self, (entities, tracked): Self::SystemData) {
         tracked.populate_modified(&mut self.modified_id, &mut self.modified);
 
@@ -43,10 +39,7 @@ impl<'a> System<'a> for SysA {
 #[derive(Default)]
 struct SysB;
 impl<'a> System<'a> for SysB {
-    type SystemData = (
-        Entities<'a>,
-        WriteStorage<'a, TrackedComponent>,
-    );
+    type SystemData = (Entities<'a>, WriteStorage<'a, TrackedComponent>);
     fn run(&mut self, (entities, mut tracked): Self::SystemData) {
         for (entity, (entry, restricted)) in (&*entities, &mut tracked.restrict_mut()).join() {
             if entity.id() % 2 == 0 {
@@ -64,9 +57,7 @@ fn main() {
     let sysa = SysA::new(&mut world);
 
     for _ in 0..10000 {
-        world.create_entity()
-            .with(TrackedComponent(0))
-            .build();
+        world.create_entity().with(TrackedComponent(0)).build();
     }
 
     let mut dispatcher = DispatcherBuilder::new()
@@ -80,4 +71,3 @@ fn main() {
     dispatcher.dispatch(&mut world.res);
     world.maintain();
 }
-
