@@ -122,6 +122,7 @@ impl<'a> Iterator for CreateIter<'a> {
 ///
 /// ```
 /// use specs::prelude::*;
+/// use specs::storage::HashMapStorage;
 ///
 /// struct Health(f32);
 ///

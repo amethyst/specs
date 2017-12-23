@@ -2,7 +2,7 @@ extern crate rayon;
 extern crate specs;
 
 use specs::prelude::*;
-use specs::storage::InsertResult;
+use specs::storage::{HashMapStorage, InsertResult};
 
 #[derive(Clone, Debug, PartialEq)]
 struct CompInt(i8);

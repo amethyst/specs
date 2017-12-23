@@ -8,6 +8,7 @@ use rand::distributions::{IndependentSample, Range};
 use rayon::iter::ParallelIterator;
 
 use specs::prelude::*;
+use specs::storage::HashMapStorage;
 
 const TAU: f32 = 2. * std::f32::consts::PI;
 

@@ -6,7 +6,7 @@ use rayon::iter::ParallelIterator;
 use rayon::iter::internal::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
 use tuple_utils::Split;
 
-use world::{Entity, Index};
+use world::{Entities, Entity, Index};
 
 /// `BitAnd` is a helper method to & bitsets together resulting in a tree.
 pub trait BitAnd {
@@ -73,6 +73,7 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 ///
 /// ```
 /// # use specs::prelude::*;
+/// # use specs::world::EntitiesRes;
 /// # #[derive(Debug, PartialEq)]
 /// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
 /// # #[derive(Debug, PartialEq)]
@@ -196,7 +197,7 @@ impl<J: Join> JoinIter<J> {
     /// ## Example
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// # #[derive(Debug, PartialEq)]
     /// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
     /// # #[derive(Debug, PartialEq)]
