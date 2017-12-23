@@ -655,7 +655,9 @@ mod test {
             s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
             s2.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
         }
-        for ((s1_entry, _), (_, s2_restricted)) in (&mut s1.restrict_mut(), &mut s2.restrict_mut()).join() {
+        for ((s1_entry, _), (_, s2_restricted)) in
+            (&mut s1.restrict_mut(), &mut s2.restrict_mut()).join()
+        {
             // verify that the assert fails if the storage is not the original.
             s2_restricted.get_unchecked(&s1_entry);
         }
