@@ -22,7 +22,7 @@ crossbeam = "0.3.0"
 derivative = "1"
 fnv = "1.0"
 #hibitset = "0.3.2"
-hibitset = { git = "https://github.com/slide-rs/hibitset", commit = "524e075728babcd4297248c3e17771df437022d4", version = "0.3.2" }
+hibitset = { git = "https://github.com/slide-rs/hibitset", commit = "7c97c6a46e2480b052f7b602e02778cff70f4eb0", version = "0.3.2" }
 mopa = "0.2"
 shred = "0.5.0"
 shrev = "0.8.0"
