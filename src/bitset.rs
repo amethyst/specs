@@ -2,7 +2,6 @@
 
 use hibitset::{AtomicBitSet, BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr, BitSetXor};
 
-use storage::Flag;
 use join::{Join, ParJoin};
 use world::Index;
 
@@ -39,38 +38,3 @@ define_bit_join!(impl<('a)(A, B)> for &'a BitSetAnd<A, B>);
 define_bit_join!(impl<()(A, B)> for BitSetOr<A, B>);
 define_bit_join!(impl<('a)(A, B)> for &'a BitSetOr<A, B>);
 define_bit_join!(impl<()(A, B)> for BitSetXor<A, B>);
-
-macro_rules! extend {
-    ( $bitset:ident ) => {
-        impl Extend<Flag> for $bitset {
-            fn extend<T>(&mut self, iter: T)
-            where
-                T: IntoIterator<Item = Flag>,
-            {
-                for item in iter.into_iter() {
-                    match item {
-                        Flag::Flag(index) => self.add(index),
-                        Flag::Unflag(index) => self.remove(index),
-                    };
-                }
-            }
-        }
-
-        impl<'a> Extend<&'a Flag> for $bitset {
-            fn extend<T>(&mut self, iter: T)
-            where
-                T: IntoIterator<Item = &'a Flag>,
-            {
-                for item in iter.into_iter() {
-                    match *item {
-                        Flag::Flag(index) => self.add(index),
-                        Flag::Unflag(index) => self.remove(index),
-                    };
-                }
-            }
-        }
-    };
-}
-
-extend!(BitSet);
-extend!(AtomicBitSet);
