@@ -14,10 +14,12 @@ pub trait Tracked {
     fn modified(&self) -> &EventChannel<ModifiedFlag>;
     /// Mutable event channel tracking modified components.
     fn modified_mut(&mut self) -> &mut EventChannel<ModifiedFlag>;
+
     /// Event channel tracking inserted components.
     fn inserted(&self) -> &EventChannel<InsertedFlag>;
     /// Mutable event channel tracking inserted components.
     fn inserted_mut(&mut self) -> &mut EventChannel<InsertedFlag>;
+
     /// Event channel tracking removed components.
     fn removed(&self) -> &EventChannel<RemovedFlag>;
     /// Mutable event channel tracking removed components.
@@ -48,7 +50,7 @@ where
     /// Reads events from the modified `EventChannel` and populates a structure using the events.
     pub fn populate_modified<E>(&self, reader_id: &mut ReaderId<ModifiedFlag>, value: &mut E)
     where
-        E: Extend<Flag>,
+        E: Extend<Index>,
     {
         value.extend(self.modified().read(reader_id).map(|flag| *flag.as_ref()));
     }
@@ -56,7 +58,7 @@ where
     /// Reads events from the inserted `EventChannel` and populates a structure using the events.
     pub fn populate_inserted<E>(&self, reader_id: &mut ReaderId<InsertedFlag>, value: &mut E)
     where
-        E: Extend<Flag>,
+        E: Extend<Index>,
     {
         value.extend(self.inserted().read(reader_id).map(|flag| *flag.as_ref()));
     }
@@ -64,7 +66,7 @@ where
     /// Reads events from the removed `EventChannel` and populates a structure using the events.
     pub fn populate_removed<E>(&self, reader_id: &mut ReaderId<RemovedFlag>, value: &mut E)
     where
-        E: Extend<Flag>,
+        E: Extend<Index>,
     {
         value.extend(self.removed().read(reader_id).map(|flag| *flag.as_ref()));
     }
@@ -108,42 +110,18 @@ where
 
     /// Flags an index as modified.
     pub fn flag_modified(&mut self, id: Index) {
-        self.modified_mut().single_write(Flag::Flag(id).into());
-    }
-
-    /// Unflags an index as modified.
-    pub fn unflag_modified(&mut self, id: Index) {
-        self.modified_mut().single_write(Flag::Unflag(id).into());
+        self.modified_mut().single_write(id.into());
     }
 
     /// Flags an index as inserted.
     pub fn flag_inserted(&mut self, id: Index) {
-        self.inserted_mut().single_write(Flag::Flag(id).into());
-    }
-
-    /// Unflags an index as inserted.
-    pub fn unflag_inserted(&mut self, id: Index) {
-        self.inserted_mut().single_write(Flag::Unflag(id).into());
+        self.inserted_mut().single_write(id.into());
     }
 
     /// Flags an index as removed.
     pub fn flag_removed(&mut self, id: Index) {
-        self.removed_mut().single_write(Flag::Flag(id).into());
+        self.removed_mut().single_write(id.into());
     }
-
-    /// Unflags an index as removed.
-    pub fn unflag_removed(&mut self, id: Index) {
-        self.removed_mut().single_write(Flag::Unflag(id).into());
-    }
-}
-
-/// Event for flagging or unflagging an index.
-#[derive(Clone, Copy)]
-pub enum Flag {
-    /// Flags an index.
-    Flag(Index),
-    /// Unflags an index.
-    Unflag(Index),
 }
 
 macro_rules! flag {
@@ -151,22 +129,23 @@ macro_rules! flag {
         $(
             /// Flag with additional type safety against which kind of
             /// operations were done.
-            pub struct $name(Flag);
+            #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+            pub struct $name(Index);
             impl Deref for $name {
-                type Target = Flag;
+                type Target = Index;
                 fn deref(&self) -> &Self::Target {
                     &self.0
                 }
             }
 
-            impl AsRef<Flag> for $name {
-                fn as_ref(&self) -> &Flag {
+            impl AsRef<Index> for $name {
+                fn as_ref(&self) -> &Index {
                     &self.0
                 }
             }
 
-            impl From<Flag> for $name {
-                fn from(flag: Flag) -> Self {
+            impl From<Index> for $name {
+                fn from(flag: Index) -> Self {
                     $name(flag)
                 }
             }
