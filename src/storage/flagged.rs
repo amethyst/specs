@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use shrev::EventChannel;
 
-use storage::{DenseVecStorage, Flag, InsertedFlag, ModifiedFlag, RemovedFlag, Tracked,
+use storage::{DenseVecStorage, InsertedFlag, ModifiedFlag, RemovedFlag, Tracked,
               UnprotectedStorage};
 use world::Index;
 
@@ -114,17 +114,17 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         // calling `.iter()` on an unconstrained mutable storage will flag everything
-        self.modified.single_write(Flag::Flag(id).into());
+        self.modified.single_write(id.into());
         self.storage.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
-        self.inserted.single_write(Flag::Flag(id).into());
+        self.inserted.single_write(id.into());
         self.storage.insert(id, comp);
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
-        self.removed.single_write(Flag::Flag(id).into());
+        self.removed.single_write(id.into());
         self.storage.remove(id)
     }
 }
