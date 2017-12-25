@@ -6,9 +6,14 @@ setting up, building, and structuring a game with an ECS.
 
 Specs is an ECS library that allows parallel system execution, with both low
 overhead and high flexibility, different storage types and a type-level
-system data model.
+system data model. It is mainly used for games and simulations, where it allows
+to structure code using composition over inheritance.
 
-You didn't fully understand what that sentence was about? The next section
+Additional documentation is available on `docs.rs`:
+
+* [API documentation for Specs](https://docs.rs/specs)
+
+You don't yet know what an ECS is all about? The next section
 is for you! In case you already know what an ECS is, just skip it.
 
 ## What's an ECS?
