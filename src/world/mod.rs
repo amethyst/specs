@@ -399,7 +399,7 @@ impl World {
     ///
     /// ## Panics
     ///
-    /// Panics if it is already borrowed.
+    /// Panics if it is already borrowed (either immutably or mutably).
     /// Panics if the component has not been registered.
     pub fn write<T: Component>(&self) -> WriteStorage<T> {
         self.write_with_id(0)
@@ -426,7 +426,7 @@ impl World {
     ///
     /// # Panics
     ///
-    /// Panics if it is already borrowed.
+    /// Panics if it is already borrowed (either immutably or mutably).
     /// Also panics if the component is not registered with `World::register`.
     pub fn write_with_id<T: Component>(&self, id: usize) -> WriteStorage<T> {
         let entities = self.entities();

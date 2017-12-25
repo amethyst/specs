@@ -1,5 +1,29 @@
 # [DRAFT] System Data
 
+Every system can request data which it needs to run. This data can be specified
+using the `System::SystemData` type. Typical implementors of the `SystemData` trait
+are `ReadStorage`, `WriteStorage`, `Fetch`, `FetchMut` and `Entities`.
+A tuple of types implementing `SystemData` automatically also implements `SystemData`.
+This means you can specify your `System::SystemData` as follows:
+
+```rust
+struct Sys;
+
+impl<'a> System<'a> for Sys {
+    type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
+    
+    fn run(&mut self, (pos, vel): Self::SystemData) {
+        /* ... */
+    }
+}
+```
+
+It is very important that you don't fetch both a `ReadStorage` and a `WriteStorage`
+for the same component or a `Fetch` and a `FetchMut` for the same resource.
+This is just like the borrowing rules of Rust, where you can't borrow something
+mutably and immutably at the same time. In Specs, we have to check this at
+runtime, thus you'll get a panic if you don't follow this rule.
+
 ## Accessing Entities
 
 You want to create/delete entities from a system? There is
