@@ -14,7 +14,7 @@ use world::EntityIndex;
 /// A mutable `RestrictedStorage` can call `get`, `get_mut`, `get_unchecked` and
 /// `get_mut_unchecked` for deferred access while an immutable version can only
 /// call the immutable accessors.
-pub enum NormalRestriction {}
+pub enum SequentialRestriction {}
 /// Specifies that the `RestrictedStorage` can run in parallel mutably.
 ///
 /// This means the storage can only call `get_mut_unchecked` and `get_unchecked`.
@@ -24,10 +24,10 @@ pub enum MutableParallelRestriction {}
 /// This means that the storage can call `get`, `get_unchecked`.
 pub enum ImmutableParallelRestriction {}
 
-/// Restrictions that are allowed to access `Storage::get`.
-pub trait ImmutableRestriction: Sized {}
-impl ImmutableRestriction for NormalRestriction { }
-impl ImmutableRestriction for ImmutableParallelRestriction { }
+/// Restrictions that are allowed to access `RestrictedStorage::get`.
+pub trait ImmutableAliasing: Sized {}
+impl ImmutableAliasing for SequentialRestriction { }
+impl ImmutableAliasing for ImmutableParallelRestriction { }
 
 /// Similar to a `MaskedStorage` and a `Storage` combined, but restricts usage
 /// to only getting and modifying the components. That means nothing that would
@@ -91,7 +91,7 @@ where
     T: Component,
     R: Borrow<T::Storage> + 'rf,
     B: Borrow<BitSet> + 'rf,
-    RT: ImmutableRestriction,
+    RT: ImmutableAliasing,
 {
 }
 
@@ -129,7 +129,7 @@ where
     R: Borrow<T::Storage>,
     B: Borrow<BitSet>,
     // Only non parallel and immutable parallel storages can access this.
-    RT: ImmutableRestriction,
+    RT: ImmutableAliasing,
 {
     /// Attempts to get the component related to the entity.
     ///
@@ -145,7 +145,7 @@ where
     }
 }
 
-impl<'rf, 'st, B, T, R> RestrictedStorage<'rf, 'st, B, T, R, NormalRestriction>
+impl<'rf, 'st, B, T, R> RestrictedStorage<'rf, 'st, B, T, R, SequentialRestriction>
 where
     T: Component,
     R: BorrowMut<T::Storage>,
@@ -247,7 +247,7 @@ where
     /// bitset for iteration in `Join`.
     pub fn restrict_mut<'rf>(
         &'rf mut self,
-    ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &mut T::Storage, NormalRestriction> {
+    ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &mut T::Storage, SequentialRestriction> {
         let (mask, data) = self.data.open_mut();
         RestrictedStorage {
             bitset: mask,
