@@ -33,6 +33,10 @@ Unlike most other ECS libraries out there, it provides
       other and you can use barriers to force several stages in system execution
 * high performance for real-world applications
 
+## [Link to the book][book]
+
+[book]: https://slide-rs.github.io/specs-website/docs/book/master/
+
 ## Example
 
 ```rust

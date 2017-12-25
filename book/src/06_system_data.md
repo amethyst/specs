@@ -31,8 +31,8 @@ good news for you. You can just use `Entities` to do that.
 It implements `SystemData` so just put it in your `SystemData` tuple.
 
 > Don't confuse `specs::Entities` with `specs::EntitiesRes`.
-  While the latter one is the actual resource, the other one is a type
-  definition for `Fetch<entity::Entities>`.
+  While the latter one is the actual resource, the former one is a type
+  definition for `Fetch<Entities>`.
 
 Please note that you may never write to these `Entities`, so only
 use `Fetch`. Even though it's immutable, you can atomically create
@@ -40,6 +40,9 @@ and delete entities with it. Just use the `.create()` and `.delete()`
 methods, respectively. After dynamic entity creation / deletion,
 a call `World::maintain` is necessary in order to make the changes
 persistent and delete associated components.
+
+**When joining over entities, you need to dereference `Fetch`
+and re-reference the returned `EntitiesRes`.**
 
 ## Adding and removing components
 
@@ -60,7 +63,7 @@ impl<'a> System<'a> for StoneCreator {
     type SystemData = (
         Entities<'a>,
         WriteStorage<'a, Stone>,
-        Fetch<'a, LazyUpdate>
+        Fetch<'a, LazyUpdate>,
     );
 
     fn run(&mut self, (entities, stones, updater): Self::SystemData) {
