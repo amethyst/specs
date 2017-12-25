@@ -11,6 +11,16 @@ use storage::MaskedStorage;
 /// however make sure to also check out the documentation for the
 /// respective methods on `Storage`.
 ///
+/// ## Aliasing
+///
+/// **It is strictly disallowed to fetch both a `ReadStorage` and a `WriteStorage`
+/// of the same component.**
+/// Because Specs uses interior mutability for its resources, we can't check
+/// this at compile time. If you try to do this, you will get a panic.
+///
+/// It is explicitly allowed to fetch multiple `ReadStorage`s for the same
+/// component.
+///
 /// ## Joining storages
 ///
 /// `&ReadStorage` implements `Join`, which allows to do
@@ -123,6 +133,16 @@ where
 /// A storage with read and write access.
 ///
 /// Additionally to what `ReadStorage` can do a storage with mutable access allows:
+///
+/// ## Aliasing
+///
+/// **It is strictly disallowed to fetch both a `ReadStorage` and a `WriteStorage`
+/// of the same component.**
+/// Because Specs uses interior mutability for its resources, we can't check
+/// this at compile time. If you try to do this, you will get a panic.
+///
+/// It is also disallowed to fetch multiple `WriteStorage`s for the same
+/// component.
 ///
 /// ## Retrieve components mutably
 ///
