@@ -219,7 +219,7 @@ pub use storage::{BTreeStorage, Change, ChangeEvents, DenseVecStorage, DistinctS
                   Storage, StorageEntry, TrackedStorage, UnprotectedStorage, VacantEntry,
                   VecStorage, WriteStorage};
 pub use world::{Component, CreateIter, CreateIterAtomic, EntitiesRes, Entity, EntityBuilder,
-                Generation, LazyUpdate, World};
+                Generation, LazyBuilder, LazyUpdate, World};
 
 #[cfg(feature = "common")]
 pub mod common;
