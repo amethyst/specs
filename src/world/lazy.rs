@@ -1,6 +1,50 @@
 use crossbeam::sync::TreiberStack;
 
-use {Component, Entity, World};
+use {Component, EntitiesRes, Entity, World};
+
+/// Like `EntityBuilder`, but inserts the component
+/// lazily, meaning on `maintain`.
+/// If you need those components to exist immediately,
+/// you have to insert them into the storages yourself.
+pub struct LazyBuilder<'a> {
+    /// The entity that we're inserting components for.
+    pub entity: Entity,
+    /// The lazy update reference.
+    pub lazy: &'a LazyUpdate,
+}
+
+impl<'a> LazyBuilder<'a> {
+    /// Inserts a component using `LazyUpdate`.
+    pub fn with<C>(self, component: C) -> Self
+    where
+        C: Component + Send + Sync,
+    {
+        self.with_id(component, 0)
+    }
+
+    /// Inserts a component using `LazyUpdate`.
+    /// The `id` is the component id which is in most cases `0`,
+    /// because it's only used for scripting where you want multiple
+    /// storages for the same Rust type.
+    pub fn with_id<C>(self, component: C, id: usize) -> Self
+        where
+            C: Component + Send + Sync,
+    {
+        let entity = self.entity;
+        self.lazy.execute(move |world| {
+            world.write_with_id::<C>(id).insert(entity, component);
+        });
+
+        self
+    }
+
+    /// Finishes the building and returns the built entity.
+    /// Please note that no component is associated to this
+    /// entity until you call `World::maintain`.
+    pub fn build(self) -> Entity {
+        self.entity
+    }
+}
 
 trait LazyUpdateInternal: Send + Sync {
     fn update(self: Box<Self>, world: &World);
@@ -29,6 +73,38 @@ pub struct LazyUpdate {
 }
 
 impl LazyUpdate {
+    /// Creates a new `LazyBuilder` which inserts components
+    /// using `LazyUpdate`. This means that the components won't
+    /// be available immediately, but only after a `maintain`
+    /// on `World` is performed.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use specs::*;
+    /// # let mut world = World::new();
+    /// struct Pos(f32, f32);
+    ///
+    /// impl Component for Pos {
+    ///     type Storage = VecStorage<Self>;
+    /// }
+    ///
+    /// # let lazy = world.read_resource::<LazyUpdate>();
+    /// # let entities = world.entities();
+    /// let my_entity = lazy
+    ///     .create_entity(&entities)
+    ///     .with(Pos(1.0, 3.0))
+    ///     .build();
+    /// ```
+    pub fn create_entity(&self, ent: &EntitiesRes) -> LazyBuilder {
+        let entity = ent.create();
+
+        LazyBuilder {
+            entity,
+            lazy: self,
+        }
+    }
+
     /// Lazily inserts a component for an entity.
     ///
     /// ## Examples

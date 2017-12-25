@@ -237,6 +237,13 @@ impl EntitiesRes {
     /// Creates a new entity atomically.
     /// This will be persistent as soon
     /// as you call `World::maintain`.
+    ///
+    /// If you want a lazy entity builder, take a look
+    /// at `LazyUpdate::create_entity`.
+    ///
+    /// In case you have access to the `World`,
+    /// you can also use `World::create_entity` which
+    /// creates the entity and the components immediately.
     pub fn create(&self) -> Entity {
         self.alloc.allocate_atomic()
     }

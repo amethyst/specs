@@ -1,6 +1,6 @@
 pub use self::comp::Component;
 pub use self::entity::{Allocator, CreateIterAtomic, EntitiesRes, Entity, EntityIndex, Generation};
-pub use self::lazy::LazyUpdate;
+pub use self::lazy::{LazyBuilder, LazyUpdate};
 
 use std::borrow::Borrow;
 
