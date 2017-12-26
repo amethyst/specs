@@ -1,28 +1,85 @@
 use std::fmt::{self, Display, Formatter};
 use std::marker::PhantomData;
 
-use serde::de::{self, Deserialize, DeserializeSeed, Deserializer, SeqAccess, Visitor};
+use serde::de::{self, Deserialize, DeserializeOwned, DeserializeSeed, Deserializer, SeqAccess,
+                Visitor};
 
-use saveload::{Components, EntityData, Storages};
+use saveload::EntityData;
 use saveload::marker::{Marker, MarkerAllocator};
+<<<<<<< HEAD
 use shred::Write;
+=======
+>>>>>>> f83d15e... Saveload overhaul
 use storage::WriteStorage;
-use world::Entities;
+use world::{Component, EntitiesRes, Entity};
+
+/// A trait which allows to deserialize entities and their components.
+pub trait DeserializeComponents<E, M>
+where
+    Self: Sized,
+    E: Display,
+    M: Marker,
+{
+    /// The data representation that a component group gets deserialized to.
+    type Data: DeserializeOwned;
+
+    /// The error type.
+    type Error: Display;
+
+    /// Loads `Component`s to entity from `Data` deserializable representation
+    fn deserialize_entity<'a, F>(
+        &mut self,
+        entity: Entity,
+        components: Self::Data,
+        ids: F,
+    ) -> Result<(), E>
+    where
+        F: FnMut(M) -> Option<Entity>;
+
+    /// Deserialize entities according to markers.
+    fn deserialize<'b, 'de, D>(
+        &'b mut self,
+        entities: &'b EntitiesRes,
+        markers: &'b mut WriteStorage<'b, M>,
+        allocator: &'b mut M::Allocator,
+        deserializer: D,
+    ) -> Result<(), D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_seq(VisitEntities::<E, M, Self> {
+            allocator,
+            entities,
+            markers,
+            storages: self,
+            pd: PhantomData,
+        })
+    }
+}
 
 /// Wrapper for `Entity` and tuple of `WriteStorage`s that implements `serde::Deserialize`.
+<<<<<<< HEAD
 struct DeserializeEntity<'a, 'b: 'a, M: Marker, E, T: Components<M::Identifier, E>> {
     entities: &'a Entities<'b>,
     storages: &'a mut <T as Storages<'b>>::WriteStorages,
     markers: &'a mut WriteStorage<'b, M>,
     allocator: &'a mut Write<'b, M::Allocator>,
     pd: PhantomData<(E, T)>,
+=======
+struct DeserializeEntity<'a: 'b, 'b, 's, E, M: Marker, S: 's> {
+    allocator: &'b mut M::Allocator,
+    entities: &'b EntitiesRes,
+    storages: &'s mut S,
+    markers: &'b mut WriteStorage<'a, M>,
+    pd: PhantomData<E>,
+>>>>>>> f83d15e... Saveload overhaul
 }
 
-impl<'de, 'a, 'b: 'a, M, E, T> DeserializeSeed<'de> for DeserializeEntity<'a, 'b, M, E, T>
+impl<'de, 'a: 'b, 'b, 's, E, M, S> DeserializeSeed<'de> for DeserializeEntity<'a, 'b, 's, E, M, S>
 where
-    M: Marker,
     E: Display,
-    T: Components<M::Identifier, E>,
+    M: Marker,
+    S: DeserializeComponents<E, M> + 's,
 {
     type Value = ();
     fn deserialize<D>(self, deserializer: D) -> Result<(), D::Error>
@@ -36,22 +93,19 @@ where
             allocator,
             ..
         } = self;
-        let data = EntityData::<M, E, T>::deserialize(deserializer)?;
-        let entity = allocator.get_marked(data.marker.id(), entities, markers);
-        markers
-            .get_mut(entity)
-            .ok_or("Allocator is broken")
-            .map_err(de::Error::custom)?
-            .update(data.marker);
-        let ids = |marker: M::Identifier| Some(allocator.get_marked(marker, entities, markers));
+        let data = EntityData::<M, S::Data>::deserialize(deserializer)?;
+        let entity = allocator.get_entity(data.marker.id(), entities, markers);
+        // TODO: previously, update was called here
+        // TODO: should we still do that?
+        let ids = |marker: M| Some(allocator.get_entity(marker.id(), entities, markers));
 
-        match T::load(entity, data.components, storages, ids) {
-            Ok(()) => Ok(()),
-            Err(err) => Err(de::Error::custom(err)),
-        }
+        storages
+            .deserialize_entity(entity, data.components, ids)
+            .map_err(de::Error::custom)
     }
 }
 
+<<<<<<< HEAD
 /// Wrapper for `Entities` and tuple of `WriteStorage`s that implements `serde::de::Visitor`
 struct VisitEntities<'a, 'b: 'a, M: Marker, E, T: Components<M::Identifier, E>> {
     entities: &'a Entities<'b>,
@@ -60,37 +114,23 @@ struct VisitEntities<'a, 'b: 'a, M: Marker, E, T: Components<M::Identifier, E>> 
     allocator: &'a mut Write<'b, M::Allocator>,
     pd: PhantomData<(E, T)>,
 }
+=======
+pub trait IntoDeserialize<M>: Component {
+    /// Serializable data representation for component
+    type Data: DeserializeOwned;
+>>>>>>> f83d15e... Saveload overhaul
 
-impl<'de, 'a, 'b: 'a, M, E, T> Visitor<'de> for VisitEntities<'a, 'b, M, E, T>
-where
-    M: Marker,
-    E: Display,
-    T: Components<M::Identifier, E>,
-{
-    type Value = ();
+    /// Error may occur during serialization or deserialization of component
+    type Error;
 
-    fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
-        write!(formatter, "Sequence of serialized entities")
-    }
-
-    fn visit_seq<A>(self, mut seq: A) -> Result<(), A::Error>
+    /// Convert this component from a deserializable form (`Data`) using
+    /// entity to marker mapping function
+    fn into<F>(&self, data: Self::Data, ids: F) -> Result<Self, Self::Error>
     where
-        A: SeqAccess<'de>,
-    {
-        while seq.next_element_seed(DeserializeEntity {
-            entities: self.entities,
-            storages: self.storages,
-            markers: self.markers,
-            allocator: self.allocator,
-            pd: self.pd,
-        })?
-            .is_some()
-        {}
-
-        Ok(())
-    }
+        F: FnMut(Entity) -> Option<M>;
 }
 
+<<<<<<< HEAD
 /// Deserialize entities according to markers.
 pub fn deserialize<'a, 'de, D, M, E, T>(
     entities: &Entities<'a>,
@@ -122,27 +162,45 @@ pub struct WorldDeserialize<'a, M: Marker, E, T: Components<M::Identifier, E>> {
     storages: <T as Storages<'a>>::WriteStorages,
     markers: WriteStorage<'a, M>,
     allocator: Write<'a, M::Allocator>,
+=======
+/// Wrapper for `Entities` and tuple of `WriteStorage`s that implements `serde::de::Visitor`
+struct VisitEntities<'a: 'b, 'b, E, M: Marker, S: 'b> {
+    allocator: &'b mut M::Allocator,
+    entities: &'b EntitiesRes,
+    markers: &'b mut WriteStorage<'a, M>,
+    storages: &'b mut S,
+>>>>>>> f83d15e... Saveload overhaul
     pd: PhantomData<E>,
 }
 
-impl<'de, 'a, M, E, T> DeserializeSeed<'de> for WorldDeserialize<'a, M, E, T>
+impl<'de, 'a, 'b: 'a, E, M, S> Visitor<'de> for VisitEntities<'a, 'b, E, M, S>
 where
-    M: Marker,
     E: Display,
-    T: Components<M::Identifier, E>,
+    M: Marker,
+    S: DeserializeComponents<E, M>,
 {
     type Value = ();
 
-    fn deserialize<D>(mut self, deserializer: D) -> Result<(), D::Error>
+    fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+        write!(formatter, "Sequence of serialized entities")
+    }
+
+    fn visit_seq<SEQ>(self, mut seq: SEQ) -> Result<(), SEQ::Error>
     where
-        D: Deserializer<'de>,
+        SEQ: SeqAccess<'de>,
     {
-        deserialize::<D, M, E, T>(
-            &mut self.entities,
-            &mut self.storages,
-            &mut self.markers,
-            &mut self.allocator,
-            deserializer,
-        )
+        loop {
+            let ret = seq.next_element_seed(DeserializeEntity {
+                entities: self.entities,
+                storages: self.storages,
+                markers: self.markers,
+                allocator: self.allocator,
+                pd: self.pd,
+            })?;
+
+            if ret.is_none() {
+                break Ok(());
+            }
+        }
     }
 }
