@@ -35,7 +35,7 @@ Unlike most other ECS libraries out there, it provides
 
 ## [Link to the book][book]
 
-[book]: https://slide-rs.github.io/specs-website/docs/book/master/
+[book]: https://slide-rs.github.io/specs/
 
 ## Example
 
