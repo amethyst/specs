@@ -2,15 +2,15 @@
 
 extern crate cgmath;
 extern crate rand;
-extern crate specs;
 extern crate shred;
+extern crate specs;
 extern crate test;
 
 use cgmath::Vector2;
 use rand::thread_rng;
+use shred::RunningTime;
 use specs::prelude::*;
 use specs::storage::{HashMapStorage, NullStorage};
-use shred::RunningTime;
 use test::Bencher;
 
 type Vec2 = Vector2<f32>;

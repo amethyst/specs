@@ -193,7 +193,7 @@ impl<J: Join> JoinIter<J> {
 
 impl<J: Join> JoinIter<J> {
     /// Allows getting joined values for specific entity.
-    /// 
+    ///
     /// ## Example
     ///
     /// ```
@@ -206,34 +206,34 @@ impl<J: Join> JoinIter<J> {
     ///
     /// world.register::<Pos>();
     /// world.register::<Vel>();
-    /// 
+    ///
     /// // This entity could be stashed anywhere (into `Component`, `Resource`, `System`s data, etc.) as it's just a number.
     /// let entity = world
     ///     .create_entity()
     ///     .with(Pos)
     ///     .with(Vel)
     ///     .build();
-    /// 
+    ///
     /// // Later
     /// {
     ///     let mut pos = world.write::<Pos>();
     ///     let vel = world.read::<Vel>();
-    ///     
+    ///
     ///     assert_eq!(
     ///         Some((&mut Pos, &Vel)),
     ///         (&mut pos, &vel).join().get(entity, &world.entities()),
     ///         "The entity that was stashed still has the needed components and is alive."
     ///     );
     /// }
-    /// 
+    ///
     /// // The entity has found nice spot and doesn't need to move anymore.
     /// world.write::<Vel>().remove(entity);
-    /// 
+    ///
     /// // Even later
     /// {
     ///     let mut pos = world.write::<Pos>();
     ///     let vel = world.read::<Vel>();
-    ///     
+    ///
     ///     assert_eq!(
     ///         None,
     ///         (&mut pos, &vel).join().get(entity, &world.entities()),
@@ -250,7 +250,7 @@ impl<J: Join> JoinIter<J> {
     }
 
     /// Allows getting joined values for specific raw index.
-    /// 
+    ///
     /// The raw index for an `Entity` can be retrieved using `Entity::id` method.
     ///
     /// As this method operates on raw indices, there is no check to see if the entity is still alive,
