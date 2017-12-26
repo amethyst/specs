@@ -1,4 +1,4 @@
-#![deny(missing_docs)]
+#![warn(missing_docs)]
 #![cfg_attr(feature = "nightly", feature(core_intrinsics))]
 
 //! # SPECS Parallel ECS
@@ -199,9 +199,6 @@ extern crate futures;
 #[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde;
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate shred_derive;
 
 #[cfg(feature = "rudy")]
 extern crate rudy;

@@ -80,7 +80,7 @@ fn main() {
         type SystemData = WorldSerialize<'a, U64Marker, NoError, (Pos, Mass)>;
 
         fn run(&mut self, mut world: Self::SystemData) {
-            let s = ron::ser::pretty::to_string(&world).unwrap();
+            let s = ron::ser::to_string_pretty(&world, Default::default()).unwrap();
 
             println!("{}", s);
 
