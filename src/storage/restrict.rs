@@ -20,14 +20,14 @@ pub enum SequentialRestriction {}
 /// This means the storage can only call `get_mut_unchecked` and `get_unchecked`.
 pub enum MutableParallelRestriction {}
 /// Specifies that the `RestrictedStorage` can run in parallel immutably.
-/// 
+///
 /// This means that the storage can call `get`, `get_unchecked`.
 pub enum ImmutableParallelRestriction {}
 
 /// Restrictions that are allowed to access `RestrictedStorage::get`.
 pub trait ImmutableAliasing: Sized {}
-impl ImmutableAliasing for SequentialRestriction { }
-impl ImmutableAliasing for ImmutableParallelRestriction { }
+impl ImmutableAliasing for SequentialRestriction {}
+impl ImmutableAliasing for ImmutableParallelRestriction {}
 
 /// Similar to a `MaskedStorage` and a `Storage` combined, but restricts usage
 /// to only getting and modifying the components. That means nothing that would
@@ -85,8 +85,7 @@ where
 {
 }
 
-unsafe impl<'rf, 'st: 'rf, B, T, R, RT> ParJoin
-    for &'rf RestrictedStorage<'rf, 'st, B, T, R, RT>
+unsafe impl<'rf, 'st: 'rf, B, T, R, RT> ParJoin for &'rf RestrictedStorage<'rf, 'st, B, T, R, RT>
 where
     T: Component,
     R: Borrow<T::Storage> + 'rf,
@@ -134,7 +133,7 @@ where
     /// Attempts to get the component related to the entity.
     ///
     /// Functions similar to the normal `Storage::get` implementation.
-    /// 
+    ///
     /// This only works for non-parallel or immutably parallel `RestrictedStorage`.
     pub fn get(&self, entity: Entity) -> Option<&T> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
@@ -332,4 +331,3 @@ where
         (*self).index()
     }
 }
-

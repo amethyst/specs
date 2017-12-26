@@ -2,7 +2,8 @@
 
 pub use self::data::{ReadStorage, WriteStorage};
 pub use self::flagged::FlaggedStorage;
-pub use self::restrict::{Entry, SequentialRestriction, MutableParallelRestriction, ImmutableParallelRestriction, RestrictedStorage};
+pub use self::restrict::{Entry, ImmutableParallelRestriction, MutableParallelRestriction,
+                         RestrictedStorage, SequentialRestriction};
 #[cfg(feature = "serde")]
 pub use self::ser::{MergeError, PackedData};
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};

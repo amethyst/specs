@@ -27,8 +27,8 @@ impl<'a> LazyBuilder<'a> {
     /// because it's only used for scripting where you want multiple
     /// storages for the same Rust type.
     pub fn with_id<C>(self, component: C, id: usize) -> Self
-        where
-            C: Component + Send + Sync,
+    where
+        C: Component + Send + Sync,
     {
         let entity = self.entity;
         self.lazy.execute(move |world| {
@@ -99,10 +99,7 @@ impl LazyUpdate {
     pub fn create_entity(&self, ent: &EntitiesRes) -> LazyBuilder {
         let entity = ent.create();
 
-        LazyBuilder {
-            entity,
-            lazy: self,
-        }
+        LazyBuilder { entity, lazy: self }
     }
 
     /// Lazily inserts a component for an entity.
