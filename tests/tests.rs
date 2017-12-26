@@ -463,7 +463,11 @@ fn par_join_many_entities_and_systems() {
 #[test]
 fn getting_specific_entity_with_join() {
     let mut world = create_world();
-    world.create_entity().with(CompInt(1)).with(CompBool(true)).build();
+    world
+        .create_entity()
+        .with(CompInt(1))
+        .with(CompBool(true))
+        .build();
 
     let entity = {
         let ints = world.read::<CompInt>();
@@ -482,7 +486,11 @@ fn getting_specific_entity_with_join() {
         entity
     };
     world.delete_entity(entity).unwrap();
-    world.create_entity().with(CompInt(2)).with(CompBool(false)).build();
+    world
+        .create_entity()
+        .with(CompInt(2))
+        .with(CompBool(false))
+        .build();
     let ints = world.read::<CompInt>();
     let mut bools = world.write::<CompBool>();
     assert_eq!(

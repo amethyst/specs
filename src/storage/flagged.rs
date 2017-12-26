@@ -20,8 +20,6 @@ use world::Index;
 ///
 /// ```rust
 /// extern crate specs;
-/// extern crate shrev;
-/// extern crate hibitset;
 ///
 /// use specs::prelude::*;
 ///
@@ -29,21 +27,45 @@ use world::Index;
 /// impl Component for Comp {
 ///     // `FlaggedStorage` acts as a wrapper around another storage.
 ///     // You can put any store inside of here (e.g. HashMapStorage, VecStorage, etc.)
+///     //
+///     // It also works as `FlaggedStorage<Self>` and defaults to `DenseVecStorage<Self>`
+///     // for the inner storage.
 ///     type Storage = FlaggedStorage<Self, VecStorage<Self>>;
 /// }
 ///
 /// pub struct CompSystem {
-///     // This keeps track of the last modification events the system read.
+///     // These keep track of where you left off in the event channel.
 ///     modified_id: ReaderId<ModifiedFlag>,
+///     inserted_id: ReaderId<InsertedFlag>,
+///
+///     // The bitsets you want to populate with modification/insertion events.
 ///     modified: BitSet,
+///     inserted: BitSet,
 /// }
 ///
 /// impl<'a> System<'a> for CompSystem {
 ///     type SystemData = (Entities<'a>, WriteStorage<'a, Comp>);
 ///     fn run(&mut self, (entities, mut comps): Self::SystemData) {
+///         // We want to clear the bitset first so we don't have left over events
+///         // from the last frame.
+///         //
+///         // However, if you want to accumulate changes over a couple frames then you
+///         // can only clear it when necessary. (This might be useful if you have some
+///         // sort of "tick" system in your game and only want to do operations every
+///         // 1/4th of a second or something)
+///         self.modified.clear();
+///         self.inserted.clear();
+///
 ///         // This allows us to use the modification events in a `Join`. Otherwise we
 ///         // would have to iterate through the events which may not be in order.
+///         //
+///         // This does not populate the bitset with inserted components, only pre-existing
+///         // components that were changed by a `get_mut` call to the storage.
 ///         comps.populate_modified(&mut self.modified_id, &mut self.modified);
+///
+///         // This will only include inserted components from last read, note that this
+///         // will not include `insert` calls if there already was a pre-existing component.
+///         comps.populate_inserted(&mut self.inserted_id, &mut self.inserted);
 ///
 ///         // Iterates over all components like normal.
 ///         for comp in (&comps).join() {
@@ -62,20 +84,41 @@ use world::Index;
 ///
 ///         // Instead do something like:
 ///#        let condition = true;
-///         for (entity, (mut entry, mut restrict)) in (&*entities, &mut comps.restrict_mut()).join() {
+///         for (entity, (entry, mut restrict)) in (&*entities, &mut comps.restrict_mut()).join() {
 ///             if condition { // check whether this component should be modified.
-///                  let mut comp = restrict.get_mut_unchecked(&mut entry);
+///                  let mut comp = restrict.get_mut_unchecked(&entry);
 ///                  // ...
 ///             }
 ///         }
 ///
-///         // To iterate over the flagged/modified components:
+///         // To iterate over the modified components:
 ///         for comp in (&comps, &self.modified).join() {
+///             // ...
+///         }
+///
+///         // To iterate over all inserted/modified components;
+///         for comp in (&comps, &self.modified & &self.inserted).join() {
 ///             // ...
 ///         }
 ///     }
 /// }
-///# fn main() { }
+/// fn main() {
+///     let mut world = World::new();
+///     world.register::<Comp>();
+///
+///     // You will want to register the system `ReaderId`s
+///     // before adding/modifying/removing any entities and components.
+///     //
+///     // Otherwise you won't receive any of the modifications until
+///     // you start tracking them.
+///     let mut comps = world.write::<Comp>();
+///     let comp_system = CompSystem {
+///         modified_id: comps.track_modified(),
+///         inserted_id: comps.track_inserted(),
+///         modified: BitSet::new(),
+///         inserted: BitSet::new(),
+///     };
+/// }
 /// ```
 pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
     modified: EventChannel<ModifiedFlag>,
