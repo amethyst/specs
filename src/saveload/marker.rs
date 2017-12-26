@@ -7,7 +7,7 @@ use std::hash::Hash;
 use join::Join;
 use shred::Resource;
 use storage::{DenseVecStorage, ReadStorage, WriteStorage};
-use world::{Component, Entities, Entity, EntityBuilder};
+use world::{Component, EntitiesRes, Entity, EntityBuilder};
 
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
@@ -132,27 +132,14 @@ impl<'a> EntityBuilder<'a> {
 ///     );
 /// }
 /// ```
-pub trait Marker: Component + DeserializeOwned + Serialize + Copy {
+pub trait Marker: Clone + Component + Debug + Eq + Hash + DeserializeOwned + Serialize {
     /// Id of the marker
-    type Identifier: Copy + Debug + Eq + Hash;
-
+    type Identifier: Default;
     /// Allocator for this `Marker`
     type Allocator: MarkerAllocator<Self>;
 
     /// Get this marker internal id
     fn id(&self) -> Self::Identifier;
-
-    /// Update marker with new value.
-    /// It must preserve the internal `Identifier`.
-    ///
-    /// ## Panics
-    ///
-    /// Allowed to panic if `self.id() != update.id()`.
-    /// But usually implementer may ignore the value of the `update.id()`
-    /// as deserialization algorithm ensures `id()`s match.
-    fn update(&mut self, update: Self) {
-        ::std::mem::drop(update);
-    }
 }
 
 /// This allocator is used with the `Marker` trait.
@@ -168,31 +155,18 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     fn allocate(&mut self, entity: Entity, id: Option<M::Identifier>) -> M;
 
     /// Get `Entity` by `Marker::Identifier`
-    fn get(&self, id: M::Identifier) -> Option<Entity>;
-
-    /// Create new unique marker `M` and attach it to entity.
-    /// Or get old marker if this entity is already marked.
-    fn mark<'a>(&mut self, entity: Entity, storage: &mut WriteStorage<'a, M>) -> (M, bool) {
-        match storage.get(entity).cloned() {
-            Some(marker) => (marker, false),
-            None => {
-                let marker = self.allocate(entity, None);
-                storage.insert(entity, marker);
-                (marker, true)
-            }
-        }
-    }
+    fn try_get(&self, id: &M::Identifier) -> Option<Entity>;
 
     /// Find an `Entity` by a `Marker` with same id
     /// and update `Marker` attached to the instance.
     /// Or create new entity and mark it.
-    fn get_marked<'a>(
+    fn get_entity(
         &mut self,
         id: M::Identifier,
-        entities: &Entities<'a>,
-        storage: &mut WriteStorage<'a, M>,
+        entities: &EntitiesRes,
+        storage: &mut WriteStorage<M>,
     ) -> Entity {
-        if let Some(entity) = self.get(id) {
+        if let Some(entity) = self.try_get(&id) {
             if entities.is_alive(entity) {
                 return entity;
             }
@@ -204,8 +178,24 @@ pub trait MarkerAllocator<M: Marker>: Resource {
         entity
     }
 
+    /// Create new unique marker `M` and attach it to entity.
+    /// Or get old marker if this entity is already marked.
+    fn mark<'m>(&mut self, entity: Entity, storage: &'m mut WriteStorage<M>) -> (&'m M, bool) {
+        let mut new = false;
+
+        let marker = storage
+            .entry(entity)
+            .unwrap()
+            .or_insert_with(|| {
+                new = true;
+                self.allocate(entity, None)
+            });
+
+        (marker, new)
+    }
+
     /// Maintain internal data. Cleanup if necessary.
-    fn maintain<'a>(&mut self, _entities: &Entities<'a>, _storage: &ReadStorage<'a, M>) {}
+    fn maintain(&mut self, _entities: &EntitiesRes, _storage: &ReadStorage<M>) {}
 }
 
 /// Basic marker implementation usable for saving and loading
@@ -216,8 +206,9 @@ impl Component for U64Marker {
 }
 
 impl Marker for U64Marker {
-    type Identifier = u64;
     type Allocator = U64MarkerAllocator;
+    type Identifier = u64;
+
     fn id(&self) -> u64 {
         self.0
     }
@@ -249,16 +240,17 @@ impl MarkerAllocator<U64Marker> for U64MarkerAllocator {
             U64Marker(self.index - 1)
         };
         self.mapping.insert(marker.id(), entity);
+
         marker
     }
 
-    fn get(&self, id: u64) -> Option<Entity> {
-        self.mapping.get(&id).cloned()
+    fn try_get(&self, id: &u64) -> Option<Entity> {
+        self.mapping.get(id).cloned()
     }
 
-    fn maintain<'a>(&mut self, entities: &Entities<'a>, storage: &ReadStorage<'a, U64Marker>) {
+    fn maintain(&mut self, entities: &EntitiesRes, storage: &ReadStorage<U64Marker>) {
         // FIXME: may be too slow
-        self.mapping = (&**entities, storage)
+        self.mapping = (&*entities, storage)
             .join()
             .map(|(e, m)| (m.id(), e))
             .collect();

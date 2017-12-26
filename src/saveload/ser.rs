@@ -1,166 +1,176 @@
 use std::fmt::Display;
-use std::marker::PhantomData;
 
 use serde::ser::{self, Serialize, SerializeSeq, Serializer};
 
 use join::Join;
-use shred::FetchMut;
 use storage::{ReadStorage, WriteStorage};
-use world::Entities;
-
-use saveload::{Components, EntityData, Storages};
+use world::{Component, EntitiesRes, Entity};
+use saveload::EntityData;
 use saveload::marker::{Marker, MarkerAllocator};
+use saveload::storages::GenericReadStorage;
 
-/// Serialize components from specified storages via `SerializableComponent::save`
-/// of all marked entities with provided serializer.
-/// When the component gets serialized with `SerializableComponent::save` method
-/// the closure passed in `ids` argument marks unmarked `Entity` (the marker of which was requested)
-/// and it will get serialized recursively.
-/// For serializing without such recursion see `serialize` function.
-pub fn serialize_recursive<'a, M, E, T, S>(
-    entities: &Entities<'a>,
-    storages: &<T as Storages<'a>>::ReadStorages,
-    markers: &mut WriteStorage<'a, M>,
-    allocator: &mut FetchMut<'a, M::Allocator>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    M: Marker,
-    E: Display,
-    T: Components<M::Identifier, E>,
-    S: Serializer,
-{
-    let mut serseq = serializer.serialize_seq(None)?;
-    let mut to_serialize = (&**entities, &*markers)
-        .join()
-        .map(|(e, m)| (e, *m))
-        .collect::<Vec<_>>();
-    while !to_serialize.is_empty() {
-        let mut add = vec![];
-        {
-            let mut ids = |entity| -> Option<M::Identifier> {
-                let (marker, added) = allocator.mark(entity, markers);
-                if added {
-                    add.push((entity, marker));
-                }
-                Some(marker.id())
-            };
-            for (entity, marker) in to_serialize {
-                serseq.serialize_element(&EntityData::<M, E, T> {
-                    marker,
-                    components: T::save(entity, storages, &mut ids).map_err(ser::Error::custom)?,
-                })?;
-            }
-        }
-        to_serialize = add;
-    }
-    serseq.end()
-}
+pub trait IntoSerialize<M>: Component {
+    /// Serializable data representation for component
+    type Data: Serialize;
 
-/// Serialize components from specified storages via `SerializableComponent::save`
-/// of all marked entities with provided serializer.
-/// When the component gets serialized with `SerializableComponent::save` method
-/// the closure passed in `ids` arguemnt returns `None` for unmarked `Entity`.
-/// In this case `SerializableComponent::save` may perform workaround (forget about `Entity`)
-/// or fail.
-/// So the function doesn't recursively mark referenced entities.
-/// For recursive marking see `serialize_recursive`
-pub fn serialize<'a, M, E, T, S>(
-    entities: &Entities<'a>,
-    storages: &<T as Storages<'a>>::ReadStorages,
-    markers: &ReadStorage<'a, M>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    M: Marker,
-    E: Display,
-    T: Components<M::Identifier, E>,
-    S: Serializer,
-{
-    let mut serseq = serializer.serialize_seq(None)?;
-    let ids = |entity| -> Option<M::Identifier> { markers.get(entity).map(Marker::id) };
-    for (entity, marker) in (&**entities, &*markers).join() {
-        serseq.serialize_element(&EntityData::<M, E, T> {
-            marker: *marker,
-            components: T::save(entity, storages, &ids).map_err(ser::Error::custom)?,
-        })?;
-    }
-    serseq.end()
-}
+    /// Error may occur during serialization or deserialization of component
+    type Error;
 
-/// This type implements `Serialize` so that it may be used in generic environment
-/// where `Serialize` implementation is expected.
-/// It may be constructed manually with `WorldSerialize::new`.
-/// Or fetched from `System` as `SystemData`.
-/// Serializes components in tuple `T` with marker `M`.
-#[derive(SystemData)]
-pub struct WorldSerialize<'a, M: Marker, E, T: Components<M::Identifier, E>> {
-    entities: Entities<'a>,
-    storages: <T as Storages<'a>>::ReadStorages,
-    markers: ReadStorage<'a, M>,
-    pd: PhantomData<E>,
-}
-
-macro_rules! world_serialize_new_functions {
-    ($($a:ident),*) => {
-        impl<'a, X, Z $(,$a)*> WorldSerialize<'a, X, Z, ($($a,)*)>
-            where X: Marker,
-                $(
-                    $a: super::SaveLoadComponent<X::Identifier>,
-                    Z: From<$a::Error>,
-                )*
-        {
-            /// Create serializable structure from storages
-            #[allow(non_snake_case)]
-            pub fn new(entities: Entities<'a>,
-                       markers: ReadStorage<'a, X>
-                       $(,$a: ReadStorage<'a, $a>)*) -> Self
-            {
-                WorldSerialize {
-                    entities,
-                    storages: ($($a,)*),
-                    markers,
-                    pd: PhantomData,
-                }
-            }
-        }
-
-        world_serialize_new_functions!(@ $($a),*);
-    };
-
-    (@) => {};
-    (@ $ah:ident $(,$a:ident)*) => {
-        // Call again for tail
-        world_serialize_new_functions!($($a),*);
-    };
-}
-
-world_serialize_new_functions!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
-
-impl<'a, M, E, T> WorldSerialize<'a, M, E, T>
-where
-    M: Marker,
-    T: Components<M::Identifier, E>,
-{
-    /// Remove all marked entities
-    /// Use this if you want to delete entities that were just serialized
-    pub fn remove_serialized(&mut self) {
-        for (entity, _) in (&*self.entities, &self.markers.check()).join() {
-            let _ = self.entities.delete(entity);
-        }
-    }
-}
-
-impl<'a, M, E, T> Serialize for WorldSerialize<'a, M, E, T>
-where
-    M: Marker,
-    E: Display,
-    T: Components<M::Identifier, E>,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    /// Convert this component into serializable form (`Data`) using
+    /// entity to marker mapping function
+    fn into<F>(&self, ids: F) -> Result<Self::Data, Self::Error>
     where
+        F: FnMut(Entity) -> Option<M>;
+}
+
+impl<C, M> IntoSerialize<M> for C
+where
+    C: Clone + Component + Serialize
+{
+    type Data = Self;
+    type Error = ();
+
+    fn into<F>(&self, _: F) -> Result<Self::Data, Self::Error>
+    where
+        F: FnMut(Entity) -> Option<M>
+    {
+        Ok(self.clone())
+    }
+}
+
+/// A trait which allows to serialize entities and their components.
+pub trait SerializeComponents<E, M>
+where
+    M: Marker,
+{
+    /// The data representation of the components.
+    type Data: Serialize;
+
+    /// Serialize the components of a single entiy using a entity -> marker mapping.
+    fn serialize_entity<F>(&self, entity: Entity, ids: F) -> Result<Self::Data, E>
+    where
+        F: FnMut(Entity) -> Option<M>;
+
+    /// Serialize components from specified storages via `SerializableComponent::save`
+    /// of all marked entities with provided serializer.
+    /// When the component gets serialized with `SerializableComponent::save` method
+    /// the closure passed in `ids` argument returns `None` for unmarked `Entity`.
+    /// In this case `SerializableComponent::save` may perform workaround (forget about `Entity`)
+    /// or fail.
+    /// So the function doesn't recursively mark referenced entities.
+    /// For recursive marking see `serialize_recursive`
+    fn serialize<'ms, S>(
+        &self,
+        entities: &EntitiesRes,
+        markers: &ReadStorage<M>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        E: Display,
         S: Serializer,
     {
-        serialize::<M, E, T, S>(&self.entities, &self.storages, &self.markers, serializer)
+        let mut serseq = serializer.serialize_seq(None)?;
+        let ids = |entity| -> Option<M> { markers.get(entity).cloned() };
+        for (entity, marker) in (&*entities, &*markers).join() {
+            serseq.serialize_element(&EntityData::<M, Self::Data> {
+                marker: marker.clone(),
+                components: self.serialize_entity(entity, &ids)
+                    .map_err(ser::Error::custom)?, // TODO: revise
+            })?;
+        }
+        serseq.end()
+    }
+
+    /// Serialize components from specified storages via `SerializableComponent::save`
+    /// of all marked entities with provided serializer.
+    /// When the component gets serialized with `SerializableComponent::save` method
+    /// the closure passed in `ids` argument marks unmarked `Entity` (the marker of which was requested)
+    /// and it will get serialized recursively.
+    /// For serializing without such recursion see `serialize` function.
+    fn serialize_recursive<MS, S>(
+        &self,
+        entities: &EntitiesRes,
+        markers: &mut WriteStorage<M>,
+        allocator: &mut M::Allocator,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        E: Display,
+        M: Marker,
+        S: Serializer,
+    {
+        let mut serseq = serializer.serialize_seq(None)?;
+        let mut to_serialize: Vec<(Entity, M)> = (entities, &*markers)
+            .join()
+            .map(|(e, m)| (e, m.clone()))
+            .collect();
+        while !to_serialize.is_empty() {
+            let mut add = vec![];
+            {
+                let mut ids = |entity| -> Option<M> {
+                    let (marker, added) = allocator.mark(entity, markers);
+                    if added {
+                        add.push((entity, marker.clone()));
+                    }
+                    Some(marker.clone())
+                };
+                for (entity, marker) in to_serialize {
+                    serseq.serialize_element(&EntityData::<M, Self::Data> {
+                        marker,
+                        components: self.serialize_entity(entity, &mut ids)
+                            .map_err(ser::Error::custom)?,
+                    })?;
+                }
+            }
+            to_serialize = add;
+        }
+        serseq.end()
     }
 }
+
+
+macro_rules! serialize_components {
+    ($($comp:ident => $sto:ident,)*) => {
+        impl<'a, E, M, $($comp,)* $($sto,)*> SerializeComponents<E, M> for ($($sto,)*)
+        where
+            M: Marker,
+            $(
+                $sto: GenericReadStorage<Component = $comp>,
+                $comp : IntoSerialize<M>,
+                E: From<<$comp as IntoSerialize<M>>::Error>,
+            )*
+        {
+            type Data = ($(Option<$comp::Data>,)*);
+
+            #[allow(unused)]
+            fn serialize_entity<F>(&self, entity: Entity, mut ids: F) -> Result<Self::Data, E>
+            where
+                F: FnMut(Entity) -> Option<M>
+            {
+                #[allow(bad_style)]
+                let ($(ref $comp,)*) = *self;
+
+                Ok(($(
+                    $comp.get(entity).map(|c| c.into(&mut ids).map(Some)).unwrap_or(Ok(None))?,
+                )*))
+            }
+        }
+
+        serialize_components!(@pop $($comp => $sto,)*);
+    };
+    (@pop) => {};
+    (@pop $head0:ident => $head1:ident, $($tail0:ident => $tail1:ident,)*) => {
+        serialize_components!($($tail0 => $tail1,)*);
+    };
+}
+
+serialize_components!(
+    CA => SA,
+    CB => SB,
+    CC => SC,
+    CD => SD,
+    CE => SE,
+    CF => SF,
+    CG => SG,
+    CH => SH,
+);
