@@ -2,15 +2,14 @@ use std::marker::PhantomData;
 
 use hibitset::BitSet;
 
-use {Index, Join, UnprotectedStorage};
-use world::EntityIndex;
+use {Entity, Index, Join, UnprotectedStorage};
 
 /// Wrapper storage that stores modifications to components in a bitset.
 ///
 /// **Note:** Joining over all components of a `FlaggedStorage`
 /// mutably will flag all components.**
 ///
-/// What you want to instead is to use `check()` or `restrict()` to first
+/// What you want to instead is to use `check()` or `defer_mut()` to first
 /// get the entities which contain the component,
 /// and then conditionally set the component
 /// after a call to `get_mut_unchecked()` or `get_mut()`.
@@ -59,9 +58,9 @@ use world::EntityIndex;
 ///         }
 ///
 ///         // Or alternatively:
-///         for (entity, (mut entry, mut restrict)) in (&*entities, &mut comps.restrict_mut()).join() {
+///         for (entity, mut comps_deferred) in (&*entities, &mut comps.defer_mut()).join() {
 ///             if true { // check whether this component should be modified.
-///                  let mut comp = restrict.get_mut_unchecked(&mut entry);
+///                  let mut comp = comps_deferred.get_mut_deferred();
 ///                  // ...
 ///             }
 ///         }
@@ -117,8 +116,8 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
 
 impl<C, T: UnprotectedStorage<C>> FlaggedStorage<C, T> {
     /// Whether the component that belongs to the given entity was flagged or not.
-    pub fn flagged<E: EntityIndex>(&self, entity: E) -> bool {
-        self.mask.contains(entity.index())
+    pub fn flagged(&self, entity: Entity) -> bool {
+        self.mask.contains(entity.id())
     }
 
     /// All components will be cleared of being flagged.
@@ -127,13 +126,13 @@ impl<C, T: UnprotectedStorage<C>> FlaggedStorage<C, T> {
     }
 
     /// Removes the flag for the component of the given entity.
-    pub fn unflag<E: EntityIndex>(&mut self, entity: E) {
-        self.mask.remove(entity.index());
+    pub fn unflag(&mut self, entity: Entity) {
+        self.mask.remove(entity.id());
     }
 
     /// Flags a single component.
-    pub fn flag<E: EntityIndex>(&mut self, entity: E) {
-        self.mask.add(entity.index());
+    pub fn flag(&mut self, entity: Entity) {
+        self.mask.add(entity.id());
     }
 }
 
