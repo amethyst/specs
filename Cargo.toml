@@ -10,7 +10,7 @@ homepage = "https://slide-rs.github.io/specs-website/"
 readme = "README.md"
 keywords = ["gamedev"]
 categories = ["concurrency"]
-license = "Apache-2.0"
+license = "MIT/Apache-2.0"
 authors = ["slide-rs hackers"]
 exclude = ["bors.toml", ".travis.yml"]
 
