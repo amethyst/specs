@@ -686,7 +686,7 @@ mod test {
     }
 
     #[test]
-    fn check_storage() {
+    fn storage_mask() {
         use join::Join;
 
         let mut w = World::new();
@@ -697,7 +697,7 @@ mod test {
             s1.insert(Entity::new(i, Generation::new(1)), CMarker);
         }
 
-        for (entity, id) in (&*w.entities(), &s1.check()).join() {
+        for (entity, id) in (&*w.entities(), s1.mask().clone()).join() {
             if id % 3 == 0 {
                 let _ = s1.get_mut(entity);
             } else {
@@ -705,11 +705,11 @@ mod test {
             }
         }
 
-        assert_eq!((&s1.check()).join().count(), 50);
+        assert_eq!((s1.mask()).join().count(), 50);
     }
 
     #[test]
-    fn par_check_storage() {
+    fn par_storage_mask() {
         use join::ParJoin;
         use rayon::iter::ParallelIterator;
 
@@ -721,7 +721,7 @@ mod test {
             s1.insert(Entity::new(i, Generation::new(1)), CMarker);
         }
 
-        assert_eq!((&s1.check()).par_join().count(), 50);
+        assert_eq!((s1.mask()).par_join().count(), 50);
     }
 
     #[test]
@@ -751,7 +751,7 @@ mod test {
         (&mut s1).open().1.clear_flags();
 
         // Cleared flags
-        for (entity, _) in (entities, &s1.check()).join() {
+        for (entity, _) in (entities, s1.mask()).join() {
             assert!(!s1.open().1.flagged(&entity));
         }
 
@@ -761,7 +761,7 @@ mod test {
             c1.0 += c2.0;
         }
 
-        for (entity, _) in (entities, &s1.check()).join() {
+        for (entity, _) in (entities, s1.mask()).join() {
             // Should only be modified if the entity had both components
             // Which means only half of them should have it.
             if s1.open().1.flagged(&entity) {
