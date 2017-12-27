@@ -495,10 +495,10 @@ mod test {
             components.insert(c);
         }
 
-        for (entry, restricted) in (&mut s1.restrict_mut()).join() {
-            let c1 = { restricted.get_unchecked(&entry).0 };
+        for mut comps in (&mut s1.restrict_mut()).join() {
+            let c1 = { comps.get_unchecked().0 };
 
-            let c2 = { restricted.get_mut_unchecked(&entry).0 };
+            let c2 = { comps.get_mut_unchecked().0 };
 
             assert_eq!(
                 c1,
@@ -517,7 +517,7 @@ mod test {
     }
 
     #[test]
-    fn par_restricted_storage() {
+    fn par_deferred_storage() {
         use join::ParJoin;
         use rayon::iter::ParallelIterator;
         use std::collections::HashSet;
@@ -539,11 +539,11 @@ mod test {
 
         (&mut s1.par_restrict_mut())
             .par_join()
-            .for_each(|(entry, restricted)| {
+            .for_each(|mut comps| {
                 let (mut components2, mut components2_mut) =
                     (components2.lock().unwrap(), components2_mut.lock().unwrap());
-                components2.push(restricted.get_unchecked(&entry).0);
-                components2_mut.push(restricted.get_mut_unchecked(&entry).0);
+                components2.push(comps.get_unchecked().0);
+                components2_mut.push(comps.get_mut_unchecked().0);
             });
         let components2 = components2.into_inner().unwrap();
         assert_eq!(
@@ -640,52 +640,6 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
-    fn wrong_storage() {
-        use join::Join;
-        let mut w = World::new();
-        w.register_with_id::<Cvec>(1);
-        w.register_with_id::<Cvec>(2);
-        let mut s1: Storage<Cvec, _> = w.write_with_id(1);
-        // Possibility if the world uses dynamic components.
-        let mut s2: Storage<Cvec, _> = w.write_with_id(2);
-
-        for i in 0..50 {
-            s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
-            s2.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
-        }
-        for ((s1_entry, _), (_, s2_restricted)) in (&mut s1.restrict_mut(), &mut s2.restrict_mut()).join() {
-            // verify that the assert fails if the storage is not the original.
-            s2_restricted.get_unchecked(&s1_entry);
-        }
-    }
-
-    #[test]
-    #[should_panic]
-    fn par_wrong_storage() {
-        use join::ParJoin;
-        use rayon::iter::ParallelIterator;
-
-        let mut w = World::new();
-        w.register_with_id::<Cvec>(1);
-        w.register_with_id::<Cvec>(2);
-        let mut s1: Storage<Cvec, _> = w.write_with_id(1);
-        // Possibility if the world uses dynamic components.
-        let mut s2: Storage<Cvec, _> = w.write_with_id(2);
-
-        for i in 0..50 {
-            s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
-            s2.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
-        }
-        (&mut s1.par_restrict_mut(), &mut s2.par_restrict_mut())
-            .par_join()
-            .for_each(|((s1_entry, _), (_, s2_restricted))| {
-                // verify that the assert fails if the storage is not the original.
-                s2_restricted.get_unchecked(&s1_entry);
-            });
-    }
-
-    #[test]
     fn check_storage() {
         use join::Join;
 
@@ -727,7 +681,6 @@ mod test {
     #[test]
     fn flagged() {
         use join::Join;
-        use world::EntityIndex;
 
         let mut w = World::new();
         w.register_with_id::<FlaggedCvec>(1);
@@ -752,7 +705,7 @@ mod test {
 
         // Cleared flags
         for (entity, _) in (entities, &s1.check()).join() {
-            assert!(!s1.open().1.flagged(&entity));
+            assert!(!s1.open().1.flagged(entity));
         }
 
         // Modify components to flag.
@@ -764,17 +717,17 @@ mod test {
         for (entity, _) in (entities, &s1.check()).join() {
             // Should only be modified if the entity had both components
             // Which means only half of them should have it.
-            if s1.open().1.flagged(&entity) {
-                println!("Flagged: {:?}", entity.index());
+            if s1.open().1.flagged(entity) {
+                println!("Flagged: {:?}", entity.id());
                 // Only every other component was flagged.
-                assert!(entity.index() % 2 == 0);
+                assert!(entity.id() % 2 == 0);
             }
         }
 
         // Iterate over all flagged entities.
         for (entity, _) in (&*w.entities(), s1.open().1).join() {
             // All entities in here should be flagged.
-            assert!(s1.open().1.flagged(&entity));
+            assert!(s1.open().1.flagged(entity));
         }
     }
 }

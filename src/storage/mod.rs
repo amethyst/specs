@@ -2,7 +2,7 @@
 
 pub use self::data::{ReadStorage, WriteStorage};
 pub use self::flagged::FlaggedStorage;
-pub use self::restrict::{SequentialRestriction, MutableParallelRestriction, ImmutableParallelRestriction, DeferredStorage};
+pub use self::restrict::{SequentialRestriction, MutableParallelRestriction, ImmutableParallelRestriction, RestrictedStorage};
 #[cfg(feature = "serde")]
 pub use self::ser::{MergeError, PackedData};
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
@@ -24,8 +24,8 @@ use error::WrongGeneration;
 
 mod data;
 mod drain;
-mod restrict;
 mod flagged;
+mod restrict;
 #[cfg(feature = "serde")]
 mod ser;
 mod storages;
