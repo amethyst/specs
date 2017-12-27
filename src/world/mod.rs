@@ -1,5 +1,5 @@
 pub use self::comp::Component;
-pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, EntityIndex, Generation,
+pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, Generation,
                        Index};
 pub use self::lazy::{LazyBuilder, LazyUpdate};
 

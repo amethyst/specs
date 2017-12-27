@@ -7,15 +7,15 @@ use hibitset::{BitSet, BitSetLike};
 
 use join::{Join, ParJoin};
 use storage::{MaskedStorage, Storage, UnprotectedStorage};
-use world::{Component, Entities, Entity, EntityIndex, Index};
+use world::{Component, Entities, Entity, Index};
 
-/// Specifies that the `DeferredStorage` cannot run in parallel.
+/// Specifies that the `RestrictedStorage` cannot run in parallel.
 ///
-/// A mutable `DeferredStorage` can call `get`, `get_mut`, `get_unchecked` and
-/// `get_mut_unchecked` for deferred access while an immutable version can only
+/// A mutable `RestrictedStorage` can call `get`, `get_mut`, `get_unchecked` and
+/// `get_mut_unchecked` for deferred/restricted access while an immutable version can only
 /// call the immutable accessors.
 pub enum SequentialRestriction {}
-/// Specifies that the `DeferredStorage` can run in parallel mutably.
+/// Specifies that the `RestrictedStorage` can run in parallel mutably.
 ///
 /// This means the storage can only call `get_mut_unchecked` and `get_unchecked`.
 pub enum MutableParallelRestriction {}
@@ -24,7 +24,7 @@ pub enum MutableParallelRestriction {}
 /// This means that the storage can call `get`, `get_unchecked`.
 pub enum ImmutableParallelRestriction {}
 
-/// Restrictions that are allowed to access `DeferredStorage::get`.
+/// Restrictions that are allowed to access `RestrictedStorage::get`.
 pub trait ImmutableAliasing: Sized {}
 impl ImmutableAliasing for SequentialRestriction {}
 impl ImmutableAliasing for ImmutableParallelRestriction {}
@@ -47,132 +47,128 @@ impl ImmutableAliasing for ImmutableParallelRestriction {}
 ///         WriteStorage<'a, SomeComp>,
 ///     );
 ///     fn run(&mut self, (entities, mut some_comps): Self::SystemData) {
-///         for (entity, (mut entry, restricted)) in (
+///         for (entity, mut comps) in (
 ///             &*entities,
 ///             &mut some_comps.restrict_mut()
 ///         ).join() {
 ///             // Check if the reference is fine to mutate.
-///             if restricted.get_unchecked(&entry).0 < 5 {
+///             if comps.get_unchecked().0 < 5 {
 ///                 // Get a mutable reference now.
-///                 let mut mutable = restricted.get_mut_unchecked(&mut entry);
+///                 let mut mutable = comps.get_mut_unchecked();
 ///                 mutable.0 += 1;
 ///             }
 ///         }
 ///     }
 /// }
 /// ```
-pub struct DeferredStorage<'rf, 'st: 'rf, B, T, R, RT>
+pub struct RestrictedStorage<'rf, 'st: 'rf, C, S, B, Restrict>
 where
-    T: Component,
-    R: Borrow<T::Storage> + 'rf,
+    C: Component,
+    S: Borrow<C::Storage> + 'rf,
     B: Borrow<BitSet> + 'rf,
 {
     bitset: B,
-    data: R,
+    data: S,
     entities: &'rf Entities<'st>,
-    phantom: PhantomData<(T, RT)>,
+    phantom: PhantomData<(C, Restrict)>,
 }
 
-/*
-unsafe impl<'rf, 'st: 'rf, B, T, R> ParJoin
-    for &'rf mut DeferredStorage<'rf, 'st, B, T, R, MutableParallelRestriction>
+unsafe impl<'rf, 'st: 'rf, C, S, B> ParJoin
+    for &'rf mut RestrictedStorage<'rf, 'st, C, S, B, MutableParallelRestriction>
 where
-    T: Component,
-    R: BorrowMut<T::Storage> + 'rf,
+    C: Component,
+    S: BorrowMut<C::Storage> + 'rf,
     B: Borrow<BitSet> + 'rf,
 {
 }
 
-unsafe impl<'rf, 'st: 'rf, B, T, R, RT> ParJoin for &'rf RestrictedStorage<'rf, 'st, B, T, R, RT>
+unsafe impl<'rf, 'st: 'rf, C, S, B, Restrict> ParJoin
+    for &'rf RestrictedStorage<'rf, 'st, C, S, B, Restrict>
 where
-    T: Component,
-    R: Borrow<T::Storage> + 'rf,
+    C: Component,
+    S: Borrow<C::Storage> + 'rf,
     B: Borrow<BitSet> + 'rf,
-    RT: ImmutableAliasing,
+    Restrict: ImmutableAliasing,
 {
 }
 
-impl<'rf, 'st, B, T, R, RT> DeferredStorage<'rf, 'st, B, T, R, RT>
+impl<'rf, 'st, C, S, B, Restrict> PairedStorage<'rf, 'st, C, S, B, Restrict>
 where
-    T: Component,
-    R: Borrow<T::Storage>,
+    C: Component,
+    S: Borrow<C::Storage>,
     B: Borrow<BitSet>,
 {
     /// Gets the component related to the current entry without checking whether
     /// the storage has it or not.
-    pub fn get_unchecked(&self) -> &T {
-        unsafe { self.data.borrow().get(entry.index()) }
+    pub fn get_unchecked(&self) -> &C {
+        unsafe { self.storage.borrow().get(self.index) }
     }
 }
-*/
 
-/*
-impl<'rf, 'st, B, T, R, RT> DeferredStorage<'rf, 'st, B, T, R, RT>
+impl<'rf, 'st, C, S, B, Restrict> PairedStorage<'rf, 'st, C, S, B, Restrict>
 where
-    T: Component,
-    R: BorrowMut<T::Storage>,
+    C: Component,
+    S: BorrowMut<C::Storage>,
     B: Borrow<BitSet>,
 {
     /// Gets the component related to the current entry without checking whether
     /// the storage has it or not.
-    pub fn get_mut_unchecked(&mut self) -> &mut T {
-        entry.assert_same_storage(self.data.borrow());
-        unsafe { self.data.borrow_mut().get_mut(entry.index()) }
+    pub fn get_mut_unchecked(&mut self) -> &mut C {
+        unsafe { self.storage.borrow_mut().get_mut(self.index) }
     }
 }
 
-impl<'rf, 'st, B, T, R, RT> DeferredStorage<'rf, 'st, B, T, R, RT>
+impl<'rf, 'st, C, S, B, Restrict> PairedStorage<'rf, 'st, C, S, B, Restrict>
 where
-    T: Component,
-    R: Borrow<T::Storage>,
+    C: Component,
+    S: Borrow<C::Storage>,
     B: Borrow<BitSet>,
     // Only non parallel and immutable parallel storages can access this.
-    RT: ImmutableAliasing,
+    Restrict: ImmutableAliasing,
 {
     /// Attempts to get the component related to the entity.
     ///
     /// Functions similar to the normal `Storage::get` implementation.
     ///
     /// This only works for non-parallel or immutably parallel `RestrictedStorage`.
-    pub fn get(&self, entity: Entity) -> Option<&T> {
+    pub fn get(&self, entity: Entity) -> Option<&C> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
-            Some(unsafe { self.data.borrow().get(entity.id()) })
+            Some(unsafe { self.storage.borrow().get(entity.id()) })
         } else {
             None
         }
     }
 }
 
-impl<'rf, 'st, B, T, R> DeferredStorage<'rf, 'st, B, T, R, SequentialRestriction>
+impl<'rf, 'st, C, S, B> PairedStorage<'rf, 'st, C, S, B, SequentialRestriction>
 where
-    T: Component,
-    R: BorrowMut<T::Storage>,
+    C: Component,
+    S: BorrowMut<C::Storage>,
     B: Borrow<BitSet>,
 {
     /// Attempts to get the component related to the entity mutably.
     ///
     /// Functions similar to the normal `Storage::get_mut` implementation.
     ///
-    /// This only works if this is a non-parallel `DeferredStorage`,
+    /// This only works if this is a non-parallel `RestrictedStorage`,
     /// otherwise you could access the same component mutably in two different threads.
-    pub fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
+    pub fn get_mut(&mut self, entity: Entity) -> Option<&mut C> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
-            Some(unsafe { self.data.borrow_mut().get_mut(entity.id()) })
+            Some(unsafe { self.storage.borrow_mut().get_mut(entity.id()) })
         } else {
             None
         }
     }
 }
-*/
 
-impl<'rf, 'st: 'rf, B, T, R, RT> Join for &'rf DeferredStorage<'rf, 'st, B, T, R, RT>
+impl<'rf, 'st: 'rf, C, S, B, Restrict> Join for &'rf RestrictedStorage<'rf, 'st, C, S, B, Restrict>
 where
-    T: Component,
-    R: Borrow<T::Storage>,
+    C: Component,
+    S: Borrow<C::Storage>,
     B: Borrow<BitSet>,
 {
-    type Type = PairedStorage<'rf, 'st, T, &'rf T::Storage, &'rf BitSet>;
-    type Value = (&'rf T::Storage, &'rf Entities<'st>, &'rf BitSet);
+    type Type = PairedStorage<'rf, 'st, C, &'rf C::Storage, &'rf BitSet, Restrict>;
+    type Value = (&'rf C::Storage, &'rf Entities<'st>, &'rf BitSet);
     type Mask = &'rf BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
         let bitset = self.bitset.borrow();
@@ -189,14 +185,14 @@ where
     }
 }
 
-impl<'rf, 'st: 'rf, B, T, R, RT> Join for &'rf mut DeferredStorage<'rf, 'st, B, T, R, RT>
+impl<'rf, 'st: 'rf, C, S, B, Restrict> Join for &'rf mut RestrictedStorage<'rf, 'st, C, S, B, Restrict>
 where
-    T: Component,
-    R: BorrowMut<T::Storage>,
+    C: Component,
+    S: BorrowMut<C::Storage>,
     B: Borrow<BitSet>,
 {
-    type Type = PairedStorage<'rf, 'st, T, &'rf mut T::Storage, &'rf BitSet>;
-    type Value = (&'rf mut T::Storage, &'rf Entities<'st>, &'rf BitSet);
+    type Type = PairedStorage<'rf, 'st, C, &'rf mut C::Storage, &'rf BitSet, Restrict>;
+    type Value = (&'rf mut C::Storage, &'rf Entities<'st>, &'rf BitSet);
     type Mask = &'rf BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
         let bitset = self.bitset.borrow();
@@ -219,15 +215,15 @@ where
     T: Component,
     D: Deref<Target = MaskedStorage<T>>,
 {
-    /// Builds an immutable `DeferredStorage` out of a `Storage`. Allows deferred
+    /// Builds an immutable `RestrictedStorage` out of a `Storage`. Allows deferred
     /// unchecked access to the entity's component.
     ///
     /// This is returned as a `ParallelRestriction` version since you can only get
     /// immutable components with this which is safe for parallel by default.
-    pub fn defer<'rf>(
+    pub fn restrict<'rf>(
         &'rf self,
-    ) -> DeferredStorage<'rf, 'st, &BitSet, T, &T::Storage, ImmutableParallelRestriction> {
-        DeferredStorage {
+    ) -> RestrictedStorage<'rf, 'st, T, &T::Storage, &BitSet, ImmutableParallelRestriction> {
+        RestrictedStorage {
             bitset: &self.data.mask,
             data: &self.data.inner,
             entities: &self.entities,
@@ -241,14 +237,14 @@ where
     T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,
 {
-    /// Builds a mutable `DeferredStorage` out of a `Storage`. Allows restricted
+    /// Builds a mutable `RestrictedStorage` out of a `Storage`. Allows restricted
     /// access to the inner components without allowing invalidating the
     /// bitset for iteration in `Join`.
-    pub fn defer_mut<'rf>(
+    pub fn restrict_mut<'rf>(
         &'rf mut self,
-    ) -> DeferredStorage<'rf, 'st, &BitSet, T, &mut T::Storage, SequentialRestriction> {
+    ) -> RestrictedStorage<'rf, 'st, T, &mut T::Storage, &BitSet, SequentialRestriction> {
         let (mask, data) = self.data.open_mut();
-        DeferredStorage {
+        RestrictedStorage {
             bitset: mask,
             data,
             entities: &self.entities,
@@ -256,14 +252,14 @@ where
         }
     }
 
-    /// Builds a mutable, parallel `DeferredStorage`,
+    /// Builds a mutable, parallel `RestrictedStorage`,
     /// does not allow mutably getting other components
     /// aside from the current iteration.
-    pub fn par_defer_mut<'rf>(
+    pub fn par_restrict_mut<'rf>(
         &'rf mut self,
-    ) -> DeferredStorage<'rf, 'st, &BitSet, T, &mut T::Storage, MutableParallelRestriction> {
+    ) -> RestrictedStorage<'rf, 'st, T, &mut T::Storage, &BitSet, MutableParallelRestriction> {
         let (mask, data) = self.data.open_mut();
-        DeferredStorage {
+        RestrictedStorage {
             bitset: mask,
             data,
             entities: &self.entities,
@@ -281,7 +277,7 @@ pub struct PairedStorage<'rf, 'st: 'rf, C, S, B, Restrict> {
     storage: S,
     bitset: B,
     entities: &'rf Entities<'st>,
-    phantom: PhantomData<C>,
+    phantom: PhantomData<(C, Restrict)>,
 }
 
 impl<'rf, 'st, C, S, B, Restrict> Deref for PairedStorage<'rf, 'st, C, S, B, Restrict>

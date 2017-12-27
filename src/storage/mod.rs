@@ -25,8 +25,8 @@ use world::{Component, EntitiesRes, Entity, Generation, Index};
 
 mod data;
 mod drain;
-mod restrict;
 mod flagged;
+mod restrict;
 #[cfg(feature = "serde")]
 mod ser;
 mod storages;
