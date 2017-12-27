@@ -189,8 +189,15 @@ where
     /// This bitset *can* be invalidated here if insertion or removal methods
     /// are used after the call to get the `BitSet`, so there is no guarantee
     /// that the storage will have a component for a specific entity.
+    #[deprecated(since = "0.11", note = "Use `Storage::mask` and then clone the bitset it returns instead. This method hides a rather expensive operation which could be handled better in other ways.")]
     pub fn check(&self) -> BitSet {
         self.data.mask.clone()
+    }
+
+    /// Returns a reference to the bitset of this storage which allows filtering
+    /// by the component type without actually getting the component.
+    pub fn mask(&self) -> &BitSet {
+        &self.data.mask
     }
 }
 
