@@ -53,6 +53,10 @@ use world::Index;
 ///         // can only clear it when necessary. (This might be useful if you have some
 ///         // sort of "tick" system in your game and only want to do operations every
 ///         // 1/4th of a second or something)
+///         //
+///         // It is not okay to only read the events in an interval though as that could
+///         // leave behind events which would end up growing the event ring buffer to
+///         // extreme sizes.
 ///         self.modified.clear();
 ///         self.inserted.clear();
 ///
