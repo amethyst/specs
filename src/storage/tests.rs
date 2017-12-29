@@ -732,29 +732,75 @@ mod test {
         use join::Join;
 
         let mut w = World::new();
-        w.register_with_id::<FlaggedCvec>(1);
-        w.register_with_id::<FlaggedCvec>(2);
+        w.register::<FlaggedCvec>();
 
-        let entities = &*w.entities();
-        let mut s1: Storage<FlaggedCvec, _> = w.write_with_id(1);
-        let mut s2: Storage<FlaggedCvec, _> = w.write_with_id(2);
+        let mut s1: Storage<FlaggedCvec, _> = w.write();
 
         let mut inserted = BitSet::new();
         let mut inserted_id = s1.track_inserted();
 
-        for i in 0..15 {
-            // Test insertion flagging
-            s1.insert(Entity::new(i, Generation::new(1)), i.into());
+        let mut modified = BitSet::new();
+        let mut modified_id = s1.track_modified();
+        
+        let mut removed = BitSet::new();
+        let mut removed_id = s1.track_removed();
 
-            if i % 2 == 0 {
-                s2.insert(Entity::new(i, Generation::new(1)), i.into());
-            }
+        for i in 0..15 {
+            let entity = w.entities().create();
+            s1.insert(entity, i.into());
         }
 
-        s1.populate_inserted(&mut inserted_id, &mut inserted);
+        {
+            inserted.clear();
+            s1.populate_inserted(&mut inserted_id, &mut inserted);
+            modified.clear();
+            s1.populate_modified(&mut modified_id, &mut modified);
+            removed.clear();
+            s1.populate_removed(&mut removed_id, &mut removed);
+        }
 
-        for (entity, _) in (entities, &s1).join() {
+        for (entity, _) in (&*w.entities(), &s1).join() {
             assert!(inserted.contains(entity.id()));
+            assert!(!modified.contains(entity.id()));
+            assert!(!removed.contains(entity.id()));
+        }
+
+        for (_, mut comp) in (&*w.entities(), &mut s1).join() {
+            comp.0 += 1;
+        }
+
+        {
+            inserted.clear();
+            s1.populate_inserted(&mut inserted_id, &mut inserted);
+            modified.clear();
+            s1.populate_modified(&mut modified_id, &mut modified);
+            removed.clear();
+            s1.populate_removed(&mut removed_id, &mut removed);
+        }
+
+        for (entity, _) in (&*w.entities(), &s1).join() {
+            assert!(!inserted.contains(entity.id()));
+            assert!(modified.contains(entity.id()));
+            assert!(!removed.contains(entity.id()));
+        }
+
+        for (entity, _) in (&*w.entities(), s1.mask().clone()).join() {
+            s1.remove(entity);
+        }
+
+        {
+            inserted.clear();
+            s1.populate_inserted(&mut inserted_id, &mut inserted);
+            modified.clear();
+            s1.populate_modified(&mut modified_id, &mut modified);
+            removed.clear();
+            s1.populate_removed(&mut removed_id, &mut removed);
+        }
+
+        for (entity, _) in (&*w.entities(), &s1).join() {
+            assert!(!inserted.contains(entity.id()));
+            assert!(!modified.contains(entity.id()));
+            assert!(removed.contains(entity.id()));
         }
     }
 }
