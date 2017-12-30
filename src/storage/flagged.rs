@@ -11,9 +11,9 @@ use world::Index;
 /// **Note:** Joining over all components of a `FlaggedStorage`
 /// mutably will flag all components.
 ///
-/// What you want to instead is to use `check()` or `restrict_mut()` to first
+/// What you want to instead is to use `restrict_mut()` to first
 /// get the entities which contain the component and then conditionally
-/// set the component after a call to `get_mut_unchecked()` or `get_mut()`.
+/// modify the component after a call to `get_mut_unchecked()` or `get_mut()`.
 ///
 /// # Examples
 ///
@@ -105,6 +105,7 @@ use world::Index;
 ///         }
 ///     }
 /// }
+///
 /// fn main() {
 ///     let mut world = World::new();
 ///     world.register::<Comp>();

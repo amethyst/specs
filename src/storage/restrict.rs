@@ -3,7 +3,7 @@ use std::borrow::{Borrow, BorrowMut};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
-use hibitset::{BitSet, BitSetLike};
+use hibitset::BitSet;
 
 use join::{Join, ParJoin};
 use storage::{MaskedStorage, Storage, UnprotectedStorage};
@@ -31,6 +31,9 @@ impl ImmutableAliasing for ImmutableParallelRestriction {}
 
 /// Similar to a `MaskedStorage` and a `Storage` combined, but restricts usage
 /// to only getting and modifying the components. That means nothing that would
+/// modify the inner bitset so the iteration cannot be invalidated. For example,
+/// no insertion or removal is allowed.
+///
 /// Example Usage:
 ///
 /// ```rust
@@ -90,75 +93,6 @@ where
     B: Borrow<BitSet> + 'rf,
     Restrict: ImmutableAliasing,
 {
-}
-
-impl<'rf, 'st, C, S, B, Restrict> PairedStorage<'rf, 'st, C, S, B, Restrict>
-where
-    C: Component,
-    S: Borrow<C::Storage>,
-    B: Borrow<BitSet>,
-{
-    /// Gets the component related to the current entry without checking whether
-    /// the storage has it or not.
-    pub fn get_unchecked(&self) -> &C {
-        unsafe { self.storage.borrow().get(self.index) }
-    }
-}
-
-impl<'rf, 'st, C, S, B, Restrict> PairedStorage<'rf, 'st, C, S, B, Restrict>
-where
-    C: Component,
-    S: BorrowMut<C::Storage>,
-    B: Borrow<BitSet>,
-{
-    /// Gets the component related to the current entry without checking whether
-    /// the storage has it or not.
-    pub fn get_mut_unchecked(&mut self) -> &mut C {
-        unsafe { self.storage.borrow_mut().get_mut(self.index) }
-    }
-}
-
-impl<'rf, 'st, C, S, B, Restrict> PairedStorage<'rf, 'st, C, S, B, Restrict>
-where
-    C: Component,
-    S: Borrow<C::Storage>,
-    B: Borrow<BitSet>,
-    // Only non parallel and immutable parallel storages can access this.
-    Restrict: ImmutableAliasing,
-{
-    /// Attempts to get the component related to the entity.
-    ///
-    /// Functions similar to the normal `Storage::get` implementation.
-    ///
-    /// This only works for non-parallel or immutably parallel `RestrictedStorage`.
-    pub fn get(&self, entity: Entity) -> Option<&C> {
-        if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
-            Some(unsafe { self.storage.borrow().get(entity.id()) })
-        } else {
-            None
-        }
-    }
-}
-
-impl<'rf, 'st, C, S, B> PairedStorage<'rf, 'st, C, S, B, SequentialRestriction>
-where
-    C: Component,
-    S: BorrowMut<C::Storage>,
-    B: Borrow<BitSet>,
-{
-    /// Attempts to get the component related to the entity mutably.
-    ///
-    /// Functions similar to the normal `Storage::get_mut` implementation.
-    ///
-    /// This only works if this is a non-parallel `RestrictedStorage`,
-    /// otherwise you could access the same component mutably in two different threads.
-    pub fn get_mut(&mut self, entity: Entity) -> Option<&mut C> {
-        if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
-            Some(unsafe { self.storage.borrow_mut().get_mut(entity.id()) })
-        } else {
-            None
-        }
-    }
 }
 
 impl<'rf, 'st: 'rf, C, S, B, Restrict> Join for &'rf RestrictedStorage<'rf, 'st, C, S, B, Restrict>
@@ -270,8 +204,6 @@ where
 
 /// Pairs a storage with an index, meaning that the index is guaranteed to exist
 /// as long as the `PairedStorage<C, S>` exists.
-///
-/// This implements `Deref` and `DerefMut` to get the component.
 pub struct PairedStorage<'rf, 'st: 'rf, C, S, B, Restrict> {
     index: Index,
     storage: S,
@@ -280,26 +212,72 @@ pub struct PairedStorage<'rf, 'st: 'rf, C, S, B, Restrict> {
     phantom: PhantomData<(C, Restrict)>,
 }
 
-impl<'rf, 'st, C, S, B, Restrict> Deref for PairedStorage<'rf, 'st, C, S, B, Restrict>
+impl<'rf, 'st, C, S, B, Restrict> PairedStorage<'rf, 'st, C, S, B, Restrict>
 where
     C: Component,
     S: Borrow<C::Storage>,
-    B: BitSetLike,
+    B: Borrow<BitSet>,
 {
-    type Target = C;
-    fn deref(&self) -> &Self::Target {
-        // This should be enforced through the construction of `PairedStorage`.
+    /// Gets the component related to the current entry without checking whether
+    /// the storage has it or not.
+    pub fn get_unchecked(&self) -> &C {
         unsafe { self.storage.borrow().get(self.index) }
     }
 }
 
-impl<'rf, 'st, C, S, B, Restrict> DerefMut for PairedStorage<'rf, 'st, C, S, B, Restrict>
+impl<'rf, 'st, C, S, B, Restrict> PairedStorage<'rf, 'st, C, S, B, Restrict>
 where
     C: Component,
     S: BorrowMut<C::Storage>,
-    B: BitSetLike,
+    B: Borrow<BitSet>,
 {
-    fn deref_mut(&mut self) -> &mut Self::Target {
+    /// Gets the component related to the current entry without checking whether
+    /// the storage has it or not.
+    pub fn get_mut_unchecked(&mut self) -> &mut C {
         unsafe { self.storage.borrow_mut().get_mut(self.index) }
     }
 }
+
+impl<'rf, 'st, C, S, B, Restrict> PairedStorage<'rf, 'st, C, S, B, Restrict>
+where
+    C: Component,
+    S: Borrow<C::Storage>,
+    B: Borrow<BitSet>,
+    // Only non parallel and immutable parallel storages can access this.
+    Restrict: ImmutableAliasing,
+{
+    /// Attempts to get the component related to the entity.
+    ///
+    /// Functions similar to the normal `Storage::get` implementation.
+    /// 
+    /// This only works for non-parallel or immutably parallel `RestrictedStorage`.
+    pub fn get(&self, entity: Entity) -> Option<&C> {
+        if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
+            Some(unsafe { self.storage.borrow().get(entity.id()) })
+        } else {
+            None
+        }
+    }
+}
+
+impl<'rf, 'st, C, S, B> PairedStorage<'rf, 'st, C, S, B, SequentialRestriction>
+where
+    C: Component,
+    S: BorrowMut<C::Storage>,
+    B: Borrow<BitSet>,
+{
+    /// Attempts to get the component related to the entity mutably.
+    ///
+    /// Functions similar to the normal `Storage::get_mut` implementation.
+    ///
+    /// This only works if this is a non-parallel `RestrictedStorage`,
+    /// otherwise you could access the same component mutably in two different threads.
+    pub fn get_mut(&mut self, entity: Entity) -> Option<&mut C> {
+        if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
+            Some(unsafe { self.storage.borrow_mut().get_mut(entity.id()) })
+        } else {
+            None
+        }
+    }
+}
+
