@@ -517,7 +517,7 @@ mod test {
     }
 
     #[test]
-    fn par_deferred_storage() {
+    fn par_restricted_storage() {
         use join::ParJoin;
         use rayon::iter::ParallelIterator;
         use std::collections::HashSet;
