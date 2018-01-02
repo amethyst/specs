@@ -14,7 +14,7 @@ use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
 
-use hibitset::{BitSet, BitSetNot};
+use hibitset::{BitSet, BitSetNot, BitSetLike};
 use shred::Fetch;
 
 use self::drain::Drain;
@@ -124,11 +124,10 @@ impl<T: Component> MaskedStorage<T> {
 
     /// Clear the contents of this storage.
     pub fn clear(&mut self) {
-        let mask = &mut self.mask;
         unsafe {
-            self.inner.clean(|i| mask.contains(i));
+            self.inner.clean(&self.mask);
         }
-        mask.clear();
+        self.mask.clear();
     }
 
     /// Remove an element by a given index.
@@ -494,9 +493,9 @@ where
 pub trait UnprotectedStorage<T>: Default + Sized {
     /// Clean the storage given a check to figure out if an index
     /// is valid or not. Allows us to safely drop the storage.
-    unsafe fn clean<F>(&mut self, f: F)
+    unsafe fn clean<B>(&mut self, has: B)
     where
-        F: Fn(Index) -> bool;
+        B: BitSetLike;
 
     /// Tries reading the data associated with an `Index`.
     /// This is unsafe because the external set used

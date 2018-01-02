@@ -370,12 +370,14 @@ mod test {
         struct A(Arc<()>);
 
         let mut storage = VecStorage::<A>::default();
+        let mut bitset = BitSet::new();
 
         unsafe {
             for i in (0..200).filter(|i| i % 2 != 0) {
                 storage.insert(i, A(Arc::new(())));
+                bitset.add(i);
             }
-            storage.clean(|i| i % 2 != 0);
+            storage.clean(&bitset);
         }
     }
 

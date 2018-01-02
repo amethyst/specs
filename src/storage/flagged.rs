@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use hibitset::BitSet;
+use hibitset::{BitSet, BitSetLike};
 
 use {Index, Join, UnprotectedStorage};
 use world::EntityIndex;
@@ -86,9 +86,9 @@ pub struct FlaggedStorage<C, T> {
 }
 
 impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
-    unsafe fn clean<F>(&mut self, has: F)
+    unsafe fn clean<B>(&mut self, has: B)
     where
-        F: Fn(Index) -> bool,
+        B: BitSetLike,
     {
         self.mask.clear();
         self.storage.clean(has);
