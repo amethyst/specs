@@ -54,16 +54,18 @@ unsafe impl<'a> DistinctStorage for AntiStorage<'a> {}
 
 /// A dynamic storage.
 pub trait AnyStorage {
-    /// Drop the component of an entity with a given index.
-    fn drop(&mut self, id: Index);
+    /// Drop components of given entities.
+    fn drop(&mut self, entities: &[Entity]);
 }
 
 impl<T> AnyStorage for MaskedStorage<T>
 where
     T: Component,
 {
-    fn drop(&mut self, id: Index) {
-        MaskedStorage::drop(self, id)
+    fn drop(&mut self, entities: &[Entity]) {
+        for entity in entities {
+            MaskedStorage::drop(self, entity.id());
+        }
     }
 }
 

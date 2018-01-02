@@ -609,10 +609,7 @@ impl World {
     fn delete_components(&mut self, delete: &[Entity]) {
         for storage in &mut self.storages {
             let storage: &mut AnyStorage = unsafe { &mut **storage };
-
-            for entity in delete {
-                storage.drop(entity.id());
-            }
+            storage.drop(delete);
         }
     }
 
