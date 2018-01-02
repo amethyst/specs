@@ -180,8 +180,10 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         B: BitSetLike,
     {
         use std::ptr;
-        for i in has.iter() {
-            ptr::drop_in_place(&mut (self.0)[i as usize]);
+        for (i, v) in self.0.iter_mut().enumerate() {
+            if has.contains(i as u32) {
+                ptr::drop_in_place(v);
+            }
         }
         self.0.set_len(0);
     }

@@ -107,7 +107,7 @@ pub enum InsertResult<T> {
 /// The `UnprotectedStorage` together with the `BitSet` that knows
 /// about which elements are stored, and which are not.
 #[derive(Derivative)]
-#[derivative(Default(bound = ""))]
+#[derivative(Default(bound = "T::Storage: Default"))]
 pub struct MaskedStorage<T: Component> {
     mask: BitSet,
     inner: T::Storage,
@@ -116,8 +116,11 @@ pub struct MaskedStorage<T: Component> {
 impl<T: Component> MaskedStorage<T> {
     /// Creates a new `MaskedStorage`. This is called when you register
     /// a new component type within the world.
-    pub fn new() -> MaskedStorage<T> {
-        Default::default()
+    pub fn new(inner: T::Storage) -> MaskedStorage<T> {
+        MaskedStorage {
+            mask: BitSet::new(),
+            inner,
+        }
     }
 
     fn open_mut(&mut self) -> (&BitSet, &mut T::Storage) {
@@ -492,7 +495,7 @@ where
 }
 
 /// Used by the framework to quickly join components.
-pub trait UnprotectedStorage<T>: Default + Sized {
+pub trait UnprotectedStorage<T> {
     /// Clean the storage given a check to figure out if an index
     /// is valid or not. Allows us to safely drop the storage.
     unsafe fn clean<B>(&mut self, has: B)

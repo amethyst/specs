@@ -305,7 +305,10 @@ impl World {
     /// world.register::<Pos>();
     /// // Register all other components like this
     /// ```
-    pub fn register<T: Component>(&mut self) {
+    pub fn register<T: Component>(&mut self)
+    where
+        T::Storage: Default,
+    {
         self.register_with_id::<T>(0);
     }
 
@@ -313,7 +316,26 @@ impl World {
     ///
     /// Does nothing if the component was already
     /// registered.
-    pub fn register_with_id<T: Component>(&mut self, id: usize) {
+    pub fn register_with_id<T: Component>(&mut self, id: usize)
+    where
+        T::Storage: Default,
+    {
+        self.register_with_storage_and_id::<T>(id, T::Storage::default());
+    }
+
+    /// Registers a new component with a given storage.
+    ///
+    /// Does nothing if the component was already
+    /// registered.
+    pub fn register_with_storage<T: Component>(&mut self, storage: T::Storage) {
+        self.register_with_storage_and_id::<T>(0, storage);
+    }
+
+    /// Registers a new component with a given storage and id.
+    ///
+    /// Does nothing if the component was already
+    /// registered.
+    pub fn register_with_storage_and_id<T: Component>(&mut self, id: usize, storage: T::Storage) {
         use shred::ResourceId;
 
         if self.res
@@ -322,7 +344,7 @@ impl World {
             return;
         }
 
-        self.res.add_with_id(MaskedStorage::<T>::new(), id);
+        self.res.add_with_id(MaskedStorage::<T>::new(storage), id);
 
         let mut storage = self.res.fetch_mut::<MaskedStorage<T>>(id);
         self.storages.push(&mut *storage as *mut AnyStorage);
