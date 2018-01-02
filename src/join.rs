@@ -293,7 +293,8 @@ where
         C: UnindexedConsumer<Self::Item>,
     {
         let (keys, values) = self.0.open();
-        let producer = BitProducer((&keys).iter());
+        // Create a bit producer which splits on up to three levels
+        let producer = BitProducer((&keys).iter(), 3);
         let values = UnsafeCell::new(values);
 
         bridge_unindexed(JoinProducer::<J>::new(producer, &values), consumer)
