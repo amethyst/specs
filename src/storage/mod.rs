@@ -15,7 +15,6 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
 
 use hibitset::{BitSet, BitSetNot};
-use mopa::Any;
 use shred::Fetch;
 
 use self::drain::Drain;
@@ -56,15 +55,15 @@ unsafe impl<'a> DistinctStorage for AntiStorage<'a> {}
 /// A dynamic storage.
 pub trait AnyStorage {
     /// Remove the component of an entity with a given index.
-    fn remove(&mut self, id: Index) -> Option<Box<Any>>;
+    fn drop(&mut self, id: Index);
 }
 
 impl<T> AnyStorage for MaskedStorage<T>
 where
     T: Component,
 {
-    fn remove(&mut self, id: Index) -> Option<Box<Any>> {
-        MaskedStorage::remove(self, id).map(|x| Box::new(x) as Box<Any>)
+    fn drop(&mut self, id: Index) {
+        MaskedStorage::drop(self, id)
     }
 }
 
@@ -138,6 +137,13 @@ impl<T: Component> MaskedStorage<T> {
             Some(unsafe { self.inner.remove(id) })
         } else {
             None
+        }
+    }
+
+    /// Drop an element by a given index.
+    pub fn drop(&mut self, id: Index) {
+        if self.mask.remove(id) {
+            unsafe { self.inner.drop(id); }
         }
     }
 }
@@ -507,4 +513,9 @@ pub trait UnprotectedStorage<T>: Default + Sized {
 
     /// Removes the data associated with an `Index`.
     unsafe fn remove(&mut self, id: Index) -> T;
+
+    /// Drops the data associated with an `Index`.
+    unsafe fn drop(&mut self, id: Index) {
+        self.remove(id);
+    }
 }

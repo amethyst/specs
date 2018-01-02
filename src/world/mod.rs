@@ -611,7 +611,7 @@ impl World {
             let storage: &mut AnyStorage = unsafe { &mut **storage };
 
             for entity in delete {
-                storage.remove(entity.id());
+                storage.drop(entity.id());
             }
         }
     }
