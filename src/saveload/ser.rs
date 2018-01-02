@@ -6,6 +6,7 @@ use {Component, EntitiesRes, Entity, Join, ReadStorage, WriteStorage};
 
 use saveload::EntityData;
 use saveload::marker::{Marker, MarkerAllocator};
+use saveload::storages::GenericReadStorage;
 
 //use saveload::storages::{GenericReadStorage, GenericWriteStorage};
 
@@ -18,9 +19,24 @@ pub trait IntoSerialize<M>: Component {
 
     /// Convert this component into serializable form (`Data`) using
     /// entity to marker mapping function
-    fn into<F>(&self, ids: F) -> Result<&Self::Data, Self::Error>
+    fn into<F>(&self, ids: F) -> Result<Self::Data, Self::Error>
     where
         F: FnMut(Entity) -> Option<M>;
+}
+
+impl<C, M> IntoSerialize<M> for C
+where
+    C: Clone + Component + Serialize
+{
+    type Data = Self;
+    type Error = ();
+
+    fn into<F>(&self, _: F) -> Result<Self::Data, Self::Error>
+    where
+        F: FnMut(Entity) -> Option<M>
+    {
+        Ok(self.clone())
+    }
 }
 
 /// A trait which allows to serialize entities and their components.
@@ -113,20 +129,49 @@ where
     }
 }
 
-/*
-macro_rules! serialize_components {
-    ($($comp:ident,)*) => {
-        impl<'a, E, M, $($comp,)*> SerializeComponents<E, M> for ($(ReadStorage<'a, $comp>,)*)
-        where
-            $($comp : IntoSerialize<M>,)*
-        {
 
+macro_rules! serialize_components {
+    ($($comp:ident => $sto:ident,)*) => {
+        impl<'a, E, M, $($comp,)* $($sto,)*> SerializeComponents<E, M> for ($($sto,)*)
+        where
+            M: Marker,
+            $(
+                $sto: GenericReadStorage<Component = $comp>,
+                $comp : IntoSerialize<M>,
+                E: From<<$comp as IntoSerialize<M>>::Error>,
+            )*
+        {
+            type Data = ($(Option<$comp::Data>,)*);
+
+            #[allow(unused)]
+            fn serialize_entity<F>(&self, entity: Entity, mut ids: F) -> Result<Self::Data, E>
+            where
+                F: FnMut(Entity) -> Option<M>
+            {
+                #[allow(bad_style)]
+                let ($(ref $comp,)*) = *self;
+
+                Ok(($(
+                    $comp.get(entity).map(|c| c.into(&mut ids).map(Some)).unwrap_or(Ok(None))?,
+                )*))
+            }
         }
+
+        serialize_components!(@pop $($comp => $sto,)*);
     };
-    (;;) => {};
     (@pop) => {};
-    (@pop $head:ident, $($tail:ident,)*) => {
-        $($tail,)*
+    (@pop $head0:ident => $head1:ident, $($tail0:ident => $tail1:ident,)*) => {
+        serialize_components!($($tail0 => $tail1,)*);
     };
 }
-*/
+
+serialize_components!(
+    CA => SA,
+    CB => SB,
+    CC => SC,
+    CD => SD,
+    CE => SE,
+    CF => SF,
+    CG => SG,
+    CH => SH,
+);

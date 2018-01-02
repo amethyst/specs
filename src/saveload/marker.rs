@@ -154,7 +154,28 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     fn allocate(&mut self, entity: Entity, id: Option<M::Identifier>) -> M;
 
     /// Get `Entity` by `Marker::Identifier`
-    fn get(&self, id: &M::Identifier) -> Option<Entity>;
+    fn try_get(&self, id: &M::Identifier) -> Option<Entity>;
+
+    /// Find an `Entity` by a `Marker` with same id
+    /// and update `Marker` attached to the instance.
+    /// Or create new entity and mark it.
+    fn get_entity(
+        &mut self,
+        id: M::Identifier,
+        entities: &EntitiesRes,
+        storage: &mut WriteStorage<M>,
+    ) -> Entity {
+        if let Some(entity) = self.try_get(&id) {
+            if entities.is_alive(entity) {
+                return entity;
+            }
+        }
+
+        let entity = entities.create();
+        let marker = self.allocate(entity, Some(id));
+        storage.insert(entity, marker);
+        entity
+    }
 
     /// Create new unique marker `M` and attach it to entity.
     /// Or get old marker if this entity is already marked.
@@ -170,27 +191,6 @@ pub trait MarkerAllocator<M: Marker>: Resource {
             });
 
         (marker, new)
-    }
-
-    /// Find an `Entity` by a `Marker` with same id
-    /// and update `Marker` attached to the instance.
-    /// Or create new entity and mark it.
-    fn get_marked(
-        &mut self,
-        id: M::Identifier,
-        entities: &EntitiesRes,
-        storage: &mut WriteStorage<M>,
-    ) -> Entity {
-        if let Some(entity) = self.get(&id) {
-            if entities.is_alive(entity) {
-                return entity;
-            }
-        }
-
-        let entity = entities.create();
-        let marker = self.allocate(entity, Some(id));
-        storage.insert(entity, marker);
-        entity
     }
 
     /// Maintain internal data. Cleanup if necessary.
@@ -243,7 +243,7 @@ impl MarkerAllocator<U64Marker> for U64MarkerAllocator {
         marker
     }
 
-    fn get(&self, id: &u64) -> Option<Entity> {
+    fn try_get(&self, id: &u64) -> Option<Entity> {
         self.mapping.get(id).cloned()
     }
 
