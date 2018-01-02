@@ -54,7 +54,7 @@ unsafe impl<'a> DistinctStorage for AntiStorage<'a> {}
 
 /// A dynamic storage.
 pub trait AnyStorage {
-    /// Remove the component of an entity with a given index.
+    /// Drop the component of an entity with a given index.
     fn drop(&mut self, id: Index);
 }
 
