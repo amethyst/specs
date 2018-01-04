@@ -14,8 +14,7 @@ use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
 
-use hibitset::{BitSet, BitSetNot};
-use mopa::Any;
+use hibitset::{BitSet, BitSetNot, BitSetLike};
 use shred::Fetch;
 
 use self::drain::Drain;
@@ -55,16 +54,18 @@ unsafe impl<'a> DistinctStorage for AntiStorage<'a> {}
 
 /// A dynamic storage.
 pub trait AnyStorage {
-    /// Remove the component of an entity with a given index.
-    fn remove(&mut self, id: Index) -> Option<Box<Any>>;
+    /// Drop components of given entities.
+    fn drop(&mut self, entities: &[Entity]);
 }
 
 impl<T> AnyStorage for MaskedStorage<T>
 where
     T: Component,
 {
-    fn remove(&mut self, id: Index) -> Option<Box<Any>> {
-        MaskedStorage::remove(self, id).map(|x| Box::new(x) as Box<Any>)
+    fn drop(&mut self, entities: &[Entity]) {
+        for entity in entities {
+            MaskedStorage::drop(self, entity.id());
+        }
     }
 }
 
@@ -106,7 +107,7 @@ pub enum InsertResult<T> {
 /// The `UnprotectedStorage` together with the `BitSet` that knows
 /// about which elements are stored, and which are not.
 #[derive(Derivative)]
-#[derivative(Default(bound = ""))]
+#[derivative(Default(bound = "T::Storage: Default"))]
 pub struct MaskedStorage<T: Component> {
     mask: BitSet,
     inner: T::Storage,
@@ -115,8 +116,11 @@ pub struct MaskedStorage<T: Component> {
 impl<T: Component> MaskedStorage<T> {
     /// Creates a new `MaskedStorage`. This is called when you register
     /// a new component type within the world.
-    pub fn new() -> MaskedStorage<T> {
-        Default::default()
+    pub fn new(inner: T::Storage) -> MaskedStorage<T> {
+        MaskedStorage {
+            mask: BitSet::new(),
+            inner,
+        }
     }
 
     fn open_mut(&mut self) -> (&BitSet, &mut T::Storage) {
@@ -125,11 +129,10 @@ impl<T: Component> MaskedStorage<T> {
 
     /// Clear the contents of this storage.
     pub fn clear(&mut self) {
-        let mask = &mut self.mask;
         unsafe {
-            self.inner.clean(|i| mask.contains(i));
+            self.inner.clean(&self.mask);
         }
-        mask.clear();
+        self.mask.clear();
     }
 
     /// Remove an element by a given index.
@@ -138,6 +141,13 @@ impl<T: Component> MaskedStorage<T> {
             Some(unsafe { self.inner.remove(id) })
         } else {
             None
+        }
+    }
+
+    /// Drop an element by a given index.
+    pub fn drop(&mut self, id: Index) {
+        if self.mask.remove(id) {
+            unsafe { self.inner.drop(id); }
         }
     }
 }
@@ -485,12 +495,12 @@ where
 }
 
 /// Used by the framework to quickly join components.
-pub trait UnprotectedStorage<T>: Default + Sized {
+pub trait UnprotectedStorage<T> {
     /// Clean the storage given a check to figure out if an index
     /// is valid or not. Allows us to safely drop the storage.
-    unsafe fn clean<F>(&mut self, f: F)
+    unsafe fn clean<B>(&mut self, has: B)
     where
-        F: Fn(Index) -> bool;
+        B: BitSetLike;
 
     /// Tries reading the data associated with an `Index`.
     /// This is unsafe because the external set used
@@ -507,4 +517,9 @@ pub trait UnprotectedStorage<T>: Default + Sized {
 
     /// Removes the data associated with an `Index`.
     unsafe fn remove(&mut self, id: Index) -> T;
+
+    /// Drops the data associated with an `Index`.
+    unsafe fn drop(&mut self, id: Index) {
+        self.remove(id);
+    }
 }

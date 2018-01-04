@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 
 use fnv::FnvHashMap;
+use hibitset::BitSetLike;
 
 use {DistinctStorage, Index, UnprotectedStorage};
 
@@ -15,9 +16,9 @@ use rudy::rudymap::RudyMap;
 pub struct BTreeStorage<T>(BTreeMap<Index, T>);
 
 impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
-    unsafe fn clean<F>(&mut self, _: F)
+    unsafe fn clean<B>(&mut self, _has: B)
     where
-        F: Fn(Index) -> bool,
+        B: BitSetLike,
     {
         // nothing to do
     }
@@ -47,9 +48,9 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 pub struct HashMapStorage<T>(FnvHashMap<Index, T>);
 
 impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
-    unsafe fn clean<F>(&mut self, _: F)
+    unsafe fn clean<B>(&mut self, _has: B)
     where
-        F: Fn(Index) -> bool,
+        B: BitSetLike,
     {
         //nothing to do
     }
@@ -85,9 +86,9 @@ pub struct DenseVecStorage<T> {
 }
 
 impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
-    unsafe fn clean<F>(&mut self, _: F)
+    unsafe fn clean<B>(&mut self, _has: B)
     where
-        F: Fn(Index) -> bool,
+        B: BitSetLike,
     {
         // nothing to do
     }
@@ -130,9 +131,9 @@ unsafe impl<T> DistinctStorage for DenseVecStorage<T> {}
 pub struct NullStorage<T>(T);
 
 impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
-    unsafe fn clean<F>(&mut self, _: F)
+    unsafe fn clean<B>(&mut self, _has: B)
     where
-        F: Fn(Index) -> bool,
+        B: BitSetLike,
     {
     }
 
@@ -174,13 +175,13 @@ unsafe impl<T> DistinctStorage for NullStorage<T> {}
 pub struct VecStorage<T>(Vec<T>);
 
 impl<T> UnprotectedStorage<T> for VecStorage<T> {
-    unsafe fn clean<F>(&mut self, has: F)
+    unsafe fn clean<B>(&mut self, has: B)
     where
-        F: Fn(Index) -> bool,
+        B: BitSetLike,
     {
         use std::ptr;
         for (i, v) in self.0.iter_mut().enumerate() {
-            if has(i as Index) {
+            if has.contains(i as u32) {
                 ptr::drop_in_place(v);
             }
         }
@@ -226,9 +227,9 @@ pub struct RudyStorage<T>(RudyMap<Index, T>);
 
 #[cfg(feature = "rudy")]
 impl<T> UnprotectedStorage<T> for RudyStorage<T> {
-    unsafe fn clean<F>(&mut self, _: F)
+    unsafe fn clean<B>(&mut self, _has: B)
     where
-        F: Fn(Index) -> bool,
+        B: BitSetLike,
     {
     }
 
