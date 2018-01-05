@@ -241,12 +241,12 @@ where
     C: Clone,
     S: UnprotectedStorage<C>,
 {
-    unsafe fn clean<F>(&mut self, f: F)
+    unsafe fn clean<B>(&mut self, has: B)
     where
-        F: Fn(Index) -> bool,
+        B: BitSetLike,
     {
-        self.old.clean(&f);
-        self.storage.clean(&f);
+        self.old.clean(&has);
+        self.storage.clean(&has);
     }
 
     unsafe fn get(&self, id: Index) -> &C {

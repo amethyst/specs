@@ -3,7 +3,10 @@ use mopa::Any;
 use super::*;
 use {Component, Entity, Generation, Index, World};
 
-fn create<T: Component>(world: &mut World) -> WriteStorage<T> {
+fn create<T: Component>(world: &mut World) -> WriteStorage<T>
+where
+    T::Storage: Default,
+{
     world.register::<T>();
 
     world.write()
@@ -217,7 +220,10 @@ mod test {
         type Storage = NullStorage<Self>;
     }
 
-    fn test_add<T: Component + From<u32> + Debug + Eq>() {
+    fn test_add<T: Component + From<u32> + Debug + Eq>()
+    where
+        T::Storage: Default,
+    {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
@@ -233,7 +239,10 @@ mod test {
         }
     }
 
-    fn test_sub<T: Component + From<u32> + Debug + Eq>() {
+    fn test_sub<T: Component + From<u32> + Debug + Eq>()
+    where
+        T::Storage: Default,
+    {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
@@ -250,7 +259,10 @@ mod test {
         }
     }
 
-    fn test_get_mut<T: Component + From<u32> + AsMut<u32> + Debug + Eq>() {
+    fn test_get_mut<T: Component + From<u32> + AsMut<u32> + Debug + Eq>()
+    where
+        T::Storage: Default,
+    {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
@@ -272,7 +284,10 @@ mod test {
         }
     }
 
-    fn test_add_gen<T: Component + From<u32> + Debug + Eq>() {
+    fn test_add_gen<T: Component + From<u32> + Debug + Eq>()
+    where
+        T::Storage: Default,
+    {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
@@ -290,7 +305,10 @@ mod test {
         }
     }
 
-    fn test_sub_gen<T: Component + From<u32> + Debug + Eq>() {
+    fn test_sub_gen<T: Component + From<u32> + Debug + Eq>()
+    where
+        T::Storage: Default,
+    {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
@@ -303,7 +321,10 @@ mod test {
         }
     }
 
-    fn test_clear<T: Component + From<u32>>() {
+    fn test_clear<T: Component + From<u32>>()
+    where
+        T::Storage: Default,
+    {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
@@ -318,7 +339,10 @@ mod test {
         }
     }
 
-    fn test_anti<T: Component + From<u32> + Debug + Eq>() {
+    fn test_anti<T: Component + From<u32> + Debug + Eq>()
+    where
+        T::Storage: Default,
+    {
         use join::Join;
 
         let mut w = World::new();
@@ -370,12 +394,14 @@ mod test {
         struct A(Arc<()>);
 
         let mut storage = VecStorage::<A>::default();
+        let mut bitset = BitSet::new();
 
         unsafe {
             for i in (0..200).filter(|i| i % 2 != 0) {
                 storage.insert(i, A(Arc::new(())));
+                bitset.add(i);
             }
-            storage.clean(|i| i % 2 != 0);
+            storage.clean(&bitset);
         }
     }
 
