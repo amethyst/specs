@@ -496,8 +496,8 @@ where
 
 /// Used by the framework to quickly join components.
 pub trait UnprotectedStorage<T> {
-    /// Clean the storage given a check to figure out if an index
-    /// is valid or not. Allows us to safely drop the storage.
+    /// Clean the storage given a bitset with bits set for valid indices.
+    /// Allows us to safely drop the storage.
     unsafe fn clean<B>(&mut self, has: B)
     where
         B: BitSetLike;
