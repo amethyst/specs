@@ -207,7 +207,7 @@ extern crate shred_derive;
 extern crate rudy;
 
 pub use join::{Join, JoinIter, JoinParIter, ParJoin};
-pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut, FetchMut, RunNow,
+pub use shred::{Dispatcher, DispatcherBuilder, Fetch, FetchId, FetchIdMut, FetchMut, Resources, RunNow,
                 RunningTime, System, SystemData};
 
 #[cfg(not(target_os = "emscripten"))]
