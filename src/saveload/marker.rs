@@ -159,7 +159,7 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     /// Find an `Entity` by a `Marker` with same id
     /// and update `Marker` attached to the instance.
     /// Or create new entity and mark it.
-    fn get_entity(
+    fn get_or_create(
         &mut self,
         id: M::Identifier,
         entities: &EntitiesRes,

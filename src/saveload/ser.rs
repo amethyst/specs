@@ -4,11 +4,10 @@ use serde::ser::{self, Serialize, SerializeSeq, Serializer};
 
 use {Component, EntitiesRes, Entity, Join, ReadStorage, WriteStorage};
 
+use error::NoError;
 use saveload::EntityData;
 use saveload::marker::{Marker, MarkerAllocator};
 use saveload::storages::GenericReadStorage;
-
-//use saveload::storages::{GenericReadStorage, GenericWriteStorage};
 
 pub trait IntoSerialize<M>: Component {
     /// Serializable data representation for component
@@ -29,7 +28,7 @@ where
     C: Clone + Component + Serialize
 {
     type Data = Self;
-    type Error = ();
+    type Error = NoError;
 
     fn into<F>(&self, _: F) -> Result<Self::Data, Self::Error>
     where

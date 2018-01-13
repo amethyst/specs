@@ -50,21 +50,19 @@ where
     }
 }
 
-pub trait GenericWriteStorage<'b> {
+pub trait GenericWriteStorage {
     type Component: Component;
-    type Join: Join;
 
     fn get_mut(&mut self, entity: Entity) -> Option<&mut Self::Component>;
     fn insert(&mut self, entity: Entity, comp: Self::Component);
-    fn join(&'b mut self) -> Self::Join;
+    fn remove(&mut self, entity: Entity);
 }
 
-impl<'a: 'b, 'b, T> GenericWriteStorage<'b> for WriteStorage<'a, T>
+impl<'a, T> GenericWriteStorage for WriteStorage<'a, T>
 where
     T: Component,
 {
     type Component = T;
-    type Join = &'b mut Self;
 
     fn get_mut(&mut self, entity: Entity) -> Option<&mut Self::Component> {
         WriteStorage::get_mut(self, entity)
@@ -74,17 +72,20 @@ where
         WriteStorage::insert(self, entity, comp);
     }
 
-    fn join(&'b mut self) -> Self::Join {
-        self
+    fn remove(&mut self, entity: Entity) {
+        WriteStorage::remove(self, entity);
     }
+
+//    fn join(&'b mut self) -> Self::Join {
+//        self
+//    }
 }
 
-impl<'a: 'b, 'b: 'c, 'c, T> GenericWriteStorage<'c> for &'b mut WriteStorage<'a, T>
+impl<'a: 'b, 'b, T> GenericWriteStorage for &'b mut WriteStorage<'a, T>
 where
     T: Component,
 {
     type Component = T;
-    type Join = &'c mut WriteStorage<'a, T>;
 
     fn get_mut(&mut self, entity: Entity) -> Option<&mut Self::Component> {
         WriteStorage::get_mut(*self, entity)
@@ -94,7 +95,11 @@ where
         WriteStorage::insert(*self, entity, comp);
     }
 
-    fn join(&'c mut self) -> Self::Join {
-        &mut **self
+    fn remove(&mut self, entity: Entity) {
+        WriteStorage::remove(*self, entity);
     }
+
+//    fn join(&'c mut self) -> Self::Join {
+//        &mut **self
+//    }
 }

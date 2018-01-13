@@ -3,7 +3,10 @@ extern crate ron;
 extern crate serde;
 extern crate specs;
 
-use specs::{Component, Entities, RunNow, ReadStorage, System, VecStorage, World, WriteStorage};
+use std::fmt;
+
+use specs::{Component, Entities, FetchMut, RunNow, ReadStorage, System, VecStorage, World, WriteStorage};
+use specs::error::NoError;
 use specs::saveload::{DeserializeComponents, SerializeComponents, U64Marker, U64MarkerAllocator};
 
 const ENTITIES: &str = "
@@ -48,8 +51,17 @@ impl Component for Mass {
     type Storage = VecStorage<Self>;
 }
 
+#[derive(Debug)]
 enum Combined {
     Ron(ron::ser::Error),
+}
+
+impl fmt::Display for Combined {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Combined::Ron(ref e) => write!(f, "{}", e),
+        }
+    }
 }
 
 impl From<ron::ser::Error> for Combined {
@@ -58,11 +70,13 @@ impl From<ron::ser::Error> for Combined {
     }
 }
 
-impl From<()> for Combined {
-    fn from(_: ()) -> Self {
-        unimplemented!()
+impl From<NoError> for Combined {
+    fn from(e: NoError) -> Self {
+        match e {}
     }
 }
+
+
 
 fn main() {
     use specs::Join;
@@ -110,21 +124,29 @@ fn main() {
 
     // -----------------
 
-//    struct Deserialize;
-//
-//    impl<'a> System<'a> for Deserialize {
-//        type SystemData = WorldDeserialize<'a, U64Marker, NoError, (Pos, Mass)>;
-//
-//        fn run(&mut self, world: Self::SystemData) {
-//            use ron::de::Deserializer;
-//            use serde::de::DeserializeSeed;
-//
-//            let mut de = Deserializer::from_str(ENTITIES);
-//            world.deserialize(&mut de).unwrap();
-//        }
-//    }
-//
-//    Deserialize.run_now(&world.res);
+    struct Deserialize;
+
+    impl<'a> System<'a> for Deserialize {
+        type SystemData = (
+            Entities<'a>,
+            FetchMut<'a, U64MarkerAllocator>,
+            WriteStorage<'a, Pos>,
+            WriteStorage<'a, Mass>,
+            WriteStorage<'a, U64Marker>,
+        );
+
+        fn run(&mut self, (ent, alloc, pos, mass, markers): Self::SystemData) {
+            use ron::de::Deserializer;
+            use serde::de::DeserializeSeed;
+
+            let mut de = Deserializer::from_str(ENTITIES);
+            DeserializeComponents::<Combined, _>::deserialize(
+                &mut (pos, mass), &ent, &mut markers, &mut alloc, &mut de
+            );
+        }
+    }
+
+    Deserialize.run_now(&world.res);
 
     println!("{:#?}", (&world.read::<Pos>()).join().collect::<Vec<_>>());
 }
