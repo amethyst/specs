@@ -266,6 +266,7 @@ fn stillborn_entities() {
     }
 }
 
+
 #[test]
 fn dynamic_component() {
     // a simple test for the dynamic component feature.
@@ -333,7 +334,8 @@ fn join_two_components() {
                 } else {
                     panic!(
                         "Entity with compent values that shouldn't be: {:?} {:?}",
-                        int, boolean
+                        int,
+                        boolean
                     );
                 }
             }
@@ -440,11 +442,11 @@ fn par_join_many_entities_and_systems() {
         type SystemData = (Entities<'a>, ReadStorage<'a, CompInt>);
 
         fn run(&mut self, (entities, ints): Self::SystemData) {
-            (&ints, &*entities).par_join().for_each(|(int, entity)| {
-                if int.0 != 127 {
+            (&ints, &*entities)
+                .par_join()
+                .for_each(|(int, entity)| if int.0 != 127 {
                     self.0.lock().unwrap().push((entity.id(), int.0));
-                }
-            });
+                });
         }
     }
     let mut dispatcher = builder
@@ -455,7 +457,8 @@ fn par_join_many_entities_and_systems() {
     for &(id, n) in &*failed.lock().unwrap() {
         panic!(
             "Entity with id {} failed to count to 127. Count was {}",
-            id, n
+            id,
+            n
         );
     }
 }
@@ -463,11 +466,7 @@ fn par_join_many_entities_and_systems() {
 #[test]
 fn getting_specific_entity_with_join() {
     let mut world = create_world();
-    world
-        .create_entity()
-        .with(CompInt(1))
-        .with(CompBool(true))
-        .build();
+    world.create_entity().with(CompInt(1)).with(CompBool(true)).build();
 
     let entity = {
         let ints = world.read::<CompInt>();
@@ -486,11 +485,7 @@ fn getting_specific_entity_with_join() {
         entity
     };
     world.delete_entity(entity).unwrap();
-    world
-        .create_entity()
-        .with(CompInt(2))
-        .with(CompBool(false))
-        .build();
+    world.create_entity().with(CompInt(2)).with(CompBool(false)).build();
     let ints = world.read::<CompInt>();
     let mut bools = world.write::<CompBool>();
     assert_eq!(
