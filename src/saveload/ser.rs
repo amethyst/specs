@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use serde::ser::{self, Serialize, SerializeSeq, Serializer};
 
+use error::NoError;
 use join::Join;
 use storage::{ReadStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
@@ -28,7 +29,7 @@ where
     C: Clone + Component + Serialize
 {
     type Data = Self;
-    type Error = ();
+    type Error = NoError;
 
     fn into<F>(&self, _: F) -> Result<Self::Data, Self::Error>
     where
