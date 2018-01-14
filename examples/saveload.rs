@@ -106,9 +106,9 @@ fn main() {
 
         fn run(&mut self, (ents, pos, vel, markers): Self::SystemData) {
             let mut ser = ron::ser::Serializer::new(Some(Default::default()), true);
-            SerializeComponents::<Combined, _>::serialize(
+            SerializeComponents::serialize(
                 &(&pos, &vel), &ents, &markers, &mut ser
-            );
+            ).unwrap_or_else(|e| eprintln!("Error: {}", e));
             // TODO: Specs should return an error which combines serialization
             // and component errors.
 
@@ -131,14 +131,13 @@ fn main() {
             WriteStorage<'a, U64Marker>,
         );
 
-        fn run(&mut self, (ent, alloc, pos, mass, markers): Self::SystemData) {
+        fn run(&mut self, (ent, mut alloc, pos, mass, mut markers): Self::SystemData) {
             use ron::de::Deserializer;
-            use serde::de::DeserializeSeed;
 
             let mut de = Deserializer::from_str(ENTITIES);
             DeserializeComponents::<Combined, _>::deserialize(
                 &mut (pos, mass), &ent, &mut markers, &mut alloc, &mut de
-            );
+            ).unwrap_or_else(|e| eprintln!("Error: {}", e));
         }
     }
 

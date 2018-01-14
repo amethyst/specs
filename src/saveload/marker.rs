@@ -11,6 +11,9 @@ use world::{Component, EntitiesRes, Entity, EntityBuilder};
 
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
+use shred::Resource;
+
+use error::WrongGeneration;
 
 impl<'a> EntityBuilder<'a> {
     /// Add a `Marker` to the entity by fetching the associated allocator.
@@ -109,7 +112,7 @@ impl<'a> EntityBuilder<'a> {
 ///         marker
 ///     }
 ///
-///     fn get(&self, id: u64) -> Option<Entity> {
+///     fn try_get(&self, id: u64) -> Option<Entity> {
 ///         self.mapping.get(&id).cloned()
 ///     }
 /// }
@@ -134,12 +137,58 @@ impl<'a> EntityBuilder<'a> {
 /// ```
 pub trait Marker: Clone + Component + Debug + Eq + Hash + DeserializeOwned + Serialize {
     /// Id of the marker
-    type Identifier: Default;
+    type Identifier;
     /// Allocator for this `Marker`
     type Allocator: MarkerAllocator<Self>;
 
-    /// Get this marker internal id
+    /// Get this marker internal id.
+    /// This value may never change.
     fn id(&self) -> Self::Identifier;
+
+    /// This gets called when an entity is fetched by a marker.
+    /// It can be used to update internal data that is not used for
+    /// identification.
+    ///
+    /// ## Contract
+    ///
+    /// This function may assume that `self.id() == new_revision.id()`.
+    /// However, it must not exhibit undefined behavior in such a case.
+    ///
+    /// ## Panics
+    ///
+    /// May panic if `self.id()` != `new_revision.id()`.
+    ///
+    /// ## Default implementation
+    ///
+    /// The default implementation just sets `self` to `new_revision`.
+    ///
+    /// ## Examples
+    ///
+    /// ```rust,ignore
+    /// #[derive(Clone, Debug, Deserialize, Eq, Hash, Serialize)]
+    /// struct MyMarker {
+    ///     id: u64,
+    ///     last_modified: String,
+    /// }
+    ///
+    /// impl Marker for MyMarker {
+    ///     type Identifier = u64;
+    ///
+    ///     fn id(&self) -> u64 {
+    ///         self.id
+    ///     }
+    ///
+    ///     fn update(&self, new: Self) {
+    ///         self.last_modified = new.last_modified;
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// Now, the marker always contains the name of the client who updated the
+    /// entity associated with this marker.
+    fn update(&mut self, new_revision: Self) {
+        *self = new_revision;
+    }
 }
 
 /// This allocator is used with the `Marker` trait.
@@ -148,32 +197,39 @@ pub trait Marker: Clone + Component + Debug + Eq + Hash + DeserializeOwned + Ser
 /// The `maintain` method can be implemented for cleanup and actualization.
 /// See docs for `Marker` for an example.
 pub trait MarkerAllocator<M: Marker>: Resource {
-    /// Allocate new `Marker`.
-    /// Stores mapping `Marker` -> `Entity`.
-    /// If _id_ argument is `Some(id)` then the new marker will have this `id`.
-    /// Otherwise allocator creates marker with a new unique id.
+    /// Allocates a new marker for a given entity.
+    /// If you don't pass an id, a new unique id will be created.
     fn allocate(&mut self, entity: Entity, id: Option<M::Identifier>) -> M;
 
-    /// Get `Entity` by `Marker::Identifier`
-    fn try_get(&self, id: &M::Identifier) -> Option<Entity>;
+    /// Get an `Entity` by a marker identifier.
+    /// This function only accepts an id; it does not update the marker data.
+    ///
+    /// Implementors usually maintain a marker -> entity mapping
+    /// and use that to retrieve the entity.
+    fn retrieve_entity_internal(&self, id: M::Identifier) -> Option<Entity>;
 
-    /// Find an `Entity` by a `Marker` with same id
-    /// and update `Marker` attached to the instance.
-    /// Or create new entity and mark it.
-    fn get_or_create(
+    /// Tries to retrieve an entity by the id of the marker;
+    /// if no entity has a marker with the same id, a new entity
+    /// will be created and `marker` will be inserted for it.
+    ///
+    /// In case the entity existed,
+    /// this method will update the marker data using `Marker::update`.
+    fn retrieve_entity(
         &mut self,
-        id: M::Identifier,
+        marker: M,
         entities: &EntitiesRes,
-        storage: &mut WriteStorage<M>,
     ) -> Entity {
-        if let Some(entity) = self.try_get(&id) {
-            if entities.is_alive(entity) {
+        if let Some(entity) = self.retrieve_entity_internal(marker.id()) {
+            if let Some(marker_comp) = storage.get_mut(entity) {
+                marker_comp.update(marker);
+
                 return entity;
             }
         }
 
         let entity = entities.create();
-        let marker = self.allocate(entity, Some(id));
+        let marker = self.allocate(entity, Some(marker.id()));
+
         storage.insert(entity, marker);
         entity
     }
@@ -195,12 +251,13 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     }
 
     /// Maintain internal data. Cleanup if necessary.
-    fn maintain(&mut self, _entities: &EntitiesRes, _storage: &ReadStorage<M>) {}
+    fn maintain(&mut self, _entities: &EntitiesRes, _storage: &ReadStorage<M>);
 }
 
 /// Basic marker implementation usable for saving and loading
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct U64Marker(pub u64);
+pub struct U64Marker(u64);
+
 impl Component for U64Marker {
     type Storage = DenseVecStorage<Self>;
 }
@@ -244,8 +301,8 @@ impl MarkerAllocator<U64Marker> for U64MarkerAllocator {
         marker
     }
 
-    fn try_get(&self, id: &u64) -> Option<Entity> {
-        self.mapping.get(id).cloned()
+    fn retrieve_entity_internal(&self, id: u64) -> Option<Entity> {
+        self.mapping.get(&id).cloned()
     }
 
     fn maintain(&mut self, entities: &EntitiesRes, storage: &ReadStorage<U64Marker>) {

@@ -74,6 +74,12 @@ impl Display for Error {
     }
 }
 
+impl From<NoError> for Error {
+    fn from(e: NoError) -> Self {
+        match e {}
+    }
+}
+
 impl From<WrongGeneration> for Error {
     fn from(e: WrongGeneration) -> Self {
         Error::WrongGeneration(e)
