@@ -80,10 +80,10 @@ where
             ..
         } = self;
         let data = EntityData::<M, S::Data>::deserialize(deserializer)?;
-        let entity = allocator.get_or_create(data.marker.id(), entities, markers);
+        let entity = allocator.get_or_create(data.marker, entities, markers);
         // TODO: previously, update was called here
         // TODO: should we still do that?
-        let ids = |marker: M| Some(allocator.get_or_create(marker.id(), entities, markers));
+        let ids = |marker: M| Some(allocator.get_or_create(marker, entities, markers));
 
         storages
             .deserialize_entity(entity, data.components, ids)
@@ -176,7 +176,7 @@ struct VisitEntities<'a: 'b, 'b, E, M: Marker, S: 'b> {
     pd: PhantomData<E>,
 }
 
-impl<'de, 'a, 'b: 'a, E, M, S> Visitor<'de> for VisitEntities<'a, 'b, E, M, S>
+impl<'de, 'a: 'b, 'b, E, M, S> Visitor<'de> for VisitEntities<'a, 'b, E, M, S>
 where
     E: Display,
     M: Marker,
