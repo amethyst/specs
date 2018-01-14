@@ -126,7 +126,7 @@ struct VisitEntities<'a: 'b, 'b, E, M: Marker, S: 'b> {
     pd: PhantomData<E>,
 }
 
-impl<'de, 'a, 'b: 'a, E, M, S> Visitor<'de> for VisitEntities<'a, 'b, E, M, S>
+impl<'de, 'a: 'b, 'b, E, M, S> Visitor<'de> for VisitEntities<'a, 'b, E, M, S>
 where
     E: Display,
     M: Marker,
