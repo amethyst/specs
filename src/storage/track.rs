@@ -10,20 +10,44 @@ use world::{Component, Index};
 /// `UnprotectedStorage`s that track modifications, insertions, and
 /// removals of components.
 pub trait Tracked {
-    /// Event channel tracking modified components.
-    fn modified(&self) -> &EventChannel<ModifiedFlag>;
-    /// Mutable event channel tracking modified components.
-    fn modified_mut(&mut self) -> &mut EventChannel<ModifiedFlag>;
+    /// Event channels tracking modified/inserted/removed components.
+    fn channels(&self) -> &TrackChannels;
+    /// Mutable event channels tracking modified/inserted/removed components.
+    fn channels_mut(&mut self) -> &mut TrackChannels;
+}
 
-    /// Event channel tracking inserted components.
-    fn inserted(&self) -> &EventChannel<InsertedFlag>;
-    /// Mutable event channel tracking inserted components.
-    fn inserted_mut(&mut self) -> &mut EventChannel<InsertedFlag>;
+/// All three types of tracked modifications to components.
+pub struct TrackChannels {
+    /// Modifications event channel.
+    ///
+    /// Note: This does not include insertions, only when a component is changed
+    /// after it has been added to an entity.
+    pub modify: EventChannel<ModifiedFlag>,
+    /// Insertions event channel.
+    ///
+    /// Note: Insertion events only occur when something inserts a component without
+    /// there being a pre-existing component. If there is a pre-existing component
+    /// for an entity then it will fire a modification event.
+    pub insert: EventChannel<InsertedFlag>,
+    /// Removed event channel.
+    pub remove: EventChannel<RemovedFlag>,
+}
 
-    /// Event channel tracking removed components.
-    fn removed(&self) -> &EventChannel<RemovedFlag>;
-    /// Mutable event channel tracking removed components.
-    fn removed_mut(&mut self) -> &mut EventChannel<RemovedFlag>;
+impl TrackChannels {
+    /// Creates a new structure that holds all types of component modification events.
+    pub fn new() -> Self {
+        Default::default()
+    }
+}
+
+impl Default for TrackChannels {
+    fn default() -> Self {
+        TrackChannels {
+            modify: EventChannel::new(),
+            insert: EventChannel::new(),
+            remove: EventChannel::new(),
+        }
+    }
 }
 
 impl<'e, T, D> Storage<'e, T, D>
@@ -33,18 +57,23 @@ where
     D: Deref<Target = MaskedStorage<T>>,
 {
     /// Returns the event channel tracking modified components.
+    pub fn channels(&self) -> &TrackChannels {
+        self.open().1.channels()
+    }
+
+    /// Returns the event channel tracking modified components.
     pub fn modified(&self) -> &EventChannel<ModifiedFlag> {
-        self.open().1.modified()
+        &self.channels().modify
     }
 
     /// Returns the event channel tracking inserted components.
     pub fn inserted(&self) -> &EventChannel<InsertedFlag> {
-        self.open().1.inserted()
+        &self.channels().insert
     }
 
     /// Returns the event channel tracking removed components.
     pub fn removed(&self) -> &EventChannel<RemovedFlag> {
-        self.open().1.removed()
+        &self.channels().remove
     }
 
     /// Reads events from the modified `EventChannel` and populates a structure using the events.
@@ -78,34 +107,39 @@ where
     T::Storage: Tracked,
     D: DerefMut<Target = MaskedStorage<T>>,
 {
+    /// Returns all of the event channels for this component.
+    pub fn channels_mut(&mut self) -> &mut TrackChannels {
+        self.open().1.channels_mut()
+    }
+
     /// Returns the event channel tracking modified components mutably.
     pub fn modified_mut(&mut self) -> &mut EventChannel<ModifiedFlag> {
-        self.open().1.modified_mut()
+        &mut self.channels_mut().modify
     }
 
     /// Returns the event channel tracking inserted components mutably.
     pub fn inserted_mut(&mut self) -> &mut EventChannel<InsertedFlag> {
-        self.open().1.inserted_mut()
+        &mut self.channels_mut().insert
     }
 
     /// Returns the event channel tracking removed components mutably.
     pub fn removed_mut(&mut self) -> &mut EventChannel<RemovedFlag> {
-        self.open().1.removed_mut()
+        &mut self.channels_mut().remove
     }
 
     /// Starts tracking modified events.
     pub fn track_modified(&mut self) -> ReaderId<ModifiedFlag> {
-        self.open().1.modified_mut().register_reader()
+        self.modified_mut().register_reader()
     }
 
     /// Starts tracking inserted events.
     pub fn track_inserted(&mut self) -> ReaderId<InsertedFlag> {
-        self.open().1.inserted_mut().register_reader()
+        self.inserted_mut().register_reader()
     }
 
     /// Starts tracking removed events.
     pub fn track_removed(&mut self) -> ReaderId<RemovedFlag> {
-        self.open().1.removed_mut().register_reader()
+        self.removed_mut().register_reader()
     }
 
     /// Flags an index as modified.

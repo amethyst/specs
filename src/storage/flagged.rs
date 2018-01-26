@@ -1,9 +1,8 @@
 use std::marker::PhantomData;
 
-use shrev::EventChannel;
+use hibitset::BitSetLike;
 
-use storage::{DenseVecStorage, InsertedFlag, ModifiedFlag, RemovedFlag, Tracked,
-              UnprotectedStorage};
+use storage::{DenseVecStorage, TrackChannels, Tracked, UnprotectedStorage};
 use world::Index;
 
 /// Wrapper storage that tracks modifications, insertions, and removals of components
@@ -125,9 +124,7 @@ use world::Index;
 /// }
 /// ```
 pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
-    modified: EventChannel<ModifiedFlag>,
-    inserted: EventChannel<InsertedFlag>,
-    removed: EventChannel<RemovedFlag>,
+    trackers: TrackChannels,
     storage: T,
     phantom: PhantomData<C>,
 }
@@ -138,9 +135,7 @@ where
 {
     fn default() -> Self {
         FlaggedStorage {
-            modified: EventChannel::new(),
-            inserted: EventChannel::new(),
-            removed: EventChannel::new(),
+            trackers: TrackChannels::default(),
             storage: T::default(),
             phantom: PhantomData,
         }
@@ -161,38 +156,27 @@ impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T>
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         // calling `.iter()` on an unconstrained mutable storage will flag everything
-        self.modified.single_write(id.into());
+        self.trackers.modify.single_write(id.into());
         self.storage.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
-        self.inserted.single_write(id.into());
+        self.trackers.insert.single_write(id.into());
         self.storage.insert(id, comp);
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
-        self.removed.single_write(id.into());
+        self.trackers.remove.single_write(id.into());
         self.storage.remove(id)
     }
 }
 
 impl<C, T> Tracked for FlaggedStorage<C, T> {
-    fn modified(&self) -> &EventChannel<ModifiedFlag> {
-        &self.modified
+    fn channels(&self) -> &TrackChannels {
+        &self.trackers
     }
-    fn modified_mut(&mut self) -> &mut EventChannel<ModifiedFlag> {
-        &mut self.modified
-    }
-    fn inserted(&self) -> &EventChannel<InsertedFlag> {
-        &self.inserted
-    }
-    fn inserted_mut(&mut self) -> &mut EventChannel<InsertedFlag> {
-        &mut self.inserted
-    }
-    fn removed(&self) -> &EventChannel<RemovedFlag> {
-        &self.removed
-    }
-    fn removed_mut(&mut self) -> &mut EventChannel<RemovedFlag> {
-        &mut self.removed
+
+    fn channels_mut(&mut self) -> &mut TrackChannels {
+        &mut self.trackers
     }
 }

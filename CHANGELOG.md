@@ -1,6 +1,6 @@
 ## [Unreleased]
 
-* Remove `FlaggedStorage` (new storage uses the same name) and `TrackedStorage` in favor of `Tracked` api. ([#305])
+* Remove `FlaggedStorage` (new storage uses the same name) and `TrackedStorage` in favor of the new `Tracked` api. ([#305])
 * Implementations of Join for owned BitSets, including AtomicBitset. ([#303])
 * Add `Bundle` for registering multiple resources and components at once. ([#296])
 * Add `TrackedStorage`, a more ergonomic variant to `FlaggedStorage` ([#291])
