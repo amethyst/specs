@@ -1,7 +1,7 @@
 use mopa::Any;
 
 use super::*;
-use {Component, Entity, Generation, Index, World};
+use world::{Component, Entity, Generation, Index, World};
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
@@ -612,15 +612,16 @@ mod test {
         // Verify that lazy closures are called only when inserted.
         {
             let mut increment = 0;
-            let mut lazy_increment =
-                |entity: Entity, valid: u32| if let Ok(entry) = s1.entry(entity) {
+            let mut lazy_increment = |entity: Entity, valid: u32| {
+                if let Ok(entry) = s1.entry(entity) {
                     entry.or_insert_with(|| {
                         increment += 1;
                         Cvec(5)
                     });
 
                     assert_eq!(increment, valid);
-                };
+                }
+            };
 
             lazy_increment(e3, 1);
             lazy_increment(e4, 1);
@@ -680,7 +681,9 @@ mod test {
             s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
             s2.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
         }
-        for ((s1_entry, _), (_, s2_restricted)) in (&mut s1.restrict_mut(), &mut s2.restrict_mut()).join() {
+        for ((s1_entry, _), (_, s2_restricted)) in
+            (&mut s1.restrict_mut(), &mut s2.restrict_mut()).join()
+        {
             // verify that the assert fails if the storage is not the original.
             s2_restricted.get_unchecked(&s1_entry);
         }
@@ -753,54 +756,77 @@ mod test {
     #[test]
     fn flagged() {
         use join::Join;
-        use world::EntityIndex;
 
         let mut w = World::new();
-        w.register_with_id::<FlaggedCvec>(1);
-        w.register_with_id::<FlaggedCvec>(2);
+        w.register::<FlaggedCvec>();
 
-        let entities = &*w.entities();
-        let mut s1: Storage<FlaggedCvec, _> = w.write_with_id(1);
-        let mut s2: Storage<FlaggedCvec, _> = w.write_with_id(2);
+        let mut s1: Storage<FlaggedCvec, _> = w.write();
+
+        let mut inserted = BitSet::new();
+        let mut inserted_id = s1.track_inserted();
+
+        let mut modified = BitSet::new();
+        let mut modified_id = s1.track_modified();
+        
+        let mut removed = BitSet::new();
+        let mut removed_id = s1.track_removed();
 
         for i in 0..15 {
-            // Test insertion flagging
-            s1.insert(Entity::new(i, Generation::new(1)), i.into());
-            assert!(s1.open().1.flagged(Entity::new(i, Generation::new(1))));
-
-            if i % 2 == 0 {
-                s2.insert(Entity::new(i, Generation::new(1)), i.into());
-                assert!(s2.open().1.flagged(Entity::new(i, Generation::new(1))));
-            }
+            let entity = w.entities().create();
+            s1.insert(entity, i.into());
         }
 
-        (&mut s1).open().1.clear_flags();
-
-        // Cleared flags
-        for (entity, _) in (entities, s1.mask()).join() {
-            assert!(!s1.open().1.flagged(&entity));
+        {
+            inserted.clear();
+            s1.populate_inserted(&mut inserted_id, &mut inserted);
+            modified.clear();
+            s1.populate_modified(&mut modified_id, &mut modified);
+            removed.clear();
+            s1.populate_removed(&mut removed_id, &mut removed);
         }
 
-        // Modify components to flag.
-        for (c1, c2) in (&mut s1, &s2).join() {
-            println!("{:?} {:?}", c1, c2);
-            c1.0 += c2.0;
+        for (entity, _) in (&*w.entities(), &s1).join() {
+            assert!(inserted.contains(entity.id()));
+            assert!(!modified.contains(entity.id()));
+            assert!(!removed.contains(entity.id()));
         }
 
-        for (entity, _) in (entities, s1.mask()).join() {
-            // Should only be modified if the entity had both components
-            // Which means only half of them should have it.
-            if s1.open().1.flagged(&entity) {
-                println!("Flagged: {:?}", entity.index());
-                // Only every other component was flagged.
-                assert!(entity.index() % 2 == 0);
-            }
+        for (_, mut comp) in (&*w.entities(), &mut s1).join() {
+            comp.0 += 1;
         }
 
-        // Iterate over all flagged entities.
-        for (entity, _) in (&*w.entities(), s1.open().1).join() {
-            // All entities in here should be flagged.
-            assert!(s1.open().1.flagged(&entity));
+        {
+            inserted.clear();
+            s1.populate_inserted(&mut inserted_id, &mut inserted);
+            modified.clear();
+            s1.populate_modified(&mut modified_id, &mut modified);
+            removed.clear();
+            s1.populate_removed(&mut removed_id, &mut removed);
+        }
+
+        for (entity, _) in (&*w.entities(), &s1).join() {
+            assert!(!inserted.contains(entity.id()));
+            assert!(modified.contains(entity.id()));
+            assert!(!removed.contains(entity.id()));
+        }
+
+        for (entity, _) in (&*w.entities(), s1.mask().clone()).join() {
+            s1.remove(entity);
+        }
+
+        {
+            inserted.clear();
+            s1.populate_inserted(&mut inserted_id, &mut inserted);
+            modified.clear();
+            s1.populate_modified(&mut modified_id, &mut modified);
+            removed.clear();
+            s1.populate_removed(&mut removed_id, &mut removed);
+        }
+
+        for (entity, _) in (&*w.entities(), &s1).join() {
+            assert!(!inserted.contains(entity.id()));
+            assert!(!modified.contains(entity.id()));
+            assert!(removed.contains(entity.id()));
         }
     }
 }

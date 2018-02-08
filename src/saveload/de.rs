@@ -3,9 +3,11 @@ use std::marker::PhantomData;
 
 use serde::de::{self, Deserialize, DeserializeSeed, Deserializer, SeqAccess, Visitor};
 
-use {Entities, FetchMut, WriteStorage};
 use saveload::{Components, EntityData, Storages};
 use saveload::marker::{Marker, MarkerAllocator};
+use shred::FetchMut;
+use storage::WriteStorage;
+use world::Entities;
 
 /// Wrapper for `Entity` and tuple of `WriteStorage`s that implements `serde::Deserialize`.
 struct DeserializeEntity<'a, 'b: 'a, M: Marker, E, T: Components<M::Identifier, E>> {

@@ -6,13 +6,13 @@ use rayon::iter::ParallelIterator;
 use rayon::iter::internal::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
 use tuple_utils::Split;
 
-use world::Entity;
-use {Index, Entities};
+use world::{Entities, Entity, Index};
 
 /// `BitAnd` is a helper method to & bitsets together resulting in a tree.
 pub trait BitAnd {
+    /// The combined bitsets.
     type Value: BitSetLike;
-
+    /// Combines `Self` into a single `BitSetLike` through `BitSetAnd`.
     fn and(self) -> Self::Value;
 }
 
@@ -22,7 +22,6 @@ where
     A: BitSetLike,
 {
     type Value = A;
-
     fn and(self) -> Self::Value {
         self.0
     }
@@ -63,7 +62,6 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N}
 bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O}
 bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 
-
 /// The purpose of the `Join` trait is to provide a way
 /// to access multiple storages at the same time with
 /// the merged bit set.
@@ -74,7 +72,8 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 /// ## Example
 ///
 /// ```
-/// # use specs::*;
+/// # use specs::prelude::*;
+/// # use specs::world::EntitiesRes;
 /// # #[derive(Debug, PartialEq)]
 /// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
 /// # #[derive(Debug, PartialEq)]
@@ -194,11 +193,11 @@ impl<J: Join> JoinIter<J> {
 
 impl<J: Join> JoinIter<J> {
     /// Allows getting joined values for specific entity.
-    /// 
+    ///
     /// ## Example
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// # #[derive(Debug, PartialEq)]
     /// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
     /// # #[derive(Debug, PartialEq)]
@@ -207,34 +206,34 @@ impl<J: Join> JoinIter<J> {
     ///
     /// world.register::<Pos>();
     /// world.register::<Vel>();
-    /// 
+    ///
     /// // This entity could be stashed anywhere (into `Component`, `Resource`, `System`s data, etc.) as it's just a number.
     /// let entity = world
     ///     .create_entity()
     ///     .with(Pos)
     ///     .with(Vel)
     ///     .build();
-    /// 
+    ///
     /// // Later
     /// {
     ///     let mut pos = world.write::<Pos>();
     ///     let vel = world.read::<Vel>();
-    ///     
+    ///
     ///     assert_eq!(
     ///         Some((&mut Pos, &Vel)),
     ///         (&mut pos, &vel).join().get(entity, &world.entities()),
     ///         "The entity that was stashed still has the needed components and is alive."
     ///     );
     /// }
-    /// 
+    ///
     /// // The entity has found nice spot and doesn't need to move anymore.
     /// world.write::<Vel>().remove(entity);
-    /// 
+    ///
     /// // Even later
     /// {
     ///     let mut pos = world.write::<Pos>();
     ///     let vel = world.read::<Vel>();
-    ///     
+    ///
     ///     assert_eq!(
     ///         None,
     ///         (&mut pos, &vel).join().get(entity, &world.entities()),
@@ -251,7 +250,7 @@ impl<J: Join> JoinIter<J> {
     }
 
     /// Allows getting joined values for specific raw index.
-    /// 
+    ///
     /// The raw index for an `Entity` can be retrieved using `Entity::id` method.
     ///
     /// As this method operates on raw indices, there is no check to see if the entity is still alive,

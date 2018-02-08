@@ -3,8 +3,8 @@ extern crate ron;
 extern crate serde;
 extern crate specs;
 
-use specs::{Component, RunNow, System, VecStorage, World};
 use specs::error::NoError;
+use specs::prelude::*;
 use specs::saveload::{U64Marker, U64MarkerAllocator, WorldDeserialize, WorldSerialize};
 
 const ENTITIES: &str = "
@@ -50,8 +50,6 @@ impl Component for Mass {
 }
 
 fn main() {
-    use specs::Join;
-
     let mut world = World::new();
 
     world.register::<Pos>();
@@ -80,7 +78,7 @@ fn main() {
         type SystemData = WorldSerialize<'a, U64Marker, NoError, (Pos, Mass)>;
 
         fn run(&mut self, mut world: Self::SystemData) {
-            let s = ron::ser::pretty::to_string(&world).unwrap();
+            let s = ron::ser::to_string_pretty(&world, ron::ser::PrettyConfig::default()).unwrap();
 
             println!("{}", s);
 

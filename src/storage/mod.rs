@@ -2,13 +2,14 @@
 
 pub use self::data::{ReadStorage, WriteStorage};
 pub use self::flagged::FlaggedStorage;
-pub use self::restrict::{Entry, SequentialRestriction, MutableParallelRestriction, ImmutableParallelRestriction, RestrictedStorage};
+pub use self::restrict::{Entry, ImmutableParallelRestriction, MutableParallelRestriction,
+                         RestrictedStorage, SequentialRestriction};
 #[cfg(feature = "serde")]
 pub use self::ser::{MergeError, PackedData};
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
-pub use self::tracked::{Change, ChangeEvents, TrackedStorage};
+pub use self::track::{InsertedFlag, ModifiedFlag, RemovedFlag, TrackChannels, Tracked};
 
 use std;
 use std::marker::PhantomData;
@@ -18,8 +19,9 @@ use hibitset::{BitSet, BitSetNot, BitSetLike};
 use shred::Fetch;
 
 use self::drain::Drain;
-use {Component, EntitiesRes, Entity, Index, Join, ParJoin};
 use error::WrongGeneration;
+use join::{Join, ParJoin};
+use world::{Component, EntitiesRes, Entity, Generation, Index};
 
 mod data;
 mod drain;
@@ -30,7 +32,7 @@ mod ser;
 mod storages;
 #[cfg(test)]
 mod tests;
-mod tracked;
+mod track;
 
 /// An inverted storage type, only useful to iterate entities
 /// that do not have a particular component type.
@@ -332,14 +334,15 @@ where
     ///
     /// ```rust
     /// # extern crate specs;
+    /// # use specs::prelude::*;
     /// # struct Comp {
     /// #    field: u32
     /// # }
-    /// # impl specs::Component for Comp {
-    /// #    type Storage = specs::DenseVecStorage<Self>;
+    /// # impl Component for Comp {
+    /// #    type Storage = DenseVecStorage<Self>;
     /// # }
     /// # fn main() {
-    /// # let mut world = specs::World::new();
+    /// # let mut world = World::new();
     /// # world.register::<Comp>();
     /// # let entity = world.create_entity().build();
     /// # let mut storage = world.write::<Comp>();
@@ -370,7 +373,7 @@ where
                 .generations
                 .get(e.id() as usize)
                 .cloned()
-                .unwrap_or(::Generation(1));
+                .unwrap_or(Generation(1));
             Err(WrongGeneration {
                 action: "attempting to get an entry to a storage",
                 actual_gen: gen,

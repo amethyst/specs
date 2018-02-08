@@ -1,6 +1,6 @@
 use crossbeam::sync::TreiberStack;
 
-use {Component, EntitiesRes, Entity, World};
+use world::{Component, EntitiesRes, Entity, World};
 
 /// Like `EntityBuilder`, but inserts the component
 /// lazily, meaning on `maintain`.
@@ -27,8 +27,8 @@ impl<'a> LazyBuilder<'a> {
     /// because it's only used for scripting where you want multiple
     /// storages for the same Rust type.
     pub fn with_id<C>(self, component: C, id: usize) -> Self
-        where
-            C: Component + Send + Sync,
+    where
+        C: Component + Send + Sync,
     {
         let entity = self.entity;
         self.lazy.execute(move |world| {
@@ -81,7 +81,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// # let mut world = World::new();
     /// struct Pos(f32, f32);
     ///
@@ -99,10 +99,7 @@ impl LazyUpdate {
     pub fn create_entity(&self, ent: &EntitiesRes) -> LazyBuilder {
         let entity = ent.create();
 
-        LazyBuilder {
-            entity,
-            lazy: self,
-        }
+        LazyBuilder { entity, lazy: self }
     }
 
     /// Lazily inserts a component for an entity.
@@ -110,7 +107,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// #
     /// struct Pos(f32, f32);
     ///
@@ -143,7 +140,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// #
     /// struct Pos(f32, f32);
     ///
@@ -182,7 +179,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// #
     /// struct Pos;
     ///
@@ -216,7 +213,7 @@ impl LazyUpdate {
     /// ## Examples
     ///
     /// ```
-    /// # use specs::*;
+    /// # use specs::prelude::*;
     /// #
     /// struct Pos;
     ///
