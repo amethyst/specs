@@ -1,4 +1,6 @@
 extern crate specs;
+#[macro_use]
+extern crate specs_derive;
 
 use specs::prelude::*;
 
@@ -17,6 +19,10 @@ struct Pos(f32);
 impl Component for Pos {
     type Storage = VecStorage<Self>;
 }
+
+#[derive(Component)]
+#[storage(VecStorage)]
+struct Hello;
 
 struct SysA;
 
