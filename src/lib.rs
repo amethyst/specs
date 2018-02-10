@@ -50,7 +50,7 @@
 //! use specs::prelude::*;
 //!
 //! #[derive(Component)]
-//! #[component(VecStorage)]
+//! #[storage(VecStorage)]
 //! struct MyComp;
 //! # fn main() {}
 //! ```
