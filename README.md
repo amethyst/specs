@@ -2,7 +2,7 @@
 
 > **S**pecs **P**arallel **ECS**
 
-[![Build Status][bi]][bl] [![Crates.io][ci]][cl] [![Gitter][gi]][gl] ![MIT/Apache][li] [![Docs.rs][di]][dl] [![Coverage][cci]][ccl]
+[![Build Status][bi]][bl] [![Crates.io][ci]][cl] [![Gitter][gi]][gl] ![MIT/Apache][li] [![Docs.rs][di]][dl] [![Coverage][cci]][ccl] ![LoC][lo]
 
 [bi]: https://travis-ci.org/slide-rs/specs.svg?branch=master
 [bl]: https://travis-ci.org/slide-rs/specs
@@ -20,6 +20,8 @@
 
 [cci]: https://coveralls.io/repos/github/slide-rs/specs/badge.svg?branch=master
 [ccl]: https://coveralls.io/github/slide-rs/specs?branch=master
+
+[lo]: https://tokei.rs/b1/github/slide-rs/specs?category=code
 
 Specs is an Entity-Component System written in Rust.
 Unlike most other ECS libraries out there, it provides
