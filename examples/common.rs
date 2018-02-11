@@ -42,7 +42,7 @@ fn main() {
     world.create_entity().with(future_sqrt(25.0)).build();
 
     let mut dispatcher = DispatcherBuilder::new()
-        .add(Merge::<MyFuture>::new(), "merge_my_float", &[])
+        .with(Merge::<MyFuture>::new(), "merge_my_float", &[])
         .build();
 
     dispatcher.dispatch(&world.res);

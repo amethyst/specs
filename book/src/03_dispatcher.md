@@ -19,7 +19,7 @@ First of all, we have to build such a dispatcher.
 use specs::DispatcherBuilder;
 
 let mut dispatcher = DispatcherBuilder::new()
-    .add(hello_world, "hello_world", &[])
+    .with(hello_world, "hello_world", &[])
     .build();
 ```
 
@@ -85,7 +85,7 @@ same for every entity). The solution to this are `Resource`s, see
 Okay, now you can add another system *after* the `HelloWorld` system:
 
 ```rust,ignore
-    .add(UpdatePos, "update_pos", &["hello_world"])
+    .with(UpdatePos, "update_pos", &["hello_world"])
 ```
 
 The `UpdatePos` system now depends on the `HelloWorld` system and will only
@@ -169,8 +169,8 @@ fn main() {
         .build();
 
     let mut dispatcher = DispatcherBuilder::new()
-        .add(HelloWorld, "hello_world", &[])
-        .add(UpdatePos, "update_pos", &["hello_world"])
+        .with(HelloWorld, "hello_world", &[])
+        .with(UpdatePos, "update_pos", &["hello_world"])
         .build();
 
     dispatcher.dispatch(&mut world.res);

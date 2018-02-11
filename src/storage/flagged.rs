@@ -17,7 +17,7 @@ use world::Index;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// extern crate specs;
 ///
 /// use specs::prelude::*;
@@ -123,6 +123,7 @@ use world::Index;
 ///     };
 /// }
 /// ```
+///
 pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
     trackers: TrackChannels,
     storage: T,

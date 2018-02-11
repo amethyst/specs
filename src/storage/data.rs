@@ -114,18 +114,18 @@ impl<'a, T> SystemData<'a> for ReadStorage<'a, T>
 where
     T: Component,
 {
-    fn fetch(res: &'a Resources, id: usize) -> Self {
-        Storage::new(res.fetch(0), res.fetch(id))
+    fn fetch(res: &'a Resources) -> Self {
+        Storage::new(res.fetch(), res.fetch())
     }
 
-    fn reads(id: usize) -> Vec<ResourceId> {
+    fn reads() -> Vec<ResourceId> {
         vec![
             ResourceId::new::<EntitiesRes>(),
-            ResourceId::new_with_id::<MaskedStorage<T>>(id),
+            ResourceId::new::<MaskedStorage<T>>(),
         ]
     }
 
-    fn writes(_: usize) -> Vec<ResourceId> {
+    fn writes() -> Vec<ResourceId> {
         vec![]
     }
 }
@@ -197,15 +197,15 @@ impl<'a, T> SystemData<'a> for WriteStorage<'a, T>
 where
     T: Component,
 {
-    fn fetch(res: &'a Resources, id: usize) -> Self {
-        Storage::new(res.fetch(0), res.fetch_mut(id))
+    fn fetch(res: &'a Resources) -> Self {
+        Storage::new(res.fetch(), res.fetch_mut())
     }
 
-    fn reads(_: usize) -> Vec<ResourceId> {
+    fn reads() -> Vec<ResourceId> {
         vec![ResourceId::new::<EntitiesRes>()]
     }
 
-    fn writes(id: usize) -> Vec<ResourceId> {
-        vec![ResourceId::new_with_id::<MaskedStorage<T>>(id)]
+    fn writes() -> Vec<ResourceId> {
+        vec![ResourceId::new::<MaskedStorage<T>>()]
     }
 }

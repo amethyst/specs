@@ -210,12 +210,12 @@ fn main() {
     // because we want to print the components before executing
     // `SysCheckPositive`.
     let mut dispatcher = DispatcherBuilder::new()
-        .add(SysPrintBool, "print_bool", &[])
-        .add(SysCheckPositive, "check_positive", &["print_bool"])
-        .add(SysStoreMax::new(), "store_max", &["check_positive"])
-        .add(SysSpawn::new(), "spawn", &[])
-        .add(SysPrintBool, "print_bool2", &["check_positive"])
-        .add(JoinParallel, "join_par", &[])
+        .with(SysPrintBool, "print_bool", &[])
+        .with(SysCheckPositive, "check_positive", &["print_bool"])
+        .with(SysStoreMax::new(), "store_max", &["check_positive"])
+        .with(SysSpawn::new(), "spawn", &[])
+        .with(SysPrintBool, "print_bool2", &["check_positive"])
+        .with(JoinParallel, "join_par", &[])
         .build();
 
     dispatcher.dispatch(&w.res);

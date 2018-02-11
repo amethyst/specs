@@ -102,7 +102,7 @@ fn main() {
         .build();
 
     let mut dispatcher = DispatcherBuilder::new()
-        .add(SerializeSystem, "ser", &[])
+        .with(SerializeSystem, "ser", &[])
         .build();
 
     dispatcher.dispatch(&mut world.res);

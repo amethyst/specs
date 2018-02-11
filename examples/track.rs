@@ -61,8 +61,8 @@ fn main() {
     }
 
     let mut dispatcher = DispatcherBuilder::new()
-        .add(sysa, "sys_a", &[])
-        .add(SysB::default(), "sys_b", &[])
+        .with(sysa, "sys_a", &[])
+        .with(SysB::default(), "sys_b", &[])
         .build();
 
     dispatcher.dispatch(&mut world.res);

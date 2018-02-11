@@ -186,7 +186,7 @@ where
     );
 
     fn run(&mut self, (entities, errors, mut futures, mut pers): Self::SystemData) {
-        for (e, _) in (&*entities, &futures.check()).join() {
+        for (e, _) in (&*entities, &futures.mask().clone()).join() {
             self.spawns.push((e, spawn(futures.remove(e).unwrap())));
         }
 
@@ -324,7 +324,7 @@ mod test {
 
         let system: Merge<TestFuture> = Merge::new();
 
-        let mut dispatcher = DispatcherBuilder::new().add(system, "merge", &[]).build();
+        let mut dispatcher = DispatcherBuilder::new().with(system, "merge", &[]).build();
 
         // Sequential dispatch used in order to avoid missing panics due to them happening in
         // another thread.
