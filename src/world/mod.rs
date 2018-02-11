@@ -188,19 +188,6 @@ impl<'a> EntityBuilder<'a> {
 /// the borrowing rules of Rust (multiple reads xor one write),
 /// you will get a panic.
 ///
-/// ## Component / Resources ids
-///
-/// **These have been removed in 0.11.**
-///
-/// ~~Components and resources may, in addition to their type, be identified
-/// by an id of type `usize`. The convenience methods dealing
-/// with components assume that it's `0`.~~
-///
-/// ~~If a system attempts to access a component/resource that has not been
-/// registered/added, it will panic when run. Add all components with
-/// `World::register` before running any systems. Also add all resources
-/// with `World::add_resource`.~~
-///
 /// ## Examples
 ///
 /// ```
