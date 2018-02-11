@@ -527,8 +527,7 @@ mod test {
             let c2 = { restricted.get_mut_unchecked(&entry).0 };
 
             assert_eq!(
-                c1,
-                c2,
+                c1, c2,
                 "Mutable and immutable gets returned different components."
             );
             assert!(
@@ -767,7 +766,7 @@ mod test {
 
         let mut modified = BitSet::new();
         let mut modified_id = s1.track_modified();
-        
+
         let mut removed = BitSet::new();
         let mut removed_id = s1.track_removed();
 
