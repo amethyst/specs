@@ -228,3 +228,5 @@ pub mod prelude;
 pub mod storage;
 /// Entities, resources, components, and general world management.
 pub mod world;
+/// Change set
+pub mod changeset;
