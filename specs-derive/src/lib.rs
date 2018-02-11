@@ -11,7 +11,7 @@ extern crate syn;
 
 use proc_macro::TokenStream;
 use quote::Tokens;
-use syn::{Path, DeriveInput};
+use syn::{DeriveInput, Path};
 use syn::synom::Synom;
 
 /// Custom derive macro for the `Component` trait.
@@ -47,9 +47,14 @@ fn impl_component(ast: &DeriveInput) -> Tokens {
     let name = &ast.ident;
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
-    let storage = ast.attrs.iter()
+    let storage = ast.attrs
+        .iter()
         .find(|attr| attr.path.segments[0].ident == "storage")
-        .map(|attr| syn::parse2::<StorageAttribute>(attr.tts.clone()).unwrap().storage)
+        .map(|attr| {
+            syn::parse2::<StorageAttribute>(attr.tts.clone())
+                .unwrap()
+                .storage
+        })
         .unwrap_or_else(|| parse_quote!(DenseVecStorage));
 
     quote! {

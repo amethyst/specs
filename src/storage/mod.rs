@@ -15,7 +15,7 @@ use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
 
-use hibitset::{BitSet, BitSetNot, BitSetLike};
+use hibitset::{BitSet, BitSetLike, BitSetNot};
 use shred::Fetch;
 
 use self::drain::Drain;
@@ -149,7 +149,9 @@ impl<T: Component> MaskedStorage<T> {
     /// Drop an element by a given index.
     pub fn drop(&mut self, id: Index) {
         if self.mask.remove(id) {
-            unsafe { self.inner.drop(id); }
+            unsafe {
+                self.inner.drop(id);
+            }
         }
     }
 }
