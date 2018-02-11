@@ -60,8 +60,7 @@ pub enum Error {
     /// Wrong generation error.
     WrongGeneration(WrongGeneration),
 
-    #[doc(hidden)]
-    __NonExhaustive,
+    #[doc(hidden)] __NonExhaustive,
 }
 
 impl Display for Error {
