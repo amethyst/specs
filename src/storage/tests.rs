@@ -669,12 +669,12 @@ mod test {
     #[should_panic]
     fn wrong_storage() {
         use join::Join;
-        let mut w = World::new();
-        w.register_with_id::<Cvec>(1);
-        w.register_with_id::<Cvec>(2);
-        let mut s1: Storage<Cvec, _> = w.write_with_id(1);
-        // Possibility if the world uses dynamic components.
-        let mut s2: Storage<Cvec, _> = w.write_with_id(2);
+        let mut w0 = World::new();
+        let mut w1 = World::new();
+        w0.register::<Cvec>();
+        w1.register::<Cvec>();
+        let mut s1: Storage<Cvec, _> = w0.write();
+        let mut s2: Storage<Cvec, _> = w1.write();
 
         for i in 0..50 {
             s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
@@ -694,12 +694,12 @@ mod test {
         use join::ParJoin;
         use rayon::iter::ParallelIterator;
 
-        let mut w = World::new();
-        w.register_with_id::<Cvec>(1);
-        w.register_with_id::<Cvec>(2);
-        let mut s1: Storage<Cvec, _> = w.write_with_id(1);
-        // Possibility if the world uses dynamic components.
-        let mut s2: Storage<Cvec, _> = w.write_with_id(2);
+        let mut w0 = World::new();
+        let mut w1 = World::new();
+        w0.register::<Cvec>();
+        w1.register::<Cvec>();
+        let mut s1: Storage<Cvec, _> = w0.write();
+        let mut s2: Storage<Cvec, _> = w1.write();
 
         for i in 0..50 {
             s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());

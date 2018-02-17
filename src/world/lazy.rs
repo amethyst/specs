@@ -19,20 +19,9 @@ impl<'a> LazyBuilder<'a> {
     where
         C: Component + Send + Sync,
     {
-        self.with_id(component, 0)
-    }
-
-    /// Inserts a component using `LazyUpdate`.
-    /// The `id` is the component id which is in most cases `0`,
-    /// because it's only used for scripting where you want multiple
-    /// storages for the same Rust type.
-    pub fn with_id<C>(self, component: C, id: usize) -> Self
-    where
-        C: Component + Send + Sync,
-    {
         let entity = self.entity;
         self.lazy.execute(move |world| {
-            world.write_with_id::<C>(id).insert(entity, component);
+            world.write::<C>().insert(entity, component);
         });
 
         self

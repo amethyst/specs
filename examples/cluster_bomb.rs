@@ -125,9 +125,9 @@ fn main() {
         .build();
 
     let mut dispatcher = DispatcherBuilder::new()
-        .add(PhysicsSystem, "physics", &[])
-        .add(ClusterBombSystem, "cluster_bombs", &[])
-        .add(ShrapnelSystem, "shrapnels", &[])
+        .with(PhysicsSystem, "physics", &[])
+        .with(ClusterBombSystem, "cluster_bombs", &[])
+        .with(ShrapnelSystem, "shrapnels", &[])
         .build();
 
     let mut step = 0;

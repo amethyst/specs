@@ -12,7 +12,7 @@ Adding one is a simple line added to the builder code:
 
 ```rust,ignore
 DispatcherBuilder::new()
-    .add_thread_local(RenderSys);
+    .with_thread_local(RenderSys);
 ```
 
 ## Amethyst

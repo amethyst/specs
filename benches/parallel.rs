@@ -337,10 +337,10 @@ fn bench_parallel(b: &mut Bencher) {
     }
 
     let mut d = DispatcherBuilder::new()
-        .add(RequestSpawns, "req_spawns", &[])
-        .add(GenCollisions, "gen_collisions", &[])
-        .add(Spawn, "spawn", &[])
-        .add(Integrate, "integrate", &[])
+        .with(RequestSpawns, "req_spawns", &[])
+        .with(GenCollisions, "gen_collisions", &[])
+        .with(Spawn, "spawn", &[])
+        .with(Integrate, "integrate", &[])
         .build();
 
     b.iter(|| {

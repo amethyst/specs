@@ -61,7 +61,7 @@ fn main() {
     // Since we only have one, we don't depend on anything.
     // See the `full` example for dependencies.
     let mut dispatcher = DispatcherBuilder::new()
-        .add(SysA, "sys_a", &[])
+        .with(SysA, "sys_a", &[])
         .build_async(world);
 
     // This dispatches all the systems in parallel and async.

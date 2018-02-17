@@ -48,7 +48,7 @@ fn task_panics() {
         .build();
 
     DispatcherBuilder::new()
-        .add(Sys, "s", &[])
+        .with(Sys, "s", &[])
         .build()
         .dispatch(&mut world.res);
 }
@@ -66,7 +66,7 @@ fn dynamic_create() {
     }
 
     let mut world = create_world();
-    let mut dispatcher = DispatcherBuilder::new().add(Sys, "s", &[]).build();
+    let mut dispatcher = DispatcherBuilder::new().with(Sys, "s", &[]).build();
 
     for _ in 0..1_000 {
         dispatcher.dispatch(&mut world.res);
@@ -87,7 +87,7 @@ fn dynamic_deletion() {
     }
 
     let mut world = create_world();
-    let mut dispatcher = DispatcherBuilder::new().add(Sys, "s", &[]).build();
+    let mut dispatcher = DispatcherBuilder::new().with(Sys, "s", &[]).build();
 
     for _ in 0..1_000 {
         dispatcher.dispatch(&mut world.res);
@@ -256,34 +256,14 @@ fn stillborn_entities() {
     }
 
     let mut dispatcher = DispatcherBuilder::new()
-        .add(SysRand(rng), "rand", &[])
-        .add(Delete, "del", &["rand"])
-        .add(Insert, "insert", &["del"])
+        .with(SysRand(rng), "rand", &[])
+        .with(Delete, "del", &["rand"])
+        .with(Insert, "insert", &["del"])
         .build();
 
     for _ in 0..100 {
         dispatcher.dispatch(&mut world.res);
     }
-}
-
-#[test]
-fn dynamic_component() {
-    // a simple test for the dynamic component feature.
-    let mut w = World::new();
-
-    w.register_with_id::<CompInt>(1);
-    w.register_with_id::<CompBool>(2);
-
-    let e = w.create_entity()
-        .with_id(CompInt(10), 1)
-        .with_id(CompBool(true), 2)
-        .build();
-
-    let i = w.read_with_id::<CompInt>(1).get(e).unwrap().0;
-    assert_eq!(i, 10);
-
-    let c = w.read_with_id::<CompBool>(2).get(e).unwrap().0;
-    assert_eq!(c, true);
 }
 
 #[test]
@@ -347,7 +327,7 @@ fn join_two_components() {
             );
         }
     }
-    let mut dispatcher = DispatcherBuilder::new().add(Iter, "iter", &[]).build();
+    let mut dispatcher = DispatcherBuilder::new().with(Iter, "iter", &[]).build();
     dispatcher.dispatch(&mut world.res);
 }
 
@@ -393,7 +373,7 @@ fn par_join_two_components() {
         }
     }
     let mut dispatcher = DispatcherBuilder::new()
-        .add(Iter(&first, &second, &error), "iter", &[])
+        .with(Iter(&first, &second, &error), "iter", &[])
         .build();
     dispatcher.dispatch(&mut world.res);
     assert_eq!(
@@ -433,7 +413,7 @@ fn par_join_many_entities_and_systems() {
     }
     let mut builder = DispatcherBuilder::new();
     for _ in 0..255 {
-        builder = builder.add(Incr, "", &[]);
+        builder.add(Incr, "", &[]);
     }
     struct FindFailed<'a>(&'a Mutex<Vec<(u32, i8)>>);
     impl<'a, 'b> System<'a> for FindFailed<'b> {
@@ -448,8 +428,8 @@ fn par_join_many_entities_and_systems() {
         }
     }
     let mut dispatcher = builder
-        .add_barrier()
-        .add(FindFailed(&failed), "find_failed", &[])
+        .with_barrier()
+        .with(FindFailed(&failed), "find_failed", &[])
         .build();
     dispatcher.dispatch(&mut world.res);
     for &(id, n) in &*failed.lock().unwrap() {
