@@ -186,8 +186,8 @@ where
     );
 
     fn run(&mut self, (entities, errors, mut futures, mut pers): Self::SystemData) {
-        for (e, _) in (&*entities, &futures.mask().clone()).join() {
-            self.spawns.push((e, spawn(futures.remove(e).unwrap())));
+        for (e, future) in (&*entities, futures.drain()).join() {
+            self.spawns.push((e, spawn(future)));
         }
 
         retain_mut(&mut self.spawns, |spawn| {
