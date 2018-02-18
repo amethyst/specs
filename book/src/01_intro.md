@@ -3,7 +3,6 @@
 Welcome to The Specs Book, an introduction to [ECS] and the Specs API.
 This book is targeted at beginners; guiding you through all the difficulties of
 setting up, building, and structuring a game with an ECS.
-You can find the API docs on [docs.rs](https://docs.rs/specs).
 
 [ECS]: https://en.wikipedia.org/wiki/Entity–component–system
 
