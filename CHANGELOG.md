@@ -1,14 +1,21 @@
 ## [Unreleased]
 
-* Remove `FlaggedStorage` (new storage uses the same name) and `TrackedStorage` in favor of the new `Tracked` api. ([#305])
-* Implementations of Join for owned BitSets, including AtomicBitset. ([#303])
-* Add `Bundle` for registering multiple resources and components at once. ([#296])
-* Add `TrackedStorage`, a more ergonomic variant to `FlaggedStorage` ([#291])
-* Add `nightly` feature flag for unstable features. ([#290])
-* Add `saveload` module for easy entity serialization ([#275])
-* Improve docs, book and examples ([#278], [#281], [#283], [#285])
-* Add `EntityBuilder::marked` convenience method ([#287])
+* Improve docs, book and examples ([#278], [#281], [#283], [#285], [#296], [#313], [#316], [#322], [#350])
 * Add `StorageEntry` for easier handling of inserting/removing component ([#274])
+* Add `EntityBuilder::marked` convenience method ([#287])
+* Add `saveload` module for easy entity serialization ([#275])
+* Add `nightly` feature flag for unstable features. ([#290])
+* Add `TrackedStorage`, a more ergonomic variant to `FlaggedStorage` ([#291])
+* Exclusive/mutable aliasing for getting an `EntityBuilder` to prevent unsafety. ([#294])
+* Add `Bundle` for registering multiple resources and components at once. ([#296])
+* Add `get()` method to `Join` for retrieving a single entities component in bulk. ([#299])
+* Implementations of `Join` for owned `BitSet`s, including `AtomicBitset`. ([#303])
+* Remove `FlaggedStorage` (new storage uses the same name) and `TrackedStorage` in favor of the new `Tracked` api. ([#305])
+* Add `prelude` module for commonly used structures and traits. ([#305])
+* Add `LazyBuilder` for easier entity construction in systems. ([#320])
+* Replace `Entry` with `PairedStorage` to prevent runtime checks for `RestrictedStorage`. ([#324])
+* Deprecate `check()` which hides a possibly expensive clone. ([#326])
+* Add `ChangeSet` for easy application to components. ([#344])
 
 [#274]: https://github.com/slide-rs/specs/pull/274
 [#275]: https://github.com/slide-rs/specs/pull/275
@@ -19,9 +26,20 @@
 [#287]: https://github.com/slide-rs/specs/pull/287
 [#290]: https://github.com/slide-rs/specs/pull/290
 [#291]: https://github.com/slide-rs/specs/pull/291
+[#294]: https://github.com/slide-rs/specs/pull/294
 [#296]: https://github.com/slide-rs/specs/pull/296
+[#297]: https://github.com/slide-rs/specs/pull/297
+[#299]: https://github.com/slide-rs/specs/pull/299
 [#303]: https://github.com/slide-rs/specs/pull/303
 [#305]: https://github.com/slide-rs/specs/pull/305
+[#313]: https://github.com/slide-rs/specs/pull/313
+[#316]: https://github.com/slide-rs/specs/pull/316
+[#320]: https://github.com/slide-rs/specs/pull/320
+[#322]: https://github.com/slide-rs/specs/pull/322
+[#324]: https://github.com/slide-rs/specs/pull/324
+[#326]: https://github.com/slide-rs/specs/pull/326
+[#344]: https://github.com/slide-rs/specs/pull/344
+[#350]: https://github.com/slide-rs/specs/pull/350
 
 ## 0.10.0
 
