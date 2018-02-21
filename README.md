@@ -35,6 +35,8 @@ Unlike most other ECS libraries out there, it provides
       other and you can use barriers to force several stages in system execution
 * high performance for real-world applications
 
+Minimum Rust version: 1.21
+
 ## [Link to the book][book]
 
 [book]: https://slide-rs.github.io/specs/

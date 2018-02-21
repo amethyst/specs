@@ -1,6 +1,7 @@
 language: rust
 rust:
 - nightly
+- beta
 - stable
 
 cache:
@@ -16,8 +17,8 @@ before_script:
 - export PATH="$PATH:$HOME/.cargo/bin"
 
 script:
-- cargo build --features="common,serde,rudy" --verbose
-- cargo test --features="common,serde,rudy" --verbose
+- cargo build --verbose --features "common serde rudy"
+- cargo test --verbose --features "common serde rudy"
 - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
     cargo build --all-features --verbose;
     cargo test --all-features --verbose;

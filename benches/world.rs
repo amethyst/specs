@@ -1,9 +1,12 @@
 #![feature(test)]
 
+#[macro_use]
+extern crate criterion;
 extern crate rayon;
 extern crate specs;
 extern crate test;
 
+use criterion::{Bencher, Criterion};
 use specs::prelude::*;
 use specs::storage::HashMapStorage;
 
@@ -30,55 +33,72 @@ fn create_world() -> World {
     w
 }
 
-#[bench]
-fn world_build(b: &mut test::Bencher) {
+fn world_build(b: &mut Bencher) {
     b.iter(World::new);
 }
 
-#[bench]
-fn create_now(b: &mut test::Bencher) {
-    let mut w = World::new();
-    b.iter(|| w.create_entity().build());
+fn create_now(b: &mut Bencher) {
+    b.iter_with_large_setup(
+        || World::new(),
+        |mut w| {
+            w.create_entity().build();
+        },
+    );
 }
 
-#[bench]
-fn create_now_with_storage(b: &mut test::Bencher) {
-    let mut w = create_world();
-    b.iter(|| w.create_entity().with(CompInt(0)).build());
+fn create_now_with_storage(b: &mut Bencher) {
+    b.iter_with_large_setup(
+        || create_world(),
+        |mut w| {
+            w.create_entity().with(CompInt(0)).build();
+        },
+    );
 }
 
-#[bench]
-fn create_pure(b: &mut test::Bencher) {
-    let w = World::new();
-    b.iter(|| w.entities().create());
+fn create_pure(b: &mut Bencher) {
+    b.iter_with_large_setup(
+        || World::new(),
+        |w| {
+            w.entities().create();
+        },
+    );
 }
 
-#[bench]
-fn delete_now(b: &mut test::Bencher) {
-    let mut w = World::new();
-    let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_entity().build()).collect();
-    b.iter(|| {
-        if let Some(id) = eids.pop() {
-            w.delete_entity(id).unwrap()
-        }
-    });
+fn delete_now(b: &mut Bencher) {
+    b.iter_with_setup(
+        || {
+            let mut w = create_world();
+            let eids: Vec<_> = (0..100).map(|_| w.create_entity().build()).collect();
+
+            (w, eids)
+        },
+        |(mut w, mut eids)| {
+            if let Some(id) = eids.pop() {
+                w.delete_entity(id).unwrap()
+            }
+        },
+    );
 }
 
-#[bench]
-fn delete_now_with_storage(b: &mut test::Bencher) {
-    let mut w = create_world();
-    let mut eids: Vec<_> = (0..10_000_000)
-        .map(|_| w.create_entity().with(CompInt(1)).build())
-        .collect();
-    b.iter(|| {
-        if let Some(id) = eids.pop() {
-            w.delete_entity(id).unwrap()
-        }
-    });
+fn delete_now_with_storage(b: &mut Bencher) {
+    b.iter_with_setup(
+        || {
+            let mut w = create_world();
+            let eids: Vec<_> = (0..100)
+                .map(|_| w.create_entity().with(CompInt(1)).build())
+                .collect();
+
+            (w, eids)
+        },
+        |(mut w, mut eids)| {
+            if let Some(id) = eids.pop() {
+                w.delete_entity(id).unwrap()
+            }
+        },
+    );
 }
 
-#[bench]
-fn delete_later(b: &mut test::Bencher) {
+fn delete_later(b: &mut Bencher) {
     let mut w = World::new();
     let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_entity().build()).collect();
     b.iter(|| {
@@ -88,16 +108,14 @@ fn delete_later(b: &mut test::Bencher) {
     });
 }
 
-#[bench]
-fn maintain_noop(b: &mut test::Bencher) {
+fn maintain_noop(b: &mut Bencher) {
     let mut w = World::new();
     b.iter(|| {
         w.maintain();
     });
 }
 
-#[bench]
-fn maintain_add_later(b: &mut test::Bencher) {
+fn maintain_add_later(b: &mut Bencher) {
     let mut w = World::new();
     b.iter(|| {
         w.entities().create();
@@ -105,8 +123,7 @@ fn maintain_add_later(b: &mut test::Bencher) {
     });
 }
 
-#[bench]
-fn maintain_delete_later(b: &mut test::Bencher) {
+fn maintain_delete_later(b: &mut Bencher) {
     let mut w = World::new();
     let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_entity().build()).collect();
     b.iter(|| {
@@ -117,8 +134,7 @@ fn maintain_delete_later(b: &mut test::Bencher) {
     });
 }
 
-#[bench]
-fn join_single_threaded(b: &mut test::Bencher) {
+fn join_single_threaded(b: &mut Bencher) {
     use test::black_box;
 
     let mut world = World::new();
@@ -139,8 +155,7 @@ fn join_single_threaded(b: &mut test::Bencher) {
     })
 }
 
-#[bench]
-fn join_multi_threaded(b: &mut test::Bencher) {
+fn join_multi_threaded(b: &mut Bencher) {
     use rayon::prelude::*;
     use test::black_box;
 
@@ -161,3 +176,22 @@ fn join_multi_threaded(b: &mut test::Bencher) {
         })
     })
 }
+
+fn world_benchmarks(c: &mut Criterion) {
+    c.bench_function("world build", world_build)
+        .bench_function("create now", create_now)
+        .bench_function("create pure", create_pure)
+        .bench_function("create now with storage", create_now_with_storage)
+        .bench_function("delete now", delete_now)
+        .bench_function("delete now with storage", delete_now_with_storage)
+        .bench_function("delete later", delete_later)
+        .bench_function("maintain noop", maintain_noop)
+        .bench_function("maintain add later", maintain_add_later)
+        .bench_function("maintain delete later", maintain_delete_later)
+        .bench_function("join single threaded", join_single_threaded)
+        .bench_function("join multi threaded", join_multi_threaded);
+}
+
+criterion_group!(world, world_benchmarks);
+
+criterion_main!(world);
