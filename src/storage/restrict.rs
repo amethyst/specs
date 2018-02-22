@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use hibitset::BitSet;
 
 use join::{Join, ParJoin};
-use storage::{MaskedStorage, Storage, UnprotectedStorage};
+use storage::{DistinctStorage, MaskedStorage, Storage, UnprotectedStorage};
 use world::{Component, Entities, Entity, EntityIndex, Index};
 
 /// Specifies that the `RestrictedStorage` cannot run in parallel.
@@ -82,15 +82,16 @@ where
     T: Component,
     R: BorrowMut<T::Storage> + 'rf,
     B: Borrow<BitSet> + 'rf,
+    T::Storage: DistinctStorage,
 {
 }
 
-unsafe impl<'rf, 'st: 'rf, B, T, R, RT> ParJoin for &'rf RestrictedStorage<'rf, 'st, B, T, R, RT>
+unsafe impl<'rf, 'st: 'rf, B, T, R> ParJoin
+    for &'rf RestrictedStorage<'rf, 'st, B, T, R, ImmutableParallelRestriction>
 where
     T: Component,
     R: Borrow<T::Storage> + 'rf,
     B: Borrow<BitSet> + 'rf,
-    RT: ImmutableAliasing,
 {
 }
 
@@ -165,7 +166,7 @@ where
     }
 }
 
-impl<'rf, 'st: 'rf, B, T, R, RT> Join for &'rf RestrictedStorage<'rf, 'st, B, T, R, RT>
+impl<'rf, 'st: 'rf, B, T, R> Join for &'rf RestrictedStorage<'rf, 'st, B, T, R, ImmutableParallelRestriction>
 where
     T: Component,
     R: Borrow<T::Storage>,
@@ -260,7 +261,10 @@ where
     /// aside from the current iteration.
     pub fn par_restrict_mut<'rf>(
         &'rf mut self,
-    ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &mut T::Storage, MutableParallelRestriction> {
+    ) -> RestrictedStorage<'rf, 'st, &BitSet, T, &mut T::Storage, MutableParallelRestriction>
+    where
+        T::Storage: DistinctStorage,
+    {
         let (mask, data) = self.data.open_mut();
         RestrictedStorage {
             bitset: mask,
@@ -327,5 +331,71 @@ where
 {
     fn index(&self) -> Index {
         (*self).index()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use storage::VecStorage;
+    use world::{Component, World};
+    use join::{Join, ParJoin};
+
+    use rayon::iter::ParallelIterator;
+
+    #[derive(PartialEq, Eq, Debug)]
+    struct Comp(u32);
+    impl Component for Comp {
+        type Storage = VecStorage<Self>;
+    }
+
+    fn setup() -> World {
+        let mut world = World::new();
+        world.register::<Comp>();
+        for i in 0..5000 {
+            world.create_entity()
+                .with(Comp(i))
+                .build();
+        }
+        world
+    }
+
+    #[test]
+    fn sanity() {
+        let world = setup();
+        let mut storage = world.write::<Comp>();
+        let entities = world.entities();
+
+        let all = &storage.join()
+            .map(|c| c.0)
+            .collect::<Vec<u32>>();
+
+        let restricted_sequential = &storage.restrict()
+            .join()
+            .map(|(entry, restricted)| restricted.get_unchecked(&entry).0)
+            .collect::<Vec<u32>>();
+
+        let restricted_parallel = &storage.restrict()
+            .par_join()
+            .map(|(entry, restricted)| restricted.get_unchecked(&entry).0)
+            .collect::<Vec<u32>>();
+
+        assert_eq!(all, restricted_sequential);
+        assert_eq!(restricted_sequential, restricted_parallel);
+
+        storage.restrict_mut()
+            .join()
+            .for_each(|(mut entry, restricted)| {
+                restricted.get_mut_unchecked(&mut entry).0 += 2;
+            });
+        
+        storage.par_restrict_mut()
+            .par_join()
+            .for_each(|(mut entry, restricted)| {
+                restricted.get_mut_unchecked(&mut entry).0 -= 1;
+            });
+
+        for (entity, comp) in (&*entities, &storage).join() {
+            assert_eq!(comp.0, entity.id() + 1);
+        }
     }
 }
