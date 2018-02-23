@@ -23,7 +23,7 @@ derivative = "1"
 fnv = "1.0"
 hibitset = { version = "0.4.1", default-features = false }
 mopa = "0.2"
-shred = "0.6.0"
+shred = { version = "0.6.0", default-features = false }
 shrev = "0.8.0"
 shred-derive = "0.4"
 tuple_utils = "0.2"
