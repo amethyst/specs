@@ -20,7 +20,9 @@ use shred::Fetch;
 
 use self::drain::Drain;
 use error::WrongGeneration;
-use join::{Join, ParJoin};
+use join::Join;
+#[cfg(feature = "parallel")]
+use join::ParJoin;
 use world::{Component, EntitiesRes, Entity, Generation, Index};
 
 mod data;
@@ -461,6 +463,7 @@ where
     }
 }
 
+#[cfg(feature = "parallel")]
 unsafe impl<'a, 'e, T, D> ParJoin for &'a Storage<'e, T, D>
 where
     T: Component,
@@ -491,6 +494,7 @@ where
     }
 }
 
+#[cfg(feature = "parallel")]
 unsafe impl<'a, 'e, T, D> ParJoin for &'a mut Storage<'e, T, D>
 where
     T: Component,

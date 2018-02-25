@@ -189,6 +189,7 @@ extern crate derivative;
 extern crate fnv;
 extern crate hibitset;
 extern crate mopa;
+#[cfg(feature = "parallel")]
 extern crate rayon;
 extern crate shred;
 extern crate shrev;

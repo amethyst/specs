@@ -4,7 +4,9 @@ use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use shred::Fetch;
 
 use error::WrongGeneration;
-use join::{Join, ParJoin};
+use join::Join;
+#[cfg(feature = "parallel")]
+use join::ParJoin;
 
 /// An index is basically the id of an `Entity`.
 pub type Index = u32;
@@ -349,6 +351,7 @@ impl<'a> Join for &'a EntitiesRes {
     }
 }
 
+#[cfg(feature = "parallel")]
 unsafe impl<'a> ParJoin for &'a EntitiesRes {}
 
 /// Index generation. When a new entity is placed at an old index,
