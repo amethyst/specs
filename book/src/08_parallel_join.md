@@ -2,8 +2,8 @@
 
 As mentioned in the chapter dedicated on how to [dispatch][c3] systems,
 Specs automatically parallelizes system execution when there are non-conflicting
-system data requirements (each resource in the system data may only be accessed either
-once mutably or many times immutably from multiple systems).
+system data requirements (Two `System`s conflict if their `SystemData` needs access
+to the same resource where at least one of them needs write access to it).
 
 [c3]: ./03_dispatcher.html
 
@@ -47,7 +47,7 @@ fn run(&mut self, (vel, mut pos): Self::SystemData) {
 }
 ```
 
-There is always overhead in parallelization, so you should always carefully profile to see if there are benefits in the switch. If you have only few things to iterate over then sequential join is faster.
+> There is always overhead in parallelization, so you should carefully profile to see if there are benefits in the switch. If you have only few things to iterate over then sequential join is faster.
 
 The `par_join` method produces a type implementing rayon's [`ParallelIterator`][ra]
 trait which provides lots of helper methods to manipulate the iteration,
