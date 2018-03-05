@@ -86,6 +86,8 @@ where
 {
 }
 
+// For explanation of why `ImmutableParallelRestriction` instead of `RT: ImmutableAliasing`, see
+// the `Join` implementation of `RestrictedStorage`.
 unsafe impl<'rf, 'st: 'rf, B, T, R> ParJoin
     for &'rf RestrictedStorage<'rf, 'st, B, T, R, ImmutableParallelRestriction>
 where
@@ -166,6 +168,15 @@ where
     }
 }
 
+// This is actually fine for `SequentialRestriction` (or any restriction with
+// `ImmutableAliasing` as well, however Rust then requires differentiation
+// between the two. Since there is no reason to use `SequentialRestriction`
+// and only use it as an `ImmutableRestriction`, might as well improve ergonomics
+// for common-case calls.
+//
+// e.g.
+// With `ImmutableAliasing`: `(&mut storage.restrict_mut())`
+// With `ImmutableParallelRestriction`: `storage.restrict_mut()`
 impl<'rf, 'st: 'rf, B, T, R> Join for &'rf RestrictedStorage<'rf, 'st, B, T, R, ImmutableParallelRestriction>
 where
     T: Component,
