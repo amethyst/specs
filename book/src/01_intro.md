@@ -92,5 +92,5 @@ Okay, now that you were given a rough overview, let's continue
 to [Chapter 2][c2] where we'll build our first actual application with Specs.
 
 [am]: https://www.amethyst.rs
-[ra]: https://github.com/nikomatsakis/rayon
+[ra]: https://github.com/rayon-rs/rayon
 [c2]: ./02_hello_world.html
