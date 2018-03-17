@@ -77,9 +77,9 @@ where
         WriteStorage::remove(self, entity);
     }
 
-//    fn join(&'b mut self) -> Self::Join {
-//        self
-//    }
+    //    fn join(&'b mut self) -> Self::Join {
+    //        self
+    //    }
 }
 
 impl<'a: 'b, 'b, T> GenericWriteStorage for &'b mut WriteStorage<'a, T>
@@ -100,7 +100,7 @@ where
         WriteStorage::remove(*self, entity);
     }
 
-//    fn join(&'c mut self) -> Self::Join {
-//        &mut **self
-//    }
+    //    fn join(&'c mut self) -> Self::Join {
+    //        &mut **self
+    //    }
 }

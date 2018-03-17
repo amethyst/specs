@@ -122,8 +122,8 @@ impl Allocator {
                 return;
             }
 
-            if start_from ==
-                self.start_from
+            if start_from
+                == self.start_from
                     .compare_and_swap(current, start_from, Ordering::Relaxed)
             {
                 return;

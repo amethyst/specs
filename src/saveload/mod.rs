@@ -34,7 +34,7 @@ mod storages;
 
 pub use self::de::DeserializeComponents;
 pub use self::marker::{Marker, MarkerAllocator, U64Marker, U64MarkerAllocator};
-pub use self::ser::{SerializeComponents};
+pub use self::ser::SerializeComponents;
 
 /// A struct used for deserializing entity data.
 #[derive(Serialize, Deserialize)]

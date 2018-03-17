@@ -76,8 +76,6 @@ impl From<NoError> for Combined {
     }
 }
 
-
-
 fn main() {
     let mut world = World::new();
 
@@ -104,12 +102,20 @@ fn main() {
     struct Serialize;
 
     impl<'a> System<'a> for Serialize {
-        type SystemData = (Entities<'a>, ReadStorage<'a, Pos>, ReadStorage<'a, Mass>, ReadStorage<'a, U64Marker>);
+        type SystemData = (
+            Entities<'a>,
+            ReadStorage<'a, Pos>,
+            ReadStorage<'a, Mass>,
+            ReadStorage<'a, U64Marker>,
+        );
 
         fn run(&mut self, (ents, pos, vel, markers): Self::SystemData) {
             let mut ser = ron::ser::Serializer::new(Some(Default::default()), true);
             SerializeComponents::<NoError, U64Marker>::serialize(
-                &(&pos, &vel), &ents, &markers, &mut ser
+                &(&pos, &vel),
+                &ents,
+                &markers,
+                &mut ser,
             ).unwrap_or_else(|e| eprintln!("Error: {}", e));
             // TODO: Specs should return an error which combines serialization
             // and component errors.
@@ -138,7 +144,11 @@ fn main() {
 
             let mut de = Deserializer::from_str(ENTITIES);
             DeserializeComponents::<Combined, _>::deserialize(
-                &mut (pos, mass), &ent, &mut markers, &mut alloc, &mut de
+                &mut (pos, mass),
+                &ent,
+                &mut markers,
+                &mut alloc,
+                &mut de,
             ).unwrap_or_else(|e| eprintln!("Error: {}", e));
         }
     }
