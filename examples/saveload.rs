@@ -3,9 +3,11 @@ extern crate ron;
 extern crate serde;
 extern crate specs;
 
+use std::fmt;
+
 use specs::error::NoError;
 use specs::prelude::*;
-use specs::saveload::{U64Marker, U64MarkerAllocator, WorldDeserialize, WorldSerialize};
+use specs::saveload::{DeserializeComponents, SerializeComponents, U64Marker, U64MarkerAllocator};
 
 const ENTITIES: &str = "
 [
@@ -106,7 +108,7 @@ fn main() {
 
         fn run(&mut self, (ents, pos, vel, markers): Self::SystemData) {
             let mut ser = ron::ser::Serializer::new(Some(Default::default()), true);
-            SerializeComponents::serialize(
+            SerializeComponents::<NoError, U64Marker>::serialize(
                 &(&pos, &vel), &ents, &markers, &mut ser
             ).unwrap_or_else(|e| eprintln!("Error: {}", e));
             // TODO: Specs should return an error which combines serialization
