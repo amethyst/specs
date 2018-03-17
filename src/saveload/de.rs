@@ -81,8 +81,6 @@ where
         } = self;
         let data = EntityData::<M, S::Data>::deserialize(deserializer)?;
         let entity = allocator.retrieve_entity(data.marker, markers, entities);
-        // TODO: previously, update was called here
-        // TODO: should we still do that?
         let ids = |marker: M| Some(allocator.retrieve_entity(marker, markers, entities));
 
         storages
