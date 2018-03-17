@@ -60,10 +60,11 @@ impl<'a> EntityBuilder<'a> {
 /// use std::ops::Range;
 ///
 /// use specs::prelude::*;
+/// use specs::world::EntitiesRes;
 /// use specs::saveload::{Marker, MarkerAllocator};
 ///
 /// // Marker for entities that should be synced over network
-/// #[derive(Clone, Copy, Serialize, Deserialize)]
+/// #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 /// struct NetMarker {
 ///     id: u64,
 ///     seq: u64,
@@ -109,8 +110,15 @@ impl<'a> EntityBuilder<'a> {
 ///         marker
 ///     }
 ///
-///     fn try_get(&self, id: u64) -> Option<Entity> {
+///     fn retrieve_entity_internal(&self, id: u64) -> Option<Entity> {
 ///         self.mapping.get(&id).cloned()
+///     }
+///
+///     fn maintain(&mut self, entities: &EntitiesRes, storage: &ReadStorage<NetMarker>) {
+///        self.mapping = (&*entities, storage)
+///            .join()
+///            .map(|(e, m)| (m.id(), e))
+///            .collect();
 ///     }
 /// }
 ///
@@ -118,16 +126,18 @@ impl<'a> EntityBuilder<'a> {
 ///     let mut world = World::new();
 ///     world.register::<NetMarker>();
 ///
-///     let mut node = NetNode {
-///         range: 0..100,
-///         mapping: HashMap::new(),
-///     };
+///     world.add_resource(
+///         NetNode {
+///             range: 0..100,
+///             mapping: HashMap::new(),
+///         }
+///     );
 ///
-///     let entity = world.create_entity().build();
-///     let (marker, added) = node.mark(entity, &mut world.write::<NetMarker>());
-///     assert!(added);
+///     let entity = world.create_entity().marked::<NetMarker>().build();
+///     let storage = &mut world.write::<NetMarker>();
+///     let marker = storage.get(entity).unwrap().clone();
 ///     assert_eq!(
-///         node.get_marked(marker.id(), &world.entities(), &mut world.write::<NetMarker>()),
+///         world.write_resource::<NetNode>().retrieve_entity(marker, storage, &*world.entities()),
 ///         entity
 ///     );
 /// }
