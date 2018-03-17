@@ -48,7 +48,7 @@ fn main() {
             let entity_list: Vec<_> = (&*data.entities).join().collect();
 
             // Remove all components
-            for (entity, _) in (&*data.entities, &data.comp.mask().clone()).join() {
+            for (entity, _) in (&*data.entities, data.comp.mask().clone()).join() {
                 data.comp.remove(entity);
             }
 
