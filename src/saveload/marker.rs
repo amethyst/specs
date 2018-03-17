@@ -143,7 +143,7 @@ pub trait Marker
     /// This value may never change.
     fn id(&self) -> Self::Identifier;
 
-    /// This gets called when an entity is fetched by a marker.
+    /// This gets called when an entity is deserialized by `DeserializeEntity`.
     /// It can be used to update internal data that is not used for
     /// identification.
     ///
