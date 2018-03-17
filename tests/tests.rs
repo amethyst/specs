@@ -267,26 +267,6 @@ fn stillborn_entities() {
 }
 
 #[test]
-fn dynamic_component() {
-    // a simple test for the dynamic component feature.
-    let mut w = World::new();
-
-    w.register_with_id::<CompInt>(1);
-    w.register_with_id::<CompBool>(2);
-
-    let e = w.create_entity()
-        .with_id(CompInt(10), 1)
-        .with_id(CompBool(true), 2)
-        .build();
-
-    let i = w.read_with_id::<CompInt>(1).get(e).unwrap().0;
-    assert_eq!(i, 10);
-
-    let c = w.read_with_id::<CompBool>(2).get(e).unwrap().0;
-    assert_eq!(c, true);
-}
-
-#[test]
 fn register_idempotency() {
     // Test that repeated calls to `register` do not silently
     // stomp over the existing storage, but instead silently do nothing.
