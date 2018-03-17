@@ -1,4 +1,3 @@
-use join::Join;
 use storage::{ReadStorage, WriteStorage};
 use world::{Component, Entity};
 

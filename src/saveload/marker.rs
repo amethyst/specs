@@ -11,9 +11,6 @@ use world::{Component, EntitiesRes, Entity, EntityBuilder};
 
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
-use shred::Resource;
-
-use error::WrongGeneration;
 
 impl<'a> EntityBuilder<'a> {
     /// Add a `Marker` to the entity by fetching the associated allocator.
@@ -217,6 +214,7 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     fn retrieve_entity(
         &mut self,
         marker: M,
+        storage: &mut WriteStorage<M>,
         entities: &EntitiesRes,
     ) -> Entity {
         if let Some(entity) = self.retrieve_entity_internal(marker.id()) {

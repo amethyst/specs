@@ -53,19 +53,19 @@ where
 }
 
 /// Wrapper for `Entity` and tuple of `WriteStorage`s that implements `serde::Deserialize`.
-struct DeserializeEntity<'a: 'b, 'b, 's, E, M: Marker, S: 's> {
+struct DeserializeEntity<'a: 'b, 'b, E, M: Marker, S: 'b> {
     allocator: &'b mut M::Allocator,
     entities: &'b EntitiesRes,
-    storages: &'s mut S,
+    storages: &'b mut S,
     markers: &'b mut WriteStorage<'a, M>,
     pd: PhantomData<E>,
 }
 
-impl<'de, 'a: 'b, 'b, 's, E, M, S> DeserializeSeed<'de> for DeserializeEntity<'a, 'b, 's, E, M, S>
+impl<'de, 'a: 'b, 'b, E, M, S> DeserializeSeed<'de> for DeserializeEntity<'a, 'b, E, M, S>
 where
     E: Display,
     M: Marker,
-    S: DeserializeComponents<E, M> + 's,
+    S: DeserializeComponents<E, M>,
 {
     type Value = ();
     fn deserialize<D>(self, deserializer: D) -> Result<(), D::Error>
@@ -80,10 +80,10 @@ where
             ..
         } = self;
         let data = EntityData::<M, S::Data>::deserialize(deserializer)?;
-        let entity = allocator.get_or_create(data.marker, entities, markers);
+        let entity = allocator.retrieve_entity(data.marker, markers, entities);
         // TODO: previously, update was called here
         // TODO: should we still do that?
-        let ids = |marker: M| Some(allocator.get_or_create(marker, entities, markers));
+        let ids = |marker: M| Some(allocator.retrieve_entity(marker, markers, entities));
 
         storages
             .deserialize_entity(entity, data.components, ids)
@@ -95,7 +95,7 @@ pub trait FromDeserialize<M>: Component {
     /// Serializable data representation for component
     type Data: DeserializeOwned;
 
-    /// Error may occur during serialization or deserialization of component
+    /// Error may occur during deserialization of component
     type Error;
 
     /// Convert this component from a deserializable form (`Data`) using
