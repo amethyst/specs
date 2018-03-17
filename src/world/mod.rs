@@ -214,8 +214,11 @@ impl World {
     ///
     /// Does nothing if the component was already registered.
     pub fn register_with_storage<T: Component>(&mut self, storage: T::Storage) {
-        let mut storage = self.res.entry().or_insert_with(|| MaskedStorage::<T>::new(storage));
-        self.storages.push(&mut *storage as &mut AnyStorage as *mut AnyStorage);
+        let mut storage = self.res
+            .entry()
+            .or_insert_with(|| MaskedStorage::<T>::new(storage));
+        self.storages
+            .push(&mut *storage as &mut AnyStorage as *mut AnyStorage);
     }
 
     /// Adds a resource to the world.

@@ -305,9 +305,11 @@ where
     #[inline]
     fn assert_same_storage(&self, storage: &T::Storage) {
         assert_eq!(
-            self.pointer, storage as *const T::Storage,
+            self.pointer,
+            storage as *const T::Storage,
             "Attempt to get an unchecked entry from a storage: {:?} {:?}",
-            self.pointer, storage as *const T::Storage
+            self.pointer,
+            storage as *const T::Storage
         );
     }
 }

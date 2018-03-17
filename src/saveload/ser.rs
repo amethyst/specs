@@ -26,14 +26,14 @@ pub trait IntoSerialize<M>: Component {
 
 impl<C, M> IntoSerialize<M> for C
 where
-    C: Clone + Component + Serialize
+    C: Clone + Component + Serialize,
 {
     type Data = Self;
     type Error = NoError;
 
     fn into<F>(&self, _: F) -> Result<Self::Data, Self::Error>
     where
-        F: FnMut(Entity) -> Option<M>
+        F: FnMut(Entity) -> Option<M>,
     {
         Ok(self.clone())
     }
@@ -128,7 +128,6 @@ where
         serseq.end()
     }
 }
-
 
 macro_rules! serialize_components {
     ($($comp:ident => $sto:ident,)*) => {

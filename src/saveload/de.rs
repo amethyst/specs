@@ -112,8 +112,10 @@ where
     type Data = Self;
     type Error = NoError;
 
-    fn from<F>(data: Self::Data, _: F) -> Result<Self, Self::Error> where
-        F: FnMut(M) -> Option<Entity> {
+    fn from<F>(data: Self::Data, _: F) -> Result<Self, Self::Error>
+    where
+        F: FnMut(M) -> Option<Entity>,
+    {
         Ok(data)
     }
 }

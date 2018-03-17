@@ -161,8 +161,7 @@ impl Errors {
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct Merge<F> {
-    #[derivative(Default(value = "PhantomData"))]
-    future_type: PhantomData<F>,
+    #[derivative(Default(value = "PhantomData"))] future_type: PhantomData<F>,
     spawns: Vec<(Entity, Spawn<F>)>,
 }
 

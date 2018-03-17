@@ -101,8 +101,10 @@ fn delete_now_with_storage(b: &mut Bencher) {
 fn delete_later(b: &mut Bencher) {
     let mut w = World::new();
     let mut eids: Vec<_> = (0..10_000_000).map(|_| w.create_entity().build()).collect();
-    b.iter(|| if let Some(id) = eids.pop() {
-        w.entities().delete(id).unwrap()
+    b.iter(|| {
+        if let Some(id) = eids.pop() {
+            w.entities().delete(id).unwrap()
+        }
     });
 }
 
@@ -146,8 +148,10 @@ fn join_single_threaded(b: &mut Bencher) {
         }
     }
 
-    b.iter(|| for comp in world.read::<CompInt>().join() {
-        black_box(comp.0 * comp.0);
+    b.iter(|| {
+        for comp in world.read::<CompInt>().join() {
+            black_box(comp.0 * comp.0);
+        }
     })
 }
 

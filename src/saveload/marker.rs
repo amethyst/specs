@@ -132,7 +132,8 @@ impl<'a> EntityBuilder<'a> {
 ///     );
 /// }
 /// ```
-pub trait Marker: Clone + Component + Debug + Eq + Hash + DeserializeOwned + Serialize {
+pub trait Marker
+    : Clone + Component + Debug + Eq + Hash + DeserializeOwned + Serialize {
     /// Id of the marker
     type Identifier;
     /// Allocator for this `Marker`
@@ -237,13 +238,10 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     fn mark<'m>(&mut self, entity: Entity, storage: &'m mut WriteStorage<M>) -> (&'m M, bool) {
         let mut new = false;
 
-        let marker = storage
-            .entry(entity)
-            .unwrap()
-            .or_insert_with(|| {
-                new = true;
-                self.allocate(entity, None)
-            });
+        let marker = storage.entry(entity).unwrap().or_insert_with(|| {
+            new = true;
+            self.allocate(entity, None)
+        });
 
         (marker, new)
     }
