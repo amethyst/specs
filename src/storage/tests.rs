@@ -521,10 +521,10 @@ mod test {
             components.insert(c);
         }
 
-        for (entry, restricted) in (&mut s1.restrict_mut()).join() {
-            let c1 = { restricted.get_unchecked(&entry).0 };
+        for mut comps in (&mut s1.restrict_mut()).join() {
+            let c1 = { comps.get_unchecked().0 };
 
-            let c2 = { restricted.get_mut_unchecked(&entry).0 };
+            let c2 = { comps.get_mut_unchecked().0 };
 
             assert_eq!(
                 c1, c2,
@@ -564,11 +564,11 @@ mod test {
 
         (&mut s1.par_restrict_mut())
             .par_join()
-            .for_each(|(entry, restricted)| {
+            .for_each(|mut comps| {
                 let (mut components2, mut components2_mut) =
                     (components2.lock().unwrap(), components2_mut.lock().unwrap());
-                components2.push(restricted.get_unchecked(&entry).0);
-                components2_mut.push(restricted.get_mut_unchecked(&entry).0);
+                components2.push(comps.get_unchecked().0);
+                components2_mut.push(comps.get_mut_unchecked().0);
             });
         let components2 = components2.into_inner().unwrap();
         assert_eq!(
@@ -663,54 +663,6 @@ mod test {
 
         assert_eq!(s1.get(e5), Some(&Cvec(15)));
         assert_eq!(s1.get(e6), None);
-    }
-
-    #[test]
-    #[should_panic]
-    fn wrong_storage() {
-        use join::Join;
-        let mut w0 = World::new();
-        let mut w1 = World::new();
-        w0.register::<Cvec>();
-        w1.register::<Cvec>();
-        let mut s1: Storage<Cvec, _> = w0.write();
-        let mut s2: Storage<Cvec, _> = w1.write();
-
-        for i in 0..50 {
-            s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
-            s2.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
-        }
-        for ((s1_entry, _), (_, s2_restricted)) in
-            (&mut s1.restrict_mut(), &mut s2.restrict_mut()).join()
-        {
-            // verify that the assert fails if the storage is not the original.
-            s2_restricted.get_unchecked(&s1_entry);
-        }
-    }
-
-    #[test]
-    #[should_panic]
-    fn par_wrong_storage() {
-        use join::ParJoin;
-        use rayon::iter::ParallelIterator;
-
-        let mut w0 = World::new();
-        let mut w1 = World::new();
-        w0.register::<Cvec>();
-        w1.register::<Cvec>();
-        let mut s1: Storage<Cvec, _> = w0.write();
-        let mut s2: Storage<Cvec, _> = w1.write();
-
-        for i in 0..50 {
-            s1.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
-            s2.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
-        }
-        (&mut s1.par_restrict_mut(), &mut s2.par_restrict_mut())
-            .par_join()
-            .for_each(|((s1_entry, _), (_, s2_restricted))| {
-                // verify that the assert fails if the storage is not the original.
-                s2_restricted.get_unchecked(&s1_entry);
-            });
     }
 
     #[test]
