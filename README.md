@@ -97,11 +97,11 @@ fn main() {
     world.create_entity().with(Pos(2.0)).build();
 
     // This builds a dispatcher.
-    // The third parameter of `add` specifies
+    // The third parameter of `with` specifies
     // logical dependencies on other systems.
     // Since we only have one, we don't depend on anything.
     // See the `full` example for dependencies.
-    let mut dispatcher = DispatcherBuilder::new().add(SysA, "sys_a", &[]).build();
+    let mut dispatcher = DispatcherBuilder::new().with(SysA, "sys_a", &[]).build();
 
     // This dispatches all the systems in parallel (but blocking).
     dispatcher.dispatch(&mut world.res);
