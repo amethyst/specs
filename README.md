@@ -97,7 +97,7 @@ fn main() {
     world.create_entity().with(Pos(2.0)).build();
 
     // This builds a dispatcher.
-    // The third parameter of `add` specifies
+    // The third parameter of `with` specifies
     // logical dependencies on other systems.
     // Since we only have one, we don't depend on anything.
     // See the `full` example for dependencies.
