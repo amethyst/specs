@@ -218,6 +218,8 @@ pub mod saveload;
 ///
 /// Normally used for `Join`s and filtering entities.
 pub mod bitset;
+/// Change set
+pub mod changeset;
 /// Specs errors.
 pub mod error;
 /// Joining of components for iteration over entities with specific components.
@@ -228,5 +230,3 @@ pub mod prelude;
 pub mod storage;
 /// Entities, resources, components, and general world management.
 pub mod world;
-/// Change set
-pub mod changeset;

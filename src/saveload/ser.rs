@@ -145,7 +145,7 @@ where
     /// Remove all marked entities
     /// Use this if you want to delete entities that were just serialized
     pub fn remove_serialized(&mut self) {
-        for (entity, _) in (&*self.entities, &self.markers.check()).join() {
+        for (entity, _) in (&*self.entities, self.markers.mask()).join() {
             let _ = self.entities.delete(entity);
         }
     }

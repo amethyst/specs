@@ -41,9 +41,8 @@ struct SysB;
 impl<'a> System<'a> for SysB {
     type SystemData = (Entities<'a>, WriteStorage<'a, TrackedComponent>);
     fn run(&mut self, (entities, mut tracked): Self::SystemData) {
-        for (entity, mut restricted) in (&*entities, &mut tracked.restrict_mut()).join() {
+        for (entity, comp) in (&*entities, &mut tracked).join() {
             if entity.id() % 2 == 0 {
-                let mut comp = restricted.get_mut_unchecked();
                 comp.0 += 1;
             }
         }

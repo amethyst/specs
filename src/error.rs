@@ -6,6 +6,7 @@
 
 use std::error::Error as StdError;
 use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
+use std::result::Result as StdResult;
 
 use world::{Entity, Generation};
 
@@ -96,6 +97,9 @@ impl StdError for Error {
         Some(e)
     }
 }
+
+/// A typedef for Specs `Result`s.
+pub type Result<T> = StdResult<T, Error>;
 
 /// Wrong generation error.
 #[derive(Debug)]

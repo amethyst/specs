@@ -1,283 +1,159 @@
+use std::ops::DerefMut;
 
-use std::borrow::{Borrow, BorrowMut};
-use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
+use error::Result;
+use storage::DistinctStorage;
+use storage::MaskedStorage;
+use storage::Storage;
+use world::Component;
+use world::Entity;
+use world::Index;
 
-use hibitset::BitSet;
-
-use join::{Join, ParJoin};
-use storage::{MaskedStorage, Storage, UnprotectedStorage};
-use world::{Component, Entities, Entity, Index};
-
-/// Specifies that the `RestrictedStorage` cannot run in parallel.
-///
-/// A mutable `RestrictedStorage` can call `get`, `get_mut`, `get_unchecked` and
-/// `get_mut_unchecked` for deferred/restricted access while an immutable version can only
-/// call the immutable accessors.
-pub enum SequentialRestriction {}
-/// Specifies that the `RestrictedStorage` can run in parallel mutably.
-///
-/// This means the storage can only call `get_mut_unchecked` and `get_unchecked`.
-pub enum MutableParallelRestriction {}
-/// Specifies that the `RestrictedStorage` can run in parallel immutably.
-///
-/// This means that the storage can call `get`, `get_unchecked`.
-pub enum ImmutableParallelRestriction {}
-
-/// Restrictions that are allowed to access `RestrictedStorage::get`.
-pub trait ImmutableAliasing: Sized {}
-impl ImmutableAliasing for SequentialRestriction {}
-impl ImmutableAliasing for ImmutableParallelRestriction {}
-
-/// Similar to a `MaskedStorage` and a `Storage` combined, but restricts usage
-/// to only getting and modifying the components. That means nothing that would
-/// modify the inner bitset so the iteration cannot be invalidated. For example,
-/// no insertion or removal is allowed.
-///
-/// Example Usage:
-///
-/// ```rust
-/// # use specs::prelude::*;
-/// struct SomeComp(u32);
-/// impl Component for SomeComp {
-///     type Storage = VecStorage<Self>;
-/// }
-///
-/// struct RestrictedSystem;
-/// impl<'a> System<'a> for RestrictedSystem {
-///     type SystemData = (
-///         Entities<'a>,
-///         WriteStorage<'a, SomeComp>,
-///     );
-///     fn run(&mut self, (entities, mut some_comps): Self::SystemData) {
-///         for (entity, mut comps) in (
-///             &*entities,
-///             &mut some_comps.restrict_mut()
-///         ).join() {
-///             // Check if the reference is fine to mutate.
-///             if comps.get_unchecked().0 < 5 {
-///                 // Get a mutable reference now.
-///                 let mut mutable = comps.get_mut_unchecked();
-///                 mutable.0 += 1;
-///             }
-///         }
-///     }
-/// }
-/// ```
-pub struct RestrictedStorage<'rf, 'st: 'rf, C, S, B, Restrict>
+impl<'e, T, D> Storage<'e, T, D>
 where
-    C: Component,
-    S: Borrow<C::Storage> + 'rf,
-    B: Borrow<BitSet> + 'rf,
-{
-    bitset: B,
-    data: S,
-    entities: &'rf Entities<'st>,
-    phantom: PhantomData<(C, Restrict)>,
-}
-
-unsafe impl<'rf, 'st: 'rf, C, S, B> ParJoin
-    for &'rf mut RestrictedStorage<'rf, 'st, C, S, B, MutableParallelRestriction>
-where
-    C: Component,
-    S: BorrowMut<C::Storage> + 'rf,
-    B: Borrow<BitSet> + 'rf,
-{
-}
-
-unsafe impl<'rf, 'st: 'rf, C, S, B, Restrict> ParJoin
-    for &'rf RestrictedStorage<'rf, 'st, C, S, B, Restrict>
-where
-    C: Component,
-    S: Borrow<C::Storage> + 'rf,
-    B: Borrow<BitSet> + 'rf,
-    Restrict: ImmutableAliasing,
-{
-}
-
-impl<'rf, 'st: 'rf, C, S, B, Restrict> Join for &'rf RestrictedStorage<'rf, 'st, C, S, B, Restrict>
-where
-    C: Component,
-    S: Borrow<C::Storage>,
-    B: Borrow<BitSet>,
-{
-    type Type = PairedStorage<'rf, 'st, C, &'rf C::Storage, &'rf BitSet, Restrict>;
-    type Value = (&'rf C::Storage, &'rf Entities<'st>, &'rf BitSet);
-    type Mask = &'rf BitSet;
-    fn open(self) -> (Self::Mask, Self::Value) {
-        let bitset = self.bitset.borrow();
-        (bitset, (self.data.borrow(), self.entities, bitset))
-    }
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        PairedStorage {
-            index: id,
-            storage: value.0,
-            entities: value.1,
-            bitset: value.2,
-            phantom: PhantomData,
-        }
-    }
-}
-
-impl<'rf, 'st: 'rf, C, S, B, Restrict> Join for &'rf mut RestrictedStorage<'rf, 'st, C, S, B, Restrict>
-where
-    C: Component,
-    S: BorrowMut<C::Storage>,
-    B: Borrow<BitSet>,
-{
-    type Type = PairedStorage<'rf, 'st, C, &'rf mut C::Storage, &'rf BitSet, Restrict>;
-    type Value = (&'rf mut C::Storage, &'rf Entities<'st>, &'rf BitSet);
-    type Mask = &'rf BitSet;
-    fn open(self) -> (Self::Mask, Self::Value) {
-        let bitset = self.bitset.borrow();
-        (bitset, (self.data.borrow_mut(), self.entities, bitset))
-    }
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        let value: &'rf mut Self::Value = &mut *(value as *mut Self::Value);
-        PairedStorage {
-            index: id,
-            storage: value.0,
-            entities: value.1,
-            bitset: value.2,
-            phantom: PhantomData,
-        }
-    }
-}
-
-impl<'st, T, D> Storage<'st, T, D>
-where
-    T: Component,
-    D: Deref<Target = MaskedStorage<T>>,
-{
-    /// Builds an immutable `RestrictedStorage` out of a `Storage`. Allows deferred
-    /// unchecked access to the entity's component.
-    ///
-    /// This is returned as a `ParallelRestriction` version since you can only get
-    /// immutable components with this which is safe for parallel by default.
-    pub fn restrict<'rf>(
-        &'rf self,
-    ) -> RestrictedStorage<'rf, 'st, T, &T::Storage, &BitSet, ImmutableParallelRestriction> {
-        RestrictedStorage {
-            bitset: &self.data.mask,
-            data: &self.data.inner,
-            entities: &self.entities,
-            phantom: PhantomData,
-        }
-    }
-}
-
-impl<'st, T, D> Storage<'st, T, D>
-where
+    Self: DistinctStorage,
     T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,
 {
-    /// Builds a mutable `RestrictedStorage` out of a `Storage`. Allows restricted
-    /// access to the inner components without allowing invalidating the
-    /// bitset for iteration in `Join`.
-    pub fn restrict_mut<'rf>(
-        &'rf mut self,
-    ) -> RestrictedStorage<'rf, 'st, T, &mut T::Storage, &BitSet, SequentialRestriction> {
-        let (mask, data) = self.data.open_mut();
-        RestrictedStorage {
-            bitset: mask,
-            data,
-            entities: &self.entities,
-            phantom: PhantomData,
-        }
-    }
-
-    /// Builds a mutable, parallel `RestrictedStorage`,
-    /// does not allow mutably getting other components
-    /// aside from the current iteration.
-    pub fn par_restrict_mut<'rf>(
-        &'rf mut self,
-    ) -> RestrictedStorage<'rf, 'st, T, &mut T::Storage, &BitSet, MutableParallelRestriction> {
-        let (mask, data) = self.data.open_mut();
-        RestrictedStorage {
-            bitset: mask,
-            data,
-            entities: &self.entities,
-            phantom: PhantomData,
-        }
-    }
-}
-
-/// Pairs a storage with an index, meaning that the index is guaranteed to exist
-/// as long as the `PairedStorage<C, S>` exists.
-pub struct PairedStorage<'rf, 'st: 'rf, C, S, B, Restrict> {
-    index: Index,
-    storage: S,
-    bitset: B,
-    entities: &'rf Entities<'st>,
-    phantom: PhantomData<(C, Restrict)>,
-}
-
-impl<'rf, 'st, C, S, B, Restrict> PairedStorage<'rf, 'st, C, S, B, Restrict>
-where
-    C: Component,
-    S: Borrow<C::Storage>,
-    B: Borrow<BitSet>,
-{
-    /// Gets the component related to the current entry without checking whether
-    /// the storage has it or not.
-    pub fn get_unchecked(&self) -> &C {
-        unsafe { self.storage.borrow().get(self.index) }
-    }
-}
-
-impl<'rf, 'st, C, S, B, Restrict> PairedStorage<'rf, 'st, C, S, B, Restrict>
-where
-    C: Component,
-    S: BorrowMut<C::Storage>,
-    B: Borrow<BitSet>,
-{
-    /// Gets the component related to the current entry without checking whether
-    /// the storage has it or not.
-    pub fn get_mut_unchecked(&mut self) -> &mut C {
-        unsafe { self.storage.borrow_mut().get_mut(self.index) }
-    }
-}
-
-impl<'rf, 'st, C, S, B, Restrict> PairedStorage<'rf, 'st, C, S, B, Restrict>
-where
-    C: Component,
-    S: Borrow<C::Storage>,
-    B: Borrow<BitSet>,
-    // Only non parallel and immutable parallel storages can access this.
-    Restrict: ImmutableAliasing,
-{
-    /// Attempts to get the component related to the entity.
+    /// Retrieves multiple components mutably.
+    /// `iter` is assumed to be sorted, otherwise this method will panic.
     ///
-    /// Functions similar to the normal `Storage::get` implementation.
-    /// 
-    /// This only works for non-parallel or immutably parallel `RestrictedStorage`.
-    pub fn get(&self, entity: Entity) -> Option<&C> {
-        if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
-            Some(unsafe { self.storage.borrow().get(entity.id()) })
-        } else {
-            None
+    /// # Panics
+    ///
+    /// * if `iter` returns the entities out of order
+    pub fn entries<I>(&mut self, iter: I) -> Entries<I::IntoIter, Self>
+    where
+        I: IntoIterator<Item = Entity>,
+    {
+        Entries {
+            index: None,
+            iter: iter.into_iter(),
+            storage: self,
         }
     }
 }
 
-impl<'rf, 'st, C, S, B> PairedStorage<'rf, 'st, C, S, B, SequentialRestriction>
+/// An iterator over the entries returned by `Storage::entries`.
+pub struct Entries<'a, I, S: 'a> {
+    index: Option<Index>,
+    iter: I,
+    storage: &'a mut S,
+}
+
+impl<'a, 'e, T, D, I> Iterator for Entries<'a, I, Storage<'e, T, D>>
 where
-    C: Component,
-    S: BorrowMut<C::Storage>,
-    B: Borrow<BitSet>,
+    D: DerefMut<Target = MaskedStorage<T>>,
+    I: Iterator<Item = Entity>,
+    T: Component,
+    T::Storage: DistinctStorage,
 {
-    /// Attempts to get the component related to the entity mutably.
-    ///
-    /// Functions similar to the normal `Storage::get_mut` implementation.
-    ///
-    /// This only works if this is a non-parallel `RestrictedStorage`,
-    /// otherwise you could access the same component mutably in two different threads.
-    pub fn get_mut(&mut self, entity: Entity) -> Option<&mut C> {
-        if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
-            Some(unsafe { self.storage.borrow_mut().get_mut(entity.id()) })
-        } else {
-            None
+    type Item = Result<&'a mut T>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Result<&'a mut T>> {
+        let next: Entity = match self.iter.next() {
+            Some(entity) => entity,
+            None => return None,
+        };
+
+        match self.index {
+            None => {}
+            Some(index) => assert!(
+                index < next.id(),
+                "Entries must be in order and non-overlapping"
+            ),
+        }
+
+        self.index = Some(next.id());
+
+        unsafe {
+            use std::mem::transmute;
+
+            // This is allowed because of the guarantees by `DistinctStorage`.
+
+            Some(transmute::<Result<&mut T>, Result<&'a mut T>>(
+                self.storage.get_mut(next).ok_or_else(|| unimplemented!()),
+            ))
         }
     }
 }
 
+pub trait FromEntries<'a, C: 'a> {
+    fn from_entries<I>(entries: I) -> Self
+    where
+        I: Iterator<Item = Result<&'a mut C>>;
+}
+
+impl<'a, C: 'a> FromEntries<'a, C> for (Result<&'a mut C>, Result<&'a mut C>) {
+    fn from_entries<I>(mut entries: I) -> Self
+    where
+        I: Iterator<Item = Result<&'a mut C>>,
+    {
+        (entries.next().unwrap(), entries.next().unwrap())
+    }
+}
+
+impl<'a, C: 'a> FromEntries<'a, C> for Result<(&'a mut C, &'a mut C)> {
+    fn from_entries<I>(mut entries: I) -> Self
+    where
+        I: Iterator<Item = Result<&'a mut C>>,
+    {
+        Ok((entries.next().unwrap()?, entries.next().unwrap()?))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use storage::VecStorage;
+    use world::{Component, World};
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Comp(i32);
+
+    impl Component for Comp {
+        type Storage = VecStorage<Self>;
+    }
+
+    #[test]
+    fn basic() {
+        let mut world = World::new();
+        world.register::<Comp>();
+
+        let a = world.create_entity().with(Comp(1)).build();
+        let b = world.create_entity().with(Comp(2)).build();
+        let c = world.create_entity().build();
+        let d = world.create_entity().with(Comp(3)).build();
+
+        let mut storage = world.write::<Comp>();
+        let mut entries = storage.entries(vec![a, b, c, d]);
+
+        assert_eq!(*entries.next().unwrap().unwrap(), Comp(1));
+        assert_eq!(*entries.next().unwrap().unwrap(), Comp(2));
+        assert!(entries.next().unwrap().is_err());
+        assert_eq!(*entries.next().unwrap().unwrap(), Comp(3));
+
+        assert!(entries.next().is_none());
+    }
+
+    #[test]
+    fn swap() {
+        use std::mem::swap;
+
+        let mut world = World::new();
+        world.register::<Comp>();
+
+        let a = world.create_entity().with(Comp(11)).build();
+        let b = world.create_entity().with(Comp(22)).build();
+
+        let mut storage = world.write::<Comp>();
+        {
+            let entries = storage.entries(vec![a, b]);
+            let entries: Result<(&mut Comp, &mut Comp)> = FromEntries::from_entries(entries);
+            let (a, b) = entries.unwrap();
+            swap(a, b);
+        }
+
+        assert_eq!(storage.get(a), Some(&Comp(22)));
+        assert_eq!(storage.get(b), Some(&Comp(11)));
+    }
+}
