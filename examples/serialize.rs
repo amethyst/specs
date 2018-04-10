@@ -47,10 +47,8 @@ fn main() {
             // Get a list of all entities in the world
             let entity_list: Vec<_> = (&*data.entities).join().collect();
 
-            // Remove all components
-            for (entity, _) in (&*data.entities, data.comp.mask().clone()).join() {
-                data.comp.remove(entity);
-            }
+            // Remove all components by consuming a draining iterator.
+            (&*data.entities, data.comp.drain()).join().count();
 
             // Deserialize with entity list
             let list: PackedData<CompSerialize> = json_from_str(&serialized).unwrap();

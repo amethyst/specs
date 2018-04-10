@@ -109,10 +109,10 @@ fn main() {
             ReadStorage<'a, U64Marker>,
         );
 
-        fn run(&mut self, (ents, pos, vel, markers): Self::SystemData) {
+        fn run(&mut self, (ents, pos, mass, markers): Self::SystemData) {
             let mut ser = ron::ser::Serializer::new(Some(Default::default()), true);
             SerializeComponents::<NoError, U64Marker>::serialize(
-                &(&pos, &vel),
+                &(&pos, &mass),
                 &ents,
                 &markers,
                 &mut ser,

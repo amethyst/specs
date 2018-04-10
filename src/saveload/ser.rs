@@ -76,7 +76,7 @@ where
             serseq.serialize_element(&EntityData::<M, Self::Data> {
                 marker: marker.clone(),
                 components: self.serialize_entity(entity, &ids)
-                    .map_err(ser::Error::custom)?, // TODO: revise
+                    .map_err(ser::Error::custom)?,
             })?;
         }
         serseq.end()

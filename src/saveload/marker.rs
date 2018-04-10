@@ -150,7 +150,7 @@ pub trait Marker
     type Allocator: MarkerAllocator<Self>;
 
     /// Get this marker internal id.
-    /// This value may never change.
+    /// The value of this method should be constant.
     fn id(&self) -> Self::Identifier;
 
     /// This gets called when an entity is deserialized by `DeserializeEntity`.
@@ -245,15 +245,19 @@ pub trait MarkerAllocator<M: Marker>: Resource {
 
     /// Create new unique marker `M` and attach it to entity.
     /// Or get old marker if this entity is already marked.
-    fn mark<'m>(&mut self, entity: Entity, storage: &'m mut WriteStorage<M>) -> (&'m M, bool) {
-        let mut new = false;
+    /// If entity is dead then this will return `None`.
+    fn mark<'m>(&mut self, entity: Entity, storage: &'m mut WriteStorage<M>) -> Option<(&'m M, bool)> {
+        if let Ok(entry) = storage.entry(entity) {
+            let mut new = false;
+            let marker = entry.or_insert_with(|| {
+                new = true;
+                self.allocate(entity, None)
+            });
 
-        let marker = storage.entry(entity).unwrap().or_insert_with(|| {
-            new = true;
-            self.allocate(entity, None)
-        });
-
-        (marker, new)
+            Some((marker, new))
+        } else {
+            None
+        }
     }
 
     /// Maintain internal data. Cleanup if necessary.
