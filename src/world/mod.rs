@@ -1,13 +1,12 @@
 pub use self::comp::Component;
-pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, Generation,
-                       Index};
+pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, Generation, Index};
 pub use self::lazy::{LazyBuilder, LazyUpdate};
 
 use self::entity::Allocator;
 
 use std::borrow::Borrow;
 
-use shred::{Fetch, FetchMut, Resource, Resources};
+use shred::{Fetch, FetchMut, Read, Resource, Resources, SystemData};
 
 use error::WrongGeneration;
 use storage::{AnyStorage, DenseVecStorage, MaskedStorage};
@@ -214,8 +213,11 @@ impl World {
     ///
     /// Does nothing if the component was already registered.
     pub fn register_with_storage<T: Component>(&mut self, storage: T::Storage) {
-        let mut storage = self.res.entry().or_insert_with(|| MaskedStorage::<T>::new(storage));
-        self.storages.push(&mut *storage as &mut AnyStorage as *mut AnyStorage);
+        let mut storage = self.res
+            .entry()
+            .or_insert_with(|| MaskedStorage::<T>::new(storage));
+        self.storages
+            .push(&mut *storage as &mut AnyStorage as *mut AnyStorage);
     }
 
     /// Adds a resource to the world.
@@ -253,12 +255,10 @@ impl World {
     /// world.add_resource(server_con);
     /// ```
     pub fn add_resource<T: Resource>(&mut self, res: T) {
-        use shred::ResourceId;
-
-        if self.res.has_value(ResourceId::new::<T>()) {
+        if self.res.has_value::<T>() {
             *self.res.fetch_mut() = res;
         } else {
-            self.res.add(res);
+            self.res.insert(res);
         }
     }
 
@@ -311,8 +311,8 @@ impl World {
     /// Creation and deletion of entities with the `Entities` struct
     /// are atomically, so the actual changes will be applied
     /// with the next call to `maintain()`.
-    pub fn entities(&self) -> Fetch<EntitiesRes> {
-        self.read_resource()
+    pub fn entities(&self) -> Read<EntitiesRes> {
+        Read::fetch(&self.res)
     }
 
     /// Convenience method for fetching entities.
@@ -458,8 +458,8 @@ impl Component for World {
 impl Default for World {
     fn default() -> Self {
         let mut res = Resources::new();
-        res.add(EntitiesRes::default());
-        res.add(LazyUpdate::default());
+        res.insert(EntitiesRes::default());
+        res.insert(LazyUpdate::default());
 
         World {
             res,

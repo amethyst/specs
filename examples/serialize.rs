@@ -48,7 +48,7 @@ fn main() {
             let entity_list: Vec<_> = (&*data.entities).join().collect();
 
             // Remove all components
-            for (entity, _) in (&*data.entities, &data.comp.check()).join() {
+            for (entity, _) in (&*data.entities, &data.comp.mask().clone()).join() {
                 data.comp.remove(entity);
             }
 
@@ -58,7 +58,7 @@ fn main() {
 
             data.comp.merge(entity_list.as_slice(), list).unwrap();
 
-            for (entity, _) in (&*data.entities, &data.comp.check()).join() {
+            for (entity, _) in (&*data.entities, data.comp.mask()).join() {
                 println!("Has: {:?}", entity);
             }
         }

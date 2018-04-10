@@ -5,7 +5,7 @@ use serde::de::{self, Deserialize, DeserializeSeed, Deserializer, SeqAccess, Vis
 
 use saveload::{Components, EntityData, Storages};
 use saveload::marker::{Marker, MarkerAllocator};
-use shred::FetchMut;
+use shred::Write;
 use storage::WriteStorage;
 use world::Entities;
 
@@ -14,7 +14,7 @@ struct DeserializeEntity<'a, 'b: 'a, M: Marker, E, T: Components<M::Identifier, 
     entities: &'a Entities<'b>,
     storages: &'a mut <T as Storages<'b>>::WriteStorages,
     markers: &'a mut WriteStorage<'b, M>,
-    allocator: &'a mut FetchMut<'b, M::Allocator>,
+    allocator: &'a mut Write<'b, M::Allocator>,
     pd: PhantomData<(E, T)>,
 }
 
@@ -57,7 +57,7 @@ struct VisitEntities<'a, 'b: 'a, M: Marker, E, T: Components<M::Identifier, E>> 
     entities: &'a Entities<'b>,
     storages: &'a mut <T as Storages<'b>>::WriteStorages,
     markers: &'a mut WriteStorage<'b, M>,
-    allocator: &'a mut FetchMut<'b, M::Allocator>,
+    allocator: &'a mut Write<'b, M::Allocator>,
     pd: PhantomData<(E, T)>,
 }
 
@@ -96,7 +96,7 @@ pub fn deserialize<'a, 'de, D, M, E, T>(
     entities: &Entities<'a>,
     storages: &mut <T as Storages<'a>>::WriteStorages,
     markers: &mut WriteStorage<'a, M>,
-    allocator: &mut FetchMut<'a, M::Allocator>,
+    allocator: &mut Write<'a, M::Allocator>,
     deserializer: D,
 ) -> Result<(), D::Error>
 where
@@ -121,7 +121,7 @@ pub struct WorldDeserialize<'a, M: Marker, E, T: Components<M::Identifier, E>> {
     entities: Entities<'a>,
     storages: <T as Storages<'a>>::WriteStorages,
     markers: WriteStorage<'a, M>,
-    allocator: FetchMut<'a, M::Allocator>,
+    allocator: Write<'a, M::Allocator>,
     pd: PhantomData<E>,
 }
 

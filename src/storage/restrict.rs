@@ -1,13 +1,13 @@
-
 use std::borrow::{Borrow, BorrowMut};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 use hibitset::BitSet;
+use shred::Fetch;
 
 use join::{Join, ParJoin};
 use storage::{MaskedStorage, Storage, UnprotectedStorage};
-use world::{Component, Entities, Entity, Index};
+use world::{Component, EntitiesRes, Entity, Index};
 
 /// Specifies that the `RestrictedStorage` cannot run in parallel.
 ///
@@ -72,7 +72,7 @@ where
 {
     bitset: B,
     data: S,
-    entities: &'rf Entities<'st>,
+    entities: &'rf Fetch<'st, EntitiesRes>,
     phantom: PhantomData<(C, Restrict)>,
 }
 
@@ -102,7 +102,7 @@ where
     B: Borrow<BitSet>,
 {
     type Type = PairedStorage<'rf, 'st, C, &'rf C::Storage, &'rf BitSet, Restrict>;
-    type Value = (&'rf C::Storage, &'rf Entities<'st>, &'rf BitSet);
+    type Value = (&'rf C::Storage, &'rf Fetch<'st, EntitiesRes>, &'rf BitSet);
     type Mask = &'rf BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
         let bitset = self.bitset.borrow();
@@ -119,14 +119,19 @@ where
     }
 }
 
-impl<'rf, 'st: 'rf, C, S, B, Restrict> Join for &'rf mut RestrictedStorage<'rf, 'st, C, S, B, Restrict>
+impl<'rf, 'st: 'rf, C, S, B, Restrict> Join
+    for &'rf mut RestrictedStorage<'rf, 'st, C, S, B, Restrict>
 where
     C: Component,
     S: BorrowMut<C::Storage>,
     B: Borrow<BitSet>,
 {
     type Type = PairedStorage<'rf, 'st, C, &'rf mut C::Storage, &'rf BitSet, Restrict>;
-    type Value = (&'rf mut C::Storage, &'rf Entities<'st>, &'rf BitSet);
+    type Value = (
+        &'rf mut C::Storage,
+        &'rf Fetch<'st, EntitiesRes>,
+        &'rf BitSet,
+    );
     type Mask = &'rf BitSet;
     fn open(self) -> (Self::Mask, Self::Value) {
         let bitset = self.bitset.borrow();
@@ -208,7 +213,7 @@ pub struct PairedStorage<'rf, 'st: 'rf, C, S, B, Restrict> {
     index: Index,
     storage: S,
     bitset: B,
-    entities: &'rf Entities<'st>,
+    entities: &'rf Fetch<'st, EntitiesRes>,
     phantom: PhantomData<(C, Restrict)>,
 }
 
@@ -249,7 +254,7 @@ where
     /// Attempts to get the component related to the entity.
     ///
     /// Functions similar to the normal `Storage::get` implementation.
-    /// 
+    ///
     /// This only works for non-parallel or immutably parallel `RestrictedStorage`.
     pub fn get(&self, entity: Entity) -> Option<&C> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
@@ -280,4 +285,3 @@ where
         }
     }
 }
-

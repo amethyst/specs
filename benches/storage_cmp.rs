@@ -254,4 +254,9 @@ fn get_benches(c: &mut Criterion) {
     );
 }
 
-criterion_group!(benches_storages, insert_benches, remove_benches, get_benches);
+criterion_group!(
+    benches_storages,
+    insert_benches,
+    remove_benches,
+    get_benches
+);

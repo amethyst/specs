@@ -128,7 +128,7 @@ impl Component for KillsEnemy {
 
 // -- Resources --
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 struct DeltaTime(f32);
 
 // -- Systems --
@@ -141,7 +141,7 @@ impl<'a> System<'a> for Integrate {
         WriteStorage<'a, Vel>,
         WriteStorage<'a, Force>,
         ReadStorage<'a, InvMass>,
-        Fetch<'a, DeltaTime>,
+        Read<'a, DeltaTime>,
     );
 
     fn run(&mut self, (mut pos, mut vel, mut force, inv_mass, delta): Self::SystemData) {

@@ -230,6 +230,12 @@ pub struct U64MarkerAllocator {
     mapping: HashMap<u64, Entity>,
 }
 
+impl Default for U64MarkerAllocator {
+    fn default() -> Self {
+        U64MarkerAllocator::new()
+    }
+}
+
 impl U64MarkerAllocator {
     /// Create new `U64MarkerAllocator` which will yield `U64Marker`s starting with `0`
     pub fn new() -> Self {
