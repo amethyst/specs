@@ -186,7 +186,7 @@ fn stillborn_entities() {
         }
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     struct Rand {
         values: Vec<i8>,
     }
@@ -194,7 +194,7 @@ fn stillborn_entities() {
     struct SysRand(LCG);
 
     impl<'a> System<'a> for SysRand {
-        type SystemData = FetchMut<'a, Rand>;
+        type SystemData = Write<'a, Rand>;
 
         fn run(&mut self, mut data: Self::SystemData) {
             let rng = &mut self.0;
@@ -211,7 +211,7 @@ fn stillborn_entities() {
     struct Delete;
 
     impl<'a> System<'a> for Delete {
-        type SystemData = (Entities<'a>, ReadStorage<'a, CompInt>, Fetch<'a, Rand>);
+        type SystemData = (Entities<'a>, ReadStorage<'a, CompInt>, Read<'a, Rand>);
 
         fn run(&mut self, (entities, comp_int, rand): Self::SystemData) {
             let mut lowest = Vec::new();
@@ -232,7 +232,7 @@ fn stillborn_entities() {
     struct Insert;
 
     impl<'a> System<'a> for Insert {
-        type SystemData = (Entities<'a>, WriteStorage<'a, CompInt>, Fetch<'a, Rand>);
+        type SystemData = (Entities<'a>, WriteStorage<'a, CompInt>, Read<'a, Rand>);
 
         fn run(&mut self, (entities, mut comp_int, rand): Self::SystemData) {
             for &i in &rand.values {

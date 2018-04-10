@@ -159,7 +159,8 @@ tests!(dense_vec_storage => DenseVecStorage);
 tests!(hashmap_storage => HashMapStorage);
 tests!(btree_storage => BTreeStorage);
 
-criterion_group!(benches_sparse,
+criterion_group!(
+    benches_sparse,
     vec_storage::benches,
     dense_vec_storage::benches,
     hashmap_storage::benches,

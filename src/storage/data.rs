@@ -128,6 +128,10 @@ where
     fn writes() -> Vec<ResourceId> {
         vec![]
     }
+
+    fn setup(res: &mut Resources) {
+        // TODO: register the component
+    }
 }
 
 /// A storage with read and write access.
@@ -207,5 +211,9 @@ where
 
     fn writes() -> Vec<ResourceId> {
         vec![ResourceId::new::<MaskedStorage<T>>()]
+    }
+
+    fn setup(res: &mut Resources) {
+        unimplemented!()
     }
 }

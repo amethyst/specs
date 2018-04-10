@@ -107,7 +107,7 @@ impl LazyUpdate {
     /// struct InsertPos;
     ///
     /// impl<'a> System<'a> for InsertPos {
-    ///     type SystemData = (Entities<'a>, Fetch<'a, LazyUpdate>);
+    ///     type SystemData = (Entities<'a>, Read<'a, LazyUpdate>);
     ///
     ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
     ///         let a = ent.create();
@@ -140,7 +140,7 @@ impl LazyUpdate {
     /// struct InsertPos;
     ///
     /// impl<'a> System<'a> for InsertPos {
-    ///     type SystemData = (Entities<'a>, Fetch<'a, LazyUpdate>);
+    ///     type SystemData = (Entities<'a>, Read<'a, LazyUpdate>);
     ///
     ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
     ///         let a = ent.create();
@@ -179,7 +179,7 @@ impl LazyUpdate {
     /// struct RemovePos;
     ///
     /// impl<'a> System<'a> for RemovePos {
-    ///     type SystemData = (Entities<'a>, Fetch<'a, LazyUpdate>);
+    ///     type SystemData = (Entities<'a>, Read<'a, LazyUpdate>);
     ///
     ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
     ///         for entity in ent.join() {
@@ -213,7 +213,7 @@ impl LazyUpdate {
     /// struct Execution;
     ///
     /// impl<'a> System<'a> for Execution {
-    ///     type SystemData = (Entities<'a>, Fetch<'a, LazyUpdate>);
+    ///     type SystemData = (Entities<'a>, Read<'a, LazyUpdate>);
     ///
     ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
     ///         for entity in ent.join() {

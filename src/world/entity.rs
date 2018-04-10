@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
-use shred::Fetch;
+use shred::Read;
 
 use error::WrongGeneration;
 use join::{Join, ParJoin};
@@ -39,7 +39,7 @@ pub type Index = u32;
 /// #   let _ = pos;
 /// }
 /// ```
-pub type Entities<'a> = Fetch<'a, EntitiesRes>;
+pub type Entities<'a> = Read<'a, EntitiesRes>;
 
 /// Internally used structure for `Entity` allocation.
 #[derive(Default, Debug)]

@@ -28,7 +28,7 @@ use futures::executor::{spawn, Notify, Spawn};
 
 use error::BoxedErr;
 use join::Join;
-use shred::{Fetch, RunningTime, System};
+use shred::{Read, RunningTime, System};
 use storage::WriteStorage;
 use world::{Component, Entities, Entity};
 
@@ -56,6 +56,12 @@ impl<'a> Iterator for DrainErrors<'a> {
 pub struct Errors {
     /// The collection of errors.
     errors: MsQueue<BoxedErr>,
+}
+
+impl Default for Errors {
+    fn default() -> Self {
+        Errors::new()
+    }
 }
 
 impl Errors {
@@ -180,7 +186,7 @@ where
 {
     type SystemData = (
         Entities<'a>,
-        Fetch<'a, Errors>,
+        Read<'a, Errors>,
         WriteStorage<'a, F>,
         WriteStorage<'a, T>,
     );

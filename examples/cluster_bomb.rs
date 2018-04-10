@@ -52,7 +52,7 @@ impl<'a> System<'a> for ClusterBombSystem {
         ReadStorage<'a, Pos>,
         // Allows lazily adding and removing components to entities
         // or executing arbitrary code with world access lazily via `execute`.
-        Fetch<'a, LazyUpdate>,
+        Read<'a, LazyUpdate>,
     );
 
     fn run(&mut self, (entities, mut bombs, positions, updater): Self::SystemData) {
