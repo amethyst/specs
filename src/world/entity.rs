@@ -1,3 +1,4 @@
+use std::cmp::Ordering as CmpOrdering;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
@@ -223,7 +224,7 @@ impl<'a> Iterator for CreateIterAtomic<'a> {
 }
 
 /// `Entity` type, as seen by the user.
-#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
 pub struct Entity(Index, Generation);
 
 impl Entity {
@@ -243,6 +244,18 @@ impl Entity {
     #[inline]
     pub fn gen(&self) -> Generation {
         self.1
+    }
+}
+
+impl Ord for Entity {
+    fn cmp(&self, other: &Entity) -> CmpOrdering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for Entity {
+    fn partial_cmp(&self, other: &Entity) -> Option<CmpOrdering> {
+        self.0.partial_cmp(&other.0)
     }
 }
 

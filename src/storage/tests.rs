@@ -505,6 +505,7 @@ mod test {
         assert_eq!(null.insert(e, Cnull), InsertResult::Updated(Cnull));
     }
 
+    /*
     #[test]
     fn restricted_storage() {
         use join::Join;
@@ -582,6 +583,7 @@ mod test {
             "Components iterated weren't as should've been."
         );
     }
+    */
 
     #[test]
     fn storage_entry() {

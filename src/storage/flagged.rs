@@ -87,9 +87,9 @@ use world::Index;
 ///
 ///         // Instead do something like:
 ///#        let condition = true;
-///         for (entity, mut comps) in (&*entities, &mut comps.restrict_mut()).join() {
+///         for entity in (&*entities).join() {
 ///             if condition { // check whether this component should be modified.
-///                  let mut comp = comps.get_mut_unchecked();
+///                  let mut comp = comps.get_mut(entity);
 ///                  // ...
 ///             }
 ///         }
