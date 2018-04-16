@@ -133,7 +133,7 @@ fn main() {
     impl<'a> System<'a> for Deserialize {
         type SystemData = (
             Entities<'a>,
-            FetchMut<'a, U64MarkerAllocator>,
+            Write<'a, U64MarkerAllocator>,
             WriteStorage<'a, Pos>,
             WriteStorage<'a, Mass>,
             WriteStorage<'a, U64Marker>,

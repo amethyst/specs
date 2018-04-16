@@ -109,11 +109,14 @@ where
             let mut add = vec![];
             {
                 let mut ids = |entity| -> Option<M> {
-                    let (marker, added) = allocator.mark(entity, markers);
-                    if added {
-                        add.push((entity, marker.clone()));
+                    if let Some((marker, added)) = allocator.mark(entity, markers) {
+                        if added {
+                            add.push((entity, marker.clone()));
+                        }
+                        Some(marker.clone())
+                    } else {
+                        None
                     }
-                    Some(marker.clone())
                 };
                 for (entity, marker) in to_serialize {
                     serseq.serialize_element(&EntityData::<M, Self::Data> {
@@ -150,23 +153,10 @@ macro_rules! serialize_components {
                 #[allow(bad_style)]
                 let ($(ref $comp,)*) = *self;
 
-<<<<<<< HEAD
-impl<'a, M, E, T> WorldSerialize<'a, M, E, T>
-where
-    M: Marker,
-    T: Components<M::Identifier, E>,
-{
-    /// Remove all marked entities
-    /// Use this if you want to delete entities that were just serialized
-    pub fn remove_serialized(&mut self) {
-        for (entity, _) in (&*self.entities, self.markers.mask()).join() {
-            let _ = self.entities.delete(entity);
-=======
                 Ok(($(
                     $comp.get(entity).map(|c| c.into(&mut ids).map(Some)).unwrap_or(Ok(None))?,
                 )*))
             }
->>>>>>> f83d15e... Saveload overhaul
         }
 
         serialize_components!(@pop $($comp => $sto,)*);

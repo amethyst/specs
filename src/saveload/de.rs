@@ -89,24 +89,9 @@ where
     }
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-/// Wrapper for `Entities` and tuple of `WriteStorage`s that implements `serde::de::Visitor`
-struct VisitEntities<'a, 'b: 'a, M: Marker, E, T: Components<M::Identifier, E>> {
-    entities: &'a Entities<'b>,
-    storages: &'a mut <T as Storages<'b>>::WriteStorages,
-    markers: &'a mut WriteStorage<'b, M>,
-    allocator: &'a mut Write<'b, M::Allocator>,
-    pd: PhantomData<(E, T)>,
-}
-=======
-pub trait IntoDeserialize<M>: Component {
-=======
 pub trait FromDeserialize<M>: Component {
->>>>>>> e22f637... Finish deserialization overhaul
     /// Serializable data representation for component
     type Data: DeserializeOwned;
->>>>>>> f83d15e... Saveload overhaul
 
     /// Error may occur during deserialization of component
     type Error;
@@ -133,46 +118,12 @@ where
     }
 }
 
-<<<<<<< HEAD
-/// Deserialize entities according to markers.
-pub fn deserialize<'a, 'de, D, M, E, T>(
-    entities: &Entities<'a>,
-    storages: &mut <T as Storages<'a>>::WriteStorages,
-    markers: &mut WriteStorage<'a, M>,
-    allocator: &mut Write<'a, M::Allocator>,
-    deserializer: D,
-) -> Result<(), D::Error>
-where
-    M: Marker,
-    E: Display,
-    T: Components<M::Identifier, E>,
-    D: Deserializer<'de>,
-{
-    deserializer.deserialize_seq(VisitEntities::<M, E, T> {
-        entities,
-        storages,
-        markers,
-        allocator,
-        pd: PhantomData,
-    })
-}
-
-/// Struct which implements `DeserializeSeed` to allow serializing
-/// components from `World`.
-#[derive(SystemData)]
-pub struct WorldDeserialize<'a, M: Marker, E, T: Components<M::Identifier, E>> {
-    entities: Entities<'a>,
-    storages: <T as Storages<'a>>::WriteStorages,
-    markers: WriteStorage<'a, M>,
-    allocator: Write<'a, M::Allocator>,
-=======
 /// Wrapper for `Entities` and tuple of `WriteStorage`s that implements `serde::de::Visitor`
 struct VisitEntities<'a: 'b, 'b, E, M: Marker, S: 'b> {
     allocator: &'b mut M::Allocator,
     entities: &'b EntitiesRes,
     markers: &'b mut WriteStorage<'a, M>,
     storages: &'b mut S,
->>>>>>> f83d15e... Saveload overhaul
     pd: PhantomData<E>,
 }
 

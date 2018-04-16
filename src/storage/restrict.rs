@@ -236,15 +236,10 @@ where
     S: BorrowMut<C::Storage>,
     B: Borrow<BitSet>,
 {
-    #[inline]
-    fn assert_same_storage(&self, storage: &T::Storage) {
-        assert_eq!(
-            self.pointer,
-            storage as *const T::Storage,
-            "Attempt to get an unchecked entry from a storage: {:?} {:?}",
-            self.pointer,
-            storage as *const T::Storage
-        );
+    /// Gets the component related to the current entry without checking whether
+    /// the storage has it or not.
+    pub fn get_mut_unchecked(&mut self) -> &mut C {
+        unsafe { self.storage.borrow_mut().get_mut(self.index) }
     }
 }
 
