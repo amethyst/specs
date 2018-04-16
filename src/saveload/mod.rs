@@ -28,13 +28,19 @@
 //!
 
 mod de;
-mod details;
 mod marker;
 mod ser;
+mod storages;
 
-use self::details::{Components, EntityData, Storages};
-
-pub use self::de::{deserialize, WorldDeserialize};
-pub use self::details::SaveLoadComponent;
+pub use self::de::DeserializeComponents;
 pub use self::marker::{Marker, MarkerAllocator, U64Marker, U64MarkerAllocator};
-pub use self::ser::{serialize, serialize_recursive, WorldSerialize};
+pub use self::ser::SerializeComponents;
+
+/// A struct used for deserializing entity data.
+#[derive(Serialize, Deserialize)]
+pub struct EntityData<M, D> {
+    /// The marker the entity was mapped to.
+    pub marker: M,
+    /// The components associated with an entity.
+    pub components: D,
+}

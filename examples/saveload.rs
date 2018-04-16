@@ -3,9 +3,11 @@ extern crate ron;
 extern crate serde;
 extern crate specs;
 
+use std::fmt;
+
 use specs::error::NoError;
 use specs::prelude::*;
-use specs::saveload::{U64Marker, U64MarkerAllocator, WorldDeserialize, WorldSerialize};
+use specs::saveload::{DeserializeComponents, SerializeComponents, U64Marker, U64MarkerAllocator};
 
 const ENTITIES: &str = "
 [
@@ -49,6 +51,31 @@ impl Component for Mass {
     type Storage = VecStorage<Self>;
 }
 
+#[derive(Debug)]
+enum Combined {
+    Ron(ron::ser::Error),
+}
+
+impl fmt::Display for Combined {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Combined::Ron(ref e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl From<ron::ser::Error> for Combined {
+    fn from(x: ron::ser::Error) -> Self {
+        Combined::Ron(x)
+    }
+}
+
+impl From<NoError> for Combined {
+    fn from(e: NoError) -> Self {
+        match e {}
+    }
+}
+
 fn main() {
     let mut world = World::new();
 
@@ -75,14 +102,25 @@ fn main() {
     struct Serialize;
 
     impl<'a> System<'a> for Serialize {
-        type SystemData = WorldSerialize<'a, U64Marker, NoError, (Pos, Mass)>;
+        type SystemData = (
+            Entities<'a>,
+            ReadStorage<'a, Pos>,
+            ReadStorage<'a, Mass>,
+            ReadStorage<'a, U64Marker>,
+        );
 
-        fn run(&mut self, mut world: Self::SystemData) {
-            let s = ron::ser::to_string_pretty(&world, ron::ser::PrettyConfig::default()).unwrap();
+        fn run(&mut self, (ents, pos, mass, markers): Self::SystemData) {
+            let mut ser = ron::ser::Serializer::new(Some(Default::default()), true);
+            SerializeComponents::<NoError, U64Marker>::serialize(
+                &(&pos, &mass),
+                &ents,
+                &markers,
+                &mut ser,
+            ).unwrap_or_else(|e| eprintln!("Error: {}", e));
+            // TODO: Specs should return an error which combines serialization
+            // and component errors.
 
-            println!("{}", s);
-
-            world.remove_serialized();
+            println!("{}", ser.into_output_string());
         }
     }
 
@@ -93,14 +131,25 @@ fn main() {
     struct Deserialize;
 
     impl<'a> System<'a> for Deserialize {
-        type SystemData = WorldDeserialize<'a, U64Marker, NoError, (Pos, Mass)>;
+        type SystemData = (
+            Entities<'a>,
+            Write<'a, U64MarkerAllocator>,
+            WriteStorage<'a, Pos>,
+            WriteStorage<'a, Mass>,
+            WriteStorage<'a, U64Marker>,
+        );
 
-        fn run(&mut self, world: Self::SystemData) {
+        fn run(&mut self, (ent, mut alloc, pos, mass, mut markers): Self::SystemData) {
             use ron::de::Deserializer;
-            use serde::de::DeserializeSeed;
 
             let mut de = Deserializer::from_str(ENTITIES);
-            world.deserialize(&mut de).unwrap();
+            DeserializeComponents::<Combined, _>::deserialize(
+                &mut (pos, mass),
+                &ent,
+                &mut markers,
+                &mut alloc,
+                &mut de,
+            ).unwrap_or_else(|e| eprintln!("Error: {}", e));
         }
     }
 

@@ -129,7 +129,7 @@ where
         vec![]
     }
 
-    fn setup(res: &mut Resources) {
+    fn setup(_res: &mut Resources) {
         // TODO: register the component
     }
 }
@@ -213,7 +213,7 @@ where
         vec![ResourceId::new::<MaskedStorage<T>>()]
     }
 
-    fn setup(res: &mut Resources) {
+    fn setup(_res: &mut Resources) {
         unimplemented!()
     }
 }

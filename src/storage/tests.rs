@@ -527,7 +527,8 @@ mod test {
             let c2 = { comps.get_mut_unchecked().0 };
 
             assert_eq!(
-                c1, c2,
+                c1,
+                c2,
                 "Mutable and immutable gets returned different components."
             );
             assert!(
@@ -833,8 +834,8 @@ mod serialize_test {
         let serialized = serde_json::to_string(&storage).unwrap();
         assert_eq!(
             serialized,
-            r#"{"offsets":[1,4,5],"components":[{"field1":0,"field2":true},"#.to_owned() +
-                r#"{"field1":158123,"field2":false},{"field1":4294967295,"field2":false}]}"#
+            r#"{"offsets":[1,4,5],"components":[{"field1":0,"field2":true},"#.to_owned()
+                + r#"{"field1":158123,"field2":false},{"field1":4294967295,"field2":false}]}"#
         );
     }
 
