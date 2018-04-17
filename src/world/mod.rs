@@ -6,7 +6,7 @@ use self::entity::Allocator;
 
 use std::borrow::Borrow;
 
-use shred::{Fetch, FetchMut, Read, Resource, Resources, SystemData};
+use shred::{Fetch, FetchMut, MetaTable, Read, Resource, Resources, SystemData};
 
 use error::WrongGeneration;
 use storage::{AnyStorage, DenseVecStorage, MaskedStorage};
@@ -168,7 +168,6 @@ impl<'a> EntityBuilder<'a> {
 pub struct World {
     /// The resources used for this world.
     pub res: Resources,
-    storages: Vec<*mut AnyStorage>,
 }
 
 impl World {
@@ -206,18 +205,32 @@ impl World {
     where
         T::Storage: Default,
     {
-        self.register_with_storage::<T>(Default::default());
+        self.register_with_storage::<_, T>(|| Default::default());
     }
 
     /// Registers a new component with a given storage.
     ///
     /// Does nothing if the component was already registered.
-    pub fn register_with_storage<T: Component>(&mut self, storage: T::Storage) {
-        let mut storage = self.res
-            .entry()
-            .or_insert_with(|| MaskedStorage::<T>::new(storage));
-        self.storages
-            .push(&mut *storage as &mut AnyStorage as *mut AnyStorage);
+    pub fn register_with_storage<F, T>(&mut self, storage: F)
+    where
+        F: FnOnce() -> T::Storage,
+        T: Component,
+    {
+        Self::register_with_storage_internal::<F, T>(&mut self.res, storage);
+    }
+
+    /// Registers a new component with a given storage.
+    ///
+    /// Does nothing if the component was already registered.
+    pub(crate) fn register_with_storage_internal<F, T>(res: &mut Resources, storage: F)
+    where
+        F: FnOnce() -> T::Storage,
+        T: Component,
+    {
+        res.entry()
+            .or_insert_with(move || MaskedStorage::<T>::new(storage()));
+        res.fetch_mut::<MetaTable<AnyStorage>>()
+            .register(&*res.fetch::<MaskedStorage<T>>());
     }
 
     /// Adds a resource to the world.
@@ -426,8 +439,7 @@ impl World {
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {
-        for storage in &mut self.storages {
-            let storage: &mut AnyStorage = unsafe { &mut **storage };
+        for storage in self.any_storages().iter_mut(&self.res) {
             storage.drop(delete);
         }
     }
@@ -438,6 +450,10 @@ impl World {
         B: Bundle,
     {
         bundle.add_to_world(self);
+    }
+
+    fn any_storages(&self) -> FetchMut<MetaTable<AnyStorage>> {
+        self.res.fetch_mut::<MetaTable<AnyStorage>>()
     }
 }
 
@@ -460,11 +476,9 @@ impl Default for World {
         let mut res = Resources::new();
         res.insert(EntitiesRes::default());
         res.insert(LazyUpdate::default());
+        res.insert(MetaTable::<AnyStorage>::new());
 
-        World {
-            res,
-            storages: Default::default(),
-        }
+        World { res }
     }
 }
 

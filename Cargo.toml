@@ -23,7 +23,7 @@ derivative = "1"
 fnv = "1.0"
 hibitset = { version = "0.5.0", features = ["parallel"] }
 mopa = "0.2"
-shred = "0.7.0-alpha2"
+shred = "0.7.0-alpha3"
 shrev = "0.8.0"
 shred-derive = "0.5.0-alpha1"
 tuple_utils = "0.2"

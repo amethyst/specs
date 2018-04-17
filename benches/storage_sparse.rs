@@ -35,10 +35,10 @@ macro_rules! setup {
 }
 
 macro_rules! gap {
-    ( $storage:ident, $name:ident => $sparsity:expr ) => {
+    ($storage:ident, $name:ident => $sparsity:expr) => {
         mod $name {
-            use super::{CompInt, CompBool, setup};
-            use super::super::{Bencher, Criterion, black_box};
+            use super::super::{black_box, Bencher, Criterion};
+            use super::{setup, CompBool, CompInt};
 
             fn insert(bencher: &mut Bencher) {
                 let (world, entities) = setup(true, false, $sparsity);
@@ -84,15 +84,16 @@ macro_rules! gap {
                     &format!("sparse insert {}/{}", $sparsity, stringify!($storage)),
                     |b| insert(b),
                 ).bench_function(
-                    &format!("sparse remove {}/{}", $sparsity, stringify!($storage)),
-                    |b| remove(b),
-                ).bench_function(
-                    &format!("sparse get {}/{}", $sparsity, stringify!($storage)),
-                    |b| get(b),
-                );
+                        &format!("sparse remove {}/{}", $sparsity, stringify!($storage)),
+                        |b| remove(b),
+                    )
+                    .bench_function(
+                        &format!("sparse get {}/{}", $sparsity, stringify!($storage)),
+                        |b| get(b),
+                    );
             }
         }
-    }
+    };
 }
 
 macro_rules! tests {
@@ -138,7 +139,8 @@ macro_rules! tests {
             gap!($storage, sparse_10000 => 10_000);
             gap!($storage, sparse_50000 => 50_000);
 
-            group!(benches,
+            group!(
+                benches,
                 sparse_1::benches,
                 sparse_2::benches,
                 sparse_4::benches,
@@ -151,7 +153,7 @@ macro_rules! tests {
                 sparse_50000::benches
             );
         }
-    }
+    };
 }
 
 tests!(vec_storage => VecStorage);

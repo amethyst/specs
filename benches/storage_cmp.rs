@@ -108,33 +108,27 @@ macro_rules! decl_comp {
 }
 
 macro_rules! insert {
-    ($b:ident, $num:expr, $bytes:expr, $store:ident) => {
-        {
-            decl_comp!($bytes, $store);
+    ($b:ident, $num:expr, $bytes:expr, $store:ident) => {{
+        decl_comp!($bytes, $store);
 
-            storage_insert::<Comp>($b, $num)
-        }
-    };
+        storage_insert::<Comp>($b, $num)
+    }};
 }
 
 macro_rules! remove {
-    ($b:ident, $num:expr, $bytes:expr, $store:ident) => {
-        {
-            decl_comp!($bytes, $store);
+    ($b:ident, $num:expr, $bytes:expr, $store:ident) => {{
+        decl_comp!($bytes, $store);
 
-            storage_remove::<Comp>($b, $num)
-        }
-    };
+        storage_remove::<Comp>($b, $num)
+    }};
 }
 
 macro_rules! get {
-    ($b:ident, $num:expr, $bytes:expr, $store:ident) => {
-        {
-            decl_comp!($bytes, $store);
+    ($b:ident, $num:expr, $bytes:expr, $store:ident) => {{
+        decl_comp!($bytes, $store);
 
-            storage_get::<Comp>($b, $num)
-        }
-    };
+        storage_get::<Comp>($b, $num)
+    }};
 }
 
 #[cfg_attr(rustfmt, rustfmt_skip)]

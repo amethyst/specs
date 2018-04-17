@@ -4,11 +4,11 @@ use serde::ser::{self, Serialize, SerializeSeq, Serializer};
 
 use error::NoError;
 use join::Join;
-use storage::{ReadStorage, WriteStorage};
-use world::{Component, EntitiesRes, Entity};
-use saveload::EntityData;
 use saveload::marker::{Marker, MarkerAllocator};
 use saveload::storages::GenericReadStorage;
+use saveload::EntityData;
+use storage::{ReadStorage, WriteStorage};
+use world::{Component, EntitiesRes, Entity};
 
 pub trait IntoSerialize<M>: Component {
     /// Serializable data representation for component

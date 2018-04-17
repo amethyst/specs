@@ -11,8 +11,8 @@ extern crate syn;
 
 use proc_macro::TokenStream;
 use quote::Tokens;
-use syn::{DeriveInput, Path};
 use syn::synom::Synom;
+use syn::{DeriveInput, Path};
 
 /// Custom derive macro for the `Component` trait.
 ///

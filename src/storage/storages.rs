@@ -131,7 +131,10 @@ unsafe impl<T> DistinctStorage for DenseVecStorage<T> {}
 /// doesn't contain any data and instead works as a simple flag.
 pub struct NullStorage<T>(T);
 
-impl<T: Default> UnprotectedStorage<T> for NullStorage<T> {
+impl<T> UnprotectedStorage<T> for NullStorage<T>
+where
+    T: Default,
+{
     unsafe fn clean<B>(&mut self, _has: B)
     where
         B: BitSetLike,
