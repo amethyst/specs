@@ -23,8 +23,8 @@ use std::io::Write;
 use std::marker::PhantomData;
 
 use crossbeam::sync::MsQueue;
-use futures::{Async, Future};
 use futures::executor::{spawn, Notify, Spawn};
+use futures::{Async, Future};
 
 use error::BoxedErr;
 use join::Join;
@@ -167,7 +167,8 @@ impl Errors {
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct Merge<F> {
-    #[derivative(Default(value = "PhantomData"))] future_type: PhantomData<F>,
+    #[derivative(Default(value = "PhantomData"))]
+    future_type: PhantomData<F>,
     spawns: Vec<(Entity, Spawn<F>)>,
 }
 
@@ -252,9 +253,9 @@ mod test {
     use std::error::Error;
     use std::fmt::{Display, Formatter, Result as FmtResult};
 
-    use futures::Poll;
     use futures::future::{result, Future, FutureResult};
     use futures::task;
+    use futures::Poll;
 
     use common::{BoxedErr, Errors, Merge};
     use shred::DispatcherBuilder;

@@ -142,8 +142,7 @@ impl<'a> EntityBuilder<'a> {
 ///     );
 /// }
 /// ```
-pub trait Marker
-    : Clone + Component + Debug + Eq + Hash + DeserializeOwned + Serialize {
+pub trait Marker: Clone + Component + Debug + Eq + Hash + DeserializeOwned + Serialize {
     /// Id of the marker
     type Identifier;
     /// Allocator for this `Marker`
@@ -246,7 +245,11 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     /// Create new unique marker `M` and attach it to entity.
     /// Or get old marker if this entity is already marked.
     /// If entity is dead then this will return `None`.
-    fn mark<'m>(&mut self, entity: Entity, storage: &'m mut WriteStorage<M>) -> Option<(&'m M, bool)> {
+    fn mark<'m>(
+        &mut self,
+        entity: Entity,
+        storage: &'m mut WriteStorage<M>,
+    ) -> Option<(&'m M, bool)> {
         if let Ok(entry) = storage.entry(entity) {
             let mut new = false;
             let marker = entry.or_insert_with(|| {

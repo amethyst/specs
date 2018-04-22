@@ -1,6 +1,6 @@
 use shred::{Fetch, FetchMut, ResourceId, Resources, SystemData};
 
-use storage::{MaskedStorage, Storage};
+use storage::{MaskedStorage, Storage, TryDefault};
 use world::{Component, EntitiesRes};
 
 /// A storage with read access.
@@ -129,8 +129,9 @@ where
         vec![]
     }
 
-    fn setup(_res: &mut Resources) {
-        // TODO: register the component
+    fn setup(res: &mut Resources) {
+        res.entry::<MaskedStorage<T>>()
+            .or_insert_with(|| MaskedStorage::new(<T::Storage as TryDefault>::unwrap_default()));
     }
 }
 
@@ -213,7 +214,41 @@ where
         vec![ResourceId::new::<MaskedStorage<T>>()]
     }
 
-    fn setup(_res: &mut Resources) {
-        unimplemented!()
+    fn setup(res: &mut Resources) {
+        res.entry::<MaskedStorage<T>>()
+            .or_insert_with(|| MaskedStorage::new(<T::Storage as TryDefault>::unwrap_default()));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use prelude::*;
+    use storage::MaskedStorage;
+
+    struct Foo;
+    impl Component for Foo {
+        type Storage = VecStorage<Self>;
+    }
+
+    struct Sys;
+    impl<'a> System<'a> for Sys {
+        type SystemData = ReadStorage<'a, Foo>;
+
+        fn run(&mut self, data: <Self as System>::SystemData) {
+            unimplemented!()
+        }
+    }
+
+    #[test]
+    fn uses_setup() {
+        let mut w = World::new();
+
+        let mut d = DispatcherBuilder::new().with(Sys, "sys", &[]).build();
+
+        assert!(!w.res.has_value::<MaskedStorage<Foo>>());
+
+        d.setup(&mut w.res);
+
+        assert!(w.res.has_value::<MaskedStorage<Foo>>());
     }
 }

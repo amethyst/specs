@@ -5,9 +5,9 @@ use serde::de::{self, Deserialize, DeserializeOwned, DeserializeSeed, Deserializ
                 Visitor};
 
 use error::NoError;
-use saveload::EntityData;
-use saveload::storages::GenericWriteStorage;
 use saveload::marker::{Marker, MarkerAllocator};
+use saveload::storages::GenericWriteStorage;
+use saveload::EntityData;
 use storage::WriteStorage;
 use world::{Component, EntitiesRes, Entity};
 

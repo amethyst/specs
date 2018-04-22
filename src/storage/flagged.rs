@@ -2,8 +2,9 @@ use std::marker::PhantomData;
 
 use hibitset::BitSetLike;
 
+use storage::TryDefault;
 use storage::{DenseVecStorage, TrackChannels, Tracked, UnprotectedStorage};
-use world::Index;
+use world::{Component, Index};
 
 /// Wrapper storage that tracks modifications, insertions, and removals of components
 /// through an `EventChannel`.
@@ -133,18 +134,18 @@ pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
 
 impl<C, T> Default for FlaggedStorage<C, T>
 where
-    T: Default,
+    T: TryDefault,
 {
     fn default() -> Self {
         FlaggedStorage {
             trackers: TrackChannels::default(),
-            storage: T::default(),
+            storage: T::unwrap_default(),
             phantom: PhantomData,
         }
     }
 }
 
-impl<C, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
+impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
     unsafe fn clean<B>(&mut self, has: B)
     where
         B: BitSetLike,

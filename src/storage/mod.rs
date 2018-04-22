@@ -6,9 +6,9 @@ pub use self::restrict::{ImmutableParallelRestriction, MutableParallelRestrictio
                          RestrictedStorage, SequentialRestriction};
 #[cfg(feature = "serde")]
 pub use self::ser::{MergeError, PackedData};
-pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
+pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 pub use self::track::{InsertedFlag, ModifiedFlag, RemovedFlag, TrackChannels, Tracked};
 
 use std;
@@ -16,7 +16,7 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Not};
 
 use hibitset::{BitSet, BitSetLike, BitSetNot};
-use shred::Fetch;
+use shred::{CastFrom, Fetch};
 
 use self::drain::Drain;
 use error::WrongGeneration;
@@ -58,6 +58,19 @@ unsafe impl<'a> DistinctStorage for AntiStorage<'a> {}
 pub trait AnyStorage {
     /// Drop components of given entities.
     fn drop(&mut self, entities: &[Entity]);
+}
+
+impl<T> CastFrom<T> for AnyStorage
+where
+    T: AnyStorage + 'static,
+{
+    fn cast(t: &T) -> &Self {
+        t
+    }
+
+    fn cast_mut(t: &mut T) -> &mut Self {
+        t
+    }
 }
 
 impl<T> AnyStorage for MaskedStorage<T>
@@ -203,7 +216,10 @@ where
     /// This bitset *can* be invalidated here if insertion or removal methods
     /// are used after the call to get the `BitSet`, so there is no guarantee
     /// that the storage will have a component for a specific entity.
-    #[deprecated(since = "0.11", note = "Use `Storage::mask` and then clone the bitset it returns instead. This method hides a rather expensive operation which could be handled better in other ways.")]
+    #[deprecated(
+        since = "0.11",
+        note = "Use `Storage::mask` and then clone the bitset it returns instead. This method hides a rather expensive operation which could be handled better in other ways."
+    )]
     pub fn check(&self) -> BitSet {
         self.data.mask.clone()
     }
@@ -499,8 +515,32 @@ where
 {
 }
 
+/// Tries to create a default value, returns an `Err` with the name of the storage and/or component
+/// if there's no default.
+pub trait TryDefault: Sized {
+    /// Tries to create the default.
+    fn try_default() -> Result<Self, String>;
+
+    /// Calls `try_default` and panics on an error case.
+    fn unwrap_default() -> Self {
+        match Self::try_default() {
+            Ok(x) => x,
+            Err(e) => panic!("Failed to create a default value for storage ({:?})", e),
+        }
+    }
+}
+
+impl<T> TryDefault for T
+where
+    T: Default,
+{
+    fn try_default() -> Result<Self, String> {
+        Ok(T::default())
+    }
+}
+
 /// Used by the framework to quickly join components.
-pub trait UnprotectedStorage<T> {
+pub trait UnprotectedStorage<T>: TryDefault {
     /// Clean the storage given a bitset with bits set for valid indices.
     /// Allows us to safely drop the storage.
     unsafe fn clean<B>(&mut self, has: B)
