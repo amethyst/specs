@@ -205,7 +205,7 @@ impl World {
     where
         T::Storage: Default,
     {
-        self.register_with_storage::<_, T>(|| Default::default());
+        self.register_with_storage::<_, T>(Default::default);
     }
 
     /// Registers a new component with a given storage.
@@ -231,6 +231,18 @@ impl World {
             .or_insert_with(move || MaskedStorage::<T>::new(storage()));
         res.fetch_mut::<MetaTable<AnyStorage>>()
             .register(&*res.fetch::<MaskedStorage<T>>());
+    }
+
+    /// Gets `SystemData` `T` from the `World`.
+    ///
+    /// # Panics
+    ///
+    /// * Panics if `T` is already borrowed in an incompatible way.
+    pub fn system_data<T>(&self) -> T
+    where
+        for<'a> T: SystemData<'a>,
+    {
+        SystemData::fetch(&self.res)
     }
 
     /// Adds a resource to the world.
