@@ -209,7 +209,7 @@ where
         }
     }
 
-    /// Returns true if the storage has a component for this entity.
+    /// Returns true if the storage has a component for this entity, and that entity is alive.
     pub fn contains(&self, e: Entity) -> bool {
         self.data.mask.contains(e.id()) && self.entities.is_alive(e)
     }
