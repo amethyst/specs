@@ -209,6 +209,11 @@ where
         }
     }
 
+    /// Returns true if the storage has a component for this entity.
+    pub fn contains(&self, e: Entity) -> bool {
+        self.data.mask.contains(e.id()) && self.entities.is_alive(e)
+    }
+
     /// Returns a copy of the `BitSet` of the storage. This allows you to
     /// do some methods on the actual storage without worrying about borrowing
     /// semantics.
