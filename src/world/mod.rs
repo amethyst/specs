@@ -238,9 +238,9 @@ impl World {
     /// # Panics
     ///
     /// * Panics if `T` is already borrowed in an incompatible way.
-    pub fn system_data<T>(&self) -> T
+    pub fn system_data<'a, T>(&'a self) -> T
     where
-        for<'a> T: SystemData<'a>,
+        T: SystemData<'a>,
     {
         SystemData::fetch(&self.res)
     }
