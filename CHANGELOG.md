@@ -1,9 +1,9 @@
-## [Unreleased]
+## 0.11 (alpha)
 
-* Improve docs, book and examples ([#278], [#281], [#283], [#285], [#296], [#313], [#316], [#322], [#350])
+* Improve docs, book and examples ([#278], [#281], [#283], [#285], [#296], [#313], [#316], [#322], [#350], [#356], [#363])
 * Add `StorageEntry` for easier handling of inserting/removing component ([#274])
 * Add `EntityBuilder::marked` convenience method ([#287])
-* Add `saveload` module for easy entity serialization ([#275])
+* Add `saveload` module for easy entity serialization ([#275], [#337])
 * Add `nightly` feature flag for unstable features. ([#290])
 * Add `TrackedStorage`, a more ergonomic variant to `FlaggedStorage` ([#291])
 * Exclusive/mutable aliasing for getting an `EntityBuilder` to prevent unsafety. ([#294])
@@ -16,6 +16,17 @@
 * Replace `Entry` with `PairedStorage` to prevent runtime checks for `RestrictedStorage`. ([#324])
 * Deprecate `check()` which hides a possibly expensive clone. ([#326])
 * Add `ChangeSet` for easy application to components. ([#344])
+* Use criterion.rs for benchmarks ([#348])
+* Update to rayon 1.0 ([#352])
+* Add `World::system_data` method ([#369])
+* BREAKING: Change the way resources are handled (see below) ([shred#77])
+
+There is one bigger breaking change in this release. Almost all`Fetch` / `FetchMut` types need to be replaced
+with `Read` / `Write`. Both require the resource to implement `Default`, because now the resources can be
+added to the world automatically. If you want to make the resource optional and you don't have a sensible
+default, `Option<Read>` / `Option<Write>` can be used. If you absolutely need the resource and it doesn't
+work without, use `ReadExpect` which will panic in case the resource does not exist (that's the same
+behavior as before).
 
 [#274]: https://github.com/slide-rs/specs/pull/274
 [#275]: https://github.com/slide-rs/specs/pull/275
@@ -38,8 +49,16 @@
 [#322]: https://github.com/slide-rs/specs/pull/322
 [#324]: https://github.com/slide-rs/specs/pull/324
 [#326]: https://github.com/slide-rs/specs/pull/326
+[#337]: https://github.com/slide-rs/specs/pull/337
 [#344]: https://github.com/slide-rs/specs/pull/344
+[#348]: https://github.com/slide-rs/specs/pull/348
 [#350]: https://github.com/slide-rs/specs/pull/350
+[#352]: https://github.com/slide-rs/specs/pull/352
+[#356]: https://github.com/slide-rs/specs/pull/356
+[#363]: https://github.com/slide-rs/specs/pull/363
+[#369]: https://github.com/slide-rs/specs/pull/369
+
+[shred#77]: https://github.com/slide-rs/shred/pull/77
 
 ## 0.10.0
 
