@@ -222,7 +222,7 @@ fn main() {
     w.maintain();
 
     // Insert a component, associated with `e`.
-    w.write().insert(e, CompFloat(4.0));
+    w.write_storage().insert(e, CompFloat(4.0));
 
     dispatcher.dispatch(&w.res);
     w.maintain();

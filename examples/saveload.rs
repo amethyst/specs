@@ -155,5 +155,5 @@ fn main() {
 
     Deserialize.run_now(&world.res);
 
-    println!("{:#?}", (&world.read::<Pos>()).join().collect::<Vec<_>>());
+    println!("{:#?}", (&world.read_storage::<Pos>()).join().collect::<Vec<_>>());
 }

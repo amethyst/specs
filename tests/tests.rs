@@ -280,7 +280,7 @@ fn register_idempotency() {
     w.register::<CompInt>();
 
     // ...this would end up trying to unwrap a `None`.
-    let i = w.read::<CompInt>().get(e).unwrap().0;
+    let i = w.read_storage::<CompInt>().get(e).unwrap().0;
     assert_eq!(i, 10);
 }
 
@@ -450,8 +450,8 @@ fn getting_specific_entity_with_join() {
         .build();
 
     let entity = {
-        let ints = world.read::<CompInt>();
-        let mut bools = world.write::<CompBool>();
+        let ints = world.read_storage::<CompInt>();
+        let mut bools = world.write_storage::<CompBool>();
         let entity = world.entities().join().next().unwrap();
 
         assert_eq!(
@@ -471,8 +471,8 @@ fn getting_specific_entity_with_join() {
         .with(CompInt(2))
         .with(CompBool(false))
         .build();
-    let ints = world.read::<CompInt>();
-    let mut bools = world.write::<CompBool>();
+    let ints = world.read_storage::<CompInt>();
+    let mut bools = world.write_storage::<CompBool>();
     assert_eq!(
         None,
         (&ints, &mut bools).join().get(entity, &world.entities())

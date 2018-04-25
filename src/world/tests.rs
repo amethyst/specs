@@ -30,7 +30,7 @@ fn delete_all() {
     world.delete_all();
 
     assert_eq!(world.entities().join().count(), 0);
-    assert!(world.read::<Pos>().get(b).is_none());
+    assert!(world.read_storage::<Pos>().get(b).is_none());
 }
 
 #[test]
@@ -52,9 +52,9 @@ fn lazy_insertion() {
     }
 
     world.maintain();
-    assert!(world.read::<Pos>().get(e1).is_some());
-    assert!(world.read::<Vel>().get(e1).is_some());
-    assert!(world.read::<Vel>().get(e2).is_some());
+    assert!(world.read_storage::<Pos>().get(e1).is_some());
+    assert!(world.read_storage::<Vel>().get(e1).is_some());
+    assert!(world.read_storage::<Vel>().get(e2).is_some());
 }
 
 #[test]
@@ -69,7 +69,7 @@ fn lazy_removal() {
     }
 
     world.maintain();
-    assert!(world.read::<Pos>().get(e).is_none());
+    assert!(world.read_storage::<Pos>().get(e).is_none());
 }
 
 #[test]
@@ -84,12 +84,12 @@ fn lazy_execution() {
     {
         let lazy = world.read_resource::<LazyUpdate>();
         lazy.execute(move |world| {
-            world.write::<Pos>().insert(e, Pos);
+            world.write_storage::<Pos>().insert(e, Pos);
         });
     }
 
     world.maintain();
-    assert!(world.read::<Pos>().get(e).is_some());
+    assert!(world.read_storage::<Pos>().get(e).is_some());
 }
 
 #[test]

@@ -4,8 +4,8 @@
 
 pub use hibitset::BitSet;
 pub use join::{Join, ParJoin};
-pub use shred::{Dispatcher, DispatcherBuilder, Read, ReadExpect, RunNow, System, SystemData,
-                Write, WriteExpect};
+pub use shred::{Dispatcher, DispatcherBuilder, Read, ReadExpect, Resources, RunNow, System,
+                SystemData, Write, WriteExpect};
 pub use shrev::ReaderId;
 
 #[cfg(not(target_os = "emscripten"))]

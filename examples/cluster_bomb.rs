@@ -136,7 +136,7 @@ fn main() {
         let mut entities = 0;
         {
             // Simple console rendering
-            let positions = world.read::<Pos>();
+            let positions = world.read_storage::<Pos>();
             const WIDTH: usize = 10;
             const HEIGHT: usize = 10;
             const SCALE: f32 = 1. / 4.;

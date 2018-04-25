@@ -335,7 +335,7 @@ mod test {
         // Sequential dispatch used in order to avoid missing panics due to them happening in
         // another thread.
         dispatcher.dispatch_seq(&mut world.res);
-        let components = world.read::<TestComponent>();
+        let components = world.read_storage::<TestComponent>();
         assert!(components.get(success).is_some());
         assert!(components.get(error).is_none());
         assert_eq!(

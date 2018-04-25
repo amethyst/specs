@@ -84,7 +84,7 @@ impl<'a> EntityBuilder<'a> {
     #[inline]
     pub fn with<T: Component>(self, c: T) -> Self {
         {
-            let mut storage = self.world.write();
+            let mut storage = self.world.write_storage();
             storage.insert(self.entity, c);
         }
 
@@ -141,9 +141,9 @@ impl<'a> EntityBuilder<'a> {
 ///     .build();
 ///
 /// {
-///     // `World::read` returns a component storage.
-///     let pos_storage = world.read::<Pos>();
-///     let vel_storage = world.read::<Vel>();
+///     // `World::read_storage` returns a component storage.
+///     let pos_storage = world.read_storage::<Pos>();
+///     let vel_storage = world.read_storage::<Vel>();
 ///
 ///     // `Storage::get` allows to get a component from it:
 ///     assert_eq!(pos_storage.get(b), Some(&Pos { x: 3.0, y: 5.0 }));
@@ -154,8 +154,8 @@ impl<'a> EntityBuilder<'a> {
 ///
 /// {
 ///     // This time, we write to the `Pos` storage:
-///     let mut pos_storage = world.write::<Pos>();
-///     let vel_storage = world.read::<Vel>();
+///     let mut pos_storage = world.write_storage::<Pos>();
+///     let vel_storage = world.read_storage::<Vel>();
 ///
 ///     assert!(pos_storage.get(empty).is_none());
 ///
@@ -287,25 +287,25 @@ impl World {
         }
     }
 
-    /// Fetches a component's storage with the default id for reading.
+    /// Fetches a component's storage for reading.
     ///
     /// ## Panics
     ///
     /// Panics if it is already borrowed mutably.
     /// Panics if the component has not been registered.
-    pub fn read<T: Component>(&self) -> ReadStorage<T> {
+    pub fn read_storage<T: Component>(&self) -> ReadStorage<T> {
         use shred::SystemData;
 
         SystemData::fetch(&self.res)
     }
 
-    /// Fetches a component's storage with the default id for writing.
+    /// Fetches a component's storage for writing.
     ///
     /// ## Panics
     ///
     /// Panics if it is already borrowed (either immutably or mutably).
     /// Panics if the component has not been registered.
-    pub fn write<T: Component>(&self) -> WriteStorage<T> {
+    pub fn write_storage<T: Component>(&self) -> WriteStorage<T> {
         use shred::SystemData;
 
         SystemData::fetch(&self.res)
