@@ -42,8 +42,8 @@ macro_rules! gap {
 
             fn insert(bencher: &mut Bencher) {
                 let (world, entities) = setup(true, false, $sparsity);
-                let mut ints = world.write::<CompInt>();
-                let mut bools = world.write::<CompBool>();
+                let mut ints = world.write_storage::<CompInt>();
+                let mut bools = world.write_storage::<CompBool>();
 
                 bencher.iter(move || {
                     for &entity in &entities {
@@ -55,8 +55,8 @@ macro_rules! gap {
 
             fn remove(bencher: &mut Bencher) {
                 let (world, entities) = setup(true, true, $sparsity);
-                let mut ints = world.write::<CompInt>();
-                let mut bools = world.write::<CompBool>();
+                let mut ints = world.write_storage::<CompInt>();
+                let mut bools = world.write_storage::<CompBool>();
 
                 bencher.iter(move || {
                     for &entity in &entities {
@@ -68,8 +68,8 @@ macro_rules! gap {
 
             fn get(bencher: &mut Bencher) {
                 let (world, entities) = setup(false, true, $sparsity);
-                let ints = world.read::<CompInt>();
-                let bools = world.read::<CompBool>();
+                let ints = world.read_storage::<CompInt>();
+                let bools = world.read_storage::<CompBool>();
 
                 bencher.iter(move || {
                     for &entity in &entities {

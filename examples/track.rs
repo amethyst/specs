@@ -16,7 +16,7 @@ struct SysA {
 
 impl SysA {
     fn new(world: &mut World) -> Self {
-        let mut components = world.write::<TrackedComponent>();
+        let mut components = world.write_storage::<TrackedComponent>();
         let readerid = components.track_modified();
         SysA {
             modified_id: readerid,

@@ -21,7 +21,7 @@ impl<'a> LazyBuilder<'a> {
     {
         let entity = self.entity;
         self.lazy.execute(move |world| {
-            world.write::<C>().insert(entity, component);
+            world.write_storage::<C>().insert(entity, component);
         });
 
         self
@@ -120,7 +120,7 @@ impl LazyUpdate {
         C: Component + Send + Sync,
     {
         self.execute(move |world| {
-            world.write::<C>().insert(e, c);
+            world.write_storage::<C>().insert(e, c);
         });
     }
 
@@ -156,7 +156,7 @@ impl LazyUpdate {
         I: IntoIterator<Item = (Entity, C)> + Send + Sync + 'static,
     {
         self.execute(move |world| {
-            let mut storage = world.write::<C>();
+            let mut storage = world.write_storage::<C>();
             for (e, c) in iter {
                 storage.insert(e, c);
             }
@@ -193,7 +193,7 @@ impl LazyUpdate {
         C: Component + Send + Sync,
     {
         self.execute(move |world| {
-            world.write::<C>().remove(e);
+            world.write_storage::<C>().remove(e);
         });
     }
 

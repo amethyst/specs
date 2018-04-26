@@ -33,8 +33,8 @@ use world::{Component, EntitiesRes};
 /// # struct Vel; impl Component for Vel { type Storage = VecStorage<Self>; }
 /// #
 /// # let mut world = World::new(); world.register::<Pos>(); world.register::<Vel>();
-/// # let pos_storage = world.read::<Pos>();
-/// # let vel_storage = world.read::<Vel>();
+/// # let pos_storage = world.read_storage::<Pos>();
+/// # let vel_storage = world.read_storage::<Vel>();
 /// (&pos_storage, &vel_storage).join()
 /// # ;
 /// ```
@@ -64,8 +64,8 @@ use world::{Component, EntitiesRes};
 ///     .with(Vel)
 ///     .build();
 ///
-/// # let pos_storage = world.read::<Pos>();
-/// # let vel_storage = world.read::<Vel>();
+/// # let pos_storage = world.read_storage::<Pos>();
+/// # let vel_storage = world.read_storage::<Vel>();
 /// assert_eq!(pos_storage.get(entity1), Some(&Pos));
 /// assert_eq!(pos_storage.get(entity2), None);
 ///
@@ -162,7 +162,7 @@ where
 /// let entity = world.create_entity()
 ///     .with(Pos(2.0))
 ///     .build();
-/// # let mut pos_storage = world.write::<Pos>();
+/// # let mut pos_storage = world.write_storage::<Pos>();
 ///
 /// assert_eq!(pos_storage.get_mut(entity), Some(&mut Pos(2.0)));
 /// if let Some(pos) = pos_storage.get_mut(entity) {
@@ -187,7 +187,7 @@ where
 /// let entity = world.create_entity()
 ///     .with(Pos(0.1))
 ///     .build();
-/// # let mut pos_storage = world.write::<Pos>();
+/// # let mut pos_storage = world.write_storage::<Pos>();
 ///
 /// let res = pos_storage.insert(entity, Pos(4.0));
 /// assert_eq!(res, InsertResult::Updated(Pos(0.1)));

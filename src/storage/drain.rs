@@ -54,7 +54,7 @@ mod tests {
         world.create_entity().build();
         let e = world.create_entity().with(Comp).build();
 
-        let mut comps = world.write::<Comp>();
+        let mut comps = world.write_storage::<Comp>();
         let entities = world.entities();
 
         {

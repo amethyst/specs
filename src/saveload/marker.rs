@@ -40,7 +40,7 @@ impl<'a> EntityBuilder<'a> {
         M: Marker,
     {
         let mut alloc = self.world.write_resource::<M::Allocator>();
-        alloc.mark(self.entity, &mut self.world.write::<M>());
+        alloc.mark(self.entity, &mut self.world.write_storage::<M>());
 
         self
     }
@@ -134,7 +134,7 @@ impl<'a> EntityBuilder<'a> {
 ///     );
 ///
 ///     let entity = world.create_entity().marked::<NetMarker>().build();
-///     let storage = &mut world.write::<NetMarker>();
+///     let storage = &mut world.write_storage::<NetMarker>();
 ///     let marker = storage.get(entity).unwrap().clone();
 ///     assert_eq!(
 ///         world.write_resource::<NetNode>().retrieve_entity(marker, storage, &*world.entities()),

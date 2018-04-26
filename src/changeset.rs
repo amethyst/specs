@@ -32,7 +32,7 @@ use world::{Entity, Index};
 ///     .iter()
 ///     .cloned()
 ///     .collect::<ChangeSet<i32>>();
-/// for (health, modifier) in (&mut world.write::<Health>(), &changeset).join() {
+/// for (health, modifier) in (&mut world.write_storage::<Health>(), &changeset).join() {
 ///     health.0 -= modifier;
 /// }
 /// # }
@@ -173,10 +173,10 @@ mod tests {
             .iter()
             .cloned()
             .collect::<ChangeSet<i32>>();
-        for (health, modifier) in (&mut world.write::<Health>(), &changeset).join() {
+        for (health, modifier) in (&mut world.write_storage::<Health>(), &changeset).join() {
             health.0 -= modifier;
         }
-        let healths = world.read::<Health>();
+        let healths = world.read_storage::<Health>();
         assert_eq!(68, healths.get(a).unwrap().0);
         assert_eq!(175, healths.get(b).unwrap().0);
         assert_eq!(300, healths.get(c).unwrap().0);

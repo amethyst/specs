@@ -9,7 +9,7 @@ where
 {
     world.register::<T>();
 
-    world.write()
+    world.write_storage()
 }
 
 mod map_test {
@@ -498,7 +498,7 @@ mod test {
         w.register::<Cnull>();
         let e = w.create_entity().build();
 
-        let mut null = w.write::<Cnull>();
+        let mut null = w.write_storage::<Cnull>();
 
         assert_eq!(null.get(e), None);
         assert_eq!(null.insert(e, Cnull), InsertResult::Inserted);
@@ -512,7 +512,7 @@ mod test {
 
         let mut w = World::new();
         w.register::<Cvec>();
-        let mut s1: Storage<Cvec, _> = w.write();
+        let mut s1: Storage<Cvec, _> = w.write_storage();
         let mut components = HashSet::new();
 
         for i in 0..50 {
@@ -550,7 +550,7 @@ mod test {
 
         let mut w = World::new();
         w.register::<Cvec>();
-        let mut s1: Storage<Cvec, _> = w.write();
+        let mut s1: Storage<Cvec, _> = w.write_storage();
         let mut components = HashSet::new();
 
         for i in 0..50 {
@@ -597,7 +597,7 @@ mod test {
         let e5 = w.create_entity().build();
         let e6 = w.create_entity().with(Cvec(10)).build();
 
-        let mut s1 = w.write::<Cvec>();
+        let mut s1 = w.write_storage::<Cvec>();
 
         // Basic entry usage.
         if let Ok(entry) = s1.entry(e1) {
@@ -671,7 +671,7 @@ mod test {
 
         let mut w = World::new();
         w.register::<CMarker>();
-        let mut s1: Storage<CMarker, _> = w.write();
+        let mut s1: Storage<CMarker, _> = w.write_storage();
 
         for i in 0..50 {
             s1.insert(Entity::new(i, Generation::new(1)), CMarker);
@@ -695,7 +695,7 @@ mod test {
 
         let mut w = World::new();
         w.register::<CMarker>();
-        let mut s1: Storage<CMarker, _> = w.write();
+        let mut s1: Storage<CMarker, _> = w.write_storage();
 
         for i in 0..50 {
             s1.insert(Entity::new(i, Generation::new(1)), CMarker);
@@ -711,7 +711,7 @@ mod test {
         let mut w = World::new();
         w.register::<FlaggedCvec>();
 
-        let mut s1: Storage<FlaggedCvec, _> = w.write();
+        let mut s1: Storage<FlaggedCvec, _> = w.write_storage();
 
         let mut inserted = BitSet::new();
         let mut inserted_id = s1.track_inserted();
@@ -829,7 +829,7 @@ mod serialize_test {
             .build();
         world.create_entity().build();
 
-        let storage = world.read::<CompTest>();
+        let storage = world.read_storage::<CompTest>();
         let serialized = serde_json::to_string(&storage).unwrap();
         assert_eq!(
             serialized,
@@ -866,7 +866,7 @@ mod serialize_test {
             }
         "#;
 
-        let mut storage = world.write::<CompTest>();
+        let mut storage = world.write_storage::<CompTest>();
         let packed: PackedData<CompTest> = serde_json::from_str(&data).unwrap();
         assert_eq!(packed.offsets, vec![3, 7, 8]);
         assert_eq!(

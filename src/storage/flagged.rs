@@ -116,7 +116,7 @@ use world::{Component, Index};
 ///     //
 ///     // Otherwise you won't receive any of the modifications until
 ///     // you start tracking them.
-///     let mut comps = world.write::<Comp>();
+///     let mut comps = world.write_storage::<Comp>();
 ///     let comp_system = CompSystem {
 ///         modified_id: comps.track_modified(),
 ///         inserted_id: comps.track_inserted(),

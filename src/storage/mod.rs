@@ -368,7 +368,7 @@ where
     /// # let mut world = World::new();
     /// # world.register::<Comp>();
     /// # let entity = world.create_entity().build();
-    /// # let mut storage = world.write::<Comp>();
+    /// # let mut storage = world.write_storage::<Comp>();
     ///  if let Ok(entry) = storage.entry(entity) {
     ///      entry.or_insert(Comp { field: 55 });
     ///  }

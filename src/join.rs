@@ -84,8 +84,8 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 /// world.register::<Vel>();
 ///
 /// {
-///     let pos = world.read::<Pos>();
-///     let vel = world.read::<Vel>();
+///     let pos = world.read_storage::<Pos>();
+///     let vel = world.read_storage::<Vel>();
 ///
 ///     // There are no entities yet, so no pair will be returned.
 ///     let joined: Vec<_> = (&pos, &vel).join().collect();
@@ -98,8 +98,8 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 ///     .build();
 ///
 /// {
-///     let pos = world.read::<Pos>();
-///     let vel = world.read::<Vel>();
+///     let pos = world.read_storage::<Pos>();
+///     let vel = world.read_storage::<Vel>();
 ///
 ///     // Although there is an entity, it only has `Pos`.
 ///     let joined: Vec<_> = (&pos, &vel).join().collect();
@@ -112,8 +112,8 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 ///     .build();
 ///
 /// {
-///     let pos = world.read::<Pos>();
-///     let vel = world.read::<Vel>();
+///     let pos = world.read_storage::<Pos>();
+///     let vel = world.read_storage::<Vel>();
 ///
 ///     // Now there is one entity that has both a `Vel` and a `Pos`.
 ///     let joined: Vec<_> = (&pos, &vel).join().collect();
@@ -216,8 +216,8 @@ impl<J: Join> JoinIter<J> {
     ///
     /// // Later
     /// {
-    ///     let mut pos = world.write::<Pos>();
-    ///     let vel = world.read::<Vel>();
+    ///     let mut pos = world.write_storage::<Pos>();
+    ///     let vel = world.read_storage::<Vel>();
     ///
     ///     assert_eq!(
     ///         Some((&mut Pos, &Vel)),
@@ -227,12 +227,12 @@ impl<J: Join> JoinIter<J> {
     /// }
     ///
     /// // The entity has found nice spot and doesn't need to move anymore.
-    /// world.write::<Vel>().remove(entity);
+    /// world.write_storage::<Vel>().remove(entity);
     ///
     /// // Even later
     /// {
-    ///     let mut pos = world.write::<Pos>();
-    ///     let vel = world.read::<Vel>();
+    ///     let mut pos = world.write_storage::<Pos>();
+    ///     let vel = world.read_storage::<Vel>();
     ///
     ///     assert_eq!(
     ///         None,
