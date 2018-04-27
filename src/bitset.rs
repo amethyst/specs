@@ -1,3 +1,4 @@
+#![doc(hidden)]
 #![cfg_attr(rustfmt, rustfmt_skip)]
 
 use hibitset::{AtomicBitSet, BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr, BitSetXor};
