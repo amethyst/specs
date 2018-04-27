@@ -234,7 +234,7 @@ mod tests {
     impl<'a> System<'a> for Sys {
         type SystemData = ReadStorage<'a, Foo>;
 
-        fn run(&mut self, data: <Self as System>::SystemData) {
+        fn run(&mut self, _data: <Self as System>::SystemData) {
             unimplemented!()
         }
     }

@@ -183,6 +183,8 @@
 //! See the repository's examples directory for more examples.
 //!
 
+pub extern crate shred;
+
 extern crate crossbeam;
 #[macro_use]
 extern crate derivative;
@@ -190,7 +192,6 @@ extern crate fnv;
 extern crate hibitset;
 extern crate mopa;
 extern crate rayon;
-extern crate shred;
 extern crate shrev;
 extern crate tuple_utils;
 
