@@ -235,6 +235,20 @@ impl World {
 
     /// Gets `SystemData` `T` from the `World`.
     ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use specs::prelude::*;
+    /// # struct Pos; struct Vel;
+    /// # impl Component for Pos { type Storage = VecStorage<Self>; }
+    /// # impl Component for Vel { type Storage = VecStorage<Self>; }
+    ///
+    /// let mut world = World::new();
+    /// world.register::<Pos>();
+    /// world.register::<Vel>();
+    /// let storages: (WriteStorage<Pos>, ReadStorage<Vel>) = world.system_data();
+    /// ```
+    ///
     /// # Panics
     ///
     /// * Panics if `T` is already borrowed in an incompatible way.
@@ -243,6 +257,72 @@ impl World {
         T: SystemData<'a>,
     {
         SystemData::fetch(&self.res)
+    }
+
+    /// Sets up system data `T` for fetching afterwards.
+    pub fn setup<'a, T: SystemData<'a>>(&mut self) {
+        T::setup(&mut self.res);
+    }
+
+    /// Executes `f` once, right now with the specified system data.
+    ///
+    /// This sets up the system data `f` expects, fetches it and then
+    /// executes `f`. You can see this like a system that only runs once.
+    ///
+    /// This is especially useful if you either need a lot of system data or
+    /// you want to build an entity and for that you need to access resources first
+    /// - just fetching the resources and building the entity would cause a double borrow.
+    ///
+    /// **Calling this method is equivalent to:**
+    ///
+    /// ```
+    /// # use specs::prelude::*; use specs::shred::ResourceId;
+    /// # struct MySystemData; impl MySystemData { fn do_something(&self) {} }
+    /// # impl<'a> SystemData<'a> for MySystemData {
+    /// #     fn fetch(res: &Resources) -> Self { MySystemData }
+    /// #     fn reads() -> Vec<ResourceId> { vec![] }
+    /// #     fn writes() -> Vec<ResourceId> { vec![] }
+    /// #     fn setup(res: &mut Resources) {}
+    /// # }
+    /// # let mut world = World::new();
+    /// { // note the extra scope
+    ///     world.setup::<MySystemData>();
+    ///     let my_data: MySystemData = world.system_data();
+    ///     my_data.do_something();
+    /// }
+    /// ```
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use specs::prelude::*;
+    /// let mut world = World::new();
+    ///
+    /// struct MyComp;
+    ///
+    /// impl Component for MyComp {
+    ///     type Storage = DenseVecStorage<Self>;
+    /// }
+    ///
+    /// #[derive(Default)]
+    /// struct MyRes {
+    ///     field: i32,
+    /// }
+    ///
+    /// world.exec(|(mut my_res,): (Write<MyRes>,)| {
+    ///     assert_eq!(my_res.field, 0);
+    ///     my_res.field = 5;
+    /// });
+    ///
+    /// assert_eq!(world.read_resource::<MyRes>().field, 5);
+    /// ```
+    pub fn exec<'a, F, R, T>(&'a mut self, f: F) -> R
+    where
+        F: FnOnce(T) -> R,
+        T: SystemData<'a>,
+    {
+        self.setup::<T>();
+        f(self.system_data())
     }
 
     /// Adds a resource to the world.
