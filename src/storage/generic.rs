@@ -1,9 +1,12 @@
 use storage::{ReadStorage, WriteStorage};
 use world::{Component, Entity};
 
+/// Provides generic read access to both `ReadStorage` and `WriteStorage`
 pub trait GenericReadStorage {
+    /// The component type of the storage
     type Component: Component;
 
+    /// Get immutable access to an `Entity`s component
     fn get(&self, entity: Entity) -> Option<&Self::Component>;
 }
 
@@ -51,11 +54,18 @@ where
     }
 }
 
+/// Provides generic write access to `WriteStorage`, both as a value and a mutable reference.
 pub trait GenericWriteStorage {
+    /// The component type of the storage
     type Component: Component;
 
+    /// Get mutable access to an `Entity`s component
     fn get_mut(&mut self, entity: Entity) -> Option<&mut Self::Component>;
+
+    /// Insert a component for an `Entity`
     fn insert(&mut self, entity: Entity, comp: Self::Component);
+
+    /// Remove the component for an `Entity`
     fn remove(&mut self, entity: Entity);
 }
 
