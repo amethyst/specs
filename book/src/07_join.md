@@ -1,7 +1,7 @@
 # Joining components
 
 In the last chapter, we learned how to access resources using `SystemData`.
-To access our components with it, we can just fetch a `ReadStorage` and use
+To access our components with it, we can just get a `ReadStorage` and use
 `Storage::get` to get the component associated to an entity. This works quite
 well if you want to access a single component, but what if you want to
 iterate over many components? Maybe some of them are required, others might

@@ -2,7 +2,7 @@
 
 Every system can request data which it needs to run. This data can be specified
 using the `System::SystemData` type. Typical implementors of the `SystemData` trait
-are `ReadStorage`, `WriteStorage`, `Fetch`, `FetchMut` and `Entities`.
+are `ReadStorage`, `WriteStorage`, `Read`, `Write` and `Entities`.
 A tuple of types implementing `SystemData` automatically also implements `SystemData`.
 This means you can specify your `System::SystemData` as follows:
 
@@ -18,8 +18,8 @@ impl<'a> System<'a> for Sys {
 }
 ```
 
-It is very important that you don't fetch both a `ReadStorage` and a `WriteStorage`
-for the same component or a `Fetch` and a `FetchMut` for the same resource.
+It is very important that you don't Read both a `ReadStorage` and a `WriteStorage`
+for the same component or a `Read` and a `Write` for the same resource.
 This is just like the borrowing rules of Rust, where you can't borrow something
 mutably and immutably at the same time. In Specs, we have to check this at
 runtime, thus you'll get a panic if you don't follow this rule.
@@ -32,16 +32,16 @@ It implements `SystemData` so just put it in your `SystemData` tuple.
 
 > Don't confuse `specs::Entities` with `specs::EntitiesRes`.
   While the latter one is the actual resource, the former one is a type
-  definition for `Fetch<Entities>`.
+  definition for `Read<Entities>`.
 
 Please note that you may never write to these `Entities`, so only
-use `Fetch`. Even though it's immutable, you can atomically create
+use `Read`. Even though it's immutable, you can atomically create
 and delete entities with it. Just use the `.create()` and `.delete()`
 methods, respectively. After dynamic entity creation / deletion,
 a call `World::maintain` is necessary in order to make the changes
 persistent and delete associated components.
 
-**When joining over entities, you need to dereference `Fetch`
+**When joining over entities, you need to dereference `Read`
 and re-reference the returned `EntitiesRes`.**
 
 ## Adding and removing components
@@ -51,7 +51,7 @@ either components storage directly with a `WriteStorage`
 or lazily using the `LazyUpdate` resource.
 
 ```rust,ignore
-use specs::{Component, Fetch, LazyUpdate, NullStorage, System, Entities, WriteStorage};
+use specs::{Component, Read, LazyUpdate, NullStorage, System, Entities, WriteStorage};
 
 struct Stone;
 impl Component for Stone {
@@ -63,7 +63,7 @@ impl<'a> System<'a> for StoneCreator {
     type SystemData = (
         Entities<'a>,
         WriteStorage<'a, Stone>,
-        Fetch<'a, LazyUpdate>,
+        Read<'a, LazyUpdate>,
     );
 
     fn run(&mut self, (entities, stones, updater): Self::SystemData) {

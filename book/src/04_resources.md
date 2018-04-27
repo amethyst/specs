@@ -33,25 +33,25 @@ let mut delta = world.write_resource::<DeltaTime>();
 ## Accessing resources from a system
 
 As you might have guessed, there's a type implementing system data
-specifically for resources. It's called `Fetch` (or `FetchMut` for
+specifically for resources. It's called `Read` (or `Write` for
 write access).
 
 So we can now rewrite our system:
 
 ```rust,ignore
-use specs::{Fetch, ReadStorage, System, WriteStorage};
+use specs::{Read, ReadStorage, System, WriteStorage};
 
 struct UpdatePos;
 
 impl<'a> System<'a> for UpdatePos {
-    type SystemData = (Fetch<'a, DeltaTime>,
+    type SystemData = (Read<'a, DeltaTime>,
                        ReadStorage<'a, Velocity>,
                        WriteStorage<'a, Position>);
 
     fn run(&mut self, data: Self::SystemData) {
         let (delta, vel, mut pos) = data;
 
-        // `Fetch` implements `Deref`, so it
+        // `Read` implements `Deref`, so it
         // coerces to `&DeltaTime`.
         let delta = delta.0;
 

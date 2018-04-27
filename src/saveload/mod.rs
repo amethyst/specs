@@ -4,25 +4,25 @@
 //!
 //! This module provides two `SystemData` implementors:
 //!
-//! * `WorldSerialize` and
-//! * `WorldDeserialize`
+//! * `SerializeComponents` and
+//! * `DeserializeComponents`
 //!
-//! Fetching those makes it very easy to serialize or deserialize
-//! components. However, be aware that you cannot fetch storages
+//! Reading those makes it very easy to serialize or deserialize
+//! components. However, be aware that you cannot read storages
 //! used in `WorldDeserialize` with the same system. E.g.
 //! `type SystemData = (WorldDeserialize<'a, Marker, MyError, (Pos, Vel)>, WriteStorage<'a, Vel>)`
-//! is not valid since both `WorldDeserialize` and `WriteStorage` would fetch the same component
+//! is not valid since both `DeserializeComponents` and `WriteStorage` would fetch the same component
 //! storage mutably.
 //!
-//! `WorldSerialize` implements `Serialize` and `WorldDeserialize` implements
-//! `DeserializeSeed`, so serializing / deserializing should be very easy.
+//! `SerializeComponents` implements `Serialize` and `DeserializeComponents` implements
+//! `DeserializeOwned`, so serializing / deserializing should be very easy.
 //!
 //! ## Markers
 //!
-//! Let's start simple. Because you usually don't want to serialize everything, we use
+//! Because you usually don't want to serialize everything, we use
 //! markers to say which entities we're interested in. However, these markers
-//! aren't just boolean values; we'd like to also have id spaces which allow us
-//! to identify entities even though local ids are different. And the allocation
+//! aren't just boolean values; we also have id spaces which allow us
+//! to identify entities even if local ids are different. The allocation
 //! of these ids is what `MarkerAllocator`s are responsible for. For an example,
 //! see the docs for the `Marker` trait.
 //!

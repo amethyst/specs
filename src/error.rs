@@ -1,5 +1,3 @@
-//! Specs error module.
-//!
 //! There are specific types for errors (e.g. `WrongGeneration`)
 //! and additionally one `Error` type that can represent them all.
 //! Each error in this module has an `Into<Error>` implementation.

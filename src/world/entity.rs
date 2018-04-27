@@ -9,8 +9,8 @@ use join::{Join, ParJoin};
 /// An index is basically the id of an `Entity`.
 pub type Index = u32;
 
-/// A wrapper for a fetched `Entities` resource.
-/// Note that this is just `Fetch<Entities>`, so
+/// A wrapper for a read `Entities` resource.
+/// Note that this is just `Read<Entities>`, so
 /// you can easily use it in your system:
 ///
 /// ```
@@ -250,7 +250,7 @@ impl Entity {
 /// If you just want to access it in your system, you can also use the `Entities`
 /// type def.
 ///
-/// **Please note that you should never fetch
+/// **Please note that you should never get
 /// this mutably in a system, because it would
 /// block all the other systems.**
 ///
