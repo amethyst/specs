@@ -54,7 +54,7 @@ where
 /// They work lazily in the sense that they are
 /// dispatched when calling `world.maintain()`.
 /// Please note that the provided methods take `&self`
-/// so there's no need to fetch `LazyUpdate` mutably.
+/// so there's no need to get `LazyUpdate` mutably.
 /// This resource is added to the world by default.
 #[derive(Default)]
 pub struct LazyUpdate {

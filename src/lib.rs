@@ -214,7 +214,7 @@ pub mod saveload;
 /// Implementations and structures related to bitsets.
 ///
 /// Normally used for `Join`s and filtering entities.
-pub mod bitset;
+mod bitset;
 /// Change set
 pub mod changeset;
 /// Specs errors.
