@@ -309,14 +309,14 @@ impl World {
     ///     field: i32,
     /// }
     ///
-    /// world.exec(|(mut my_res,): (Write<MyRes>,)| {
+    /// world.execute(|(mut my_res,): (Write<MyRes>,)| {
     ///     assert_eq!(my_res.field, 0);
     ///     my_res.field = 5;
     /// });
     ///
     /// assert_eq!(world.read_resource::<MyRes>().field, 5);
     /// ```
-    pub fn exec<'a, F, R, T>(&'a mut self, f: F) -> R
+    pub fn execute<'a, F, R, T>(&'a mut self, f: F) -> R
     where
         F: FnOnce(T) -> R,
         T: SystemData<'a>,
