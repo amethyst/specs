@@ -2,13 +2,14 @@
 
 pub use self::data::{ReadStorage, WriteStorage};
 pub use self::flagged::FlaggedStorage;
+pub use self::generic::{GenericReadStorage, GenericWriteStorage};
 pub use self::restrict::{ImmutableParallelRestriction, MutableParallelRestriction,
                          RestrictedStorage, SequentialRestriction};
 #[cfg(feature = "serde")]
 pub use self::ser::{MergeError, PackedData};
+pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
-pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 pub use self::track::{InsertedFlag, ModifiedFlag, RemovedFlag, TrackChannels, Tracked};
 
 use std;
@@ -26,6 +27,7 @@ use world::{Component, EntitiesRes, Entity, Generation, Index};
 mod data;
 mod drain;
 mod flagged;
+mod generic;
 mod restrict;
 #[cfg(feature = "serde")]
 mod ser;

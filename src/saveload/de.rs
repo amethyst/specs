@@ -5,10 +5,9 @@ use serde::de::{self, Deserialize, DeserializeOwned, DeserializeSeed, Deserializ
                 Visitor};
 
 use error::NoError;
-use saveload::marker::{Marker, MarkerAllocator};
-use saveload::storages::GenericWriteStorage;
 use saveload::EntityData;
-use storage::WriteStorage;
+use saveload::marker::{Marker, MarkerAllocator};
+use storage::{GenericWriteStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
 
 /// A trait which allows to deserialize entities and their components.
