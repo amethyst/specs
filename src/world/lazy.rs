@@ -61,6 +61,11 @@ where
 /// and as such should better be done at the end.
 /// They work lazily in the sense that they are
 /// dispatched when calling `world.maintain()`.
+///
+/// Lazy updates are dispatched in the order that they
+/// are requested. Multiple updates sent from one system
+/// may be overridden by updates sent from other systems.
+///
 /// Please note that the provided methods take `&self`
 /// so there's no need to fetch `LazyUpdate` mutably.
 /// This resource is added to the world by default.
