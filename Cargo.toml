@@ -1,6 +1,6 @@
 [package]
 name = "specs"
-version = "0.11.0-alpha4"
+version = "0.11.0-alpha5"
 description = """
 Specs is an Entity-Component System library written in Rust.
 """

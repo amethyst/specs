@@ -198,8 +198,8 @@ impl Allocator {
 
         for i in (&self.killed).iter() {
             self.alive.remove(i);
+            deleted.push(Entity(i, self.generations[i as usize]));
             self.generations[i as usize].die();
-            deleted.push(Entity(i, self.generations[i as usize]))
         }
         self.killed.clear();
 
