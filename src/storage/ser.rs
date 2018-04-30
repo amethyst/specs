@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
-use serde::ser::SerializeStruct;
 use serde::{Deserialize, Serialize, Serializer};
+use serde::ser::SerializeStruct;
 
 use join::Join;
 use storage::{MaskedStorage, Storage, UnprotectedStorage};

@@ -525,7 +525,9 @@ impl World {
     /// Additionally, `LazyUpdate` will be merged.
     pub fn maintain(&mut self) {
         let deleted = self.entities_mut().alloc.merge();
-        self.delete_components(&deleted);
+        if !deleted.is_empty() {
+            self.delete_components(&deleted);
+        }
 
         self.write_resource::<LazyUpdate>().maintain(&*self);
     }

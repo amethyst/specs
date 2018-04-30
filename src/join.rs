@@ -2,8 +2,8 @@ use std;
 use std::cell::UnsafeCell;
 
 use hibitset::{BitIter, BitProducer, BitSetAnd, BitSetLike};
-use rayon::iter::plumbing::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
 use rayon::iter::ParallelIterator;
+use rayon::iter::plumbing::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
 use tuple_utils::Split;
 
 use world::{Entities, Entity, Index};

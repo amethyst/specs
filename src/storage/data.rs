@@ -1,6 +1,6 @@
-use shred::{Fetch, FetchMut, ResourceId, Resources, SystemData};
+use shred::{Fetch, FetchMut, MetaTable, ResourceId, Resources, SystemData};
 
-use storage::{MaskedStorage, Storage, TryDefault};
+use storage::{AnyStorage, MaskedStorage, Storage, TryDefault};
 use world::{Component, EntitiesRes};
 
 /// A storage with read access.
@@ -114,6 +114,13 @@ impl<'a, T> SystemData<'a> for ReadStorage<'a, T>
 where
     T: Component,
 {
+    fn setup(res: &mut Resources) {
+        res.entry::<MaskedStorage<T>>()
+            .or_insert_with(|| MaskedStorage::new(<T::Storage as TryDefault>::unwrap_default()));
+        res.fetch_mut::<MetaTable<AnyStorage>>()
+            .register(&*res.fetch::<MaskedStorage<T>>());
+    }
+
     fn fetch(res: &'a Resources) -> Self {
         Storage::new(res.fetch(), res.fetch())
     }
@@ -127,11 +134,6 @@ where
 
     fn writes() -> Vec<ResourceId> {
         vec![]
-    }
-
-    fn setup(res: &mut Resources) {
-        res.entry::<MaskedStorage<T>>()
-            .or_insert_with(|| MaskedStorage::new(<T::Storage as TryDefault>::unwrap_default()));
     }
 }
 
@@ -202,6 +204,13 @@ impl<'a, T> SystemData<'a> for WriteStorage<'a, T>
 where
     T: Component,
 {
+    fn setup(res: &mut Resources) {
+        res.entry::<MaskedStorage<T>>()
+            .or_insert_with(|| MaskedStorage::new(<T::Storage as TryDefault>::unwrap_default()));
+        res.fetch_mut::<MetaTable<AnyStorage>>()
+            .register(&*res.fetch::<MaskedStorage<T>>());
+    }
+
     fn fetch(res: &'a Resources) -> Self {
         Storage::new(res.fetch(), res.fetch_mut())
     }
@@ -212,11 +221,6 @@ where
 
     fn writes() -> Vec<ResourceId> {
         vec![ResourceId::new::<MaskedStorage<T>>()]
-    }
-
-    fn setup(res: &mut Resources) {
-        res.entry::<MaskedStorage<T>>()
-            .or_insert_with(|| MaskedStorage::new(<T::Storage as TryDefault>::unwrap_default()));
     }
 }
 
