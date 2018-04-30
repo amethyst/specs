@@ -1,6 +1,14 @@
-use crossbeam::sync::TreiberStack;
+use crossbeam::sync::SegQueue;
 
 use world::{Component, EntitiesRes, Entity, World};
+
+struct Queue<T>(SegQueue<T>);
+
+impl<T> Default for Queue<T> {
+    fn default() -> Queue<T> {
+        Queue(SegQueue::new())
+    }
+}
 
 /// Like `EntityBuilder`, but inserts the component
 /// lazily, meaning on `maintain`.
@@ -53,12 +61,17 @@ where
 /// and as such should better be done at the end.
 /// They work lazily in the sense that they are
 /// dispatched when calling `world.maintain()`.
+///
+/// Lazy updates are dispatched in the order that they
+/// are requested. Multiple updates sent from one system
+/// may be overridden by updates sent from other systems.
+///
 /// Please note that the provided methods take `&self`
 /// so there's no need to fetch `LazyUpdate` mutably.
 /// This resource is added to the world by default.
 #[derive(Default)]
 pub struct LazyUpdate {
-    stack: TreiberStack<Box<LazyUpdateInternal>>,
+    queue: Queue<Box<LazyUpdateInternal>>,
 }
 
 impl LazyUpdate {
@@ -230,13 +243,13 @@ impl LazyUpdate {
     where
         F: FnOnce(&World) + 'static + Send + Sync,
     {
-        self.stack.push(Box::new(f));
+        self.queue.0.push(Box::new(f));
     }
 
     pub(super) fn maintain(&mut self, world: &World) {
-        let lazy = &mut self.stack;
+        let lazy = &mut self.queue.0;
 
-        while let Some(l) = lazy.pop() {
+        while let Some(l) = lazy.try_pop() {
             l.update(&world);
         }
     }
@@ -245,6 +258,6 @@ impl LazyUpdate {
 impl Drop for LazyUpdate {
     fn drop(&mut self) {
         // TODO: remove as soon as leak is fixed in crossbeam
-        while self.stack.pop().is_some() {}
+        while self.queue.0.try_pop().is_some() {}
     }
 }

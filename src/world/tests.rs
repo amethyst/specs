@@ -93,6 +93,26 @@ fn lazy_execution() {
 }
 
 #[test]
+fn lazy_execution_order() {
+    let mut world = World::new();
+    world.add_resource(Vec::<u32>::new());
+    {
+        let lazy = world.read_resource::<LazyUpdate>();
+        lazy.execute(move |world| {
+            let mut v = world.write_resource::<Vec<u32>>();
+            v.push(1);
+        });
+        lazy.execute(move |world| {
+            let mut v = world.write_resource::<Vec<u32>>();
+            v.push(2);
+        });
+    }
+    world.maintain();
+    let v = world.read_resource::<Vec<u32>>();
+    assert_eq!(&**v, &[1, 2]);
+}
+
+#[test]
 fn delete_twice() {
     let mut world = World::new();
 
