@@ -2,8 +2,8 @@ use std::marker::PhantomData;
 
 use hibitset::BitSetLike;
 
-use storage::TryDefault;
 use storage::{DenseVecStorage, TrackChannels, Tracked, UnprotectedStorage};
+use storage::TryDefault;
 use world::{Component, Index};
 
 /// Wrapper storage that tracks modifications, insertions, and removals of components

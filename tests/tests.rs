@@ -333,8 +333,8 @@ fn join_two_components() {
 
 #[test]
 fn par_join_two_components() {
-    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
+    use std::sync::atomic::{AtomicBool, Ordering};
     let mut world = create_world();
     world
         .create_entity()
@@ -477,4 +477,72 @@ fn getting_specific_entity_with_join() {
         None,
         (&ints, &mut bools).join().get(entity, &world.entities())
     );
+}
+
+#[test]
+fn maintain_entity_deletion() {
+    let mut world = World::new();
+    struct DeleteSys {
+        pub entity: Option<Entity>,
+    };
+
+    impl<'a> System<'a> for DeleteSys {
+        type SystemData = Entities<'a>;
+
+        fn run(&mut self, entities: Self::SystemData) {
+            if let Some(entity) = self.entity {
+                if let Err(err) = entities.delete(entity) {
+                    println!("Failed deleting entity: {}", err);
+                }
+            }
+            self.entity = None;
+        }
+    }
+
+    let mut delete = DeleteSys { entity: None };
+
+    struct CheckSys;
+
+    impl<'a> System<'a> for CheckSys {
+        type SystemData = (
+            Entities<'a>,
+            ReadStorage<'a, CompInt>,
+            ReadStorage<'a, CompBool>,
+        );
+
+        fn run(&mut self, (entities, ints, bools): Self::SystemData) {
+            assert_eq!(
+                (&*entities, &ints, &bools).join().count(),
+                (&ints, &bools).join().count()
+            );
+        }
+    }
+
+    let mut check = CheckSys;
+    System::setup(&mut check, &mut world.res);
+
+    let _e1 = world
+        .create_entity()
+        .with(CompInt(12))
+        .with(CompBool(true))
+        .build();
+
+    let e2 = world
+        .create_entity()
+        .with(CompInt(12))
+        .with(CompBool(true))
+        .build();
+
+    let _e3 = world
+        .create_entity()
+        .with(CompInt(12))
+        .with(CompBool(true))
+        .build();
+
+    world.maintain();
+    check.run_now(&world.res);
+    delete.entity = Some(e2);
+    delete.run_now(&world.res);
+    world.maintain();
+    check.run_now(&world.res);
 }

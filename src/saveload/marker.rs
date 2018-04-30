@@ -142,7 +142,8 @@ impl<'a> EntityBuilder<'a> {
 ///     );
 /// }
 /// ```
-pub trait Marker: Clone + Component + Debug + Eq + Hash + DeserializeOwned + Serialize {
+pub trait Marker
+    : Clone + Component + Debug + Eq + Hash + DeserializeOwned + Serialize {
     /// Id of the marker
     type Identifier;
     /// Allocator for this `Marker`

@@ -2,8 +2,8 @@ extern crate rand;
 extern crate rayon;
 extern crate specs;
 
-use rand::distributions::{IndependentSample, Range};
 use rand::Rand;
+use rand::distributions::{IndependentSample, Range};
 
 use rayon::iter::ParallelIterator;
 
