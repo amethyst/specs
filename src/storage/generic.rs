@@ -1,4 +1,4 @@
-use storage::{ReadStorage, WriteStorage};
+use storage::{InsertResult, ReadStorage, WriteStorage};
 use world::{Component, Entity};
 
 pub struct Seal;
@@ -76,7 +76,7 @@ pub trait GenericWriteStorage {
     fn get_mut(&mut self, entity: Entity) -> Option<&mut Self::Component>;
 
     /// Insert a component for an `Entity`
-    fn insert(&mut self, entity: Entity, comp: Self::Component);
+    fn insert(&mut self, entity: Entity, comp: Self::Component) -> InsertResult<Self::Component>;
 
     /// Remove the component for an `Entity`
     fn remove(&mut self, entity: Entity);
@@ -95,8 +95,8 @@ where
         WriteStorage::get_mut(self, entity)
     }
 
-    fn insert(&mut self, entity: Entity, comp: Self::Component) {
-        WriteStorage::insert(self, entity, comp);
+    fn insert(&mut self, entity: Entity, comp: Self::Component) -> InsertResult<Self::Component> {
+        WriteStorage::insert(self, entity, comp)
     }
 
     fn remove(&mut self, entity: Entity) {
@@ -116,8 +116,8 @@ where
         WriteStorage::get_mut(*self, entity)
     }
 
-    fn insert(&mut self, entity: Entity, comp: Self::Component) {
-        WriteStorage::insert(*self, entity, comp);
+    fn insert(&mut self, entity: Entity, comp: Self::Component) -> InsertResult<Self::Component> {
+        WriteStorage::insert(*self, entity, comp)
     }
 
     fn remove(&mut self, entity: Entity) {
