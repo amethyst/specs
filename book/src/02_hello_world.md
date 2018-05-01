@@ -49,14 +49,14 @@ more succinctly:
 
 ```rust,ignore
 #[derive(Component, Debug)]
-#[component(VecStorage)]
+#[storage(VecStorage)]
 struct Position {
     x: f32,
     y: f32
 }
 
 #[derive(Component, Debug)]
-#[component(VecStorage)]
+#[storage(VecStorage)]
 struct Velocity {
     x: f32,
     y: f32,
