@@ -180,5 +180,5 @@ fn main() {
 ---
 
 [The next chapter][c4] will be a really short chapter about `Resource`s,
-a way to share data between systems which do only exist independent of
+a way to share data between systems which only exist independent of
 entities (as opposed to 0..1 times per entity).

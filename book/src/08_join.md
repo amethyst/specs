@@ -96,7 +96,7 @@ The method call always returns an iterator. `Join` is implemented for
 * `&EntitiesRes` (returns `Entity` values)
 * bitsets
 
-I think the last point here is pretty interesting, because
+We think the last point here is pretty interesting, because
 it allows for even more flexibility, as you will see in the next
 section.
 
@@ -119,8 +119,8 @@ bitset.add(entity1.id());
 bitset.add(entity2.id());
 ```
 
-`BitSet`s can be combined using the usual binary operators,
-so `&`, `|` and `^`. Additionally, you can negate them using `!`.
+`BitSet`s can be combined using the standard binary operators,
+`&`, `|` and `^`. Additionally, you can negate them using `!`.
 This allows you to combine and filter components in multiple ways.
 
 ---
