@@ -2,7 +2,7 @@ extern crate rayon;
 extern crate specs;
 
 use specs::prelude::*;
-use specs::storage::{HashMapStorage, InsertResult};
+use specs::storage::HashMapStorage;
 
 #[derive(Clone, Debug, PartialEq)]
 struct CompInt(i8);
@@ -237,7 +237,7 @@ fn stillborn_entities() {
         fn run(&mut self, (entities, mut comp_int, rand): Self::SystemData) {
             for &i in &rand.values {
                 let result = comp_int.insert(entities.create(), CompInt(i));
-                if let InsertResult::EntityIsDead(_) = result {
+                if let Err(_) = result {
                     panic!("Couldn't insert {} into a stillborn entity", i);
                 }
             }

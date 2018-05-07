@@ -84,7 +84,9 @@ fn lazy_execution() {
     {
         let lazy = world.read_resource::<LazyUpdate>();
         lazy.execute(move |world| {
-            world.write_storage::<Pos>().insert(e, Pos);
+            if let Err(err) = world.write_storage::<Pos>().insert(e, Pos) {
+                panic!("Unable to lazily insert component! {:?}", err);
+            }
         });
     }
 

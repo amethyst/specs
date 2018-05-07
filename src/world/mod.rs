@@ -10,7 +10,6 @@ use shred::{Fetch, FetchMut, MetaTable, Read, Resource, Resources, SystemData};
 
 use error::WrongGeneration;
 use storage::{AnyStorage, DenseVecStorage, MaskedStorage, ReadStorage, WriteStorage};
-use storage::InsertResult::*;
 
 mod comp;
 mod entity;
@@ -85,10 +84,9 @@ impl<'a> EntityBuilder<'a> {
     pub fn with<T: Component>(self, c: T) -> Self {
         {
             let mut storage = self.world.write_storage();
-            if let EntityIsDead(_) = storage.insert(self.entity, c) {
-                // This is technically possible, however quite unlikely.
-                warn!("{:?} will be created without a component because it was killed before being built.", self.entity);
-            }
+            // This can't fail.  This is guaranteed by the lifetime 'a
+            // in the EntityBuilder.
+            let _ = storage.insert(self.entity, c);
         }
 
         self

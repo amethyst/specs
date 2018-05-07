@@ -31,7 +31,9 @@ mod map_test {
         let mut c = create(&mut w);
 
         for i in 0..1_000 {
-            c.insert(ent(i), Comp(i));
+            if let Err(err) = c.insert(ent(i), Comp(i)) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
         }
 
         for i in 0..1_000 {
@@ -45,7 +47,9 @@ mod map_test {
         let mut c = create(&mut w);
 
         for i in 0..100_000 {
-            c.insert(ent(i), Comp(i));
+            if let Err(err) = c.insert(ent(i), Comp(i)) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
         }
 
         for i in 0..100_000 {
@@ -59,7 +63,9 @@ mod map_test {
         let mut c = create(&mut w);
 
         for i in 0..1_000 {
-            c.insert(ent(i), Comp(i));
+            if let Err(err) = c.insert(ent(i), Comp(i)) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
         }
 
         for i in 0..1_000 {
@@ -81,8 +87,12 @@ mod map_test {
         let mut c = create(&mut w);
 
         for i in 0..1_000i32 {
-            c.insert(ent(i as u32), Comp(i));
-            c.insert(ent(i as u32), Comp(-i));
+            if let Err(err) = c.insert(ent(i as u32), Comp(i)) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
+            if let Err(err) = c.insert(ent(i as u32), Comp(-i)) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
         }
 
         for i in 0..1_000i32 {
@@ -96,7 +106,9 @@ mod map_test {
         let mut c = create(&mut w);
 
         for i in 0..10_000 {
-            c.insert(ent(i), Comp(i));
+            if let Err(err) = c.insert(ent(i), Comp(i)) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
             assert_eq!(c.get(ent(i)).unwrap().0, i);
         }
     }
@@ -107,7 +119,7 @@ mod map_test {
         let mut w = World::new();
         let mut c = create(&mut w);
 
-        c.insert(ent(1 << 25), Comp(7));
+        let _ = c.insert(ent(1 << 25), Comp(7));
     }
 }
 
@@ -228,7 +240,9 @@ mod test {
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..1_000 {
-            s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into());
+            if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
         }
 
         for i in 0..1_000 {
@@ -247,7 +261,9 @@ mod test {
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..1_000 {
-            s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into());
+            if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
         }
 
         for i in 0..1_000 {
@@ -267,7 +283,9 @@ mod test {
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..1_000 {
-            s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into());
+            if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
         }
 
         for i in 0..1_000 {
@@ -292,8 +310,12 @@ mod test {
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..1_000 {
-            s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into());
-            s.insert(Entity::new(i, Generation::new(2)), (i + 31415).into());
+            if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
+            if let Ok(_) = s.insert(Entity::new(i, Generation::new(2)), (i + 31415).into()) {
+                panic!("Overwrote entity generation!  I shouldn't have been allowed to do this!");
+            }
         }
 
         for i in 0..1_000 {
@@ -313,7 +335,9 @@ mod test {
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..1_000 {
-            s.insert(Entity::new(i, Generation::new(2)), (i + 2718).into());
+            if let Ok(_) = s.insert(Entity::new(i, Generation::new(2)), (i + 2718).into()) {
+                panic!("Overwrote entity generation!  I shouldn't have been allowed to do this!");
+            }
         }
 
         for i in 0..1_000 {
@@ -329,7 +353,9 @@ mod test {
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..10 {
-            s.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
+            if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 10).into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
         }
 
         s.clear();
@@ -349,7 +375,9 @@ mod test {
         let mut s: Storage<T, _> = create::<T>(&mut w);
 
         for i in 0..10 {
-            s.insert(Entity::new(i, Generation::new(1)), (i + 10).into());
+            if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 10).into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
         }
 
         for (i, (a, _)) in (&s, !&s).join().take(10).enumerate() {
@@ -501,8 +529,14 @@ mod test {
         let mut null = w.write_storage::<Cnull>();
 
         assert_eq!(null.get(e), None);
-        assert_eq!(null.insert(e, Cnull), InsertResult::Inserted);
-        assert_eq!(null.insert(e, Cnull), InsertResult::Updated(Cnull));
+        match null.insert(e, Cnull) {
+            Ok(None) => {}
+            r => panic!("Expected Ok(None) got {:?}", r),
+        }
+        match null.insert(e, Cnull) {
+            Ok(Some(Cnull)) => {}
+            r => panic!("Expected Ok(Some(Cnull)) got {:?}", r),
+        }
     }
 
     #[test]
@@ -517,7 +551,9 @@ mod test {
 
         for i in 0..50 {
             let c = i + 10;
-            s1.insert(Entity::new(i, Generation::new(1)), c.into());
+            if let Err(err) = s1.insert(Entity::new(i, Generation::new(1)), c.into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
             components.insert(c);
         }
 
@@ -555,7 +591,9 @@ mod test {
 
         for i in 0..50 {
             let c = i + 10;
-            s1.insert(Entity::new(i, Generation::new(1)), c.into());
+            if let Err(err) = s1.insert(Entity::new(i, Generation::new(1)), c.into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
             components.insert(c);
         }
 
@@ -674,7 +712,9 @@ mod test {
         let mut s1: Storage<CMarker, _> = w.write_storage();
 
         for i in 0..50 {
-            s1.insert(Entity::new(i, Generation::new(1)), CMarker);
+            if let Err(err) = s1.insert(Entity::new(i, Generation::new(1)), CMarker) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
         }
 
         for (entity, id) in (&*w.entities(), s1.mask().clone()).join() {
@@ -698,7 +738,9 @@ mod test {
         let mut s1: Storage<CMarker, _> = w.write_storage();
 
         for i in 0..50 {
-            s1.insert(Entity::new(i, Generation::new(1)), CMarker);
+            if let Err(err) = s1.insert(Entity::new(i, Generation::new(1)), CMarker) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
         }
 
         assert_eq!((s1.mask()).par_join().count(), 50);
@@ -724,7 +766,9 @@ mod test {
 
         for i in 0..15 {
             let entity = w.entities().create();
-            s1.insert(entity, i.into());
+            if let Err(err) = s1.insert(entity, i.into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
         }
 
         {
@@ -833,8 +877,8 @@ mod serialize_test {
         let serialized = serde_json::to_string(&storage).unwrap();
         assert_eq!(
             serialized,
-            r#"{"offsets":[1,4,5],"components":[{"field1":0,"field2":true},"#.to_owned() +
-                r#"{"field1":158123,"field2":false},{"field1":4294967295,"field2":false}]}"#
+            r#"{"offsets":[1,4,5],"components":[{"field1":0,"field2":true},"#.to_owned()
+                + r#"{"field1":158123,"field2":false},{"field1":4294967295,"field2":false}]}"#
         );
     }
 

@@ -191,8 +191,9 @@ where
 ///     .build();
 /// # let mut pos_storage = world.write_storage::<Pos>();
 ///
-/// let res = pos_storage.insert(entity, Pos(4.0));
-/// assert_eq!(res, InsertResult::Updated(Pos(0.1)));
+/// if let Ok(Some(p)) = pos_storage.insert(entity, Pos(4.0)) {
+///     println!("Overwrote {:?} with a new position", p);
+/// }
 /// ```
 ///
 /// There's also an Entry-API similar to the one provided by

@@ -113,7 +113,10 @@ impl<'a> System<'a> for SysSpawn {
         }
 
         let entity = data.entities.create();
-        data.comp_int.insert(entity, CompInt(self.counter));
+        // This line can't fail because we just made the entity.
+        // So we use the leading `let _ =` to indicate we don't
+        // care about the result of this insert.
+        let _ = data.comp_int.insert(entity, CompInt(self.counter));
 
         self.counter += 1;
 
@@ -222,7 +225,9 @@ fn main() {
     w.maintain();
 
     // Insert a component, associated with `e`.
-    w.write_storage().insert(e, CompFloat(4.0));
+    if let Err(err) = w.write_storage().insert(e, CompFloat(4.0)) {
+        eprintln!("Failed to insert component! {:?}", err);
+    }
 
     dispatcher.dispatch(&w.res);
     w.maintain();

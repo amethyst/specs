@@ -1,6 +1,5 @@
 use crossbeam::sync::SegQueue;
 
-use storage::InsertResult::*;
 use world::{Component, EntitiesRes, Entity, World};
 
 struct Queue<T>(SegQueue<T>);
@@ -30,7 +29,7 @@ impl<'a> LazyBuilder<'a> {
     {
         let entity = self.entity;
         self.lazy.execute(move |world| {
-            if let EntityIsDead(_) = world.write_storage::<C>().insert(entity, component) {
+            if let Err(_) = world.write_storage::<C>().insert(entity, component) {
                 warn!(
                     "Lazy insert of component failed because {:?} was dead.",
                     entity
@@ -139,7 +138,7 @@ impl LazyUpdate {
         C: Component + Send + Sync,
     {
         self.execute(move |world| {
-            if let EntityIsDead(_) = world.write_storage::<C>().insert(e, c) {
+            if let Err(_) = world.write_storage::<C>().insert(e, c) {
                 warn!("Lazy insert of component failed because {:?} was dead.", e);
             }
         });
@@ -179,7 +178,7 @@ impl LazyUpdate {
         self.execute(move |world| {
             let mut storage = world.write_storage::<C>();
             for (e, c) in iter {
-                if let EntityIsDead(_) = storage.insert(e, c) {
+                if let Err(_) = storage.insert(e, c) {
                     warn!("Lazy insert of component failed because {:?} was dead.", e);
                 }
             }

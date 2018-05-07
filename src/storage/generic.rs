@@ -25,7 +25,9 @@ where
         ReadStorage::get(self, entity)
     }
 
-    fn _private() -> Seal { Seal }
+    fn _private() -> Seal {
+        Seal
+    }
 }
 
 impl<'a: 'b, 'b, T> GenericReadStorage for &'b ReadStorage<'a, T>
@@ -38,7 +40,9 @@ where
         ReadStorage::get(*self, entity)
     }
 
-    fn _private() -> Seal { Seal }
+    fn _private() -> Seal {
+        Seal
+    }
 }
 
 impl<'a, T> GenericReadStorage for WriteStorage<'a, T>
@@ -51,7 +55,9 @@ where
         WriteStorage::get(self, entity)
     }
 
-    fn _private() -> Seal { Seal }
+    fn _private() -> Seal {
+        Seal
+    }
 }
 
 impl<'a: 'b, 'b, T> GenericReadStorage for &'b WriteStorage<'a, T>
@@ -64,7 +70,9 @@ where
         WriteStorage::get(*self, entity)
     }
 
-    fn _private() -> Seal { Seal }
+    fn _private() -> Seal {
+        Seal
+    }
 }
 
 /// Provides generic write access to `WriteStorage`, both as a value and a mutable reference.
@@ -103,7 +111,9 @@ where
         WriteStorage::remove(self, entity);
     }
 
-    fn _private() -> Seal { Seal }
+    fn _private() -> Seal {
+        Seal
+    }
 }
 
 impl<'a: 'b, 'b, T> GenericWriteStorage for &'b mut WriteStorage<'a, T>
@@ -124,5 +134,7 @@ where
         WriteStorage::remove(*self, entity);
     }
 
-    fn _private() -> Seal { Seal }
+    fn _private() -> Seal {
+        Seal
+    }
 }

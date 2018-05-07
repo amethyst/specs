@@ -20,7 +20,7 @@ use hibitset::{BitSet, BitSetLike, BitSetNot};
 use shred::{CastFrom, Fetch};
 
 use self::drain::Drain;
-use error::WrongGeneration;
+use error::{Error, WrongGeneration};
 use join::{Join, ParJoin};
 use world::{Component, EntitiesRes, Entity, Generation, Index};
 
@@ -109,18 +109,9 @@ where
 pub unsafe trait DistinctStorage {}
 
 /// The status of an `insert()`ion into a storage.
-#[must_use]
-#[derive(Debug, PartialEq)]
-pub enum InsertResult<T> {
-    /// The value was inserted and there was no value before
-    Inserted,
-    /// The value was updated an already inserted value
-    /// the value returned is the old value
-    Updated(T),
-    /// The value failed to insert because the entity
-    /// was invalid
-    EntityIsDead(T),
-}
+/// If the insertion was successful then the Ok value will
+/// contain the component that was replaced (if any).
+pub type InsertResult<T> = Result<Option<T>, Error>;
 
 /// The `UnprotectedStorage` together with the `BitSet` that knows
 /// about which elements are stored, and which are not.
@@ -415,14 +406,18 @@ where
             let id = e.id();
             if self.data.mask.contains(id) {
                 std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id) });
-                InsertResult::Updated(v)
+                Ok(Some(v))
             } else {
                 self.data.mask.add(id);
                 unsafe { self.data.inner.insert(id, v) };
-                InsertResult::Inserted
+                Ok(None)
             }
         } else {
-            InsertResult::EntityIsDead(v)
+            Err(Error::WrongGeneration(WrongGeneration {
+                action: "insert component for entity",
+                actual_gen: self.entities.entity(e.id()).gen(),
+                entity: e,
+            }))
         }
     }
 

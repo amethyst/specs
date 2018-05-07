@@ -239,7 +239,9 @@ pub trait MarkerAllocator<M: Marker>: Resource {
         let entity = entities.create();
         let marker = self.allocate(entity, Some(marker.id()));
 
-        storage.insert(entity, marker);
+        // It's not possible for this to fail, as there's no way a freshly
+        // created entity could be dead this fast.
+        let _ = storage.insert(entity, marker);
         entity
     }
 
