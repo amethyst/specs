@@ -67,7 +67,7 @@ where
 /// may be overridden by updates sent from other systems.
 ///
 /// Please note that the provided methods take `&self`
-/// so there's no need to fetch `LazyUpdate` mutably.
+/// so there's no need to get `LazyUpdate` mutably.
 /// This resource is added to the world by default.
 #[derive(Default)]
 pub struct LazyUpdate {

@@ -13,12 +13,12 @@ use world::{Component, EntitiesRes};
 ///
 /// ## Aliasing
 ///
-/// **It is strictly disallowed to fetch both a `ReadStorage` and a `WriteStorage`
+/// **It is strictly disallowed to get both a `ReadStorage` and a `WriteStorage`
 /// of the same component.**
 /// Because Specs uses interior mutability for its resources, we can't check
 /// this at compile time. If you try to do this, you will get a panic.
 ///
-/// It is explicitly allowed to fetch multiple `ReadStorage`s for the same
+/// It is explicitly allowed to get multiple `ReadStorage`s for the same
 /// component.
 ///
 /// ## Joining storages
@@ -76,7 +76,7 @@ use world::{Component, EntitiesRes};
 /// ## Usage as `SystemData`
 ///
 /// `ReadStorage` implements `SystemData` which allows you to
-/// fetch it inside a system by simply adding it to the tuple:
+/// get it inside a system by simply adding it to the tuple:
 ///
 /// ```
 /// # use specs::prelude::*;

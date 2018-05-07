@@ -153,7 +153,7 @@ pub trait Marker
     /// The value of this method should be constant.
     fn id(&self) -> Self::Identifier;
 
-    /// This gets called when an entity is deserialized by `DeserializeEntity`.
+    /// This gets called when an entity is deserialized by `DeserializeComponents`.
     /// It can be used to update internal data that is not used for
     /// identification.
     ///
@@ -200,7 +200,7 @@ pub trait Marker
 }
 
 /// This allocator is used with the `Marker` trait.
-/// It provides method for allocation new `Marker`s.
+/// It provides a method for allocating new `Marker`s.
 /// It should also provide a `Marker -> Entity` mapping.
 /// The `maintain` method can be implemented for cleanup and actualization.
 /// See docs for `Marker` for an example.
