@@ -203,7 +203,7 @@ where
                     // It's not possible for this to fail, as we've
                     // already proven the entity is alive by grabbing a
                     // component from it.
-                    let _ = pers.insert(spawn.0, value);
+                    pers.insert(spawn.0, value).unwrap();
                     false
                 }
                 Err(err) => {

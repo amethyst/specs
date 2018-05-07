@@ -86,7 +86,7 @@ impl<'a> EntityBuilder<'a> {
             let mut storage = self.world.write_storage();
             // This can't fail.  This is guaranteed by the lifetime 'a
             // in the EntityBuilder.
-            let _ = storage.insert(self.entity, c);
+            storage.insert(self.entity, c).unwrap();
         }
 
         self

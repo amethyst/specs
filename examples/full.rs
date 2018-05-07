@@ -114,9 +114,7 @@ impl<'a> System<'a> for SysSpawn {
 
         let entity = data.entities.create();
         // This line can't fail because we just made the entity.
-        // So we use the leading `let _ =` to indicate we don't
-        // care about the result of this insert.
-        let _ = data.comp_int.insert(entity, CompInt(self.counter));
+        data.comp_int.insert(entity, CompInt(self.counter)).unwrap();
 
         self.counter += 1;
 
