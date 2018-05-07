@@ -9,8 +9,7 @@ use std::borrow::Borrow;
 use shred::{Fetch, FetchMut, MetaTable, Read, Resource, Resources, SystemData};
 
 use error::WrongGeneration;
-use storage::{AnyStorage, DenseVecStorage, MaskedStorage};
-use storage::{ReadStorage, WriteStorage};
+use storage::{AnyStorage, DenseVecStorage, MaskedStorage, ReadStorage, WriteStorage};
 
 mod comp;
 mod entity;
@@ -85,7 +84,9 @@ impl<'a> EntityBuilder<'a> {
     pub fn with<T: Component>(self, c: T) -> Self {
         {
             let mut storage = self.world.write_storage();
-            storage.insert(self.entity, c);
+            // This can't fail.  This is guaranteed by the lifetime 'a
+            // in the EntityBuilder.
+            storage.insert(self.entity, c).unwrap();
         }
 
         self

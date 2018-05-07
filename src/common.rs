@@ -200,7 +200,10 @@ where
             match spawn.1.poll_future_notify(NOTIFY_IGNORE, 0) {
                 Ok(Async::NotReady) => true,
                 Ok(Async::Ready(value)) => {
-                    pers.insert(spawn.0, value);
+                    // It's not possible for this to fail, as we've
+                    // already proven the entity is alive by grabbing a
+                    // component from it.
+                    pers.insert(spawn.0, value).unwrap();
                     false
                 }
                 Err(err) => {

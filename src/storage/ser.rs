@@ -16,6 +16,8 @@ pub enum MergeError {
     /// Returned if there is no
     /// entity matching the specified offset.
     NoEntity(Index),
+    /// Returned if the entity is dead.
+    EntityDead(Entity),
 }
 
 /// Structure of packed components with offsets of which entities they belong to.
@@ -105,7 +107,9 @@ where
         for (component, offset) in packed.components.drain(..).zip(packed.offsets.iter()) {
             match entities.get(*offset as usize) {
                 Some(entity) => {
-                    self.insert(*entity, component);
+                    if let Err(_) = self.insert(*entity, component) {
+                        return Err(MergeError::EntityDead(*entity));
+                    }
                 }
                 None => {
                     return Err(MergeError::NoEntity(*offset));

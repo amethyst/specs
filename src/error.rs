@@ -58,7 +58,8 @@ pub enum Error {
     /// Wrong generation error.
     WrongGeneration(WrongGeneration),
 
-    #[doc(hidden)] __NonExhaustive,
+    #[doc(hidden)]
+    __NonExhaustive,
 }
 
 impl Display for Error {
@@ -102,7 +103,7 @@ impl StdError for Error {
 }
 
 /// Wrong generation error.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct WrongGeneration {
     /// The action that failed because of the wrong generation.
     pub action: &'static str,
@@ -133,7 +134,7 @@ impl StdError for WrongGeneration {
 /// An error type which cannot be instantiated.
 /// Used as a placeholder for associated error types if
 /// something cannot fail.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum NoError {}
 
 impl Display for NoError {
