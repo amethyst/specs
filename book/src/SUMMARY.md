@@ -10,4 +10,5 @@
 - [Joining components](08_join.md)
 - [Parallel Join](09_parallel_join.md)
 - [Rendering](10_rendering.md)
+- [Advanced component strategies](11_advanced_component.md)
 - [Building a game with Specs]()
