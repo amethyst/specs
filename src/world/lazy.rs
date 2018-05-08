@@ -28,7 +28,7 @@ impl<'a> LazyBuilder<'a> {
         C: Component + Send + Sync,
     {
         let entity = self.entity;
-        self.lazy.execute(move |world| {
+        self.lazy.exec(move |world| {
             if let Err(_) = world.write_storage::<C>().insert(entity, component) {
                 warn!(
                     "Lazy insert of component failed because {:?} was dead.",
@@ -137,7 +137,7 @@ impl LazyUpdate {
     where
         C: Component + Send + Sync,
     {
-        self.execute(move |world| {
+        self.exec(move |world| {
             if let Err(_) = world.write_storage::<C>().insert(e, c) {
                 warn!("Lazy insert of component failed because {:?} was dead.", e);
             }
@@ -175,7 +175,7 @@ impl LazyUpdate {
         C: Component + Send + Sync,
         I: IntoIterator<Item = (Entity, C)> + Send + Sync + 'static,
     {
-        self.execute(move |world| {
+        self.exec(move |world| {
             let mut storage = world.write_storage::<C>();
             for (e, c) in iter {
                 if let Err(_) = storage.insert(e, c) {
@@ -214,7 +214,7 @@ impl LazyUpdate {
     where
         C: Component + Send + Sync,
     {
-        self.execute(move |world| {
+        self.exec(move |world| {
             world.write_storage::<C>().remove(e);
         });
     }
@@ -239,7 +239,7 @@ impl LazyUpdate {
     ///
     ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
     ///         for entity in ent.join() {
-    ///             lazy.execute(move |world| {
+    ///             lazy.exec(move |world| {
     ///                 if world.is_alive(entity) {
     ///                     println!("Entity {:?} is alive.", entity);
     ///                 }
@@ -248,7 +248,7 @@ impl LazyUpdate {
     ///     }
     /// }
     /// ```
-    pub fn execute<F>(&self, f: F)
+    pub fn exec<F>(&self, f: F)
     where
         F: FnOnce(&World) + 'static + Send + Sync,
     {
