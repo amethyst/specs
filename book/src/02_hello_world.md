@@ -134,12 +134,13 @@ impl<'a> System<'a> for HelloWorld {
 Note that all components that a system accesses must be registered with
 `world.register::<Component>()` before that system is run, or you will get a
 panic. This will usually be done automatically during `setup`, but we'll 
-come back to that in a later chapter.
+come back to that in a later [chapter][se].
 
 > There are many other types you can use as system data. Please see the
 > [System Data Chapter][cs] for more information.
 
 [cs]: ./06_system_data.html
+[se]: ./07_setup.html
 
 ## Running the system
 
