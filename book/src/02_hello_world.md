@@ -133,7 +133,8 @@ impl<'a> System<'a> for HelloWorld {
 
 Note that all components that a system accesses must be registered with
 `world.register::<Component>()` before that system is run, or you will get a
-panic.
+panic. This will usually be done automatically during `setup`, but we'll 
+come back to that in a later chapter.
 
 > There are many other types you can use as system data. Please see the
 > [System Data Chapter][cs] for more information.
@@ -207,7 +208,7 @@ fn main() {
 ---
 
 This was a pretty basic example so far. A key feature we haven't seen is the
-`Dispatcher`, which allows to configure run systems in parallel (and it offers
+`Dispatcher`, which allows us to configure systems to run in parallel (and it offers
 some other nice features, too).
 
 Let's see how that works in [Chapter 3: Dispatcher][c3].

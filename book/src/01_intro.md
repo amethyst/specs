@@ -60,7 +60,7 @@ public class Npc extends Character {
 Now you have stuff duplicated; you would have to write mostly identical code for
 your player and the NPC, even though e.g. they both share a transform.
 
-This is where the ECS comes into play: Components are *associated* with entities;
+This is where ECS comes into play: Components are *associated* with entities;
 you just insert some component, whenever you like. Also, you only define the functionality
 once: One System, taking a `Force` and a `Mass` - it produces a `Velocity`.
 
@@ -70,9 +70,9 @@ In fact, an entity does not even own the components; it's just
 struct Entity(u32, Generation);
 ```
 
-where the first field is the id and the second one is the generation, used to validate
-if the entity hasn't been deleted. The components are stored separately, which
-also has the advantage of being more cache efficient.
+where the first field is the id and the second one is the generation, used to check
+if the entity has been deleted. The components are stored separately, which
+also has the advantage of being more cache friendly.
 
 Another way you can think of an entity is that it just
 groups together a group of components. We'll see how this works
