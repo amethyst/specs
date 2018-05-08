@@ -10,7 +10,7 @@
 [ci]: https://img.shields.io/crates/v/specs.svg
 [cl]: https://crates.io/crates/specs/
 
-[li]: https://img.shields.io/badge/license-Apache%202.0-blue.svg
+[li]: https://img.shields.io/crates/l/specs.svg?maxAge=2592000
 
 [di]: https://docs.rs/specs/badge.svg
 [dl]: https://docs.rs/specs/
@@ -44,9 +44,10 @@ Minimum Rust version: 1.21
 ## Example
 
 ```rust
+use specs::prelude::*;
+
 // A component contains data
 // which is associated with an entity.
-
 #[derive(Debug)]
 struct Vel(f32);
 
@@ -70,9 +71,9 @@ impl<'a> System<'a> for SysA {
     type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
 
     fn run(&mut self, (mut pos, vel): Self::SystemData) {
-        // The `.join()` combines multiple components,
-        // so we only access those entities which have
-        // both of them.
+        // The `.join()` combines multiple component storages,
+        // so we get access to all entities which have
+        // both a position and a velocity.
         for (pos, vel) in (&mut pos, &vel).join() {
             pos.0 += vel.0;
         }
@@ -102,6 +103,9 @@ fn main() {
     // Since we only have one, we don't depend on anything.
     // See the `full` example for dependencies.
     let mut dispatcher = DispatcherBuilder::new().with(SysA, "sys_a", &[]).build();
+    // This will call the `setup` function of every system.
+    // In this example this has no effect since we already registered our components.
+    dispatcher.setup(&mut world.res);
 
     // This dispatches all the systems in parallel (but blocking).
     dispatcher.dispatch(&mut world.res);
@@ -112,6 +116,6 @@ Please look into [the examples directory](examples) for more.
 
 ## Contribution
 
-Contribution is very welcome! If you didn't contribute before, just
-filter for issues with "easy" label. Please note that your contributions
-are assumed to be dual-licensed under Apache-2.0/MIT.
+Contribution is very welcome! If you didn't contribute before,
+just filter for issues with "easy" or "good first issue" label.
+Please note that your contributions are assumed to be dual-licensed under Apache-2.0/MIT.
