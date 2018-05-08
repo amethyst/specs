@@ -55,7 +55,7 @@ impl<'a> System<'a> for Sys {
 
 Using `NullStorage` is recommended for marker components, since they don't contain
 any data and as such will not consume any memory. This means we can represent them using 
-only a bitset. Note that `NullStorage` will only work for components that are ZST (i.e. a 
+only a bitset. Note that `NullStorage` will only work components that are ZST (i.e. a 
 struct without fields). 
 
 ## Modeling entity relationships and hierarchy
@@ -124,8 +124,8 @@ impl<'a> System<'a> for Render {
     );
     
     fn run(&mut self, (active_cam, camera, transform, mesh) : Self::SystemData) {
-        let camera = camera.get(active_cam.0).unwrap();
-        let view_matrix = transform.get(active_cam.0).unwrap().invert();
+        let camera = camera.get(active_cam.0);
+        let view_matrix = transform.get(active_cam.0).invert();
         // Set projection and view matrix uniforms
         for (mesh, transform) in (&mesh, &transform) {
             // Set world transform matrix
