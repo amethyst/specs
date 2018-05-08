@@ -17,10 +17,12 @@ macro_rules! group {
 
 mod storage_cmp;
 mod storage_sparse;
+mod storage_perf;
 
 pub use test::black_box;
 
 use storage_cmp::benches_storages;
 use storage_sparse::benches_sparse;
+use storage_perf::benches_storage_perfs;
 
-criterion_main!(benches_storages, benches_sparse);
+criterion_main!(benches_storages, benches_sparse, benches_storage_perfs);
