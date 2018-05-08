@@ -20,6 +20,9 @@
 * Update to rayon 1.0 ([#352])
 * Add `World::system_data` method ([#369])
 * BREAKING: Change the way resources are handled (see below) ([shred#77])
+* Export all items currently in prelude in the root of the crate ([#394])
+* If an EntityBuilder drops before being built the entity will now be deleted on maintain ([#394])
+* Removed some redundancy in documentation ([#394])
 
 There is one bigger breaking change in this release. Almost all`Fetch` / `FetchMut` types need to be replaced
 with `Read` / `Write`. Both require the resource to implement `Default`, because now the resources can be
@@ -57,6 +60,7 @@ behavior as before).
 [#356]: https://github.com/slide-rs/specs/pull/356
 [#363]: https://github.com/slide-rs/specs/pull/363
 [#369]: https://github.com/slide-rs/specs/pull/369
+[#394]: https://github.com/slide-rs/specs/pull/394
 
 [shred#77]: https://github.com/slide-rs/shred/pull/77
 

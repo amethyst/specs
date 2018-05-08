@@ -207,26 +207,29 @@ extern crate serde;
 extern crate rudy;
 
 #[cfg(feature = "common")]
-/// Common functionality between crates using specs.
 pub mod common;
 
 #[cfg(feature = "serde")]
-/// Serialization/deserialization for the world state.
 pub mod saveload;
 
-/// Implementations and structures related to bitsets.
-///
-/// Normally used for `Join`s and filtering entities.
 mod bitset;
-/// Change set
 pub mod changeset;
-/// Specs errors.
 pub mod error;
-/// Joining of components for iteration over entities with specific components.
 pub mod join;
-/// Commonly used traits, structs, enums, etc. for ease of use.
 pub mod prelude;
-/// Component storages, implementations for component joins, etc.
 pub mod storage;
-/// Entities, resources, components, and general world management.
 pub mod world;
+
+pub use hibitset::BitSet;
+pub use join::{Join, ParJoin};
+pub use shred::{Dispatcher, DispatcherBuilder, Read, ReadExpect, Resources, RunNow, System,
+                SystemData, Write, WriteExpect};
+pub use shrev::ReaderId;
+
+#[cfg(not(target_os = "emscripten"))]
+pub use shred::AsyncDispatcher;
+
+pub use changeset::ChangeSet;
+pub use storage::{DenseVecStorage, FlaggedStorage, InsertedFlag, ModifiedFlag, ReadStorage,
+                  RemovedFlag, Storage, Tracked, VecStorage, WriteStorage};
+pub use world::{Component, Entities, Entity, EntityBuilder, LazyUpdate, World};

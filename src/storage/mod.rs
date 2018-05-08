@@ -1,4 +1,4 @@
-//! Storage types
+//! Component storage types, implementations for component joins, etc.
 
 pub use self::data::{ReadStorage, WriteStorage};
 pub use self::flagged::FlaggedStorage;

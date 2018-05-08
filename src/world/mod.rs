@@ -1,3 +1,5 @@
+//! Entities, resources, components, and general world management.
+
 pub use self::comp::Component;
 pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, Generation, Index};
 pub use self::lazy::{LazyBuilder, LazyUpdate};
@@ -71,6 +73,7 @@ pub struct EntityBuilder<'a> {
     pub entity: Entity,
     /// A reference to the `World` for component insertions.
     pub world: &'a World,
+    built: bool,
 }
 
 impl<'a> EntityBuilder<'a> {
@@ -94,8 +97,17 @@ impl<'a> EntityBuilder<'a> {
 
     /// Finishes the building and returns the entity.
     #[inline]
-    pub fn build(self) -> Entity {
+    pub fn build(mut self) -> Entity {
+        self.built = true;
         self.entity
+    }
+}
+
+impl<'a> Drop for EntityBuilder<'a> {
+    fn drop(&mut self) {
+        if !self.built {
+            self.world.read_resource::<EntitiesRes>().delete(self.entity).unwrap();
+        }
     }
 }
 
@@ -449,6 +461,7 @@ impl World {
         EntityBuilder {
             entity,
             world: self,
+            built: false,
         }
     }
 
