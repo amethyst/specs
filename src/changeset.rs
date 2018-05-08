@@ -1,3 +1,5 @@
+//! Provides a changeset that can be collected from an iterator.
+
 use hibitset::BitSet;
 use std::iter::FromIterator;
 use std::ops::AddAssign;

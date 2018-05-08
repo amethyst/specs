@@ -1,4 +1,4 @@
-//! Common functionality you might need when using Specs.
+//! Common functionality between crates using specs.
 //!
 //! At the moment, this module provides two types:
 //!

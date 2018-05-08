@@ -1,3 +1,5 @@
+//! Joining of components for iteration over entities with specific components.
+
 use std;
 use std::cell::UnsafeCell;
 

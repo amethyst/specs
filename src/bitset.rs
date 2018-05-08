@@ -1,3 +1,7 @@
+//! Implementations and structures related to bitsets.
+//!
+//! Normally used for `Join`s and filtering entities.
+
 #![cfg_attr(rustfmt, rustfmt_skip)]
 
 use hibitset::{AtomicBitSet, BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr, BitSetXor};
