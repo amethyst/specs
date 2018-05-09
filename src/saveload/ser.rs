@@ -82,7 +82,7 @@ where
 
     /// Serialize components from specified storages
     /// of all marked entities with provided serializer.
-    /// When the component gets serialized the closure passed 
+    /// When the component gets serialized the closure passed
     /// in `ids` argument marks unmarked `Entity` (the marker of which was requested)
     /// and it will get serialized recursively.
     /// For serializing without such recursion see `serialize` function.

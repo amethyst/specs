@@ -56,6 +56,8 @@ impl<'a> Join for AntiStorage<'a> {
 
 unsafe impl<'a> DistinctStorage for AntiStorage<'a> {}
 
+unsafe impl<'a> ParJoin for AntiStorage<'a> {}
+
 /// A dynamic storage.
 pub trait AnyStorage {
     /// Drop components of given entities.
@@ -569,5 +571,29 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// Drops the data associated with an `Index`.
     unsafe fn drop(&mut self, id: Index) {
         self.remove(id);
+    }
+}
+
+#[cfg(test)]
+mod tests_inline {
+
+    use {Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World};
+    use rayon::iter::ParallelIterator;
+
+    struct Pos;
+
+    impl Component for Pos {
+        type Storage = DenseVecStorage<Self>;
+    }
+
+    #[test]
+    fn test_anti_par_join() {
+        let mut world = World::new();
+        world.create_entity().build();
+        world.exec(|(entities, pos): (Entities, ReadStorage<Pos>)| {
+            (&*entities, !&pos).par_join().for_each(|(ent, ())| {
+                println!("Processing entity: {:?}", ent);
+            });
+        });
     }
 }

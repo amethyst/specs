@@ -106,7 +106,10 @@ impl<'a> EntityBuilder<'a> {
 impl<'a> Drop for EntityBuilder<'a> {
     fn drop(&mut self) {
         if !self.built {
-            self.world.read_resource::<EntitiesRes>().delete(self.entity).unwrap();
+            self.world
+                .read_resource::<EntitiesRes>()
+                .delete(self.entity)
+                .unwrap();
         }
     }
 }
