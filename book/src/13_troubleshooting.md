@@ -1,6 +1,6 @@
 # Troubleshooting
 
-## `no resource with the given id`
+## `Tried to fetch a resource, but the resource does not exist.`
 
 This is the most common issue you will face as a new user of Specs. 
 This panic will occur whenever a `System` is first dispatched, and one or 
@@ -13,8 +13,9 @@ There are a few main reasons for this occurring:
 * Not adding mandatory resources to `World`. You can usually find these by 
   searching for occurrences of `ReadExpect` and `WriteExpect`.
 * Manually requesting components/resources from `World` (not inside a `System`),
-  where the component/resource is not used by any `System`s. This is an artifact
-  of how `setup` works, it will only add what is found inside the used `System`s. 
+  where the component/resource is not used by any `System`s, which is most common
+  when using the `EntityBuilder`. This is an artifact of how `setup` works, it 
+  will only add what is found inside the used `System`s. 
   If you use other components/resources, you need to manually register/add these 
   to `World`.
 
