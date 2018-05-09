@@ -5,8 +5,6 @@ pub use self::flagged::FlaggedStorage;
 pub use self::generic::{GenericReadStorage, GenericWriteStorage};
 pub use self::restrict::{ImmutableParallelRestriction, MutableParallelRestriction,
                          RestrictedStorage, SequentialRestriction};
-#[cfg(feature = "serde")]
-pub use self::ser::{MergeError, PackedData};
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
@@ -29,8 +27,6 @@ mod drain;
 mod flagged;
 mod generic;
 mod restrict;
-#[cfg(feature = "serde")]
-mod ser;
 mod storages;
 #[cfg(test)]
 mod tests;
@@ -206,21 +202,6 @@ where
     /// Returns true if the storage has a component for this entity, and that entity is alive.
     pub fn contains(&self, e: Entity) -> bool {
         self.data.mask.contains(e.id()) && self.entities.is_alive(e)
-    }
-
-    /// Returns a copy of the `BitSet` of the storage. This allows you to
-    /// do some methods on the actual storage without worrying about borrowing
-    /// semantics.
-    ///
-    /// This bitset *can* be invalidated here if insertion or removal methods
-    /// are used after the call to get the `BitSet`, so there is no guarantee
-    /// that the storage will have a component for a specific entity.
-    #[deprecated(
-        since = "0.11",
-        note = "Use `Storage::mask` and then clone the bitset it returns instead. This method hides a rather expensive operation which could be handled better in other ways."
-    )]
-    pub fn check(&self) -> BitSet {
-        self.data.mask.clone()
     }
 
     /// Returns a reference to the bitset of this storage which allows filtering

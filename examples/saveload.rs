@@ -142,14 +142,15 @@ fn main() {
         fn run(&mut self, (ent, mut alloc, pos, mass, mut markers): Self::SystemData) {
             use ron::de::Deserializer;
 
-            let mut de = Deserializer::from_str(ENTITIES);
-            DeserializeComponents::<Combined, _>::deserialize(
-                &mut (pos, mass),
-                &ent,
-                &mut markers,
-                &mut alloc,
-                &mut de,
-            ).unwrap_or_else(|e| eprintln!("Error: {}", e));
+            if let Ok(mut de) = Deserializer::from_str(ENTITIES) {
+                DeserializeComponents::<Combined, _>::deserialize(
+                    &mut (pos, mass),
+                    &ent,
+                    &mut markers,
+                    &mut alloc,
+                    &mut de,
+                ).unwrap_or_else(|e| eprintln!("Error: {}", e));
+            }
         }
     }
 

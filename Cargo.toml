@@ -8,7 +8,7 @@ documentation = "https://docs.rs/specs/"
 repository = "https://github.com/slide-rs/specs"
 homepage = "https://slide-rs.github.io/"
 readme = "README.md"
-keywords = ["gamedev"]
+keywords = ["gamedev", "ecs"]
 categories = ["concurrency"]
 license = "MIT/Apache-2.0"
 authors = ["slide-rs hackers"]
@@ -46,7 +46,7 @@ features = ["common", "serde"]
 [dev-dependencies]
 cgmath =  { version = "0.14", features = ["eders"] }
 criterion = "0.2"
-ron = "0.1.5"
+ron = "0.2"
 rand = "0.3"
 serde_json = "1.0"
 specs-derive = { path = "specs-derive", version = "0.2.0" }
@@ -72,10 +72,6 @@ name = "track"
 [[example]]
 name = "common"
 required-features = ["common"]
-
-[[example]]
-name = "serialize"
-required-features = ["serde"]
 
 [[example]]
 name = "saveload"
