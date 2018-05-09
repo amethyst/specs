@@ -138,3 +138,28 @@ impl<'a> System<'a> for Render {
 By doing this, whenever the spectator chooses a new player to follow, we simply change
 what `Entity` is referenced in the `ActiveCamera` resource, and the scene will be
 rendered from that viewpoint instead.
+
+## Sorting entities based on component value
+
+In a lot of scenarios we encounter a need to sort entities based on either a components
+value, or a combination of component values. There are a couple of ways to deal with this
+problem. The first and most straightforward is to just sort `Join` results.
+
+```rust,ignore
+let data = (&*entities, &comps).join().collect::<Vec<_>>();
+data.sort_by(|&a, &b| ...);
+for entity in data.iter().map(|d| d.0) {
+    // Here we get entities in sorted order
+}
+```
+
+There are a couple of limitations with this approach, the first being that we will always
+process all matched entities every frame (if this is called in a `System` somewhere). This
+can be fixed by using `FlaggedStorage` to maintain a sorted `Entity` list in the `System`. 
+We will talk more about `FlaggedStorage` in the next [chapter][fs].
+
+The second limitation is that we do a `Vec` allocation every time, however this can be 
+alleviated by having a `Vec` in the `System` struct that we reuse every frame. Since we 
+are likely to keep a fairly steady amount of entities in most situations this could work well.
+
+[fs]: ./12_tracked.html
