@@ -12,11 +12,11 @@ We might also need to keep an external resource in sync with changes
 to components in Specs `World`, and we only want to propagate actual changes, not
 do a full sync every frame.
 
-This is where `FlaggedStorage` comes into play. By wrapping a components
+This is where `FlaggedStorage` comes into play. By wrapping a component's
 actual storage in a `FlaggedStorage`, we can subscribe to modification events, and
 easily populate bitsets with only the entities that have actually changed.
 
-Lets look at some code:
+Let's look at some code:
 
 ```rust,ignore
 pub struct Data {

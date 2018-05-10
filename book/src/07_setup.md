@@ -3,8 +3,8 @@
 So far for all our component storages and resources, we've been adding
 them to the `World` manually. In Specs, this is not required if you use
 `setup`. This is a manually invoked stage that goes through `SystemData`
-and do `register`, `add_resource` etc for all (with some exceptions) 
-components and resources found. The `setup` function can be found in 
+and calls `register`, `add_resource`, etc. for all (with some exceptions)
+components and resources found. The `setup` function can be found in
 the following locations:
 
 * `ReadStorage`, `WriteStorage`, `Read`, `Write`
@@ -25,11 +25,11 @@ through all `System`s in the graph, and call `setup` on each.
 
 ## Custom `setup` functionality
 
-The good qualities of `setup` doesn't end here however, we can also use `setup` 
+The good qualities of `setup` don't end here however. We can also use `setup`
 to create our non-`Default` resources, and also to initialize our `System`s!
 We do this by custom implementing the `setup` function in our `System`.
 
-Lets say we have a `System` that process events, using `shrev::EventChannel`:
+Let's say we have a `System` that process events, using `shrev::EventChannel`:
 
 ```rust,ignore
 struct Sys {
@@ -78,10 +78,9 @@ impl<'a> System<'a> for Sys {
 }
 ```
 
-This is much better, we can now use `setup` to fully initialize `Sys`, without 
+This is much better; we can now use `setup` to fully initialize `Sys` without
 requiring our users to create and add resources manually to `World`!
 
 **If we override the `setup` function on a `System`, it is vitally important that we 
 remember to add `Self::SystemData::setup(res);`, or setup will not be performed for
 the `System`s `SystemData`.**
- 

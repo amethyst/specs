@@ -6,7 +6,7 @@ it's time that we start experimenting with more advanced patterns!
 ## Marker components
 
 Say we want to add a drag force to only some entities that have velocity, but
-let other entities move about freely without drag?
+let other entities move about freely without drag.
 
 The most common way is to use a marker component for this. A marker component
 is a component without any data that can be added to entities to "mark" them
@@ -60,8 +60,8 @@ struct without fields).
 
 ## Modeling entity relationships and hierarchy
 
-A common use case where we need a relationship between entities, is having a third person 
-camera following the player around. We can model this using a targeting component 
+A common use case where we need a relationship between entities is having a third person
+camera following the player around. We can model this using a targeting component
 referencing the player entity.
 
 A simple implementation might look something like this:
@@ -141,7 +141,7 @@ rendered from that viewpoint instead.
 
 ## Sorting entities based on component value
 
-In a lot of scenarios we encounter a need to sort entities based on either a components
+In a lot of scenarios we encounter a need to sort entities based on either a component's
 value, or a combination of component values. There are a couple of ways to deal with this
 problem. The first and most straightforward is to just sort `Join` results.
 

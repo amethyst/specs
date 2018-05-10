@@ -23,7 +23,7 @@ the joins made within a single system:
     }
 ```
 
-This means that, if there are hundreds of thousands of entities and only few
+This means that, if there are hundreds of thousands of entities and only a few
 systems that actually can be executed in parallel, then the full power
 of CPU cores cannot be fully utilized.
 
@@ -47,8 +47,8 @@ fn run(&mut self, (vel, mut pos): Self::SystemData) {
 }
 ```
 
-> There is always overhead in parallelization, so you should carefully profile to see if there are benefits in the 
-  switch. If you have only few things to iterate over then sequential join is faster.
+> There is always overhead in parallelization, so you should carefully profile to see if there are benefits in the
+  switch. If you have only a few things to iterate over then sequential join is faster.
 
 The `par_join` method produces a type implementing rayon's [`ParallelIterator`][ra]
 trait which provides lots of helper methods to manipulate the iteration,
