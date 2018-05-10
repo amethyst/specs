@@ -5,8 +5,8 @@ That's why we have something called "thread-local systems".
 
 There are two things to keep in mind about thread-local systems:
 
-1) They're always executed at the end of dispatch
-2) They cannot have dependencies, you just add them in the order you want them to run
+1) They're always executed at the end of dispatch.
+2) They cannot have dependencies; you just add them in the order you want them to run.
 
 Adding one is a simple line added to the builder code:
 
