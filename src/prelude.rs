@@ -10,6 +10,8 @@ pub use shrev::ReaderId;
 
 #[cfg(not(target_os = "emscripten"))]
 pub use shred::AsyncDispatcher;
+#[cfg(not(target_os = "emscripten"))]
+pub use rayon::iter::ParallelIterator;
 
 pub use changeset::ChangeSet;
 pub use storage::{DenseVecStorage, FlaggedStorage, HashMapStorage, InsertedFlag, ModifiedFlag,
