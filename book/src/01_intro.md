@@ -62,7 +62,7 @@ your player and the NPC, even though e.g. they both share a transform.
 
 <img src="./images/entity-component.svg" alt="Entity-component relationship" width="20%" style="float:left;margin-right:15px" />
 
-This is where ECS comes into play: Components are *associated* with entities; you just insert some component, whenever you like.
+This is where ECS comes into play: Components are *associated* with entities; you can just insert components, whenever you like.
 One entity may or may not have a certain component. You can see an `Entity` as an ID into component tables, as illustrated in the
 diagram below. We could theoretically store all the components together with the entity, but that would be very inefficient;
 you'll see how these tables work in [chapter 5].
@@ -98,7 +98,7 @@ By simply adding a force to an entity that has a mass, you can make it move, bec
 
 ## Where to use an ECS?
 
-In case you were looking for a general-purpose library for doing it the data-oriented way, I have to disappoint you; there is none.
+In case you were looking for a general-purpose library for doing it the data-oriented way, I have to disappoint you; there are none.
 ECS libraries are best-suited for creating games or simulations, but it does not magically make your code more data-oriented.
 
 ---

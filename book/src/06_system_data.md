@@ -1,4 +1,4 @@
-# [DRAFT] System Data
+# System Data
 
 Every system can request data which it needs to run. This data can be specified
 using the `System::SystemData` type. Typical implementors of the `SystemData` trait
@@ -105,8 +105,8 @@ There are actually three ways of doing this:
 
 ## Specifying `SystemData`
 
-As mentioned earlier, `SystemData` is implemented for tuples of up to 26 elements. Should you ever need
-more, you could even nest these tuples. However, at some point you can't keep track of all the elements anymore.
+As mentioned earlier, `SystemData` is implemented for tuples up to 26 elements. Should you ever need
+more, you could even nest these tuples. However, at some point it becomes hard to keep track of all the elements.
 That's why you can also create your own `SystemData` bundle using a struct:
 
 ```rust,ignore
