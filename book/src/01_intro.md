@@ -87,8 +87,8 @@ Here's another illustration of the relationship between components and entities.
 Now we're only missing the last character in ECS - the "S" for `System`. Whereas components and entities are purely data,
 systems contain all the logic of your application. A system typically iterates over all entities that fulfill specific constraints,
 like "has both a force and a mass". Based on this data a system will execute code, e.g. produce a velocity out of the force and the mass.
-This is the additional advantage I wanted to point out with the `Player` / `Npc` example; in an ECS, you can simply add attributes and
-that's also how you define your behaviour (this is called [data-driven] programming).
+This is the additional advantage I wanted to point out with the `Player` / `Npc` example; in an ECS, you can simply add new attributes
+to entities and that's also how you define your behaviour (this is called [data-driven] programming).
 
 [data-driven]: https://en.wikipedia.org/wiki/Data-driven_programming
 
