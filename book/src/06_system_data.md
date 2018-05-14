@@ -1,4 +1,4 @@
-# [DRAFT] System Data
+# System Data
 
 Every system can request data which it needs to run. This data can be specified
 using the `System::SystemData` type. Typical implementors of the `SystemData` trait
@@ -102,3 +102,29 @@ There are actually three ways of doing this:
   that the order here is important, using `Read<'a, Option<Resource>>` will not 
   result in the same behavior (it will try to fetch `Option<Resource>` from `World`, 
   instead of doing an optional check if `Resource` exists).
+
+## Specifying `SystemData`
+
+As mentioned earlier, `SystemData` is implemented for tuples up to 26 elements. Should you ever need
+more, you could even nest these tuples. However, at some point it becomes hard to keep track of all the elements.
+That's why you can also create your own `SystemData` bundle using a struct:
+
+```rust,ignore
+extern crate shred;
+#[macro_use]
+extern crate shred_derive;
+extern crate specs;
+
+use specs::prelude::*;
+
+#[derive(SystemData)]
+pub struct MySystemData<'a> {
+    positions: ReadStorage<'a, Position>,
+    velocities: ReadStorage<'a, Velocity>,
+    forces: ReadStorage<'a, Force>,
+
+    delta: Read<'a, DeltaTime>,
+    game_state: Write<'a, GameState>,
+}
+```
+

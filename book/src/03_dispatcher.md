@@ -45,10 +45,8 @@ impl<'a> System<'a> for UpdatePos {
 }
 ```
 
-Let's talk about the system data first. What you see here
-is a **tuple**, which we are using as our `SystemData`.
-In fact, `SystemData` is implemented for all tuples
-with up to 26 other types implementing `SystemData` in it.
+Let's talk about the system data first. What you see here is a **tuple**, which we are using as our `SystemData`.
+In fact, `SystemData` is implemented for all tuples with up to 26 other types implementing `SystemData` in it.
 
 > Notice that `ReadStorage` and `WriteStorage` *are* implementors of `SystemData`
   themselves, that's why we could use the first one for our `HelloWorld` system
