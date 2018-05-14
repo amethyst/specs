@@ -6,7 +6,7 @@ First of all, thanks for trying out `specs`. Let's
 set it up first. Add the following line to your `Cargo.toml`:
 
 ```toml
-specs = "0.10"
+specs = "0.11"
 ```
 
 And add this to your crate root (`main.rs` or `lib.rs`):
@@ -48,6 +48,10 @@ provides a convenient custom `#[derive]` you can use to define component types
 more succinctly:
 
 ```rust,ignore
+extern crate specs;
+#[macro_use]
+extern crate specs_derive;
+
 #[derive(Component, Debug)]
 #[storage(VecStorage)]
 struct Position {
@@ -63,7 +67,7 @@ struct Velocity {
 }
 ```
 
-If the `#[component(...)]` attribute is omitted, the given component will be
+If the `#[storage(...)]` attribute is omitted, the given component will be
 stored in a `DenseVecStorage` by default. But for this example, we are
 explicitly asking for these components to be kept in a `VecStorage` instead (see
 the later [storages chapter][sc] for more details). But before we move on, we
@@ -215,3 +219,4 @@ some other nice features, too).
 Let's see how that works in [Chapter 3: Dispatcher][c3].
 
 [c3]: ./03_dispatcher.html
+

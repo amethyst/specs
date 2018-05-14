@@ -60,31 +60,46 @@ public class Npc extends Character {
 Now you have stuff duplicated; you would have to write mostly identical code for
 your player and the NPC, even though e.g. they both share a transform.
 
-This is where ECS comes into play: Components are *associated* with entities;
-you just insert some component, whenever you like. Also, you only define the functionality
-once: One System, taking a `Force` and a `Mass` - it produces a `Velocity`.
+<img src="./images/entity-component.svg" alt="Entity-component relationship" width="20%" style="float:left;margin-right:15px" />
 
-In fact, an entity does not even own the components; it's just
+This is where ECS comes into play: Components are *associated* with entities; you just insert some component, whenever you like.
+One entity may or may not have a certain component. You can see an `Entity` as an ID into component tables, as illustrated in the
+diagram below. We could theoretically store all the components together with the entity, but that would be very inefficient;
+you'll see how these tables work in [chapter 5].
+
+This is how an `Entity` is implemented; it's just
 
 ```rust,ignore
 struct Entity(u32, Generation);
 ```
 
 where the first field is the id and the second one is the generation, used to check
-if the entity has been deleted. The components are stored separately, which
-also has the advantage of being more cache friendly.
+if the entity has been deleted.
 
-Another way you can think of an entity is that it just
-groups together a group of components. We'll see how this works
-in practice later - it allows us to just pick sets of components
-which include both `A` and `B`.
+Here's another illustration of the relationship between components and entities. `Force`, `Mass` and `Velocity` are all components here.
+
+[chapter 5]: ./05_storages.html
+
+<img src="./images/component-tables.svg" alt="Component tables" width="100%"  />
+
+`Entity 1` has each of those components, `Entity 2` only a `Force`, etc.
+
+Now we're only missing the last character in ECS - the "S" for `System`. Whereas components and entities are purely data,
+systems contain all the logic of your application. A system typically iterates over all entities that fulfill specific constraints,
+like "has both a force and a mass". Based on this data a system will execute code, e.g. produce a velocity out of the force and the mass.
+This is the additional advantage I wanted to point out with the `Player` / `Npc` example; in an ECS, you can simply add attributes and
+that's also how you define your behaviour (this is called [data-driven] programming).
+
+[data-driven]: https://en.wikipedia.org/wiki/Data-driven_programming
+
+<img src="./images/system.svg" alt="System flow" width="100%"  />
+
+By simply adding a force to an entity that has a mass, you can make it move, because a `Velocity` will be produced for it.
 
 ## Where to use an ECS?
 
-In case you were looking for a general-purpose library for doing it
-the data-oriented way, I have to disappoint you; there is none.
-ECS libraries are best-suited for creating games; in fact, I've never
-heard of anybody using an ECS for something else.
+In case you were looking for a general-purpose library for doing it the data-oriented way, I have to disappoint you; there is none.
+ECS libraries are best-suited for creating games or simulations, but it does not magically make your code more data-oriented.
 
 ---
 
