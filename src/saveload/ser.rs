@@ -174,4 +174,12 @@ serialize_components!(
     CF => SF,
     CG => SG,
     CH => SH,
+    CI => SI,
+    CJ => SJ,
+    CK => SK,
+    CL => SL,
+    CN => SN,
+    CM => SM,
+    CO => SO,
+    CP => SP,
 );
