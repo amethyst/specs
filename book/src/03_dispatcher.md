@@ -19,14 +19,14 @@ First of all, we have to build such a dispatcher.
 use specs::DispatcherBuilder;
 
 let mut dispatcher = DispatcherBuilder::new()
-    .with(hello_world, "hello_world", &[])
+    .with(HelloWorld, "hello_world", &[])
     .build();
 ```
 
 Let's see what this does. After creating the builder,
 we add a new
 
-1) system object (`hello_world`)
+1) system object (`HelloWorld`)
 2) with some name (`"hello_world""`)
 3) and no dependencies (`&[]`).
 
