@@ -52,6 +52,8 @@ extern crate specs;
 #[macro_use]
 extern crate specs_derive;
 
+use specs::VecStorage;
+
 #[derive(Component, Debug)]
 #[storage(VecStorage)]
 struct Position {
