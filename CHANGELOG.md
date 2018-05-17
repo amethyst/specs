@@ -1,4 +1,14 @@
-## 0.11 (alpha)
+## 0.11.1
+
+* Add diagrams to book, small code fixes in the book ([#412], [#416], [#417])
+* Increase tuple size for `SerializeComponents` / `DeserializeComponents` ([#415])
+
+[#412]: https://github.com/slide-rs/specs/pull/412
+[#415]: https://github.com/slide-rs/specs/pull/415
+[#416]: https://github.com/slide-rs/specs/pull/416
+[#417]: https://github.com/slide-rs/specs/pull/417
+
+## 0.11.0
 
 * Improve docs, book and examples ([#278], [#281], [#283], [#285], [#296], [#313], [#316], [#322], [#350], [#356], [#363])
 * Add `StorageEntry` for easier handling of inserting/removing component ([#274])
