@@ -193,7 +193,7 @@ where
     D: Deref<Target = MaskedStorage<T>>,
 {
     /// Gets the wrapped storage.
-    pub fn storage(&self) -> &T::Storage {
+    pub fn unprotected_storage(&self) -> &T::Storage {
         &self.data.inner
     }
 
@@ -323,7 +323,7 @@ where
     D: DerefMut<Target = MaskedStorage<T>>,
 {
     /// Gets mutable access to the wrapped storage.
-    pub fn storage_mut(&mut self) -> &mut T::Storage {
+    pub fn unprotected_storage_mut(&mut self) -> &mut T::Storage {
         &mut self.data.inner
     }
 
