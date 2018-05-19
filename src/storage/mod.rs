@@ -192,6 +192,11 @@ where
     T: Component,
     D: Deref<Target = MaskedStorage<T>>,
 {
+    /// Gets the wrapped storage.
+    pub fn unprotected_storage(&self) -> &T::Storage {
+        &self.data.inner
+    }
+
     /// Tries to read the data associated with an `Entity`.
     pub fn get(&self, e: Entity) -> Option<&T> {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
@@ -317,6 +322,11 @@ where
     T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,
 {
+    /// Gets mutable access to the wrapped storage.
+    pub fn unprotected_storage_mut(&mut self) -> &mut T::Storage {
+        &mut self.data.inner
+    }
+
     /// Tries to mutate the data associated with an `Entity`.
     pub fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {

@@ -1,3 +1,9 @@
+# 0.11.2
+
+* Add `unprotected_storage()` and `unprotected_storage_mut()` methods to `Storage` ([#419])
+
+[#419]: https://github.com/slide-rs/specs/pull/419
+
 ## 0.11.1
 
 * Add diagrams to book, small code fixes in the book ([#412], [#416], [#417])
