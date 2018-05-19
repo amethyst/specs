@@ -354,6 +354,9 @@ impl U64MarkerAllocator {
 impl MarkerAllocator<U64Marker> for U64MarkerAllocator {
     fn allocate(&mut self, entity: Entity, id: Option<u64>) -> U64Marker {
         let marker = if let Some(id) = id {
+            if id >= self.index {
+                self.index = id + 1;
+            }
             U64Marker(id)
         } else {
             self.index += 1;
