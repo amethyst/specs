@@ -52,6 +52,7 @@ impl<'a> LazyBuilder<'a> {
     /// This will be applied on the next `world.maintain()`.
     ///
     /// ## Examples
+    ///
     /// ```rust
     /// use specs::prelude::*;
     /// use specs::saveload::{U64Marker, U64MarkerAllocator};
