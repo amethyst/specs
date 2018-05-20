@@ -1,3 +1,9 @@
+# 0.11.3
+
+* Fix `U64MarkerAllocator`'s internal index not being updated on `saveload::DeserializeComponents`
+
+[#420]: https://github.com/slide-rs/specs/pull/420
+
 # 0.11.2
 
 * Add `unprotected_storage()` and `unprotected_storage_mut()` methods to `Storage` ([#419])
