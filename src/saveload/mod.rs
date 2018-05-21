@@ -26,6 +26,8 @@
 mod de;
 mod marker;
 mod ser;
+#[cfg(test)]
+mod tests;
 
 pub use self::de::DeserializeComponents;
 pub use self::marker::{Marker, MarkerAllocator, U64Marker, U64MarkerAllocator};

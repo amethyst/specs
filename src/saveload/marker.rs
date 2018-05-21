@@ -7,7 +7,7 @@ use std::hash::Hash;
 use join::Join;
 use shred::Resource;
 use storage::{DenseVecStorage, ReadStorage, WriteStorage};
-use world::{Component, EntitiesRes, Entity, EntityBuilder};
+use world::{Component, EntitiesRes, Entity, EntityBuilder, LazyBuilder};
 
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
@@ -41,6 +41,48 @@ impl<'a> EntityBuilder<'a> {
     {
         let mut alloc = self.world.write_resource::<M::Allocator>();
         alloc.mark(self.entity, &mut self.world.write_storage::<M>());
+
+        self
+    }
+}
+
+impl<'a> LazyBuilder<'a> {
+    /// Add a `Marker` to the entity by fetching the associated allocator.
+    ///
+    /// This will be applied on the next `world.maintain()`.
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    /// use specs::prelude::*;
+    /// use specs::saveload::{U64Marker, U64MarkerAllocator};
+    /// let mut world = World::new();
+    ///
+    /// world.register::<U64Marker>();
+    /// world.add_resource(U64MarkerAllocator::new());
+    ///
+    /// # let lazy = world.read_resource::<LazyUpdate>();
+    /// # let entities = world.entities();
+    /// let my_entity = lazy
+    ///     .create_entity(&entities)
+    ///     /* .with(Component1) */
+    ///     .marked::<U64Marker>()
+    ///     .build();
+    /// ```
+    ///
+    /// ## Panics
+    ///
+    /// Panics during `world.maintain()` in case there's no allocator
+    /// added to the `World`.
+    pub fn marked<M>(self) -> Self
+        where
+            M: Marker
+    {
+        let entity = self.entity;
+        self.lazy.exec(move |world| {
+            let mut alloc = world.write_resource::<M::Allocator>();
+            alloc.mark(entity, &mut world.write_storage::<M>());
+        });
 
         self
     }
@@ -313,6 +355,9 @@ impl U64MarkerAllocator {
 impl MarkerAllocator<U64Marker> for U64MarkerAllocator {
     fn allocate(&mut self, entity: Entity, id: Option<u64>) -> U64Marker {
         let marker = if let Some(id) = id {
+            if id >= self.index {
+                self.index = id + 1;
+            }
             U64Marker(id)
         } else {
             self.index += 1;
