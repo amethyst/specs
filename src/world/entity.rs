@@ -294,7 +294,7 @@ impl EntitiesRes {
         let entity = self.create();
         EntityResBuilder {
             entity,
-            res: self,
+            entities: self,
             built: false,
         }
     }
@@ -353,7 +353,7 @@ pub struct EntityResBuilder<'a> {
     pub entity: Entity,
     /// The active borrow to `EntitiesRes`, used to delete the entity if the
     /// builder is dropped without called `build()`.
-    pub res: &'a EntitiesRes,
+    pub entities: &'a EntitiesRes,
     built: bool,
 }
 
@@ -374,7 +374,7 @@ impl<'a> EntityResBuilder<'a> {
 impl<'a> Drop for EntityResBuilder<'a> {
     fn drop(&mut self) {
         if !self.built {
-            self.res.delete(self.entity).unwrap();
+            self.entities.delete(self.entity).unwrap();
         }
     }
 }
