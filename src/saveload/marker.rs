@@ -7,7 +7,7 @@ use std::hash::Hash;
 use join::Join;
 use shred::Resource;
 use storage::{DenseVecStorage, ReadStorage, WriteStorage};
-use world::{Component, EntitiesRes, Entity, EntityBuilder, LazyBuilder};
+use world::{Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder};
 
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
@@ -84,6 +84,40 @@ impl<'a> LazyBuilder<'a> {
             alloc.mark(entity, &mut world.write_storage::<M>());
         });
 
+        self
+    }
+}
+
+impl<'a> EntityResBuilder<'a> {
+    /// Add a `Marker` to the entity with the associated allocator,
+    /// and component storage.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use specs::prelude::*;
+    /// use specs::saveload::{U64Marker, U64MarkerAllocator};
+    ///
+    /// let mut world = World::new();
+    /// world.register::<U64Marker>();
+    /// world.add_resource(U64MarkerAllocator::new());
+    ///
+    /// let mut storage = world.write_storage::<U64Marker>();
+    /// let mut alloc = world.write_resource::<U64MarkerAllocator>();
+    ///
+    /// let entities = world.entities();
+    /// entities
+    ///     .build_entity()
+    ///     /* .with(Component1) */
+    ///     .marked(&mut storage, &mut alloc)
+    ///     .build();
+    /// ```
+    ///
+    pub fn marked<M>(self, storage: &mut WriteStorage<M>, alloc: &mut M::Allocator) -> Self
+    where
+        M: Marker,
+    {
+        alloc.mark(self.entity, storage);
         self
     }
 }

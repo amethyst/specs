@@ -1,7 +1,7 @@
 //! Entities, resources, components, and general world management.
 
 pub use self::comp::Component;
-pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, Generation, Index};
+pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, EntityResBuilder, Generation, Index};
 pub use self::lazy::{LazyBuilder, LazyUpdate};
 
 use self::entity::Allocator;
