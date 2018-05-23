@@ -5,6 +5,8 @@ use shred::Read;
 
 use error::WrongGeneration;
 use join::{Join, ParJoin};
+use storage::WriteStorage;
+use world::Component;
 
 /// An index is basically the id of an `Entity`.
 pub type Index = u32;
@@ -284,6 +286,19 @@ impl EntitiesRes {
         CreateIterAtomic(&self.alloc)
     }
 
+    /// Similar to the `create` method above this
+    /// creates an entity atomically, and then returns a
+    /// builder which can be used to insert components into
+    /// various storages if available.
+    pub fn build_entity(&self) -> EntityResBuilder {
+        let entity = self.create();
+        EntityResBuilder {
+            entity,
+            entities: self,
+            built: false,
+        }
+    }
+
     /// Deletes an entity atomically.
     /// The associated components will be
     /// deleted as soon as you call `World::maintain`.
@@ -330,6 +345,39 @@ impl<'a> Join for &'a EntitiesRes {
 }
 
 unsafe impl<'a> ParJoin for &'a EntitiesRes {}
+
+/// An entity builder from `EntitiesRes`.  Allows building an entity with its
+/// components if you have mutable access to the component storages.
+pub struct EntityResBuilder<'a> {
+    /// The entity being built
+    pub entity: Entity,
+    /// The active borrow to `EntitiesRes`, used to delete the entity if the
+    /// builder is dropped without called `build()`.
+    pub entities: &'a EntitiesRes,
+    built: bool,
+}
+
+impl<'a> EntityResBuilder<'a> {
+    /// Appends a component and associates it with the entity.
+    pub fn with<T: Component>(self, c: T, storage: &mut WriteStorage<T>) -> Self {
+        storage.insert(self.entity, c).unwrap();
+        self
+    }
+
+    /// Finishes the building and returns the entity.
+    pub fn build(mut self) -> Entity {
+        self.built = true;
+        self.entity
+    }
+}
+
+impl<'a> Drop for EntityResBuilder<'a> {
+    fn drop(&mut self) {
+        if !self.built {
+            self.entities.delete(self.entity).unwrap();
+        }
+    }
+}
 
 /// Index generation. When a new entity is placed at an old index,
 /// it bumps the `Generation` by 1. This allows to avoid using components
