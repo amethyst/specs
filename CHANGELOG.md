@@ -1,3 +1,7 @@
+# 0.11.4
+
+* Add `build_entity()` to `EntitiesRes` so you can use builder syntax in a system.
+
 # 0.11.3
 
 * Add `marked()` to LazyBuilder to keep parity with EntityBuilder ([#420])
