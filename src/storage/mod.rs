@@ -568,7 +568,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
 #[cfg(test)]
 mod tests_inline {
 
-    use {Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World};
+    use {Builder, Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World};
     use rayon::iter::ParallelIterator;
 
     struct Pos;

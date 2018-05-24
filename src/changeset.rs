@@ -154,7 +154,7 @@ mod tests {
     use super::ChangeSet;
     use join::Join;
     use storage::DenseVecStorage;
-    use world::{Component, World};
+    use world::{Builder, Component, World};
 
     pub struct Health(i32);
 

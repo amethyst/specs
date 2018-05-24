@@ -36,7 +36,7 @@ mod tests {
     fn basic_drain() {
         use join::Join;
         use storage::DenseVecStorage;
-        use world::{Component, World};
+        use world::{Builder, Component, World};
 
         #[derive(Debug, PartialEq)]
         struct Comp;

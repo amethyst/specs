@@ -1,7 +1,7 @@
 use mopa::Any;
 
 use super::*;
-use world::{Component, Entity, Generation, Index, World};
+use world::{Builder, Component, Entity, Generation, Index, World};
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
