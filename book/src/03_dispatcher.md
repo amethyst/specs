@@ -100,7 +100,7 @@ dispatcher.dispatch(&mut world.res);
 Here the code for this chapter:
 
 ```rust,ignore
-use specs::{Component, DispatcherBuilder, ReadStorage,
+use specs::{Builder, Component, DispatcherBuilder, ReadStorage,
             System, VecStorage, World, WriteStorage};
 
 #[derive(Debug)]
