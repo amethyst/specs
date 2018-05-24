@@ -1,7 +1,7 @@
 use mopa::Any;
 
 use super::*;
-use world::{Builder, Component, Entity, Generation, Index, World};
+use world::{Component, Entity, Generation, Index, World};
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
@@ -128,6 +128,7 @@ mod test {
     use std::fmt::Debug;
 
     use super::*;
+    use world::Builder;
 
     #[derive(PartialEq, Eq, Debug, Default)]
     struct CMarker;

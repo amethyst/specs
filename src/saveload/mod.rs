@@ -30,7 +30,7 @@ mod ser;
 mod tests;
 
 pub use self::de::DeserializeComponents;
-pub use self::marker::{Marker, MarkerAllocator, U64Marker, U64MarkerAllocator};
+pub use self::marker::{MarkedBuilder, Marker, MarkerAllocator, U64Marker, U64MarkerAllocator};
 pub use self::ser::SerializeComponents;
 
 /// A struct used for deserializing entity data.

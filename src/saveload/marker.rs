@@ -12,14 +12,40 @@ use world::{Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, Laz
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 
-impl<'a> EntityBuilder<'a> {
+/// A common trait for EntityBuilder and LazyBuilder with a marker function, allowing either to be used.
+pub trait MarkedBuilder {
     /// Add a `Marker` to the entity by fetching the associated allocator.
     ///
     /// ## Examples
     ///
     /// ```
     /// use specs::prelude::*;
-    /// use specs::saveload::{U64Marker, U64MarkerAllocator};
+    /// use specs::saveload::{MarkedBuilder, U64Marker, U64MarkerAllocator};
+    ///
+    /// fn MarkEntity<M: Builder + MarkedBuilder>(markable: M) -> Entity {
+    ///    markable
+    ///    /* .with(Component1) */
+    ///     .marked::<U64Marker>()
+    ///     .build()
+    /// }
+    ///
+    /// let mut world = World::new();
+    /// world.register::<U64Marker>();
+    /// world.add_resource(U64MarkerAllocator::new());
+    ///
+    /// MarkEntity(world.create_entity());
+    /// ```
+    fn marked<M: Marker>(self) -> Self;
+}
+
+impl<'a> MarkedBuilder for EntityBuilder<'a> {
+    /// Add a `Marker` to the entity by fetching the associated allocator.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use specs::prelude::*;
+    /// use specs::saveload::{MarkedBuilder, U64Marker, U64MarkerAllocator};
     ///
     /// let mut world = World::new();
     /// world.register::<U64Marker>();
@@ -35,7 +61,7 @@ impl<'a> EntityBuilder<'a> {
     /// ## Panics
     ///
     /// Panics in case there's no allocator added to the `World`.
-    pub fn marked<M>(self) -> Self
+    fn marked<M>(self) -> Self
     where
         M: Marker,
     {
@@ -46,7 +72,7 @@ impl<'a> EntityBuilder<'a> {
     }
 }
 
-impl<'a> LazyBuilder<'a> {
+impl<'a> MarkedBuilder for LazyBuilder<'a> {
     /// Add a `Marker` to the entity by fetching the associated allocator.
     ///
     /// This will be applied on the next `world.maintain()`.
@@ -55,7 +81,7 @@ impl<'a> LazyBuilder<'a> {
     ///
     /// ```rust
     /// use specs::prelude::*;
-    /// use specs::saveload::{U64Marker, U64MarkerAllocator};
+    /// use specs::saveload::{MarkedBuilder, U64Marker, U64MarkerAllocator};
     /// let mut world = World::new();
     ///
     /// world.register::<U64Marker>();
@@ -74,7 +100,7 @@ impl<'a> LazyBuilder<'a> {
     ///
     /// Panics during `world.maintain()` in case there's no allocator
     /// added to the `World`.
-    pub fn marked<M>(self) -> Self
+    fn marked<M>(self) -> Self
         where
             M: Marker
     {
@@ -137,7 +163,7 @@ impl<'a> EntityResBuilder<'a> {
 ///
 /// use specs::prelude::*;
 /// use specs::world::EntitiesRes;
-/// use specs::saveload::{Marker, MarkerAllocator};
+/// use specs::saveload::{MarkedBuilder, Marker, MarkerAllocator};
 ///
 /// // Marker for entities that should be synced over network
 /// #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]

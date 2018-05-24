@@ -1,3 +1,8 @@
+# 0.12.0
+
+* Add common `Builder` trait to `EntityBuilder` and `LazyBuilder` ([#426])
+* Add common `MarkedBuilder` trait to `EntityBuilder` and `LazyBuilder` ([#426])
+
 # 0.11.4
 
 * Add `build_entity()` to `EntitiesRes` so you can use builder syntax in a system.
