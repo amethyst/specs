@@ -4,8 +4,8 @@ use serde::ser::{self, Serialize, SerializeSeq, Serializer};
 
 use error::NoError;
 use join::Join;
-use saveload::marker::{Marker, MarkerAllocator};
 use saveload::EntityData;
+use saveload::marker::{Marker, MarkerAllocator};
 use storage::{GenericReadStorage, ReadStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
 
@@ -127,8 +127,7 @@ where
         for (entity, marker) in (&*entities, &*markers).join() {
             serseq.serialize_element(&EntityData::<M, Self::Data> {
                 marker: marker.clone(),
-                components: self
-                    .serialize_entity(entity, &ids)
+                components: self.serialize_entity(entity, &ids)
                     .map_err(ser::Error::custom)?,
             })?;
         }
@@ -174,8 +173,7 @@ where
                 for (entity, marker) in to_serialize {
                     serseq.serialize_element(&EntityData::<M, Self::Data> {
                         marker,
-                        components: self
-                            .serialize_entity(entity, &mut ids)
+                        components: self.serialize_entity(entity, &mut ids)
                             .map_err(ser::Error::custom)?,
                     })?;
                 }

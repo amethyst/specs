@@ -1,13 +1,12 @@
 use std::fmt::{self, Display, Formatter};
 use std::marker::PhantomData;
 
-use serde::de::{
-    self, Deserialize, DeserializeOwned, DeserializeSeed, Deserializer, SeqAccess, Visitor,
-};
+use serde::de::{self, Deserialize, DeserializeOwned, DeserializeSeed, Deserializer, SeqAccess,
+                Visitor};
 
 use error::NoError;
-use saveload::marker::{Marker, MarkerAllocator};
 use saveload::EntityData;
+use saveload::marker::{Marker, MarkerAllocator};
 use storage::{GenericWriteStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
 
