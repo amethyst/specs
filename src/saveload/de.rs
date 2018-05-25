@@ -88,6 +88,71 @@ where
     }
 }
 
+/// Provides a function which converts a marked serialization wrapper
+/// into its actual component.
+///
+/// When serializing, specs will store the actual `Data` type
+/// from [`IntoSerialize`] and upon deserialization, call
+/// the `from` function to yield the real [`Component`].
+///
+/// This is automatically implemented for any type that is both
+/// a [`Component`] and [`DeserializeOwned`] (which includes
+/// any type that derives [`Deserialize`]).
+///
+/// Implementing this yourself is usually only needed if you
+/// have a component that points to another Entity and you
+/// wish to [`Deserialize`] it.
+///
+/// In most cases, you also likely want to implement the companion
+/// trait [`IntoSerialize`].
+///
+/// [`from`]: trait.FromDeserialize.html#tymethod.from
+/// [`Component`]: ../trait.Component.html
+/// [`Deserialize`]: https://docs.serde.rs/serde/trait.Deserialize.html
+/// [`DeserializeOwned`]: https://docs.serde.rs/serde/de/trait.DeserializeOwned.html
+/// [`IntoSerialize`]: trait.IntoSerialize.html
+///
+/// # Example
+///
+/// ```rust
+/// # extern crate specs;
+/// # #[macro_use] extern crate serde;
+/// use serde::Deserialize;
+/// use specs::prelude::*;
+/// use specs::error::NoError;
+/// use specs::saveload::{Marker, FromDeserialize};
+///
+/// struct Target(Entity);
+///
+/// impl Component for Target {
+///     type Storage = VecStorage<Self>;
+/// }
+///
+/// // We need a matching "data" struct to hold our
+/// // marker. In general, you just need a single struct
+/// // per component you want to make `Deserialize` with each
+/// // instance of `Entity` replaced with a generic "M".
+/// #[derive(Deserialize)]
+/// struct TargetData<M>(M);
+///
+/// impl<M: Marker> FromDeserialize<M> for Target
+///     where
+///     for<'de> M: Deserialize<'de>,
+/// {
+///     type Data = TargetData<M>;
+///     type Error = NoError;
+///
+///     fn from<F>(data: Self::Data, mut ids: F) -> Result<Self, Self::Error>
+///     where
+///         F: FnMut(M) -> Option<Entity>
+///     {
+///         let entity = ids(data.0).unwrap();
+///         Ok(Target(entity))
+///     }
+/// }
+///
+/// ```
+///
 pub trait FromDeserialize<M>: Component {
     /// Serializable data representation for component
     type Data: DeserializeOwned;
