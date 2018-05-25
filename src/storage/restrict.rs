@@ -104,7 +104,7 @@ where
     type Type = PairedStorage<'rf, 'st, C, &'rf C::Storage, &'rf BitSet, Restrict>;
     type Value = (&'rf C::Storage, &'rf Fetch<'st, EntitiesRes>, &'rf BitSet);
     type Mask = &'rf BitSet;
-    fn open(self) -> (Self::Mask, Self::Value) {
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let bitset = self.bitset.borrow();
         (bitset, (self.data.borrow(), self.entities, bitset))
     }
@@ -133,7 +133,7 @@ where
         &'rf BitSet,
     );
     type Mask = &'rf BitSet;
-    fn open(self) -> (Self::Mask, Self::Value) {
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let bitset = self.bitset.borrow();
         (bitset, (self.data.borrow_mut(), self.entities, bitset))
     }

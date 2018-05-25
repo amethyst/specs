@@ -58,7 +58,7 @@ where
 {
     /// Returns the event channel tracking modified components.
     pub fn channels(&self) -> &TrackChannels {
-        self.open().1.channels()
+        unsafe { self.open() }.1.channels()
     }
 
     /// Returns the event channel tracking modified components.
@@ -109,7 +109,7 @@ where
 {
     /// Returns all of the event channels for this component.
     pub fn channels_mut(&mut self) -> &mut TrackChannels {
-        self.open().1.channels_mut()
+        unsafe { self.open() }.1.channels_mut()
     }
 
     /// Returns the event channel tracking modified components mutably.

@@ -75,8 +75,8 @@ impl<'a> LazyBuilder<'a> {
     /// Panics during `world.maintain()` in case there's no allocator
     /// added to the `World`.
     pub fn marked<M>(self) -> Self
-        where
-            M: Marker
+    where
+        M: Marker,
     {
         let entity = self.entity;
         self.lazy.exec(move |world| {
@@ -218,8 +218,7 @@ impl<'a> EntityResBuilder<'a> {
 ///     );
 /// }
 /// ```
-pub trait Marker
-    : Clone + Component + Debug + Eq + Hash + DeserializeOwned + Serialize {
+pub trait Marker: Clone + Component + Debug + Eq + Hash + DeserializeOwned + Serialize {
     /// Id of the marker
     type Identifier;
     /// Allocator for this `Marker`

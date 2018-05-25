@@ -17,7 +17,7 @@ macro_rules! define_bit_join {
             type Type = Index;
             type Value = ();
             type Mask = $bitset;
-            fn open(self) -> (Self::Mask, Self::Value) {
+            unsafe fn open(self) -> (Self::Mask, Self::Value) {
                 (self, ())
             }
             unsafe fn get(_: &mut Self::Value, id: Index) -> Self::Type {
