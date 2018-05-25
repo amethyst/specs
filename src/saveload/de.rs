@@ -1,12 +1,13 @@
 use std::fmt::{self, Display, Formatter};
 use std::marker::PhantomData;
 
-use serde::de::{self, Deserialize, DeserializeOwned, DeserializeSeed, Deserializer, SeqAccess,
-                Visitor};
+use serde::de::{
+    self, Deserialize, DeserializeOwned, DeserializeSeed, Deserializer, SeqAccess, Visitor,
+};
 
 use error::NoError;
-use saveload::EntityData;
 use saveload::marker::{Marker, MarkerAllocator};
+use saveload::EntityData;
 use storage::{GenericWriteStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
 
@@ -89,26 +90,37 @@ where
 }
 
 /// Provides a function which converts a marked serialization wrapper
-/// into its actual component.
+/// into its actual data type (usually a [`Component`]).
 ///
 /// When serializing, specs will store the actual `Data` type
 /// from [`IntoSerialize`] and upon deserialization, call
 /// the `from` function to yield the real [`Component`].
 ///
-/// This is automatically implemented for any type that is both
-/// a [`Component`] and [`DeserializeOwned`] (which includes
+/// This is automatically implemented for any type that is
+/// [`DeserializeOwned`] (which includes
 /// any type that derives [`Deserialize`]).
 ///
 /// Implementing this yourself is usually only needed if you
-/// have a component that points to another Entity and you
-/// wish to [`Deserialize`] it.
+/// have a component that points to another Entity (or has a field which does)
+/// and you wish to [`Deserialize`] it.
 ///
 /// In most cases, you also likely want to implement the companion
 /// trait [`IntoSerialize`].
 ///
+/// *Note*: if you're using `specs_derive`
+/// and your struct does not have a generic bound (i.e. `struct Foo<T>`),
+/// you can use `#[derive(Saveload)]` to automatically derive this and
+/// [`IntoSerialize`]. You can get around generic type bounds by exploiting
+/// the newtype pattern (e.g. `struct FooU32(Foo<u32>);`).
+///
+/// You must add the `derive` to any type that your component has a field of which does
+/// not auto-implement these two traits, including the component itself (similar to how
+/// normal [`Serialize`] and [`Deserialize`] work).
+///
 /// [`from`]: trait.FromDeserialize.html#tymethod.from
 /// [`Component`]: ../trait.Component.html
 /// [`Deserialize`]: https://docs.serde.rs/serde/trait.Deserialize.html
+/// [`Serialize`]: https://docs.serde.rs/serde/trait.Serialize.html
 /// [`DeserializeOwned`]: https://docs.serde.rs/serde/de/trait.DeserializeOwned.html
 /// [`IntoSerialize`]: trait.IntoSerialize.html
 ///
@@ -153,14 +165,14 @@ where
 ///
 /// ```
 ///
-pub trait FromDeserialize<M>: Component {
-    /// Serializable data representation for component
+pub trait FromDeserialize<M>: Sized {
+    /// Serializable data representation
     type Data: DeserializeOwned;
 
-    /// Error may occur during deserialization of component
+    /// Error may occur during deserialization
     type Error;
 
-    /// Convert this component from a deserializable form (`Data`) using
+    /// Convert this data from a deserializable form (`Data`) using
     /// entity to marker mapping function
     fn from<F>(data: Self::Data, ids: F) -> Result<Self, Self::Error>
     where
@@ -169,7 +181,7 @@ pub trait FromDeserialize<M>: Component {
 
 impl<C, M> FromDeserialize<M> for C
 where
-    C: Component + DeserializeOwned,
+    C: DeserializeOwned,
 {
     type Data = Self;
     type Error = NoError;
@@ -179,6 +191,21 @@ where
         F: FnMut(M) -> Option<Entity>,
     {
         Ok(data)
+    }
+}
+
+impl<M> FromDeserialize<M> for Entity
+where
+    M: DeserializeOwned,
+{
+    type Data = M;
+    type Error = NoError;
+
+    fn from<F>(data: Self::Data, mut func: F) -> Result<Self, Self::Error>
+    where
+        F: FnMut(M) -> Option<Entity>,
+    {
+        Ok(func(data).unwrap())
     }
 }
 
@@ -231,7 +258,7 @@ macro_rules! deserialize_components {
             M: Marker,
             $(
                 $sto: GenericWriteStorage,
-                <$sto as GenericWriteStorage>::Component: FromDeserialize<M>,
+                <$sto as GenericWriteStorage>::Component: FromDeserialize<M>+Component,
                 E: From<<
                     <$sto as GenericWriteStorage>::Component as FromDeserialize<M>
                 >::Error>,

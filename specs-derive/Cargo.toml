@@ -9,8 +9,12 @@ keywords = ["gamedev", "parallel", "specs", "ecs", "derive"]
 license = "MIT/Apache-2.0"
 
 [dependencies]
-syn = "0.12"
+syn = {version="0.12", features=["extra-traits"]}
 quote = "0.4"
+
+[dev-dependencies]
+specs = { path = "..", features=["serde"] }
+serde = "1"
 
 [lib]
 proc-macro = true
