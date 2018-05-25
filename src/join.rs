@@ -156,7 +156,12 @@ pub trait Join {
     }
 
     /// Open this join by returning the mask and the storages.
-    fn open(self) -> (Self::Mask, Self::Value);
+    ///
+    /// This is unsafe because implementations of this trait can permit
+    /// the `Value` to be mutated independently of the `Mask`.
+    /// If the `Mask` does not correctly report the status of the `Value`
+    /// then illegal memory access can occur.
+    unsafe fn open(self) -> (Self::Mask, Self::Value);
 
     /// Get a joined component value by a given index.
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type;
@@ -185,7 +190,7 @@ pub struct JoinIter<J: Join> {
 impl<J: Join> JoinIter<J> {
     /// Create a new join iterator.
     pub fn new(j: J) -> Self {
-        let (keys, values) = j.open();
+        let (keys, values) = unsafe { j.open() };
         JoinIter {
             keys: keys.iter(),
             values,
@@ -293,7 +298,7 @@ where
     where
         C: UnindexedConsumer<Self::Item>,
     {
-        let (keys, values) = self.0.open();
+        let (keys, values) = unsafe { self.0.open() };
         // Create a bit producer which splits on up to three levels
         let producer = BitProducer((&keys).iter(), 3);
         let values = UnsafeCell::new(values);
@@ -380,7 +385,7 @@ macro_rules! define_open {
             type Value = ($($from::Value),*,);
             type Mask = <($($from::Mask,)*) as BitAnd>::Value;
             #[allow(non_snake_case)]
-            fn open(self) -> (Self::Mask, Self::Value) {
+            unsafe fn open(self) -> (Self::Mask, Self::Value) {
                 let ($($from,)*) = self;
                 let ($($from,)*) = ($($from.open(),)*);
                 (

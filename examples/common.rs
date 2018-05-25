@@ -4,8 +4,8 @@ extern crate specs;
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
-use futures::{Future, Poll};
 use futures::future::Lazy;
+use futures::{Future, Poll};
 use specs::common::{BoxedFuture, Errors, Merge};
 use specs::error::BoxedErr;
 use specs::prelude::*;
