@@ -65,7 +65,7 @@ impl<'a> System<'a> for Sys {
 
 There are three different event types that we can subscribe to:
 
-* InsertedFlag - will be sent whan a component is added to the storage
+* InsertedFlag - will be sent when a component is added to the storage
 * ModifiedFlag - will be sent when a component is fetched mutably from the storage
 * RemovedFlag - will be sent when a component is removed from the storage
 
