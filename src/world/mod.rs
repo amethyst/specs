@@ -91,12 +91,6 @@ pub struct EntityBuilder<'a> {
 }
 
 impl<'a> Builder for EntityBuilder<'a> {
-    /// Appends a component and associates it with the entity.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the component hasn't been `register()`ed in the
-    /// `World`.
     #[inline]
     fn with<T: Component>(self, c: T) -> Self {
         {
