@@ -12,9 +12,9 @@ use world::{Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, Laz
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 
-/// A common trait for EntityBuilder and LazyBuilder with a marker function, allowing either to be used.
+/// A common trait for [`EntityBuilder`] and [`LazyBuilder`] with a marker function, allowing either to be used.
 pub trait MarkedBuilder {
-    /// Add a `Marker` to the entity by fetching the associated allocator.
+    /// Add a [`Marker`] to the entity by fetching the associated allocator.
     ///
     /// ## Examples
     ///
@@ -39,28 +39,6 @@ pub trait MarkedBuilder {
 }
 
 impl<'a> MarkedBuilder for EntityBuilder<'a> {
-    /// Add a `Marker` to the entity by fetching the associated allocator.
-    ///
-    /// ## Examples
-    ///
-    /// ```
-    /// use specs::prelude::*;
-    /// use specs::saveload::{MarkedBuilder, U64Marker, U64MarkerAllocator};
-    ///
-    /// let mut world = World::new();
-    /// world.register::<U64Marker>();
-    /// world.add_resource(U64MarkerAllocator::new());
-    ///
-    /// world
-    ///     .create_entity()
-    ///     /* .with(Component1) */
-    ///     .marked::<U64Marker>()
-    ///     .build();
-    /// ```
-    ///
-    /// ## Panics
-    ///
-    /// Panics in case there's no allocator added to the `World`.
     fn marked<M>(self) -> Self
     where
         M: Marker,
@@ -73,9 +51,9 @@ impl<'a> MarkedBuilder for EntityBuilder<'a> {
 }
 
 impl<'a> MarkedBuilder for LazyBuilder<'a> {
-    /// Add a `Marker` to the entity by fetching the associated allocator.
+    /// Add a [`Marker`] to the entity by fetching the associated allocator.
     ///
-    /// This will be applied on the next `world.maintain()`.
+    /// This will be applied on the next [`world.maintain()`](World::maintain).
     ///
     /// ## Examples
     ///
@@ -98,8 +76,8 @@ impl<'a> MarkedBuilder for LazyBuilder<'a> {
     ///
     /// ## Panics
     ///
-    /// Panics during `world.maintain()` in case there's no allocator
-    /// added to the `World`.
+    /// Panics during [`world.maintain()`](World::maintain) in case there's no allocator
+    /// added to the [`World`].
     fn marked<M>(self) -> Self
         where
             M: Marker

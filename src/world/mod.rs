@@ -34,14 +34,16 @@ impl<'a> Iterator for CreateIter<'a> {
     }
 }
 
-/// A common trait for EntityBuilder and LazyBuilder, allowing either to be used.
+/// A common trait for [`EntityBuilder`] and [`LazyBuilder`], allowing either to be used.
+/// Entity is definitely alive, but the components may or may not exist before a call to
+/// [`World::maintain`].
 pub trait Builder {
     /// Appends a component and associates it with the entity.
     ///
     /// # Panics
     ///
-    /// Panics if the component hasn't been `register()`ed in the
-    /// `World`.
+    /// Panics if the component hasn't been [`register()`](World::register)ed in the
+    /// [`World`].
     fn with<C: Component + Send + Sync>(self, c: C) -> Self;
 
     /// Finishes the building and returns the entity.
@@ -103,7 +105,8 @@ impl<'a> Builder for EntityBuilder<'a> {
         self
     }
 
-    /// Finishes the building and returns the entity.
+    /// Finishes the building and returns the entity. As opposed to [`LazyBuilder`],
+    /// the components are available immediately.
     #[inline]
     fn build(mut self) -> Entity {
         self.built = true;

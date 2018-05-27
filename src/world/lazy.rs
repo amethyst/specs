@@ -22,7 +22,7 @@ pub struct LazyBuilder<'a> {
 }
 
 impl<'a> Builder for LazyBuilder<'a> {
-    /// Inserts a component using `LazyUpdate`.
+    /// Inserts a component using [`LazyUpdate`].
     fn with<C>(self, component: C) -> Self
     where
         C: Component + Send + Sync,
@@ -42,7 +42,7 @@ impl<'a> Builder for LazyBuilder<'a> {
 
     /// Finishes the building and returns the built entity.
     /// Please note that no component is associated to this
-    /// entity until you call `World::maintain`.
+    /// entity until you call [`World::maintain`].
     fn build(self) -> Entity {
         self.entity
     }
