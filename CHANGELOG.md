@@ -1,13 +1,12 @@
-# 0.11.4
+# [Unreleased]
 
+* Add `LazyUpdate::exec_mut` which allows adding a resource from a system ([#433])
 * Add `build_entity()` to `EntitiesRes` so you can use builder syntax in a system.
-
-# 0.11.3
-
 * Add `marked()` to LazyBuilder to keep parity with EntityBuilder ([#420])
 * Fix `U64MarkerAllocator`'s internal index not being updated on `saveload::DeserializeComponents` ([#420])
 
 [#420]: https://github.com/slide-rs/specs/pull/420
+[#420]: https://github.com/slide-rs/specs/pull/433
 
 # 0.11.2
 
