@@ -546,7 +546,10 @@ impl World {
             self.delete_components(&deleted);
         }
 
-        self.write_resource::<LazyUpdate>().maintain(&*self);
+        // we need to swap the queue out to be able to reborrow self mutable here
+        let mut lazy = self.write_resource::<LazyUpdate>().take();
+        lazy.maintain(&mut *self);
+        self.write_resource::<LazyUpdate>().restore(lazy);
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {
