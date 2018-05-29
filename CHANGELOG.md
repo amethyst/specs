@@ -1,8 +1,12 @@
-# [Unreleased]
+# 0.12.0
 
 * `Join::open()` and `Storage::unprotected_storage_mut()` have been marked unsafe.
 Thanks to [@andrewhickman](https://github.com/andrewhickman) for discovering this
 unsoundness!
+* Add common `Builder` trait to `EntityBuilder` and `LazyBuilder` ([#426])
+* Add common `MarkedBuilder` trait to `EntityBuilder` and `LazyBuilder` ([#426])
+
+[#426]: https://github.com/slide-rs/specs/pull/426
 
 # 0.11.4
 

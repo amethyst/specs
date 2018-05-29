@@ -35,6 +35,22 @@ impl<'a> Iterator for CreateIter<'a> {
     }
 }
 
+/// A common trait for `EntityBuilder` and `LazyBuilder`, allowing either to be used.
+/// Entity is definitely alive, but the components may or may not exist before a call to
+/// `World::maintain`.
+pub trait Builder {
+    /// Appends a component and associates it with the entity.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the component hasn't been `register()`ed in the
+    /// `World`.
+    fn with<C: Component + Send + Sync>(self, c: C) -> Self;
+
+    /// Finishes the building and returns the entity.
+    fn build(self) -> Entity;
+}
+
 /// The entity builder, allowing to
 /// build an entity together with its components.
 ///
@@ -77,15 +93,9 @@ pub struct EntityBuilder<'a> {
     built: bool,
 }
 
-impl<'a> EntityBuilder<'a> {
-    /// Appends a component and associates it with the entity.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the component hasn't been `register()`ed in the
-    /// `World`.
+impl<'a> Builder for EntityBuilder<'a> {
     #[inline]
-    pub fn with<T: Component>(self, c: T) -> Self {
+    fn with<T: Component>(self, c: T) -> Self {
         {
             let mut storage = self.world.write_storage();
             // This can't fail.  This is guaranteed by the lifetime 'a
@@ -96,9 +106,10 @@ impl<'a> EntityBuilder<'a> {
         self
     }
 
-    /// Finishes the building and returns the entity.
+    /// Finishes the building and returns the entity. As opposed to `LazyBuilder`,
+    /// the components are available immediately.
     #[inline]
-    pub fn build(mut self) -> Entity {
+    fn build(mut self) -> Entity {
         self.built = true;
         self.entity
     }

@@ -3,6 +3,7 @@ extern crate specs;
 
 use specs::prelude::*;
 use specs::storage::HashMapStorage;
+use specs::world::Builder;
 
 #[derive(Clone, Debug, PartialEq)]
 struct CompInt(i8);

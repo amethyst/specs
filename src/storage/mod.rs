@@ -572,7 +572,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
 mod tests_inline {
 
     use rayon::iter::ParallelIterator;
-    use {Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World};
+    use {Builder, Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World};
 
     struct Pos;
 

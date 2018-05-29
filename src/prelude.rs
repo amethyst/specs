@@ -17,4 +17,4 @@ pub use changeset::ChangeSet;
 pub use storage::{DenseVecStorage, FlaggedStorage, HashMapStorage, InsertedFlag, ModifiedFlag,
                   NullStorage, ReadStorage, RemovedFlag, Storage, Tracked, VecStorage,
                   WriteStorage};
-pub use world::{Component, Entities, Entity, EntityBuilder, LazyUpdate, World};
+pub use world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate, World};
