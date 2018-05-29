@@ -216,23 +216,23 @@ impl<'a> System<'a> for Spawn {
 
             let spawn_inv_mass = match spawner {
                 Spawner::Rect { a, b, inv_mass } => {
-                    rect.insert(entity, Rect { a, b });
+                    rect.insert(entity, Rect { a, b }).unwrap();
 
                     inv_mass
                 }
                 Spawner::Ball { radius, inv_mass } => {
-                    ball.insert(entity, Ball { radius });
+                    ball.insert(entity, Ball { radius }).unwrap();
 
                     inv_mass
                 }
             };
 
-            inv_mass.insert(entity, InvMass(spawn_inv_mass));
+            inv_mass.insert(entity, InvMass(spawn_inv_mass)).unwrap();
 
-            pos.insert(entity, Pos(spawn_pos));
-            vel.insert(entity, Vel(Vec2::new(gen(), gen())));
-            force.insert(entity, Force(Vec2::zero()));
-            color.insert(entity, spawn_color);
+            pos.insert(entity, Pos(spawn_pos)).unwrap();
+            vel.insert(entity, Vel(Vec2::new(gen(), gen()))).unwrap();
+            force.insert(entity, Force(Vec2::zero())).unwrap();
+            color.insert(entity, spawn_color).unwrap();
         }
     }
 }

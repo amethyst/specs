@@ -19,7 +19,7 @@ where
     type Value = &'a mut MaskedStorage<T>;
     type Mask = BitSet;
 
-    fn open(self) -> (Self::Mask, Self::Value) {
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let mask = self.data.mask.clone();
 
         (mask, self.data)

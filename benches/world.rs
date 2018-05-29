@@ -144,7 +144,7 @@ fn join_single_threaded(b: &mut Bencher) {
         let entities: Vec<_> = world.create_iter().take(50_000).collect();
         let mut comp_int = world.write_storage();
         for (i, e) in entities.iter().enumerate() {
-            comp_int.insert(*e, CompInt(i as i32));
+            comp_int.insert(*e, CompInt(i as i32)).unwrap();
         }
     }
 
@@ -166,7 +166,7 @@ fn join_multi_threaded(b: &mut Bencher) {
         let entities: Vec<_> = world.create_iter().take(50_000).collect();
         let mut comp_int = world.write_storage();
         for (i, e) in entities.iter().enumerate() {
-            comp_int.insert(*e, CompInt(i as i32));
+            comp_int.insert(*e, CompInt(i as i32)).unwrap();
         }
     }
 

@@ -9,11 +9,12 @@ pub use shred::{Accessor, Dispatcher, DispatcherBuilder, Read, ReadExpect, Resou
 pub use shrev::ReaderId;
 
 #[cfg(not(target_os = "emscripten"))]
-pub use shred::AsyncDispatcher;
-#[cfg(not(target_os = "emscripten"))]
 pub use rayon::iter::ParallelIterator;
+#[cfg(not(target_os = "emscripten"))]
+pub use shred::AsyncDispatcher;
 
 pub use changeset::ChangeSet;
 pub use storage::{DenseVecStorage, FlaggedStorage, HashMapStorage, InsertedFlag, ModifiedFlag,
-                  NullStorage, ReadStorage, RemovedFlag, Storage, Tracked, VecStorage, WriteStorage};
+                  NullStorage, ReadStorage, RemovedFlag, Storage, Tracked, VecStorage,
+                  WriteStorage};
 pub use world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate, World};

@@ -22,7 +22,7 @@ where
             let mut storage = world.write_storage::<C>();
 
             for e in entities.create_iter().take(num) {
-                storage.insert(e, C::default());
+                storage.insert(e, C::default()).unwrap();
             }
         },
     )
@@ -44,7 +44,7 @@ where
                 let mut storage = world.write_storage::<C>();
 
                 for e in entities.create_iter().take(num) {
-                    storage.insert(e, C::default());
+                    storage.insert(e, C::default()).unwrap();
                 }
             }
 
@@ -77,7 +77,7 @@ where
                 let mut storage = world.write_storage::<C>();
 
                 for e in entities.create_iter().take(num) {
-                    storage.insert(e, C::default());
+                    storage.insert(e, C::default()).unwrap();
                 }
             }
 

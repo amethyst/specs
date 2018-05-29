@@ -47,8 +47,8 @@ macro_rules! gap {
 
                 bencher.iter(move || {
                     for &entity in &entities {
-                        ints.insert(entity, CompInt::default());
-                        bools.insert(entity, CompBool::default());
+                        ints.insert(entity, CompInt::default()).unwrap();
+                        bools.insert(entity, CompBool::default()).unwrap();
                     }
                 });
             }
