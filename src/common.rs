@@ -23,8 +23,8 @@ use std::io::Write;
 use std::marker::PhantomData;
 
 use crossbeam::sync::MsQueue;
-use futures::{Async, Future};
 use futures::executor::{spawn, Notify, Spawn};
+use futures::{Async, Future};
 
 use error::BoxedErr;
 use join::Join;

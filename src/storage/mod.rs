@@ -5,9 +5,9 @@ pub use self::flagged::FlaggedStorage;
 pub use self::generic::{GenericReadStorage, GenericWriteStorage};
 pub use self::restrict::{ImmutableParallelRestriction, MutableParallelRestriction,
                          RestrictedStorage, SequentialRestriction};
-pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 #[cfg(feature = "rudy")]
 pub use self::storages::RudyStorage;
+pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 pub use self::track::{InsertedFlag, ModifiedFlag, RemovedFlag, TrackChannels, Tracked};
 
 use std;
@@ -41,7 +41,7 @@ impl<'a> Join for AntiStorage<'a> {
     type Value = ();
     type Mask = BitSetNot<&'a BitSet>;
 
-    fn open(self) -> (Self::Mask, ()) {
+    unsafe fn open(self) -> (Self::Mask, ()) {
         (BitSetNot(self.0), ())
     }
 
@@ -323,7 +323,10 @@ where
     D: DerefMut<Target = MaskedStorage<T>>,
 {
     /// Gets mutable access to the wrapped storage.
-    pub fn unprotected_storage_mut(&mut self) -> &mut T::Storage {
+    ///
+    /// This is unsafe because modifying the wrapped storage without also
+    /// updating the mask bitset accordingly can result in illegal memory access.
+    pub unsafe fn unprotected_storage_mut(&mut self) -> &mut T::Storage {
         &mut self.data.inner
     }
 
@@ -452,7 +455,7 @@ where
     type Value = &'a T::Storage;
     type Mask = &'a BitSet;
 
-    fn open(self) -> (Self::Mask, Self::Value) {
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.data.mask, &self.data.inner)
     }
 
@@ -490,7 +493,7 @@ where
     type Value = &'a mut T::Storage;
     type Mask = &'a BitSet;
 
-    fn open(self) -> (Self::Mask, Self::Value) {
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
         self.data.open_mut()
     }
 
@@ -568,8 +571,8 @@ pub trait UnprotectedStorage<T>: TryDefault {
 #[cfg(test)]
 mod tests_inline {
 
-    use {Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World};
     use rayon::iter::ParallelIterator;
+    use {Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World};
 
     struct Pos;
 

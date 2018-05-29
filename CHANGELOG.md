@@ -1,3 +1,9 @@
+# [Unreleased]
+
+* `Join::open()` and `Storage::unprotected_storage_mut()` have been marked unsafe.
+Thanks to [@andrewhickman](https://github.com/andrewhickman) for discovering this
+unsoundness!
+
 # 0.11.4
 
 * Add `build_entity()` to `EntitiesRes` so you can use builder syntax in a system.
