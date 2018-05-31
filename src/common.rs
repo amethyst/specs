@@ -23,8 +23,8 @@ use std::io::Write;
 use std::marker::PhantomData;
 
 use crossbeam::sync::MsQueue;
-use futures::{Async, Future};
 use futures::executor::{spawn, Notify, Spawn};
+use futures::{Async, Future};
 
 use error::BoxedErr;
 use join::Join;
@@ -263,7 +263,7 @@ mod test {
     use common::{BoxedErr, Errors, Merge};
     use shred::DispatcherBuilder;
     use storage::{NullStorage, VecStorage};
-    use world::{Component, World};
+    use world::{Builder, Component, World};
 
     #[test]
     fn test_merge() {

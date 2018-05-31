@@ -111,7 +111,7 @@ impl<'a, T> Join for &'a mut ChangeSet<T> {
     type Value = &'a mut DenseVecStorage<T>;
     type Mask = &'a BitSet;
 
-    fn open(self) -> (Self::Mask, Self::Value) {
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, &mut self.inner)
     }
 
@@ -126,7 +126,7 @@ impl<'a, T> Join for &'a ChangeSet<T> {
     type Value = &'a DenseVecStorage<T>;
     type Mask = &'a BitSet;
 
-    fn open(self) -> (Self::Mask, Self::Value) {
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, &self.inner)
     }
 
@@ -140,7 +140,7 @@ impl<T> Join for ChangeSet<T> {
     type Value = DenseVecStorage<T>;
     type Mask = BitSet;
 
-    fn open(self) -> (Self::Mask, Self::Value) {
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (self.mask, self.inner)
     }
 
@@ -154,7 +154,7 @@ mod tests {
     use super::ChangeSet;
     use join::Join;
     use storage::DenseVecStorage;
-    use world::{Component, World};
+    use world::{Builder, Component, World};
 
     pub struct Health(i32);
 

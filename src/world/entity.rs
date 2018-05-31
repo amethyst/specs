@@ -324,7 +324,7 @@ impl<'a> Join for &'a EntitiesRes {
     type Value = Self;
     type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
 
-    fn open(self) -> (Self::Mask, Self) {
+    unsafe fn open(self) -> (Self::Mask, Self) {
         (BitSetOr(&self.alloc.alive, &self.alloc.raised), self)
     }
 

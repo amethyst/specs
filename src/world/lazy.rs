@@ -1,6 +1,6 @@
 use crossbeam::sync::SegQueue;
 
-use world::{Component, EntitiesRes, Entity, World};
+use world::{Builder, Component, EntitiesRes, Entity, World};
 
 struct Queue<T>(SegQueue<T>);
 
@@ -21,9 +21,9 @@ pub struct LazyBuilder<'a> {
     pub lazy: &'a LazyUpdate,
 }
 
-impl<'a> LazyBuilder<'a> {
-    /// Inserts a component using `LazyUpdate`.
-    pub fn with<C>(self, component: C) -> Self
+impl<'a> Builder for LazyBuilder<'a> {
+    /// Inserts a component using [`LazyUpdate`].
+    fn with<C>(self, component: C) -> Self
     where
         C: Component + Send + Sync,
     {
@@ -42,8 +42,8 @@ impl<'a> LazyBuilder<'a> {
 
     /// Finishes the building and returns the built entity.
     /// Please note that no component is associated to this
-    /// entity until you call `World::maintain`.
-    pub fn build(self) -> Entity {
+    /// entity until you call [`World::maintain`].
+    fn build(self) -> Entity {
         self.entity
     }
 }

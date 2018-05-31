@@ -15,8 +15,8 @@ use proc_macro::TokenStream;
 use quote::Tokens;
 use syn::synom::Synom;
 use syn::{DeriveInput, Path};
-
 mod impl_saveload;
+
 
 /// Custom derive macro for the `Component` trait.
 ///

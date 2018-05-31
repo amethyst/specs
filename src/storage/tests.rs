@@ -128,6 +128,7 @@ mod test {
     use std::fmt::Debug;
 
     use super::*;
+    use world::Builder;
 
     #[derive(PartialEq, Eq, Debug, Default)]
     struct CMarker;
