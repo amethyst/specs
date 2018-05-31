@@ -43,15 +43,15 @@
 /// # use specs::prelude::*;
 /// # #[derive(Copy, Clone, Debug, Serialize, Deserialize, Component)]
 /// # #[storage(VecStorage)]
-/// # struct Foo;
+/// # pub struct Foo;
 /// #
 /// # #[derive(Copy, Clone, Debug, Serialize, Deserialize, Component)]
 /// # #[storage(VecStorage)]
-/// # struct Bar;
+/// # pub struct Bar;
 /// #
 /// # #[derive(Copy, Clone, Debug, Serialize, Deserialize, Component)]
 /// # #[storage(VecStorage)]
-/// # struct Baz;
+/// # pub struct Baz;
 /// #
 /// saveload_components!{[Foo, Bar], Deser, Ser, Data}
 ///
@@ -102,27 +102,30 @@ macro_rules! saveload_components {
             #[allow(non_snake_case)]
             #[derive(Serialize, Deserialize)]
             #[serde(bound="")]
-            pub(crate) struct $data_name<MA>
+            #[doc(hidden)]
+            pub struct $data_name<MA>
             where
                 MA: Marker+::serde::Serialize,
                 for<'deser> MA: ::serde::Deserialize<'deser>,
             {
-                $(pub(crate) $name: Option<<$name as IntoSerialize<MA>>::Data> ),*
+                $(pub $name: Option<<$name as IntoSerialize<MA>>::Data> ),*
             }
 
             /// The generated deserializer system data
             #[derive(SystemData)]
             #[allow(dead_code)]
-            pub(crate) struct $deser_name<'a, M: Marker, A: MarkerAllocator<M> > {
-                pub(crate) markers: WriteStorage<'a, M>,
-                pub(crate) entities: Entities<'a>,
-                pub(crate) alloc: Write<'a, A>,
-                pub(crate) components: self::deser_components::$deser_name<'a>,
+            #[doc(hidden)]
+            pub struct $deser_name<'a, M: Marker, A: MarkerAllocator<M> > {
+                pub markers: WriteStorage<'a, M>,
+                pub entities: Entities<'a>,
+                pub alloc: Write<'a, A>,
+                pub components: self::deser_components::$deser_name<'a>,
             }
 
-            pub(crate) use self::deser_components::$deser_name as DeserComponents;
+            pub use self::deser_components::$deser_name as DeserComponents;
 
-            mod deser_components {
+            #[doc(hidden)]
+            pub mod deser_components {
                 #![allow(unused_imports)]
 
                 use $crate::WriteStorage;
@@ -131,8 +134,9 @@ macro_rules! saveload_components {
 
                 #[allow(non_snake_case)]
                 #[derive(SystemData)]
-                pub(crate) struct $deser_name<'a> {
-                    $( pub(crate) $name: WriteStorage<'a, $name> ),*
+                #[doc(hidden)]
+                pub struct $deser_name<'a> {
+                    $( pub $name: WriteStorage<'a, $name> ),*
                 }
             }
 
@@ -163,15 +167,17 @@ macro_rules! saveload_components {
             /// The generated deserializer system data
             #[derive(SystemData)]
             #[allow(dead_code)]
-            pub(crate) struct $ser_name<'a, M: Marker> {
-                pub(crate) markers: ReadStorage<'a, M>,
-                pub(crate) entities: Entities<'a>,
-                pub(crate) components: self::ser_components::$ser_name<'a>,
+            #[doc(hidden)]
+            pub struct $ser_name<'a, M: Marker> {
+                pub markers: ReadStorage<'a, M>,
+                pub entities: Entities<'a>,
+                pub components: self::ser_components::$ser_name<'a>,
             }
 
-            pub(crate) use self::ser_components::$ser_name as SerComponents;
+            pub use self::ser_components::$ser_name as SerComponents;
 
-            mod ser_components {
+            #[doc(hidden)]
+            pub mod ser_components {
                 #![allow(unused_imports)]
 
                 use $crate::ReadStorage;
@@ -180,8 +186,9 @@ macro_rules! saveload_components {
 
                 #[allow(non_snake_case)]
                 #[derive(SystemData)]
-                pub(crate) struct $ser_name<'a> {
-                    $( pub(crate) $name: ReadStorage<'a, $name> ),*
+                #[doc(hidden)]
+                pub struct $ser_name<'a> {
+                    $( pub $name: ReadStorage<'a, $name> ),*
                 }
             }
 

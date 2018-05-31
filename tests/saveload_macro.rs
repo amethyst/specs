@@ -17,21 +17,21 @@ use specs::saveload::{U64Marker, U64MarkerAllocator};
 
 #[derive(Copy, Clone, Serialize, Deserialize, Component, Debug, PartialEq)]
 #[storage(VecStorage)]
-struct Pos {
+pub struct Pos {
     x: f64,
     y: f64,
 }
 
 #[derive(Copy, Clone, Serialize, Deserialize, Component, Debug, PartialEq)]
 #[storage(VecStorage)]
-struct Vel {
+pub struct Vel {
     x: f64,
     y: f64,
 }
 
 #[derive(Copy, Clone, Component, Saveload)]
 #[storage(VecStorage)]
-struct OwnsEntity(Entity);
+pub struct OwnsEntity(Entity);
 
 saveload_components!{
     [Pos, Vel, OwnsEntity], DeData, SerData, Data
