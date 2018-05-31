@@ -119,6 +119,12 @@ where
 }
 
 /// A trait which allows to serialize entities and their components.
+///
+/// Instead of implementing this trait and its companion [`DeserializeComponents`] directly,
+/// you may wish to use the [`saveload_components`] macro.
+///
+/// [`DeserializeComponents`]: ./DeserializeComponents.t.html
+/// [`saveload_components`]: ../macro.saveload_components.html
 pub trait SerializeComponents<E, M>
 where
     M: Marker,

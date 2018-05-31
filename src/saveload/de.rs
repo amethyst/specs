@@ -12,6 +12,12 @@ use storage::{GenericWriteStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
 
 /// A trait which allows to deserialize entities and their components.
+///
+/// Instead of implementing this trait and its companion [`SerializeComponents`] directly,
+/// you may wish to use the [`saveload_components`] macro.
+///
+/// [`SerializeComponents`]: ./SerializeComponents.t.html
+/// [`saveload_components`]: ../macro.saveload_components.html
 pub trait DeserializeComponents<E, M>
 where
     Self: Sized,
