@@ -99,6 +99,8 @@ impl<'a> System<'a> for SerSys {
 
 #[test]
 fn saveload_macro() {
+    use specs::saveload::MarkedBuilder;
+
     let mut world = setup_world();
     let entity = world
         .create_entity()
