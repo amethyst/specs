@@ -34,7 +34,7 @@ struct Vel {
 struct OwnsEntity(Entity);
 
 saveload_components!{
-    [Pos, Vel, OwnsEntity], DeData, SerData, Data, crate
+    [Pos, Vel, OwnsEntity], DeData, SerData, Data
 }
 
 #[derive(Clone, Eq, PartialEq, Hash, Default, Debug)]
