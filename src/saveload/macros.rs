@@ -2,10 +2,8 @@
 ///
 /// This takes several arguments: a list of components surrounded by brackets `[ Foo, Bar, Baz ]`,
 /// the target name of the generated deserialization system data, the
-/// target name of the serialization system data, the target name of the intermediate data struct all your
-/// components will be serialized from (essentially a big list of [`<T as IntoSerialize>::Data`]),
-/// and finally, the absolute path of the module this is invoked from (`::` for root), the latter is a workaround
-/// for some privacy issues.
+/// target name of the serialization system data, and the target name of the intermediate data struct all your
+/// components will be serialized from (essentially a big list of [`<T as IntoSerialize>::Data`]).
 ///
 /// At the site of invocation, it will create a submodule named `saveload_generated` containing the struct names
 /// given in the arguments.
@@ -55,7 +53,7 @@
 /// # #[storage(VecStorage)]
 /// # struct Baz;
 /// #
-/// saveload_components!{[Foo, Bar], Deser, Ser, Data, ::}
+/// saveload_components!{[Foo, Bar], Deser, Ser, Data}
 ///
 /// use specs::saveload::{U64MarkerAllocator, U64Marker};
 ///
@@ -91,7 +89,7 @@
 /// [`SystemData`]: SystemData.t.html
 #[macro_export]
 macro_rules! saveload_components {
-    ( [ $($name:ident),* ],  $deser_name:ident, $ser_name:ident, $data_name:ident, $abs_mod:tt) => {
+    ( [ $($name:ident),* ],  $deser_name:ident, $ser_name:ident, $data_name:ident) => {
         mod saveload_generated {
             #![allow(unused_imports)]
             
@@ -104,25 +102,25 @@ macro_rules! saveload_components {
             #[allow(non_snake_case)]
             #[derive(Serialize, Deserialize)]
             #[serde(bound="")]
-            pub(super) struct $data_name<MA>
+            pub(crate) struct $data_name<MA>
             where
                 MA: Marker+::serde::Serialize,
                 for<'deser> MA: ::serde::Deserialize<'deser>,
             {
-                $(pub(super) $name: Option<<$name as IntoSerialize<MA>>::Data> ),*
+                $(pub(crate) $name: Option<<$name as IntoSerialize<MA>>::Data> ),*
             }
 
             /// The generated deserializer system data
             #[derive(SystemData)]
             #[allow(dead_code)]
-            pub(super) struct $deser_name<'a, M: Marker, A: MarkerAllocator<M> > {
-                pub(super) markers: WriteStorage<'a, M>,
-                pub(super) entities: Entities<'a>,
-                pub(super) alloc: Write<'a, A>,
-                pub(super) components: self::deser_components::$deser_name<'a>,
+            pub(crate) struct $deser_name<'a, M: Marker, A: MarkerAllocator<M> > {
+                pub(crate) markers: WriteStorage<'a, M>,
+                pub(crate) entities: Entities<'a>,
+                pub(crate) alloc: Write<'a, A>,
+                pub(crate) components: self::deser_components::$deser_name<'a>,
             }
 
-            pub(super) use self::deser_components::$deser_name as DeserComponents;
+            pub(crate) use self::deser_components::$deser_name as DeserComponents;
 
             mod deser_components {
                 #![allow(unused_imports)]
@@ -134,7 +132,7 @@ macro_rules! saveload_components {
                 #[allow(non_snake_case)]
                 #[derive(SystemData)]
                 pub(crate) struct $deser_name<'a> {
-                    $( pub(super) $name: WriteStorage<'a, $name> ),*
+                    $( pub(crate) $name: WriteStorage<'a, $name> ),*
                 }
             }
 
@@ -165,13 +163,13 @@ macro_rules! saveload_components {
             /// The generated deserializer system data
             #[derive(SystemData)]
             #[allow(dead_code)]
-            pub(super) struct $ser_name<'a, M: Marker> {
-                pub(super) markers: ReadStorage<'a, M>,
-                pub(super) entities: Entities<'a>,
-                pub(super) components: self::ser_components::$ser_name<'a>,
+            pub(crate) struct $ser_name<'a, M: Marker> {
+                pub(crate) markers: ReadStorage<'a, M>,
+                pub(crate) entities: Entities<'a>,
+                pub(crate) components: self::ser_components::$ser_name<'a>,
             }
 
-            pub(super) use self::ser_components::$ser_name as SerComponents;
+            pub(crate) use self::ser_components::$ser_name as SerComponents;
 
             mod ser_components {
                 #![allow(unused_imports)]
@@ -183,7 +181,7 @@ macro_rules! saveload_components {
                 #[allow(non_snake_case)]
                 #[derive(SystemData)]
                 pub(crate) struct $ser_name<'a> {
-                    $( pub(super) $name: ReadStorage<'a, $name> ),*
+                    $( pub(crate) $name: ReadStorage<'a, $name> ),*
                 }
             }
 

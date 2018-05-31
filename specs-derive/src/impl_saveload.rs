@@ -76,7 +76,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
     let tt = quote!{
         #[derive(Serialize, Deserialize, Clone)]
         #[serde(bound = "MA: ::specs::saveload::Marker")]
-        #type_def
+        pub #type_def
 
         impl #impl_generics ::specs::saveload::IntoSerialize<MA> for #name #ty_generics #where_clause {
             type Data = #saveload_name #saveload_generics;
