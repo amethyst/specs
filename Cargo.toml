@@ -41,7 +41,7 @@ rudy = { version = "0.1", optional = true }
 
 [features]
 common = ["futures"]
-nightly = []
+nightly = ["shred/nightly"]
 
 [package.metadata.docs.rs]
 features = ["common", "serde"]
