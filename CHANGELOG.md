@@ -1,5 +1,8 @@
 # [Unreleased]
 
+
+# 0.12.0
+
 * `Join::open()` and `Storage::unprotected_storage_mut()` have been marked unsafe.
 Thanks to [@andrewhickman](https://github.com/andrewhickman) for discovering this
 unsoundness!
