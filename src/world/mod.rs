@@ -85,6 +85,7 @@ pub trait Builder {
 ///     .with(Pos { x: 1.0, y: 3.0 })
 ///     .build(); // Returns the `Entity`
 /// ```
+#[must_use]
 pub struct EntityBuilder<'a> {
     /// The (already created) entity for which components will be inserted.
     pub entity: Entity,

@@ -14,6 +14,7 @@ impl<T> Default for Queue<T> {
 /// lazily, meaning on `maintain`.
 /// If you need those components to exist immediately,
 /// you have to insert them into the storages yourself.
+#[must_use]
 pub struct LazyBuilder<'a> {
     /// The entity that we're inserting components for.
     pub entity: Entity,
