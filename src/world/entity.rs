@@ -348,6 +348,7 @@ unsafe impl<'a> ParJoin for &'a EntitiesRes {}
 
 /// An entity builder from `EntitiesRes`.  Allows building an entity with its
 /// components if you have mutable access to the component storages.
+#[must_use = "Please call .build() on this to finish building it."]
 pub struct EntityResBuilder<'a> {
     /// The entity being built
     pub entity: Entity,
