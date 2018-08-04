@@ -1,3 +1,10 @@
+# [Unreleased]
+
+* Generation now internally uses the new `NonZeroU32`, meaning `Option<Entity>` is the same size as `Entity`.
+Note this bumps the minimum supported rust version to 1.28.0 ([#447]).
+
+[#447]: https://github.com/slide-rs/specs/pull/447
+
 # 0.12.3
 
 * Add `MaybeJoin` to iterate over components without filtering the joint set ([#455])
