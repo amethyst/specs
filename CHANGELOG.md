@@ -1,5 +1,10 @@
 # [Unreleased]
 
+# 0.12.1
+
+* Add `#[must_use]` to entity builders to avoid people forgetting to call `.build()`. ([#443])
+
+[#443]: https://github.com/slide-rs/specs/pull/443
 
 # 0.12.0
 
