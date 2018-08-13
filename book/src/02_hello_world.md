@@ -6,7 +6,7 @@ First of all, thanks for trying out `specs`. Let's
 set it up first. Add the following line to your `Cargo.toml`:
 
 ```toml
-specs = "0.11"
+specs = "0.12.1"
 ```
 
 And add this to your crate root (`main.rs` or `lib.rs`):
@@ -158,7 +158,12 @@ use specs::RunNow;
 
 let mut hello_world = HelloWorld;
 hello_world.run_now(&world.res);
+world.maintain();
 ```
+
+The `world.maintain()` is not completely necessary here. Calling maintain should be done in general, however.
+If entities are created or deleted while a system is running, calling `maintain`
+will record the changes in its internal data structure.
 
 ## Full example code
 
@@ -209,6 +214,7 @@ fn main() {
 
     let mut hello_world = HelloWorld;
     hello_world.run_now(&world.res);
+    world.maintain();
 }
 ```
 
