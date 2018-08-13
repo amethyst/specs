@@ -172,6 +172,7 @@ fn main() {
         .build();
 
     dispatcher.dispatch(&mut world.res);
+    world.maintain();
 }
 ```
 
