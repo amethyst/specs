@@ -66,7 +66,10 @@ impl Allocator {
 
             self.alive.remove(entity.id());
             self.raised.remove(entity.id());
-            self.generations[id].die();
+            if self.generations.len() > id {
+                self.generations[id].die();
+            }
+
             if id < self.start_from.load(Ordering::Relaxed) {
                 self.start_from.store(id, Ordering::Relaxed);
             }

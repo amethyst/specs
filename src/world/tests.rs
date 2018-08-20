@@ -143,3 +143,24 @@ fn test_bundle() {
     world.add_bundle(TestBundle);
     assert_eq!(12, world.read_resource::<SomeResource>().v);
 }
+
+#[test]
+fn delete_and_lazy() {
+    let mut world = World::new();
+    {
+        let lazy_update = world.write_resource::<::LazyUpdate>();
+        lazy_update.exec(|world| {
+            world.entities().create();
+        })
+    }
+
+    world.maintain();
+    {
+        let lazy_update = world.write_resource::<::LazyUpdate>();
+        lazy_update.exec(|world| {
+            world.entities().create();
+        })
+    }
+
+    world.delete_all();
+}
