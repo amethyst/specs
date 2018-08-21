@@ -3,9 +3,9 @@
 use std;
 use std::cell::UnsafeCell;
 
-use hibitset::{BitIter, BitProducer, BitSetAnd, BitSetLike};
-use rayon::iter::ParallelIterator;
+use hibitset::{BitIter, BitProducer, BitSet, BitSetAnd, BitSetLike, BitSetNot};
 use rayon::iter::plumbing::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
+use rayon::iter::ParallelIterator;
 use tuple_utils::Split;
 
 use world::{Entities, Entity, Index};
@@ -155,6 +155,13 @@ pub trait Join {
         JoinIter::new(self)
     }
 
+    fn maybe(self) -> MaybeJoin<Self>
+    where
+        Self: Sized,
+    {
+        MaybeJoin(self)
+    }
+
     /// Open this join by returning the mask and the storages.
     ///
     /// This is unsafe because implementations of this trait can permit
@@ -177,6 +184,28 @@ pub unsafe trait ParJoin: Join {
         Self: Sized,
     {
         JoinParIter(self)
+    }
+}
+
+pub struct MaybeJoin<J: Join>(pub J);
+
+impl<T> Join for MaybeJoin<T>
+where
+    T: Join,
+{
+    type Type = Option<<T as Join>::Type>;
+    type Value = (<T as Join>::Mask, <T as Join>::Value);
+    type Mask = BitSetNot<BitSet>;
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        let (mask, value) = self.0.open();
+        (BitSetNot(BitSet::new()), (mask, value))
+    }
+    unsafe fn get((mask, value): &mut Self::Value, id: Index) -> Self::Type {
+        if mask.contains(id) {
+            Some(<T as Join>::get(value, id))
+        } else {
+            None
+        }
     }
 }
 
@@ -336,8 +365,7 @@ where
     J::Type: Send,
     J::Value: 'a + Send,
     J::Mask: 'a + Send + Sync,
-{
-}
+{}
 
 impl<'a, J> UnindexedProducer for JoinProducer<'a, J>
 where
