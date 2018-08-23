@@ -48,6 +48,7 @@ features = ["common", "serde"]
 
 [dev-dependencies]
 cgmath =  { version = "0.14", features = ["eders"] }
+compiletest_rs = { version = "0.3.11", features = ["tmp"] }
 criterion = "0.2"
 ron = "0.2"
 rand = "0.3"
