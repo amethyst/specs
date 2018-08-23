@@ -66,7 +66,15 @@ impl Allocator {
 
             self.alive.remove(entity.id());
             self.raised.remove(entity.id());
-            self.generations[id].die();
+
+            // Since atomically created entities don't have a generation until merge
+            // is called, the first entity of a generation won't actually have a generation
+            // in the allocator. And it is fine for us to just ignore the entity since
+            // we clear `self.raised` before so it won't get allocated later.
+            if self.generations.len() > id {
+                self.generations[id].die();
+            }
+
             if id < self.start_from.load(Ordering::Relaxed) {
                 self.start_from.store(id, Ordering::Relaxed);
             }

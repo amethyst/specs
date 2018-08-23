@@ -1,5 +1,9 @@
 # [Unreleased]
 
+* Fix `Allocator::kill` in the case of atomically created entities. ([#440])
+
+[#440]: https://github.com/slide-rs/specs/pull/440
+
 # 0.12.1
 
 * Add `#[must_use]` to entity builders to avoid people forgetting to call `.build()`. ([#443])
