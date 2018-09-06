@@ -51,7 +51,8 @@ pub(crate) struct Allocator {
     alive: BitSet,
     raised: AtomicBitSet,
     killed: AtomicBitSet,
-    start_from: AtomicUsize,
+    cache: EntityCache,
+    max_id: AtomicUsize,
 }
 
 impl Allocator {
@@ -65,20 +66,18 @@ impl Allocator {
             }
 
             self.alive.remove(entity.id());
-            self.raised.remove(entity.id());
 
-            // Since atomically created entities don't have a generation until merge
-            // is called, the first entity of a generation won't actually have a generation
-            // in the allocator. And it is fine for us to just ignore the entity since
-            // we clear `self.raised` before so it won't get allocated later.
-            if self.generations.len() > id {
-                self.generations[id].die();
+            while self.generations.len() <= id as usize {
+                self.generations.push(Generation(0));
             }
 
-            if id < self.start_from.load(Ordering::Relaxed) {
-                self.start_from.store(id, Ordering::Relaxed);
+            if self.raised.remove(entity.id()) {
+                self.generations[id] = self.generations[id].raised();
             }
+            self.generations[id].die();
         }
+
+        self.cache.extend(delete.iter().map(|e| e.0));
 
         Ok(())
     }
@@ -122,66 +121,41 @@ impl Allocator {
         Entity(id, gen)
     }
 
-    /// Attempt to move the `start_from` value
-    pub fn update_start_from(&self, start_from: usize) {
-        loop {
-            let current = self.start_from.load(Ordering::Relaxed);
-
-            // if the current value is bigger then ours, we bail
-            if current >= start_from {
-                return;
-            }
-
-            if start_from
-                == self.start_from
-                    .compare_and_swap(current, start_from, Ordering::Relaxed)
-            {
-                return;
-            }
-        }
-    }
-
     /// Allocate a new entity
     pub fn allocate_atomic(&self) -> Entity {
-        let idx = self.start_from.load(Ordering::Relaxed);
-        for i in idx.. {
-            if !self.alive.contains(i as Index) && !self.raised.add_atomic(i as Index) {
-                self.update_start_from(i + 1);
+        let id = match self.cache.pop_atomic() {
+            Some(x) => x,
+            None => atomic_increment(&self.max_id).expect("No entity left to allocate") as Index,
+        };
 
-                let gen = self.generations
-                    .get(i as usize)
-                    .map(|&gen| {
-                        if gen.is_alive() {
-                            gen
-                        } else {
-                            gen.raised()
-                        }
-                    })
-                    .unwrap_or(Generation(1));
-
-                return Entity(i as Index, gen);
-            }
-        }
-        panic!("No entities left to allocate")
+        self.raised.add_atomic(id);
+        let gen = self
+            .generations
+            .get(id as usize)
+            .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
+            .unwrap_or(Generation(1));
+        Entity(id, gen)
     }
 
     /// Allocate a new entity
     pub fn allocate(&mut self) -> Entity {
-        let idx = self.start_from.load(Ordering::Relaxed);
-        for i in idx.. {
-            if !self.raised.contains(i as Index) && !self.alive.add(i as Index) {
-                // this is safe since we have mutable access to everything!
-                self.start_from.store(i + 1, Ordering::Relaxed);
-
-                while self.generations.len() <= i as usize {
-                    self.generations.push(Generation(0));
-                }
-                self.generations[i as usize] = self.generations[i as usize].raised();
-
-                return Entity(i as Index, self.generations[i as usize]);
+        let id = self.cache.pop_atomic().unwrap_or_else(|| {
+            let id = self.max_id.load(Ordering::Relaxed);
+            if id as Index == <Index>::max_value() {
+                panic!("No entity left to allocate");
             }
+            self.max_id.store(id as usize + 1, Ordering::Relaxed);
+            id as Index
+        });
+
+        while self.generations.len() <= id as usize {
+            self.generations.push(Generation(0));
         }
-        panic!("No entities left to allocate")
+        self.alive.add(id as Index);
+
+        self.generations[id as usize] = self.generations[id as usize].raised();
+
+        Entity(id as Index, self.generations[id as usize])
     }
 
     /// Maintains the allocated entities, mainly dealing with atomically
@@ -200,18 +174,14 @@ impl Allocator {
         }
         self.raised.clear();
 
-        if let Some(lowest) = (&self.killed).iter().next() {
-            if lowest < self.start_from.load(Ordering::Relaxed) as Index {
-                self.start_from.store(lowest as usize, Ordering::Relaxed);
-            }
-        }
-
         for i in (&self.killed).iter() {
             self.alive.remove(i);
             deleted.push(Entity(i, self.generations[i as usize]));
             self.generations[i as usize].die();
         }
         self.killed.clear();
+
+        self.cache.extend(deleted.iter().map(|e| e.0));
 
         deleted
     }
@@ -337,16 +307,11 @@ impl<'a> Join for &'a EntitiesRes {
     }
 
     unsafe fn get(v: &mut &'a EntitiesRes, idx: Index) -> Entity {
-        let gen = v.alloc
+        let gen = v
+            .alloc
             .generations
             .get(idx as usize)
-            .map(|&gen| {
-                if gen.is_alive() {
-                    gen
-                } else {
-                    gen.raised()
-                }
-            })
+            .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
             .unwrap_or(Generation(1));
         Entity(idx, gen)
     }
@@ -431,4 +396,51 @@ impl Generation {
         debug_assert!(!self.is_alive());
         Generation(1 - self.0)
     }
+}
+
+#[derive(Default, Debug)]
+struct EntityCache {
+    cache: Vec<Index>,
+    len: AtomicUsize,
+}
+
+impl EntityCache {
+    fn pop_atomic(&self) -> Option<Index> {
+        let mut prev = self.len.load(Ordering::Relaxed);
+        while prev != 0 {
+            match self.len.compare_exchange_weak(
+                prev,
+                prev - 1,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
+                Ok(x) => return Some(self.cache[x - 1]),
+                Err(next_prev) => prev = next_prev,
+            }
+        }
+        None
+    }
+
+    fn maintain(&mut self) {
+        self.cache.truncate(self.len.load(Ordering::Relaxed));
+    }
+}
+
+impl Extend<Index> for EntityCache {
+    fn extend<T: IntoIterator<Item = Index>>(&mut self, iter: T) {
+        self.maintain();
+        self.cache.extend(iter);
+        self.len.store(self.cache.len(), Ordering::Relaxed);
+    }
+}
+
+fn atomic_increment(i: &AtomicUsize) -> Option<usize> {
+    let mut prev = i.load(Ordering::Relaxed);
+    while prev != <usize>::max_value() {
+        match i.compare_exchange_weak(prev, prev + 1, Ordering::Relaxed, Ordering::Relaxed) {
+            Ok(x) => return Some(x),
+            Err(next_prev) => prev = next_prev,
+        }
+    }
+    return None;
 }
