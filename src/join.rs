@@ -155,7 +155,13 @@ pub trait Join {
         JoinIter::new(self)
     }
 
-    /// Optionally gets a `Join` if it exists.
+    /// Returns a `Join`-able structure that yields all indices, returning `None` for all
+    /// missing elements and `Some(T)` for found elements.
+    ///
+    /// WARNING: Do not have a join of only `MaybeJoin`s. Otherwise the join will
+    /// iterate over every single index of the bitset. If you want a join with
+    /// all `MaybeJoin`s, add an `EntitiesRes` to the join as well to bound the
+    /// join to all entities that are alive.
     ///
     /// ```
     /// # use specs::prelude::*;
@@ -235,7 +241,15 @@ pub unsafe trait ParJoin: Join {
     }
 }
 
-/// Optionally gets a `Join`, for usage see [`Join::maybe()`].
+/// A `Join`-able structure that yields all indices, returning `None` for all
+/// missing elements and `Some(T)` for found elements.
+///
+/// For usage see [`Join::maybe()`].
+///
+/// WARNING: Do not have a join of only `MaybeJoin`s. Otherwise the join will
+/// iterate over every single index of the bitset. If you want a join with
+/// all `MaybeJoin`s, add an `EntitiesRes` to the join as well to bound the
+/// join to all entities that are alive.
 ///
 /// [`Join::maybe()`]: ../join/trait.Join.html#method.maybe
 pub struct MaybeJoin<J: Join>(pub J);
