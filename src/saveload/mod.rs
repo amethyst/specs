@@ -23,6 +23,8 @@
 //! see the docs for the `Marker` trait.
 //!
 
+mod macros;
+
 mod de;
 mod marker;
 mod ser;

@@ -4,25 +4,36 @@ use serde::ser::{self, Serialize, SerializeSeq, Serializer};
 
 use error::NoError;
 use join::Join;
-use saveload::EntityData;
 use saveload::marker::{Marker, MarkerAllocator};
+use saveload::EntityData;
 use storage::{GenericReadStorage, ReadStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
 
-/// Converts a component into its serialized form.
+/// Converts a data type (usually a [`Component`]) into its serialized form.
 ///
-/// This is automatically implemented for any type that is both
-/// a [`Component`] and [`Serialize`], yielding itself.
+/// This is automatically implemented for any type that is
+/// [`Serialize`], yielding itself.
 ///
 /// Implementing this yourself is usually only needed if you
-/// have a component that points to another Entity and you
-/// wish to [`Serialize`] it.
+/// have a component that points to another Entity, or has a field which does,
+///  and you wish to [`Serialize`] it.
 ///
 /// In most cases, you also likely want to implement the companion
 /// trait [`FromDeserialize`].
 ///
+/// *Note*: if you're using `specs_derive`
+/// and your struct does not have a generic bound (i.e. `struct Foo<T>`),
+/// you can use `#[derive(Saveload)]` to automatically derive this and
+/// [`FromDeserialize`]. You can get around generic type bounds by exploiting
+/// the newtype pattern (e.g. `struct FooU32(Foo<u32>);`).
+///
+/// You must add the `derive` to any type that your component holds which does
+/// not auto-implement these two traits, including the component itself (similar to how
+/// normal [`Serialize`] and [`Deserialize`] work).
+///
 /// [`Component`]: ../trait.Component.html
 /// [`Serialize`]: https://docs.serde.rs/serde/trait.Serialize.html
+/// [`Deserialize`]: https://docs.serde.rs/serde/trait.Deserialize.html
 /// [`FromDeserialize`]: trait.FromDeserialize.html
 ///
 /// # Example
@@ -63,14 +74,14 @@ use world::{Component, EntitiesRes, Entity};
 ///
 /// ```
 ///
-pub trait IntoSerialize<M>: Component {
-    /// Serializable data representation for component
+pub trait IntoSerialize<M> {
+    /// Serializable data representation for data type
     type Data: Serialize;
 
     /// Error may occur during serialization or deserialization of component
     type Error;
 
-    /// Convert this component into serializable form (`Data`) using
+    /// Convert this data type into serializable form (`Data`) using
     /// entity to marker mapping function
     fn into<F>(&self, ids: F) -> Result<Self::Data, Self::Error>
     where
@@ -79,7 +90,7 @@ pub trait IntoSerialize<M>: Component {
 
 impl<C, M> IntoSerialize<M> for C
 where
-    C: Clone + Component + Serialize,
+    C: Clone + Serialize,
 {
     type Data = Self;
     type Error = NoError;
@@ -92,7 +103,28 @@ where
     }
 }
 
+impl<M> IntoSerialize<M> for Entity
+where
+    M: Serialize,
+{
+    type Data = M;
+    type Error = NoError;
+
+    fn into<F>(&self, mut func: F) -> Result<Self::Data, Self::Error>
+    where
+        F: FnMut(Entity) -> Option<M>,
+    {
+        Ok(func(*self).unwrap())
+    }
+}
+
 /// A trait which allows to serialize entities and their components.
+///
+/// Instead of implementing this trait and its companion [`DeserializeComponents`] directly,
+/// you may wish to use the [`saveload_components`] macro.
+///
+/// [`DeserializeComponents`]: ./DeserializeComponents.t.html
+/// [`saveload_components`]: ../macro.saveload_components.html
 pub trait SerializeComponents<E, M>
 where
     M: Marker,
@@ -127,7 +159,8 @@ where
         for (entity, marker) in (&*entities, &*markers).join() {
             serseq.serialize_element(&EntityData::<M, Self::Data> {
                 marker: marker.clone(),
-                components: self.serialize_entity(entity, &ids)
+                components: self
+                    .serialize_entity(entity, &ids)
                     .map_err(ser::Error::custom)?,
             })?;
         }
@@ -173,7 +206,8 @@ where
                 for (entity, marker) in to_serialize {
                     serseq.serialize_element(&EntityData::<M, Self::Data> {
                         marker,
-                        components: self.serialize_entity(entity, &mut ids)
+                        components: self
+                            .serialize_entity(entity, &mut ids)
                             .map_err(ser::Error::custom)?,
                     })?;
                 }
@@ -191,7 +225,7 @@ macro_rules! serialize_components {
             M: Marker,
             $(
                 $sto: GenericReadStorage<Component = $comp>,
-                $comp : IntoSerialize<M>,
+                $comp : IntoSerialize<M>+Component,
                 E: From<<$comp as IntoSerialize<M>>::Error>,
             )*
         {
