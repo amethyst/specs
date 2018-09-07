@@ -1,4 +1,4 @@
-# [Unreleased]
+# 0.12.2
 
 * Fix `Allocator::kill` in the case of atomically created entities. ([#440])
 
