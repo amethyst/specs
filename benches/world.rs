@@ -2,6 +2,7 @@
 
 #[macro_use]
 extern crate criterion;
+extern crate rand;
 extern crate rayon;
 extern crate specs;
 extern crate test;
@@ -108,6 +109,58 @@ fn delete_later(b: &mut Bencher) {
     });
 }
 
+fn create_after_delete(b: &mut Bencher) {
+    use rand::seq::sample_indices;
+    use rand::thread_rng;
+
+    let mut rng = thread_rng();
+    b.iter_with_setup(
+        || {
+            let mut w = World::new();
+            let eids: Vec<_> = (0..1000).map(|_| w.create_entity().build()).collect();
+
+            sample_indices(&mut rng, 1000, 100)
+                .into_iter()
+                .map(|i| eids[i])
+                .for_each(|e| {
+                    w.delete_entity(e)
+                        .expect("Failed deleting entity in 'create after delete' setup");
+                });
+
+            w.maintain();
+
+            w
+        },
+        |mut w| {
+            for _ in 0..100 {
+                w.create_entity().build();
+            }
+        },
+    )
+}
+
+fn create_after_delete_extreme(b: &mut Bencher) {
+    b.iter_with_setup(
+        || {
+            let mut w = World::new();
+
+            let eids: Vec<_> = (0..1000).map(|_| w.create_entity().build()).collect();
+
+            w.delete_entity(eids[0])
+                .expect("Failed deleting first entity in 'create after delete extreme' setup");
+            w.delete_entity(eids[999])
+                .expect("Failed deleting last entity in 'create after delete extreme' setup");
+            w.maintain();
+
+            w
+        },
+        |mut w| {
+            w.create_entity().build();
+            w.create_entity().build();
+        },
+    )
+}
+
 fn maintain_noop(b: &mut Bencher) {
     let mut w = World::new();
     b.iter(|| {
@@ -185,6 +238,8 @@ fn world_benchmarks(c: &mut Criterion) {
         .bench_function("delete now", delete_now)
         .bench_function("delete now with storage", delete_now_with_storage)
         .bench_function("delete later", delete_later)
+        .bench_function("create after delete", create_after_delete)
+        .bench_function("create after delete extreme", create_after_delete_extreme)
         .bench_function("maintain noop", maintain_noop)
         .bench_function("maintain add later", maintain_add_later)
         .bench_function("maintain delete later", maintain_delete_later)
