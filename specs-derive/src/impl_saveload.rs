@@ -119,17 +119,15 @@ fn saveload_struct(
 
     let mut saveload_generics = generics.clone();
     saveload_generics.params.push(parse_quote!(MA));
-    match saveload_generics.where_clause {
-        Some(ref mut clause) => clause.predicates.push(parse_quote!(
+    match &mut saveload_generics.where_clause {
+        Some(clause) => clause.predicates.push(parse_quote!(
             MA: ::serde::Serialize + ::serde::de::DeserializeOwned + ::specs::saveload::Marker,
             for <'deser> MA: ::serde::Deserialize<'deser>
         )),
-        ref mut clause @ None => {
-            *clause = Some(parse_quote!(
+        clause => *clause = Some(parse_quote!(
             where MA: ::serde::Serialize + ::serde::de::DeserializeOwned + ::specs::saveload::Marker,
             for <'deser> MA: ::serde::Deserialize<'deser>
         ))
-        }
     }
 
     let saveload_name = Ident::new(&format!("{}SaveloadData", name), name.span);
@@ -206,17 +204,19 @@ fn saveload_named_struct(
 
     let field_names = saveload_fields.iter().map(|f| f.ident.clone());
     let field_names_2 = field_names.clone();
+    let tmp = field_names.clone();
     let ser = quote!{
         Ok(#saveload_name {
-                # ( #field_names: ::specs::saveload::IntoSerialize::into(&self.#field_names_2, &mut ids)? ),*
-            })
+            # ( #field_names: ::specs::saveload::IntoSerialize::into(&self.#field_names_2, &mut ids)? ),*
+        })
     };
 
-    let field_names = saveload_fields.iter().map(|f| f.ident.clone());
+    let field_names = tmp;
     let field_names_2 = field_names.clone();
-    let de = quote! { Ok(#name {
-                # ( #field_names: ::specs::saveload::FromDeserialize::from(data.#field_names_2, &mut ids)? ),*
-            })
+    let de = quote! {
+        Ok(#name {
+            # ( #field_names: ::specs::saveload::FromDeserialize::from(data.#field_names_2, &mut ids)? ),*
+        })
     };
 
     (struct_def, ser, de)
@@ -266,19 +266,18 @@ fn saveload_tuple_struct(
         index: i as u32,
         span: data.struct_token.0.clone(),
     });
+    let tmp = field_ids.clone();
     let ser = quote!{
         Ok(#saveload_name (
-                # ( ::specs::saveload::IntoSerialize::into(&self.#field_ids, &mut ids)? ),*
-            ))
+            # ( ::specs::saveload::IntoSerialize::into(&self.#field_ids, &mut ids)? ),*
+        ))
     };
 
-    let field_ids = saveload_fields.iter().enumerate().map(|(i, _)| Index {
-        index: i as u32,
-        span: data.struct_token.0.clone(),
-    });
-    let de = quote! { Ok(#name (
-                # ( ::specs::saveload::FromDeserialize::from(data.#field_ids, &mut ids)? ),*
-            ))
+    let field_ids = tmp;
+    let de = quote! {
+        Ok(#name (
+            # ( ::specs::saveload::FromDeserialize::from(data.#field_ids, &mut ids)? ),*
+        ))
     };
 
     (struct_def, ser, de)
@@ -320,17 +319,15 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
     let mut saveload_generics = generics.clone();
     saveload_generics.params.push(parse_quote!(MA));
 
-    match saveload_generics.where_clause {
-        Some(ref mut clause) => clause.predicates.push(parse_quote!(
+    match &mut saveload_generics.where_clause {
+        Some(clause) => clause.predicates.push(parse_quote!(
             MA: ::serde::Serialize + ::serde::de::DeserializeOwned + ::specs::saveload::Marker,
             for <'deser> MA: ::serde::Deserialize<'deser>
         )),
-        ref mut clause @ None => {
-            *clause = Some(parse_quote!(
+        clause =>  *clause = Some(parse_quote!(
             where MA: ::serde::Serialize + ::serde::de::DeserializeOwned + ::specs::saveload::Marker,
             for <'deser> MA: ::serde::Deserialize<'deser>
         ))
-        }
     }
 
     let saveload_name = Ident::new(&format!("{}SaveloadData", name), name.span);
@@ -364,27 +361,28 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
     for variant in variants {
         let ident = &variant.ident;
 
-        match variant.fields {
-            Fields::Named(ref fields) => {
-                let names = fields.named.iter().map(|f| f.ident);
-                let names_2 = fields.named.iter().map(|f| f.ident);
-                let names_3 = fields.named.iter().map(|f| f.ident);
+        match &variant.fields {
+            Fields::Named(fields) => {
+                let get_names = || fields.named.iter().map(|f| f.ident);
+                let names = get_names();
+                let names_2 = get_names();
+                let names_3 = get_names();
 
                 big_match_ser = quote!{
                     #big_match_ser
                     #name::#ident { #( ref #names ),* } => #saveload_name::#ident { #( #names_3: ::specs::saveload::IntoSerialize::into(#names_2, ids)? ),* },
                 };
 
-                let names = fields.named.iter().map(|f| f.ident);
-                let names_2 = fields.named.iter().map(|f| f.ident);
-                let names_3 = fields.named.iter().map(|f| f.ident);
+                let names = get_names();
+                let names_2 = get_names();
+                let names_3 = get_names();
 
                 big_match_de = quote!{
                     #big_match_de
                     #saveload_name::#ident { #( #names ),* } => #name::#ident { #( #names_3: ::specs::saveload::FromDeserialize::from(#names_2, &mut ids)? ),* },
                 };
             }
-            Fields::Unnamed(ref fields) => {
+            Fields::Unnamed(fields) => {
                 let field_ids: Vec<_> = fields
                     .unnamed
                     .iter()
@@ -392,22 +390,15 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
                     .enumerate()
                     .map(|(i, _)| Some(Ident::new(&format!("field{}", i), data.enum_token.0)))
                     .collect();
-
                 let field_ids_2 = field_ids.clone();
+                let tmp = field_ids.clone();
 
                 big_match_ser = quote!{
                     #big_match_ser
                     #name::#ident( #( ref #field_ids ),* ) => #saveload_name::#ident( #( ::specs::saveload::IntoSerialize::into(#field_ids_2, &mut ids)? ),* ),
                 };
 
-                let field_ids: Vec<_> = fields
-                    .unnamed
-                    .iter()
-                    .cloned()
-                    .enumerate()
-                    .map(|(i, _)| Some(Ident::new(&format!("field{}", i), data.enum_token.0)))
-                    .collect();
-
+                let field_ids = tmp;
                 let field_ids_2 = field_ids.clone();
 
                 big_match_de = quote!{
@@ -454,8 +445,8 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 fn add_bound(generics: &mut Generics, bound: TypeParamBound) {
     use syn::GenericParam;
     for param in &mut generics.params {
-        if let GenericParam::Type(ref mut type_param) = *param {
-            if type_param.bounds.iter().position(|b| bound == *b).is_some() {
+        if let GenericParam::Type(type_param) = param {
+            if type_param.bounds.iter().any(|b| bound == *b) {
                 continue;
             }
             type_param.bounds.push(bound.clone());
@@ -465,19 +456,19 @@ fn add_bound(generics: &mut Generics, bound: TypeParamBound) {
 
 // Replaces the type with its corresponding `Data` type.
 fn replace_entity_type(ty: &mut Type) {
-    match *ty {
-        Type::Array(ref mut ty) => replace_entity_type(&mut *ty.elem),
-        Type::Tuple(ref mut ty) => {
+    match ty {
+        Type::Array(ty) => replace_entity_type(&mut *ty.elem),
+        Type::Tuple(ty) => {
             for ty in ty.elems.iter_mut() {
                 replace_entity_type(&mut *ty);
             }
         }
-        Type::Paren(ref mut ty) => replace_entity_type(&mut *ty.elem),
-        Type::Path(ref mut ty) => {
+        Type::Paren(ty) => replace_entity_type(&mut *ty.elem),
+        Type::Path(ty) => {
             let ty_tok = ty.clone();
             *ty = parse_quote!(<#ty_tok as ::specs::saveload::IntoSerialize<MA>>::Data);
         }
-        Type::Group(ref mut ty) => replace_entity_type(&mut *ty.elem),
+        Type::Group(ty) => replace_entity_type(&mut *ty.elem),
 
         Type::TraitObject(_) => {}
         Type::ImplTrait(_) => {}
