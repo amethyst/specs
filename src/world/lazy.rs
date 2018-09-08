@@ -1,6 +1,6 @@
 use crossbeam::sync::SegQueue;
 
-use world::{Component, EntitiesRes, Entity, World};
+use world::{Builder, Component, EntitiesRes, Entity, World};
 
 struct Queue<T>(SegQueue<T>);
 
@@ -14,6 +14,7 @@ impl<T> Default for Queue<T> {
 /// lazily, meaning on `maintain`.
 /// If you need those components to exist immediately,
 /// you have to insert them into the storages yourself.
+#[must_use = "Please call .build() on this to finish building it."]
 pub struct LazyBuilder<'a> {
     /// The entity that we're inserting components for.
     pub entity: Entity,
@@ -21,9 +22,9 @@ pub struct LazyBuilder<'a> {
     pub lazy: &'a LazyUpdate,
 }
 
-impl<'a> LazyBuilder<'a> {
-    /// Inserts a component using `LazyUpdate`.
-    pub fn with<C>(self, component: C) -> Self
+impl<'a> Builder for LazyBuilder<'a> {
+    /// Inserts a component using [`LazyUpdate`].
+    fn with<C>(self, component: C) -> Self
     where
         C: Component + Send + Sync,
     {
@@ -42,21 +43,21 @@ impl<'a> LazyBuilder<'a> {
 
     /// Finishes the building and returns the built entity.
     /// Please note that no component is associated to this
-    /// entity until you call `World::maintain`.
-    pub fn build(self) -> Entity {
+    /// entity until you call [`World::maintain`].
+    fn build(self) -> Entity {
         self.entity
     }
 }
 
 trait LazyUpdateInternal: Send + Sync {
-    fn update(self: Box<Self>, world: &World);
+    fn update(self: Box<Self>, world: &mut World);
 }
 
 impl<F> LazyUpdateInternal for F
 where
-    F: FnOnce(&World) + Send + Sync + 'static,
+    F: FnOnce(&mut World) + Send + Sync + 'static,
 {
-    fn update(self: Box<Self>, world: &World) {
+    fn update(self: Box<Self>, world: &mut World) {
         self(world);
     }
 }
@@ -74,9 +75,11 @@ where
 /// Please note that the provided methods take `&self`
 /// so there's no need to get `LazyUpdate` mutably.
 /// This resource is added to the world by default.
-#[derive(Default)]
+#[derive(Derivative)]
+#[derivative(Default)]
 pub struct LazyUpdate {
-    queue: Queue<Box<LazyUpdateInternal>>,
+    #[derivative(Default(value="Some(Default::default())"))]
+    queue: Option<Queue<Box<LazyUpdateInternal>>>,
 }
 
 impl LazyUpdate {
@@ -252,14 +255,60 @@ impl LazyUpdate {
     where
         F: FnOnce(&World) + 'static + Send + Sync,
     {
-        self.queue.0.push(Box::new(f));
+        self.queue.as_ref().unwrap().0.push(Box::new(|w: &mut World| f(w)));
     }
 
-    pub(super) fn maintain(&mut self, world: &World) {
-        let lazy = &mut self.queue.0;
+    /// Lazily executes a closure with mutable world access.
+    ///
+    /// This can be used to add a resource to the `World` from a system.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use specs::prelude::*;
+    /// #
+    ///
+    /// struct Sys;
+    ///
+    /// impl<'a> System<'a> for Sys {
+    ///     type SystemData = (Entities<'a>, Read<'a, LazyUpdate>);
+    ///
+    ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
+    ///         for entity in ent.join() {
+    ///             lazy.exec_mut(move |world| {
+    ///                 // complete extermination!
+    ///                 world.delete_all();
+    ///             });
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    pub fn exec_mut<F>(&self, f: F)
+    where
+        F: FnOnce(&mut World) + 'static + Send + Sync,
+    {
+        self.queue.as_ref().unwrap().0.push(Box::new(f));
+    }
+
+    /// Allows to temporarily take the inner queue.
+    pub(super) fn take(&mut self) -> Self {
+        LazyUpdate {
+            queue: self.queue.take(),
+        }
+    }
+
+    /// Needs to be called to restore the inner queue.
+    pub(super) fn restore(&mut self, mut maintained: Self) {
+        use std::mem::swap;
+
+        swap(&mut self.queue, &mut maintained.queue);
+    }
+
+    pub(super) fn maintain(&mut self, world: &mut World) {
+        let lazy = &mut self.queue.as_mut().unwrap().0;
 
         while let Some(l) = lazy.try_pop() {
-            l.update(&world);
+            l.update(world);
         }
     }
 }
@@ -267,6 +316,8 @@ impl LazyUpdate {
 impl Drop for LazyUpdate {
     fn drop(&mut self) {
         // TODO: remove as soon as leak is fixed in crossbeam
-        while self.queue.0.try_pop().is_some() {}
+        if let Some(queue) = self.queue.as_mut() {
+            while queue.0.try_pop().is_some() {}
+        }
     }
 }

@@ -7,7 +7,7 @@ use std::fmt;
 
 use specs::error::NoError;
 use specs::prelude::*;
-use specs::saveload::{DeserializeComponents, SerializeComponents, U64Marker, U64MarkerAllocator};
+use specs::saveload::{DeserializeComponents, MarkedBuilder, SerializeComponents, U64Marker, U64MarkerAllocator};
 
 const ENTITIES: &str = "
 [

@@ -19,7 +19,7 @@ where
     type Value = &'a mut MaskedStorage<T>;
     type Mask = BitSet;
 
-    fn open(self) -> (Self::Mask, Self::Value) {
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let mask = self.data.mask.clone();
 
         (mask, self.data)
@@ -36,7 +36,7 @@ mod tests {
     fn basic_drain() {
         use join::Join;
         use storage::DenseVecStorage;
-        use world::{Component, World};
+        use world::{Builder, Component, World};
 
         #[derive(Debug, PartialEq)]
         struct Comp;

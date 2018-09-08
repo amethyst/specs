@@ -1,13 +1,30 @@
-# 0.11.4
+# 0.12.2
 
+* Fix `Allocator::kill` in the case of atomically created entities. ([#440])
+
+[#440]: https://github.com/slide-rs/specs/pull/440
+
+# 0.12.1
+
+* Add `#[must_use]` to entity builders to avoid people forgetting to call `.build()`. ([#443])
+
+[#443]: https://github.com/slide-rs/specs/pull/443
+
+# 0.12.0
+
+* `Join::open()` and `Storage::unprotected_storage_mut()` have been marked unsafe.
+Thanks to [@andrewhickman](https://github.com/andrewhickman) for discovering this
+unsoundness!
+* Add common `Builder` trait to `EntityBuilder` and `LazyBuilder` ([#426])
+* Add common `MarkedBuilder` trait to `EntityBuilder` and `LazyBuilder` ([#426])
+* Add `LazyUpdate::exec_mut` which allows adding a resource from a system ([#433])
 * Add `build_entity()` to `EntitiesRes` so you can use builder syntax in a system.
-
-# 0.11.3
-
 * Add `marked()` to LazyBuilder to keep parity with EntityBuilder ([#420])
 * Fix `U64MarkerAllocator`'s internal index not being updated on `saveload::DeserializeComponents` ([#420])
 
+[#426]: https://github.com/slide-rs/specs/pull/426
 [#420]: https://github.com/slide-rs/specs/pull/420
+[#433]: https://github.com/slide-rs/specs/pull/433
 
 # 0.11.2
 

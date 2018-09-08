@@ -66,7 +66,15 @@ impl Allocator {
 
             self.alive.remove(entity.id());
             self.raised.remove(entity.id());
-            self.generations[id].die();
+
+            // Since atomically created entities don't have a generation until merge
+            // is called, the first entity of a generation won't actually have a generation
+            // in the allocator. And it is fine for us to just ignore the entity since
+            // we clear `self.raised` before so it won't get allocated later.
+            if self.generations.len() > id {
+                self.generations[id].die();
+            }
+
             if id < self.start_from.load(Ordering::Relaxed) {
                 self.start_from.store(id, Ordering::Relaxed);
             }
@@ -324,7 +332,7 @@ impl<'a> Join for &'a EntitiesRes {
     type Value = Self;
     type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
 
-    fn open(self) -> (Self::Mask, Self) {
+    unsafe fn open(self) -> (Self::Mask, Self) {
         (BitSetOr(&self.alloc.alive, &self.alloc.raised), self)
     }
 
@@ -348,6 +356,7 @@ unsafe impl<'a> ParJoin for &'a EntitiesRes {}
 
 /// An entity builder from `EntitiesRes`.  Allows building an entity with its
 /// components if you have mutable access to the component storages.
+#[must_use = "Please call .build() on this to finish building it."]
 pub struct EntityResBuilder<'a> {
     /// The entity being built
     pub entity: Entity,

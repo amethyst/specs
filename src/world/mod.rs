@@ -1,7 +1,8 @@
 //! Entities, resources, components, and general world management.
 
 pub use self::comp::Component;
-pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, EntityResBuilder, Generation, Index};
+pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, EntityResBuilder,
+                       Generation, Index};
 pub use self::lazy::{LazyBuilder, LazyUpdate};
 
 use self::entity::Allocator;
@@ -32,6 +33,22 @@ impl<'a> Iterator for CreateIter<'a> {
     fn next(&mut self) -> Option<Entity> {
         Some(self.0.alloc.allocate())
     }
+}
+
+/// A common trait for `EntityBuilder` and `LazyBuilder`, allowing either to be used.
+/// Entity is definitely alive, but the components may or may not exist before a call to
+/// `World::maintain`.
+pub trait Builder {
+    /// Appends a component and associates it with the entity.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the component hasn't been `register()`ed in the
+    /// `World`.
+    fn with<C: Component + Send + Sync>(self, c: C) -> Self;
+
+    /// Finishes the building and returns the entity.
+    fn build(self) -> Entity;
 }
 
 /// The entity builder, allowing to
@@ -68,6 +85,7 @@ impl<'a> Iterator for CreateIter<'a> {
 ///     .with(Pos { x: 1.0, y: 3.0 })
 ///     .build(); // Returns the `Entity`
 /// ```
+#[must_use = "Please call .build() on this to finish building it."]
 pub struct EntityBuilder<'a> {
     /// The (already created) entity for which components will be inserted.
     pub entity: Entity,
@@ -76,15 +94,9 @@ pub struct EntityBuilder<'a> {
     built: bool,
 }
 
-impl<'a> EntityBuilder<'a> {
-    /// Appends a component and associates it with the entity.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the component hasn't been `register()`ed in the
-    /// `World`.
+impl<'a> Builder for EntityBuilder<'a> {
     #[inline]
-    pub fn with<T: Component>(self, c: T) -> Self {
+    fn with<T: Component>(self, c: T) -> Self {
         {
             let mut storage = self.world.write_storage();
             // This can't fail.  This is guaranteed by the lifetime 'a
@@ -95,9 +107,10 @@ impl<'a> EntityBuilder<'a> {
         self
     }
 
-    /// Finishes the building and returns the entity.
+    /// Finishes the building and returns the entity. As opposed to `LazyBuilder`,
+    /// the components are available immediately.
     #[inline]
-    pub fn build(mut self) -> Entity {
+    fn build(mut self) -> Entity {
         self.built = true;
         self.entity
     }
@@ -546,7 +559,10 @@ impl World {
             self.delete_components(&deleted);
         }
 
-        self.write_resource::<LazyUpdate>().maintain(&*self);
+        // we need to swap the queue out to be able to reborrow self mutable here
+        let mut lazy = self.write_resource::<LazyUpdate>().take();
+        lazy.maintain(&mut *self);
+        self.write_resource::<LazyUpdate>().restore(lazy);
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {

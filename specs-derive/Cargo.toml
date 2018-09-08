@@ -1,10 +1,10 @@
 [package]
 name = "specs-derive"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Eyal Kalderon <ebkalderon@gmail.com>"]
 description = "Custom derive macro for Specs components"
 documentation = "https://docs.rs/specs-derive"
-repository = "https://github.com/slide-rs/specs/specs-derive"
+repository = "https://github.com/slide-rs/specs/tree/master/specs-derive"
 keywords = ["gamedev", "parallel", "specs", "ecs", "derive"]
 license = "MIT/Apache-2.0"
 

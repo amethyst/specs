@@ -6,7 +6,7 @@ First of all, thanks for trying out `specs`. Let's
 set it up first. Add the following line to your `Cargo.toml`:
 
 ```toml
-specs = "0.11"
+specs = "0.12.1"
 ```
 
 And add this to your crate root (`main.rs` or `lib.rs`):
@@ -139,7 +139,7 @@ impl<'a> System<'a> for HelloWorld {
 
 Note that all components that a system accesses must be registered with
 `world.register::<Component>()` before that system is run, or you will get a
-panic. This will usually be done automatically during `setup`, but we'll 
+panic. This will usually be done automatically during `setup`, but we'll
 come back to that in a later [chapter][se].
 
 > There are many other types you can use as system data. Please see the
@@ -158,14 +158,19 @@ use specs::RunNow;
 
 let mut hello_world = HelloWorld;
 hello_world.run_now(&world.res);
+world.maintain();
 ```
+
+The `world.maintain()` is not completely necessary here. Calling maintain should be done in general, however.
+If entities are created or deleted while a system is running, calling `maintain`
+will record the changes in its internal data structure.
 
 ## Full example code
 
 Here the complete example of this chapter:
 
 ```rust,ignore
-use specs::{Component, ReadStorage, System, VecStorage, World, RunNow};
+use specs::{Builder, Component, ReadStorage, System, VecStorage, World, RunNow};
 
 #[derive(Debug)]
 struct Position {
@@ -209,6 +214,7 @@ fn main() {
 
     let mut hello_world = HelloWorld;
     hello_world.run_now(&world.res);
+    world.maintain();
 }
 ```
 
@@ -221,4 +227,3 @@ some other nice features, too).
 Let's see how that works in [Chapter 3: Dispatcher][c3].
 
 [c3]: ./03_dispatcher.html
-
