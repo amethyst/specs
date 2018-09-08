@@ -226,6 +226,13 @@ pub trait Join {
 
     /// Get a joined component value by a given index.
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type;
+
+    /// If this `Join` typically returns all indices in the mask, then iterating over only it
+    /// or combined with other joins that are also dangerous will cause the `JoinIter`/`ParJoin` to
+    /// go through all indices which is usually not what is wanted and will kill performance.
+    fn dangerous_iter() -> bool {
+        false
+    }
 }
 
 /// The purpose of the `ParJoin` trait is to provide a way
@@ -237,6 +244,10 @@ pub unsafe trait ParJoin: Join {
     where
         Self: Sized,
     {
+        if <Self as Join>::dangerous_iter() {
+            println!("WARNING: `ParJoin` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length.");
+        }
+
         JoinParIter(self)
     }
 }
@@ -272,6 +283,10 @@ where
             None
         }
     }
+
+    fn dangerous_iter() -> bool {
+        true
+    }
 }
 
 /// `JoinIter` is an `Iterator` over a group of `Storages`.
@@ -284,6 +299,10 @@ pub struct JoinIter<J: Join> {
 impl<J: Join> JoinIter<J> {
     /// Create a new join iterator.
     pub fn new(j: J) -> Self {
+        if <J as Join>::dangerous_iter() {
+            println!("WARNING: `Join` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length.");
+        }
+
         let (keys, values) = unsafe { j.open() };
         JoinIter {
             keys: keys.iter(),
@@ -492,11 +511,18 @@ macro_rules! define_open {
                 let &mut ($(ref mut $from,)*) = v;
                 ($($from::get($from, i),)*)
             }
+
+            fn dangerous_iter() -> bool {
+                let mut dangerous = true;
+                $( dangerous = dangerous && $from::dangerous_iter(); )*
+                dangerous
+            }
         }
         unsafe impl<$($from,)*> ParJoin for ($($from),*,)
             where $($from: ParJoin),*,
                   ($(<$from as Join>::Mask,)*): BitAnd,
         {}
+
     }
 }
 
