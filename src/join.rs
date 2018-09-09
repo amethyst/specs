@@ -3,9 +3,9 @@
 use std;
 use std::cell::UnsafeCell;
 
-use hibitset::{BitIter, BitProducer, BitSetAnd, BitSetLike};
-use rayon::iter::ParallelIterator;
+use hibitset::{BitIter, BitProducer, BitSetAll, BitSetAnd, BitSetLike};
 use rayon::iter::plumbing::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
+use rayon::iter::ParallelIterator;
 use tuple_utils::Split;
 
 use world::{Entities, Entity, Index};
@@ -155,6 +155,67 @@ pub trait Join {
         JoinIter::new(self)
     }
 
+    /// Returns a `Join`-able structure that yields all indices, returning `None` for all
+    /// missing elements and `Some(T)` for found elements.
+    ///
+    /// WARNING: Do not have a join of only `MaybeJoin`s. Otherwise the join will
+    /// iterate over every single index of the bitset. If you want a join with
+    /// all `MaybeJoin`s, add an `EntitiesRes` to the join as well to bound the
+    /// join to all entities that are alive.
+    ///
+    /// ```
+    /// # use specs::prelude::*;
+    /// # #[derive(Debug, PartialEq)]
+    /// # struct Pos { x: i32, y: i32 } impl Component for Pos { type Storage = VecStorage<Self>; }
+    /// # #[derive(Debug, PartialEq)]
+    /// # struct Vel { x: i32, y: i32 } impl Component for Vel { type Storage = VecStorage<Self>; }
+    /// struct ExampleSystem;
+    /// impl<'a> System<'a> for ExampleSystem {
+    ///     type SystemData = (
+    ///         WriteStorage<'a, Pos>,
+    ///         ReadStorage<'a, Vel>,
+    ///     );
+    ///     fn run(&mut self, (mut positions, velocities): Self::SystemData) {
+    ///         for (mut position, maybe_velocity) in (&mut positions, velocities.maybe()).join() {
+    ///             if let Some(velocity) = maybe_velocity {
+    ///                 position.x += velocity.x;
+    ///                 position.y += velocity.y;
+    ///             }
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// fn main() {
+    ///     let mut world = World::new();
+    ///     let mut dispatcher = DispatcherBuilder::new()
+    ///         .with(ExampleSystem, "example_system", &[])
+    ///         .build();
+    ///
+    ///     dispatcher.setup(&mut world.res);
+    ///
+    ///     let e1 = world.create_entity()
+    ///         .with(Pos { x: 0, y: 0 })
+    ///         .with(Vel { x: 5, y: 2 })
+    ///         .build();
+    ///
+    ///     let e2 = world.create_entity()
+    ///         .with(Pos { x: 0, y: 0 })
+    ///         .build();
+    ///
+    ///     dispatcher.dispatch(&mut world.res);
+    ///
+    ///     let positions = world.read_storage::<Pos>();
+    ///     assert_eq!(positions.get(e1), Some(&Pos { x: 5, y: 2 }));
+    ///     assert_eq!(positions.get(e2), Some(&Pos { x: 0, y: 0 }));
+    /// }
+    /// ```
+    fn maybe(self) -> MaybeJoin<Self>
+    where
+        Self: Sized,
+    {
+        MaybeJoin(self)
+    }
+
     /// Open this join by returning the mask and the storages.
     ///
     /// This is unsafe because implementations of this trait can permit
@@ -165,6 +226,14 @@ pub trait Join {
 
     /// Get a joined component value by a given index.
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type;
+
+    /// If this `Join` typically returns all indices in the mask, then iterating over only it
+    /// or combined with other joins that are also dangerous will cause the `JoinIter`/`ParJoin` to
+    /// go through all indices which is usually not what is wanted and will kill performance.
+    #[inline]
+    fn is_unconstrained() -> bool {
+        false
+    }
 }
 
 /// The purpose of the `ParJoin` trait is to provide a way
@@ -176,7 +245,49 @@ pub unsafe trait ParJoin: Join {
     where
         Self: Sized,
     {
+        if <Self as Join>::is_unconstrained() {
+            println!("WARNING: `ParJoin` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length.");
+        }
+
         JoinParIter(self)
+    }
+}
+
+/// A `Join`-able structure that yields all indices, returning `None` for all
+/// missing elements and `Some(T)` for found elements.
+///
+/// For usage see [`Join::maybe()`].
+///
+/// WARNING: Do not have a join of only `MaybeJoin`s. Otherwise the join will
+/// iterate over every single index of the bitset. If you want a join with
+/// all `MaybeJoin`s, add an `EntitiesRes` to the join as well to bound the
+/// join to all entities that are alive.
+///
+/// [`Join::maybe()`]: ../join/trait.Join.html#method.maybe
+pub struct MaybeJoin<J: Join>(pub J);
+
+impl<T> Join for MaybeJoin<T>
+where
+    T: Join,
+{
+    type Type = Option<<T as Join>::Type>;
+    type Value = (<T as Join>::Mask, <T as Join>::Value);
+    type Mask = BitSetAll;
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        let (mask, value) = self.0.open();
+        (BitSetAll, (mask, value))
+    }
+    unsafe fn get((mask, value): &mut Self::Value, id: Index) -> Self::Type {
+        if mask.contains(id) {
+            Some(<T as Join>::get(value, id))
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn is_unconstrained() -> bool {
+        true
     }
 }
 
@@ -190,6 +301,10 @@ pub struct JoinIter<J: Join> {
 impl<J: Join> JoinIter<J> {
     /// Create a new join iterator.
     pub fn new(j: J) -> Self {
+        if <J as Join>::is_unconstrained() {
+            println!("WARNING: `Join` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length.");
+        }
+
         let (keys, values) = unsafe { j.open() };
         JoinIter {
             keys: keys.iter(),
@@ -336,8 +451,7 @@ where
     J::Type: Send,
     J::Value: 'a + Send,
     J::Mask: 'a + Send + Sync,
-{
-}
+{}
 
 impl<'a, J> UnindexedProducer for JoinProducer<'a, J>
 where
@@ -399,11 +513,19 @@ macro_rules! define_open {
                 let &mut ($(ref mut $from,)*) = v;
                 ($($from::get($from, i),)*)
             }
+
+            #[inline]
+            fn is_unconstrained() -> bool {
+                let mut unconstrained = true;
+                $( unconstrained = unconstrained && $from::is_unconstrained(); )*
+                unconstrained
+            }
         }
         unsafe impl<$($from,)*> ParJoin for ($($from),*,)
             where $($from: ParJoin),*,
                   ($(<$from as Join>::Mask,)*): BitAnd,
         {}
+
     }
 }
 
