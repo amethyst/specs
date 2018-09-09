@@ -230,7 +230,8 @@ pub trait Join {
     /// If this `Join` typically returns all indices in the mask, then iterating over only it
     /// or combined with other joins that are also dangerous will cause the `JoinIter`/`ParJoin` to
     /// go through all indices which is usually not what is wanted and will kill performance.
-    fn dangerous_iter() -> bool {
+    #[inline]
+    fn is_unconstrained() -> bool {
         false
     }
 }
@@ -244,7 +245,7 @@ pub unsafe trait ParJoin: Join {
     where
         Self: Sized,
     {
-        if <Self as Join>::dangerous_iter() {
+        if <Self as Join>::is_unconstrained() {
             println!("WARNING: `ParJoin` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length.");
         }
 
@@ -284,7 +285,8 @@ where
         }
     }
 
-    fn dangerous_iter() -> bool {
+    #[inline]
+    fn is_unconstrained() -> bool {
         true
     }
 }
@@ -299,7 +301,7 @@ pub struct JoinIter<J: Join> {
 impl<J: Join> JoinIter<J> {
     /// Create a new join iterator.
     pub fn new(j: J) -> Self {
-        if <J as Join>::dangerous_iter() {
+        if <J as Join>::is_unconstrained() {
             println!("WARNING: `Join` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length.");
         }
 
@@ -512,10 +514,11 @@ macro_rules! define_open {
                 ($($from::get($from, i),)*)
             }
 
-            fn dangerous_iter() -> bool {
-                let mut dangerous = true;
-                $( dangerous = dangerous && $from::dangerous_iter(); )*
-                dangerous
+            #[inline]
+            fn is_unconstrained() -> bool {
+                let mut unconstrained = true;
+                $( unconstrained = unconstrained && $from::is_unconstrained(); )*
+                unconstrained
             }
         }
         unsafe impl<$($from,)*> ParJoin for ($($from),*,)
