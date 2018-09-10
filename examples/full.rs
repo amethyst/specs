@@ -167,13 +167,46 @@ impl<'a> System<'a> for SysStoreMax {
 struct JoinParallel;
 
 impl<'a> System<'a> for JoinParallel {
-    type SystemData = (ReadStorage<'a, CompInt>, WriteStorage<'a, CompFloat>);
+    type SystemData = (ReadStorage<'a, CompBool>, ReadStorage<'a, CompInt>, WriteStorage<'a, CompFloat>);
 
-    fn run(&mut self, (comp_int, mut comp_float): Self::SystemData) {
+    fn run(&mut self, (comp_bool, comp_int, mut comp_float): Self::SystemData) {
         use rayon::prelude::*;
-        (&comp_int, &mut comp_float)
+        (&comp_bool, &comp_int, &mut comp_float)
             .par_join()
-            .for_each(|(i, f)| f.0 += i.0 as f32);
+            // only iterate over entities with a `CompBool(true)`
+            .filter(|&(b, _, _)| b.0)
+            // set the `CompFloat` value to the float repr of `CompInt`
+            .for_each(|(_, i, f)| f.0 += i.0 as f32);
+    }
+}
+
+/// Takes every `CompFloat` and tries to add `CompInt` if it exists.
+struct AddIntToFloat;
+
+impl<'a> System<'a> for AddIntToFloat {
+    type SystemData = (ReadStorage<'a, CompInt>, ReadStorage<'a, CompFloat>);
+
+    fn run(&mut self, (comp_int, comp_float): Self::SystemData) {
+        // This system demonstrates the use of `.maybe()`.
+        // As the name implies, it doesn't filter any entities; it yields an `Option<CompInt>`.
+        // So the `join` will yield all entities that have a `CompFloat`, just returning a
+        // `CompInt` if the entity happens to have one.
+        for (f, i) in (&comp_float, comp_int.maybe()).join() {
+            let sum = f.0 + i.map(|i| i.0 as f32).unwrap_or(0.0);
+            println!("Result: sum = {}", sum);
+        }
+
+        // An alternative way to write this out:
+        // (note that `entities` is just another system data of type `Èntities<'a>`)
+        //
+        // ```
+        // for (entity, f) in (&entities, &comp_float).join() {
+        //     let i = comp_int.get(e); // retrieves the component for the current entity
+        //
+        //     let sum = f.0 + i.map(|i| i.0 as f32).unwrap_or(0.0);
+        //     println!("Result: sum = {}", sum);
+        // }
+        // ```
     }
 }
 
@@ -199,6 +232,7 @@ fn main() {
         .build();
     w.create_entity().with(CompInt(127)).build();
     w.create_entity().with(CompBool(false)).build();
+    w.create_entity().with(CompFloat(0.1)).build();
 
     // resources can be installed, these are nothing fancy, but allow you
     // to pass data to systems and follow the same sync strategy as the
@@ -217,6 +251,8 @@ fn main() {
         .with(SysSpawn::new(), "spawn", &[])
         .with(SysPrintBool, "print_bool2", &["check_positive"])
         .with(JoinParallel, "join_par", &[])
+        .with_barrier() // we want to make sure all systems finished before running the last one
+        .with(AddIntToFloat, "add_float_int", &[])
         .build();
 
     dispatcher.dispatch(&w.res);

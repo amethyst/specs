@@ -1,8 +1,14 @@
+# 0.12.3
+
+* Add `MaybeJoin` to iterate over components without filtering the joint set ([#455])
+
+[#455]: https://github.com/slide-rs/specs/pull/455
+
 # 0.12.2
 
-* Fix `Allocator::kill` in the case of atomically created entities. ([#440])
+* Fix `Allocator::kill` in the case of atomically created entities. ([#454])
 
-[#440]: https://github.com/slide-rs/specs/pull/440
+[#454]: https://github.com/slide-rs/specs/pull/454
 
 # 0.12.1
 
