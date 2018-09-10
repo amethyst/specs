@@ -169,7 +169,7 @@ fn saveload_struct(
 /// This generates a struct named `StructNameSaveloadData` such that all fields are their associated `Data` variants, as well as a bound on the required marker
 ///  e.g.
 ///
-/// ```
+/// ```nobuild
 /// struct FooSaveloadData<MA> where MA: Serialize+Marker, for<'de> MA: Deserialize<'de> {
 ///    e: <Entity as IntoSerialize<MA>>::Data
 /// }
@@ -178,7 +178,7 @@ fn saveload_struct(
 /// The generation for the `into` and `from` functions just constructs each field by calling `into`/`from` for each field in the input struct
 /// and placing it into the output struct:
 ///
-/// ```
+/// ```nobuild
 ///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
 ///      FooSaveloadData {
 ///          e: IntoSerialize::into(&self.e, &mut ids)?
@@ -226,8 +226,8 @@ fn saveload_named_struct(
 /// This generates a struct named `StructNameSaveloadData` such that all fields are their associated `Data` variants, as well as a bound on the required marker
 ///  e.g.
 ///
-/// ```
-/// struct FooSaveloadData<MA>  (
+/// ```nobuild
+/// struct FooSaveloadData<MA> (
 ///    <Entity as IntoSerialize<MA>>::Data
 /// ) where MA: Serialize+Marker, for<'de> MA: Deserialize<'de>;
 /// ```
@@ -235,7 +235,7 @@ fn saveload_named_struct(
 /// The generation for the `into` and `from` functions just constructs each field by calling `into`/`from` for each field in the input struct
 /// and placing it into the output struct:
 ///
-/// ```
+/// ```nobuild
 ///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
 ///      FooSaveloadData (
 ///          e: IntoSerialize::into(&self.0, &mut ids)?
@@ -290,7 +290,7 @@ fn saveload_tuple_struct(
 /// This generates a struct named `EnumNameSaveloadData` such that all fields are their associated `Data` variants, as well as a bound on the required marker
 ///  e.g.
 ///
-/// ```
+/// ```nobuild
 /// enum FooSaveloadData<MA> where MA: Serialize+Marker, for<'de> MA: Deserialize<'de> {
 ///    Bar(<Entity as IntoSerialize<MA>>::Data),
 ///    Baz { e: <Entity as IntoSerialize<MA>>::Data },
@@ -301,7 +301,7 @@ fn saveload_tuple_struct(
 /// The generation for the `into` and `from` functions just constructs each field of each variant by calling `into`/`from` for each field in the input
 /// and placing it into the output struct in a giant match of each possibility:
 ///
-/// ```
+/// ```nobuild
 ///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
 ///      match *self {
 ///          Foo::Bar(ref field0) => FooSaveloadData::Bar(IntoSerialize::into(field0, &mut ids)? ),
