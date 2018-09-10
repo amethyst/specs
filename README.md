@@ -2,7 +2,7 @@
 
 > **S**pecs **P**arallel **ECS**
 
-[![Build Status][bi]][bl] [![Crates.io][ci]][cl] [![Gitter][gi]][gl] ![MIT/Apache][li] [![Docs.rs][di]][dl] [![Coverage][cci]][ccl] ![LoC][lo]
+[![Build Status][bi]][bl] [![Crates.io][ci]][cl] [![Gitter][gi]][gl] ![MIT/Apache][li] [![Docs.rs][di]][dl] ![LoC][lo]
 
 [bi]: https://travis-ci.org/slide-rs/specs.svg?branch=master
 [bl]: https://travis-ci.org/slide-rs/specs
@@ -17,9 +17,6 @@
 
 [gi]: https://badges.gitter.im/slide-rs/specs.svg
 [gl]: https://gitter.im/slide-rs/specs
-
-[cci]: https://coveralls.io/repos/github/slide-rs/specs/badge.svg?branch=master
-[ccl]: https://coveralls.io/github/slide-rs/specs?branch=master
 
 [lo]: https://tokei.rs/b1/github/slide-rs/specs?category=code
 
