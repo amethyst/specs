@@ -2,8 +2,8 @@ extern crate rand;
 extern crate rayon;
 extern crate specs;
 
-use rand::Rand;
-use rand::distributions::{IndependentSample, Range};
+use rand::Rng;
+use rand::distributions::{Distribution, Range};
 
 use rayon::iter::ParallelIterator;
 
@@ -61,6 +61,8 @@ impl<'a> System<'a> for ClusterBombSystem {
         (&*entities, &mut bombs, &positions)
             .par_join()
             .for_each(|(entity, bomb, position)| {
+                let mut rng = rand::thread_rng();
+
                 if bomb.fuse == 0 {
                     let _ = entities.delete(entity);
                     for _ in 0..9 {
@@ -68,11 +70,11 @@ impl<'a> System<'a> for ClusterBombSystem {
                         updater.insert(
                             shrapnel,
                             Shrapnel {
-                                durability: durability_range.ind_sample(&mut rand::thread_rng()),
+                                durability: durability_range.sample(&mut rng),
                             },
                         );
                         updater.insert(shrapnel, position.clone());
-                        let angle = f32::rand(&mut rand::thread_rng()) * TAU;
+                        let angle: f32 = rng.gen::<f32>() * TAU;
                         updater.insert(shrapnel, Vel(angle.sin(), angle.cos()));
                     }
                 } else {
