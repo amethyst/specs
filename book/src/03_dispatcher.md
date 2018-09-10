@@ -80,14 +80,14 @@ same for every entity). The solution to this are `Resource`s, see
 
 ## Adding a system with a dependency
 
-Okay, now you can add another system *after* the `HelloWorld` system:
+Okay, we'll add two more systems *after* the `HelloWorld` system:
 
 ```rust,ignore
     .with(UpdatePos, "update_pos", &["hello_world"])
+    .with(HelloWorld, "hello_updated", &["update_pos"])
 ```
-
 The `UpdatePos` system now depends on the `HelloWorld` system and will only
-be executed after the dependency has finished.
+be executed after the dependency has finished. The final `HelloWorld` system prints the resulting updated positions.
 
 Now to execute all the systems, just do
 
@@ -169,6 +169,7 @@ fn main() {
     let mut dispatcher = DispatcherBuilder::new()
         .with(HelloWorld, "hello_world", &[])
         .with(UpdatePos, "update_pos", &["hello_world"])
+        .with(HelloWorld, "hello_updated", &["update_pos"])
         .build();
 
     dispatcher.dispatch(&mut world.res);
