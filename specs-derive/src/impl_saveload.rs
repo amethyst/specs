@@ -1,4 +1,4 @@
-//! Contains implementations for #[derive(Saveload)]
+//! Contains implementations for `#[derive(Saveload)]`
 //! which derives both `IntoSerialize` and `FromDeserialize`.
 //!
 //! Since this requires a proxy "Data" `struct`/`enum`, these two need
@@ -17,8 +17,8 @@
 use quote::Tokens;
 use syn::{DataEnum, DataStruct, DeriveInput, Field, Generics, Ident, Type, TypeParamBound};
 
-// Handy collection since tuples got unwieldy and
-// unclear in purpose
+/// Handy collection since tuples got unwieldy and
+/// unclear in purpose
 struct SaveloadDerive {
     type_def: Tokens,
     ser: Tokens,
@@ -53,7 +53,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
     let derive = match ast.data {
         Data::Struct(ref mut data) => saveload_struct(data, &mut ast.ident, &mut ast.generics),
         Data::Enum(ref data) => saveload_enum(data, &ast.ident, &ast.generics),
-        Data::Union(_) => panic!("Unions cannot derive IntoSerialize/FromDeserialize at present"),
+        Data::Union(_) => panic!("Unions cannot derive `IntoSerialize`/`FromDeserialize`"),
     };
 
     let name = ast.ident;
@@ -108,8 +108,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
     tt
 }
 
-// Implements all elements of saveload common to structs of any type
-// (except unit structs like `struct Foo;` since they're auto-saveload);
+/// Implements all elements of saveload common to structs of any type
 fn saveload_struct(
     data: &mut DataStruct,
     name: &mut Ident,
@@ -153,7 +152,7 @@ fn saveload_struct(
             &saveload_fields,
         )
     } else {
-        panic!("This derive does not support unit structs (Hint: they automatically derive FromDeserialize and IntoSerialize)");
+        panic!("Every unit struct `Serialize`/`Deserialize` thus blanket impl already implements `FromDeserialize` and `IntoSerialize` for them.");
     };
 
     SaveloadDerive {
@@ -165,29 +164,29 @@ fn saveload_struct(
     }
 }
 
-// Automatically derives the two traits and proxy `Data` container for a struct with named fields (e.g. `struct Foo {e: Entity}`).
-//
-// This generates a struct named `StructNameSaveloadData` such that all fields are their associated `Data` variants, as well as a bound on the required marker
-//  e.g.
-//
-// ```
-// struct FooSaveloadData<MA> where MA: Serialize+Marker, for<'de> MA: Deserialize<'de> {
-//    e: <Entity as IntoSerialize<MA>>::Data
-// }
-// ```
-//
-// The generation for the `into` and `from` functions just constructs each field by calling `into`/`from` for each field in the input struct
-// and placing it into the output struct:
-//
-// ```
-//  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
-//      FooSaveloadData {
-//          e: IntoSerialize::into(&self.e, &mut ids)?
-//      }
-//  }
-// ```
-//
-// And similar for `FromDeserialize`.
+/// Automatically derives the two traits and proxy `Data` container for a struct with named fields (e.g. `struct Foo {e: Entity}`).
+///
+/// This generates a struct named `StructNameSaveloadData` such that all fields are their associated `Data` variants, as well as a bound on the required marker
+///  e.g.
+///
+/// ```
+/// struct FooSaveloadData<MA> where MA: Serialize+Marker, for<'de> MA: Deserialize<'de> {
+///    e: <Entity as IntoSerialize<MA>>::Data
+/// }
+/// ```
+///
+/// The generation for the `into` and `from` functions just constructs each field by calling `into`/`from` for each field in the input struct
+/// and placing it into the output struct:
+///
+/// ```
+///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
+///      FooSaveloadData {
+///          e: IntoSerialize::into(&self.e, &mut ids)?
+///      }
+///  }
+/// ```
+///
+/// And similar for `FromDeserialize`.
 fn saveload_named_struct(
     name: &Ident,
     saveload_name: &Ident,
@@ -222,29 +221,29 @@ fn saveload_named_struct(
     (struct_def, ser, de)
 }
 
-// Automatically derives the two traits and proxy `Data` container for a struct with unnamed fields aka a tuple struct (e.g. `struct Foo(Entity);`).
-//
-// This generates a struct named `StructNameSaveloadData` such that all fields are their associated `Data` variants, as well as a bound on the required marker
-//  e.g.
-//
-// ```
-// struct FooSaveloadData<MA>  (
-//    <Entity as IntoSerialize<MA>>::Data
-// ) where MA: Serialize+Marker, for<'de> MA: Deserialize<'de>;
-// ```
-//
-// The generation for the `into` and `from` functions just constructs each field by calling `into`/`from` for each field in the input struct
-// and placing it into the output struct:
-//
-// ```
-//  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
-//      FooSaveloadData (
-//          e: IntoSerialize::into(&self.0, &mut ids)?
-//      )
-//  }
-// ```
-//
-// And similar for `FromDeserialize`.
+/// Automatically derives the two traits and proxy `Data` container for a struct with unnamed fields aka a tuple struct (e.g. `struct Foo(Entity);`).
+///
+/// This generates a struct named `StructNameSaveloadData` such that all fields are their associated `Data` variants, as well as a bound on the required marker
+///  e.g.
+///
+/// ```
+/// struct FooSaveloadData<MA>  (
+///    <Entity as IntoSerialize<MA>>::Data
+/// ) where MA: Serialize+Marker, for<'de> MA: Deserialize<'de>;
+/// ```
+///
+/// The generation for the `into` and `from` functions just constructs each field by calling `into`/`from` for each field in the input struct
+/// and placing it into the output struct:
+///
+/// ```
+///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
+///      FooSaveloadData (
+///          e: IntoSerialize::into(&self.0, &mut ids)?
+///      )
+///  }
+/// ```
+///
+/// And similar for `FromDeserialize`.
 fn saveload_tuple_struct(
     data: &DataStruct,
     name: &Ident,
@@ -283,36 +282,36 @@ fn saveload_tuple_struct(
     (struct_def, ser, de)
 }
 
-// Automatically derives the two traits and proxy `Data` container for an Enum (e.g. `enum Foo{ Bar(Entity), Baz{ e: Entity }, Unit }`).
-//
-// This will properly handle enum variants with no `Entity`, so long as at least one variant (or one of that variant's fields recursively) contain an
-// `Entity` somewhere. If this isn't true, `Saveload` is auto-derived so long as the fields can be `Serialize` and `Deserialize` anyway.
-//
-// This generates a struct named `EnumNameSaveloadData` such that all fields are their associated `Data` variants, as well as a bound on the required marker
-//  e.g.
-//
-// ```
-// enum FooSaveloadData<MA> where MA: Serialize+Marker, for<'de> MA: Deserialize<'de> {
-//    Bar(<Entity as IntoSerialize<MA>>::Data),
-//    Baz { e: <Entity as IntoSerialize<MA>>::Data },
-//    Unit
-// };
-// ```
-//
-// The generation for the `into` and `from` functions just constructs each field of each variant by calling `into`/`from` for each field in the input
-// and placing it into the output struct in a giant match of each possibility:
-//
-// ```
-//  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
-//      match *self {
-//          Foo::Bar(ref field0) => FooSaveloadData::Bar(IntoSerialize::into(field0, &mut ids)? ),
-//          Foo::Baz{ ref e } => FooSaveloadData::Baz{ e: IntoSerialize::into(e, &mut ids)? },
-//          Foo::Unit => FooSaveloadData::Unit,
-//      }
-//  }
-// ```
-//
-// And similar for `FromDeserialize`.
+/// Automatically derives the two traits and proxy `Data` container for an Enum (e.g. `enum Foo{ Bar(Entity), Baz{ e: Entity }, Unit }`).
+///
+/// This will properly handle enum variants with no `Entity`, so long as at least one variant (or one of that variant's fields recursively) contain an
+/// `Entity` somewhere. If this isn't true, `Saveload` is auto-derived so long as the fields can be `Serialize` and `Deserialize` anyway.
+///
+/// This generates a struct named `EnumNameSaveloadData` such that all fields are their associated `Data` variants, as well as a bound on the required marker
+///  e.g.
+///
+/// ```
+/// enum FooSaveloadData<MA> where MA: Serialize+Marker, for<'de> MA: Deserialize<'de> {
+///    Bar(<Entity as IntoSerialize<MA>>::Data),
+///    Baz { e: <Entity as IntoSerialize<MA>>::Data },
+///    Unit
+/// };
+/// ```
+///
+/// The generation for the `into` and `from` functions just constructs each field of each variant by calling `into`/`from` for each field in the input
+/// and placing it into the output struct in a giant match of each possibility:
+///
+/// ```
+///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
+///      match *self {
+///          Foo::Bar(ref field0) => FooSaveloadData::Bar(IntoSerialize::into(field0, &mut ids)? ),
+///          Foo::Baz{ ref e } => FooSaveloadData::Baz{ e: IntoSerialize::into(e, &mut ids)? },
+///          Foo::Unit => FooSaveloadData::Unit,
+///      }
+///  }
+/// ```
+///
+/// And similar for `FromDeserialize`.
 fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> SaveloadDerive {
     use syn::Fields;
 
@@ -441,7 +440,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
     }
 }
 
-// Edits the bounds of the input type to ensure all fields have `bound`.
+/// Edits the bounds of the input type to ensure all fields have `bound`.
 fn add_bound(generics: &mut Generics, bound: TypeParamBound) {
     use syn::GenericParam;
     for param in &mut generics.params {
@@ -454,7 +453,7 @@ fn add_bound(generics: &mut Generics, bound: TypeParamBound) {
     }
 }
 
-// Replaces the type with its corresponding `Data` type.
+/// Replaces the type with its corresponding `Data` type.
 fn replace_entity_type(ty: &mut Type) {
     match ty {
         Type::Array(ty) => replace_entity_type(&mut *ty.elem),
@@ -472,9 +471,7 @@ fn replace_entity_type(ty: &mut Type) {
 
         Type::TraitObject(_) => {}
         Type::ImplTrait(_) => {}
-        Type::Slice(_) => {
-            panic!("Slices are unsupported, use owned types like Vecs or Arrays instead")
-        }
+        Type::Slice(_) => panic!("Slices are unsupported, use owned types like Vecs or Arrays instead"),
         Type::Reference(_) => panic!("References are unsupported"),
         Type::Ptr(_) => panic!("Raw pointer types are unsupported"),
         Type::BareFn(_) => panic!("Function types are unsupported"),

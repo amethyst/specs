@@ -9,7 +9,7 @@ use saveload::EntityData;
 use storage::{GenericReadStorage, ReadStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
 
-/// Converts a data type (usually a [`Component`]) into its serialized form.
+/// Converts a data type (usually a [`Component`]) into its serializable form.
 ///
 /// This is automatically implemented for any type that is
 /// [`Serialize`], yielding itself.
@@ -219,7 +219,7 @@ macro_rules! serialize_components {
             M: Marker,
             $(
                 $sto: GenericReadStorage<Component = $comp>,
-                $comp : IntoSerialize<M>+Component,
+                $comp : IntoSerialize<M> + Component,
                 E: From<<$comp as IntoSerialize<M>>::Error>,
             )*
         {
