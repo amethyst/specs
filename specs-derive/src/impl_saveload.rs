@@ -238,7 +238,7 @@ fn saveload_named_struct(
 /// ```nobuild
 ///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
 ///      FooSaveloadData (
-///          e: IntoSerialize::into(&self.0, &mut ids)?
+///          IntoSerialize::into(&self.0, &mut ids)?
 ///      )
 ///  }
 /// ```
