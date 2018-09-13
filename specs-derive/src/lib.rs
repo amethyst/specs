@@ -58,7 +58,7 @@ fn impl_component(ast: &DeriveInput) -> Tokens {
         .unwrap_or_else(|| parse_quote!(DenseVecStorage));
 
     quote! {
-        impl #impl_generics ::specs::world::Component for #name #ty_generics #where_clause {
+        impl #impl_generics Component for #name #ty_generics #where_clause {
             type Storage = #storage<Self>;
         }
     }
