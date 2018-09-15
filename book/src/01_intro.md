@@ -98,8 +98,8 @@ By simply adding a force to an entity that has a mass, you can make it move, bec
 
 ## Where to use an ECS?
 
-In case you were looking for a general-purpose library for doing it the data-oriented way, I have to disappoint you; there are none.
-ECS libraries are best-suited for creating games or simulations, but it does not magically make your code more data-oriented.
+In case you were looking for a general-purpose library for doing things the data-oriented way, I have to disappoint you; there are none.
+ECS libraries are best-suited for creating games or simulations, but they do not magically make your code more data-oriented.
 
 ---
 
