@@ -35,7 +35,7 @@ pub type Index = u32;
 /// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
 /// # let mut world = World::new(); world.register::<Pos>();
 /// # let entities = world.entities(); let positions = world.write_storage::<Pos>();
-/// for (e, pos) in (&*entities, &positions).join() {
+/// for (e, pos) in (&entities, &positions).join() {
 ///     // Do something
 /// #   let _ = e;
 /// #   let _ = pos;

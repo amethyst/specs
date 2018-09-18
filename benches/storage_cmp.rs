@@ -54,7 +54,7 @@ where
             let entities = world.entities();
             let mut storage = world.write_storage::<C>();
 
-            for e in (&*entities).join() {
+            for e in (&entities).join() {
                 storage.remove(e);
             }
         },
@@ -87,7 +87,7 @@ where
             let entities = world.entities();
             let storage = world.read_storage::<C>();
 
-            for e in (&*entities).join() {
+            for e in (&entities).join() {
                 black_box(storage.get(e));
             }
         },

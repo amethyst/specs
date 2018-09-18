@@ -124,7 +124,7 @@ where
     {
         let mut serseq = serializer.serialize_seq(None)?;
         let ids = |entity| -> Option<M> { markers.get(entity).cloned() };
-        for (entity, marker) in (&*entities, &*markers).join() {
+        for (entity, marker) in (&entities, &markers).join() {
             serseq.serialize_element(&EntityData::<M, Self::Data> {
                 marker: marker.clone(),
                 components: self.serialize_entity(entity, &ids)
@@ -153,7 +153,7 @@ where
         S: Serializer,
     {
         let mut serseq = serializer.serialize_seq(None)?;
-        let mut to_serialize: Vec<(Entity, M)> = (entities, &*markers)
+        let mut to_serialize: Vec<(Entity, M)> = (entities, &markers)
             .join()
             .map(|(e, m)| (e, m.clone()))
             .collect();

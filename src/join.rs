@@ -132,7 +132,7 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 ///     // `Read<EntitiesRes>` can also be referred to by `Entities` which
 ///     // is a shorthand type definition to the former type.
 ///
-///     let joined: Vec<_> = (&*entities, &pos, &vel).join().collect(); // note the `&*entities`
+///     let joined: Vec<_> = (&entities, &pos, &vel).join().collect();
 ///     assert_eq!(joined, vec![(ent, &Pos, &Vel)]);
 /// }
 /// ```
@@ -574,6 +574,12 @@ macro_rules! immutable_resource_join {
                 <&'a T as Join>::is_unconstrained()
             }
         }
+
+        unsafe impl<'a, 'b, T> ParJoin for &'a $ty
+        where
+            &'a T: ParJoin,
+            T: Resource
+        {}
         )*
     };
 }
@@ -602,6 +608,12 @@ macro_rules! mutable_resource_join {
                 <&'a mut T as Join>::is_unconstrained()
             }
         }
+
+        unsafe impl<'a, 'b, T> ParJoin for &'a mut $ty
+        where
+            &'a mut T: ParJoin,
+            T: Resource
+        {}
         )*
     };
 }

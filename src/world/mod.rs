@@ -515,7 +515,7 @@ impl World {
     pub fn delete_all(&mut self) {
         use join::Join;
 
-        let entities: Vec<_> = (&*self.entities()).join().collect();
+        let entities: Vec<_> = (&self.entities()).join().collect();
 
         self.delete_entities(&entities).expect(
             "Bug: previously collected entities are not valid \

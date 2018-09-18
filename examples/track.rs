@@ -30,7 +30,7 @@ impl<'a> System<'a> for SysA {
     fn run(&mut self, (entities, tracked): Self::SystemData) {
         tracked.populate_modified(&mut self.modified_id, &mut self.modified);
 
-        for (entity, _tracked, _) in (&*entities, &tracked, &self.modified).join() {
+        for (entity, _tracked, _) in (&entities, &tracked, &self.modified).join() {
             println!("modified: {:?}", entity);
         }
     }
@@ -41,7 +41,7 @@ struct SysB;
 impl<'a> System<'a> for SysB {
     type SystemData = (Entities<'a>, WriteStorage<'a, TrackedComponent>);
     fn run(&mut self, (entities, mut tracked): Self::SystemData) {
-        for (entity, mut restricted) in (&*entities, &mut tracked.restrict_mut()).join() {
+        for (entity, mut restricted) in (&entities, &mut tracked.restrict_mut()).join() {
             if entity.id() % 2 == 0 {
                 let mut comp = restricted.get_mut_unchecked();
                 comp.0 += 1;

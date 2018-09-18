@@ -140,7 +140,7 @@ mod marker_test {
     /// Assert that the number of entities marked with `U64Marker` is equal to `count`
     fn assert_marked_entity_count(world: &mut World, count: usize) {
         world.exec(|(ents, markers): (Entities, ReadStorage<U64Marker>)| {
-            let marked_entity_count = (&*ents, &markers).join().count();
+            let marked_entity_count = (&ents, &markers).join().count();
 
             assert_eq!(marked_entity_count, count);
         });
@@ -151,7 +151,7 @@ mod marker_test {
         world.exec(|(ents, markers): (Entities, ReadStorage<U64Marker>)| {
             use std::collections::HashSet;
 
-            let marker_ids: Vec<_> = (&*ents, &markers)
+            let marker_ids: Vec<_> = (&ents, &markers)
                 .join()
                 .map(|(_entity, marker)| marker.id())
                 .collect();

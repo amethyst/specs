@@ -153,7 +153,7 @@ impl<'a> System<'a> for SysStoreMax {
         let mut max_entity = None;
         let mut max = MIN;
 
-        for (entity, value) in (&*data.entities, &data.comp_int).join() {
+        for (entity, value) in (&data.entities, &data.comp_int).join() {
             if value.0 >= max {
                 max = value.0;
                 max_entity = Some(entity);
