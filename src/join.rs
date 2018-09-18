@@ -550,6 +550,13 @@ define_open!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 define_open!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
 define_open!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R);
 
+/// `Fetch`/`Read`/`Write`/etc. all implement `Deref`/`DerefMut` but Rust does not implicitly
+/// dereference the wrapper type when we are joining which creates annoying scenarios like
+/// `&*entities` where we have to reborrow the type unnecessarily.
+///
+/// So instead, we implement `Join` on the wrapper types and forward the implementations to the
+/// underlying types so that Rust doesn't have to do implicit magic to figure out what we want
+/// to do with the type.
 macro_rules! immutable_resource_join {
     ($($ty:ty),*) => {
         $(
