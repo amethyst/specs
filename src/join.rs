@@ -6,7 +6,9 @@ use std::cell::UnsafeCell;
 use hibitset::{BitIter, BitProducer, BitSetAll, BitSetAnd, BitSetLike};
 use rayon::iter::plumbing::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
 use rayon::iter::ParallelIterator;
+use std::ops::{Deref, DerefMut};
 use tuple_utils::Split;
+use shred::{Fetch, FetchMut, Read, ReadExpect, Resource, Write, WriteExpect};
 
 use world::{Entities, Entity, Index};
 
@@ -547,3 +549,62 @@ define_open!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O}
 define_open!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 define_open!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
 define_open!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R);
+
+macro_rules! immutable_resource_join {
+    ($($ty:ty),*) => {
+        $(
+        impl<'a, 'b, T> Join for &'a $ty
+        where
+            &'a T: Join,
+            T: Resource,
+        {
+            type Type = <&'a T as Join>::Type;
+            type Value = <&'a T as Join>::Value;
+            type Mask = <&'a T as Join>::Mask;
+            unsafe fn open(self) -> (Self::Mask, Self::Value) {
+                self.deref().open()
+            }
+
+            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
+                <&'a T as Join>::get(v, i)
+            }
+
+            #[inline]
+            fn is_unconstrained() -> bool {
+                <&'a T as Join>::is_unconstrained()
+            }
+        }
+        )*
+    };
+}
+
+macro_rules! mutable_resource_join {
+    ($($ty:ty),*) => {
+        $(
+        impl<'a, 'b, T> Join for &'a mut $ty
+        where
+            &'a mut T: Join,
+            T: Resource,
+        {
+            type Type = <&'a mut T as Join>::Type;
+            type Value = <&'a mut T as Join>::Value;
+            type Mask = <&'a mut T as Join>::Mask;
+            unsafe fn open(self) -> (Self::Mask, Self::Value) {
+                self.deref_mut().open()
+            }
+
+            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
+                <&'a mut T as Join>::get(v, i)
+            }
+
+            #[inline]
+            fn is_unconstrained() -> bool {
+                <&'a mut T as Join>::is_unconstrained()
+            }
+        }
+        )*
+    };
+}
+
+immutable_resource_join!(Fetch<'b, T>, Read<'b, T>, ReadExpect<'b, T>);
+mutable_resource_join!(FetchMut<'b, T>, Write<'b, T>, WriteExpect<'b, T>);
