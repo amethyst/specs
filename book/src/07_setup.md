@@ -73,7 +73,7 @@ impl<'a> System<'a> for Sys {
     fn setup(&mut self, res: &mut Resources) {
         use specs::prelude::SystemData;
         Self::SystemData::setup(res);
-        self.reader = Some(res.fetch::<EventChannel<Event>>().register_reader());
+        self.reader = Some(res.fetch_mut::<EventChannel<Event>>().register_reader());
     }
 }
 ```
