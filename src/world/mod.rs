@@ -41,6 +41,9 @@ impl<'a> Iterator for CreateIter<'a> {
 pub trait Builder {
     /// Appends a component and associates it with the entity.
     ///
+    /// If a component was already associated with the entity, it should 
+    /// overwrite the previous component.
+    ///
     /// # Panics
     ///
     /// Panics if the component hasn't been `register()`ed in the
@@ -95,6 +98,10 @@ pub struct EntityBuilder<'a> {
 }
 
 impl<'a> Builder for EntityBuilder<'a> {
+    /// Inserts a component for this entity.
+    ///
+    /// If a component was already associated with the entity, it will 
+    /// overwrite the previous component.
     #[inline]
     fn with<T: Component>(self, c: T) -> Self {
         {
