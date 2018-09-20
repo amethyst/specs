@@ -5,11 +5,11 @@ use serde::de::{
     self, Deserialize, DeserializeOwned, DeserializeSeed, Deserializer, SeqAccess, Visitor,
 };
 
-use error::NoError;
 use saveload::marker::{Marker, MarkerAllocator};
 use saveload::EntityData;
 use storage::{GenericWriteStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
+use super::ConvertSaveload;
 
 /// A trait which allows to deserialize entities and their components.
 pub trait DeserializeComponents<E, M>
@@ -89,126 +89,6 @@ where
     }
 }
 
-/// Provides a function which converts a marked serialization wrapper
-/// into its actual data type (usually a [`Component`]).
-///
-/// When serializing, specs will store the actual `Data` type
-/// from [`IntoSerialize`] and upon deserialization, call
-/// the `from` function to yield the real [`Component`].
-///
-/// This is automatically implemented for any type that is
-/// [`DeserializeOwned`] (which includes
-/// any type that derives [`Deserialize`]).
-///
-/// Implementing this yourself is usually only needed if you
-/// have a component that points to another Entity (or has a field which does)
-/// and you wish to [`Deserialize`] it.
-///
-/// In most cases, you also likely want to implement the companion
-/// trait [`IntoSerialize`].
-///
-/// *Note*: if you're using `specs_derive`
-/// and your struct does not have a generic bound (i.e. `struct Foo<T>`),
-/// you can use `#[derive(Saveload)]` to automatically derive this and
-/// [`IntoSerialize`]. You can get around generic type bounds by exploiting
-/// the newtype pattern (e.g. `struct FooU32(Foo<u32>);`).
-///
-/// You must add the `derive` to any type that your component has a field of which does
-/// not auto-implement these two traits, including the component itself (similar to how
-/// normal [`Serialize`] and [`Deserialize`] work).
-///
-/// [`from`]: trait.FromDeserialize.html#tymethod.from
-/// [`Component`]: ../trait.Component.html
-/// [`Deserialize`]: https://docs.serde.rs/serde/trait.Deserialize.html
-/// [`Serialize`]: https://docs.serde.rs/serde/trait.Serialize.html
-/// [`DeserializeOwned`]: https://docs.serde.rs/serde/de/trait.DeserializeOwned.html
-/// [`IntoSerialize`]: trait.IntoSerialize.html
-///
-/// # Example
-///
-/// ```rust
-/// # extern crate specs;
-/// # #[macro_use] extern crate serde;
-/// use serde::Deserialize;
-/// use specs::prelude::*;
-/// use specs::error::NoError;
-/// use specs::saveload::{Marker, FromDeserialize};
-///
-/// struct Target(Entity);
-///
-/// impl Component for Target {
-///     type Storage = VecStorage<Self>;
-/// }
-///
-/// // We need a matching "data" struct to hold our
-/// // marker. In general, you just need a single struct
-/// // per component you want to make `Deserialize` with each
-/// // instance of `Entity` replaced with a generic "M".
-/// #[derive(Deserialize)]
-/// struct TargetData<M>(M);
-///
-/// impl<M: Marker> FromDeserialize<M> for Target
-///     where
-///     for<'de> M: Deserialize<'de>,
-/// {
-///     type Data = TargetData<M>;
-///     type Error = NoError;
-///
-///     fn from<F>(data: Self::Data, mut ids: F) -> Result<Self, Self::Error>
-///     where
-///         F: FnMut(M) -> Option<Entity>
-///     {
-///         let entity = ids(data.0).unwrap();
-///         Ok(Target(entity))
-///     }
-/// }
-///
-/// ```
-///
-pub trait FromDeserialize<M>: Sized {
-    /// Serializable data representation
-    type Data: DeserializeOwned;
-
-    /// Error may occur during deserialization
-    type Error;
-
-    /// Convert this data from a deserializable form (`Data`) using
-    /// entity to marker mapping function
-    fn from<F>(data: Self::Data, ids: F) -> Result<Self, Self::Error>
-    where
-        F: FnMut(M) -> Option<Entity>;
-}
-
-impl<C, M> FromDeserialize<M> for C
-where
-    C: DeserializeOwned,
-{
-    type Data = Self;
-    type Error = NoError;
-
-    fn from<F>(data: Self::Data, _: F) -> Result<Self, Self::Error>
-    where
-        F: FnMut(M) -> Option<Entity>,
-    {
-        Ok(data)
-    }
-}
-
-impl<M> FromDeserialize<M> for Entity
-where
-    M: DeserializeOwned,
-{
-    type Data = M;
-    type Error = NoError;
-
-    fn from<F>(data: Self::Data, mut func: F) -> Result<Self, Self::Error>
-    where
-        F: FnMut(M) -> Option<Entity>,
-    {
-        Ok(func(data).unwrap())
-    }
-}
-
 /// Wrapper for `Entities` and tuple of `WriteStorage`s that implements `serde::de::Visitor`
 struct VisitEntities<'a: 'b, 'b, E, M: Marker, S: 'b> {
     allocator: &'b mut M::Allocator,
@@ -258,15 +138,15 @@ macro_rules! deserialize_components {
             M: Marker,
             $(
                 $sto: GenericWriteStorage,
-                <$sto as GenericWriteStorage>::Component: FromDeserialize<M>+Component,
+                <$sto as GenericWriteStorage>::Component: ConvertSaveload<M>+Component,
                 E: From<<
-                    <$sto as GenericWriteStorage>::Component as FromDeserialize<M>
+                    <$sto as GenericWriteStorage>::Component as ConvertSaveload<M>
                 >::Error>,
             )*
         {
             type Data = ($(
                 Option<
-                    <<$sto as GenericWriteStorage>::Component as FromDeserialize<M>>::Data
+                    <<$sto as GenericWriteStorage>::Component as ConvertSaveload<M>>::Data
                 >,)*
             );
 
@@ -286,7 +166,7 @@ macro_rules! deserialize_components {
                 let ($($comp,)*) = components;
                 $(
                     if let Some(component) = $comp {
-                        $sto.insert(entity, FromDeserialize::<M>::from(component, &mut ids)?);
+                        $sto.insert(entity, ConvertSaveload::<M>::from(component, &mut ids)?);
                     } else {
                         $sto.remove(entity);
                     }

@@ -69,7 +69,7 @@ fn impl_component(ast: &DeriveInput) -> Tokens {
     }
 }
 
-#[proc_macro_derive(Saveload)]
+#[proc_macro_derive(ConvertSaveload)]
 pub fn saveload(input: TokenStream) -> TokenStream {
     use impl_saveload::impl_saveload;
     let mut ast = syn::parse(input).unwrap();

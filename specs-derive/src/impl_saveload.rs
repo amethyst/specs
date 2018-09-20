@@ -1,5 +1,5 @@
 //! Contains implementations for `#[derive(Saveload)]`
-//! which derives both `IntoSerialize` and `FromDeserialize`.
+//! which derives `ConvertSaveload`.
 //!
 //! Since this requires a proxy "Data" `struct`/`enum`, these two need
 //! to be derived together or it begins requiring unwieldy attribute explosion.
@@ -34,17 +34,17 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
     add_where_clauses(
         &mut ast.generics.where_clause,
         &ast.generics.params,
-        |ty| parse_quote!(#ty: ::specs::saveload::IntoSerialize<MA, Error = ::specs::error::NoError> + ::specs::saveload::FromDeserialize<MA, Error = ::specs::error::NoError>)
+        |ty| parse_quote!(#ty: ::specs::saveload::ConvertSaveload<MA, Error = ::specs::error::NoError> + ::specs::saveload::ConvertSaveload<MA, Error = ::specs::error::NoError>)
     );
     add_where_clauses(
         &mut ast.generics.where_clause,
         &ast.generics.params,
-        |ty| parse_quote!(<#ty as ::specs::saveload::IntoSerialize<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone)
+        |ty| parse_quote!(<#ty as ::specs::saveload::ConvertSaveload<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone)
     );
     add_where_clauses(
         &mut ast.generics.where_clause,
         &ast.generics.params,
-        |ty| parse_quote!(<#ty as ::specs::saveload::FromDeserialize<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone)
+        |ty| parse_quote!(<#ty as ::specs::saveload::ConvertSaveload<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone)
     );
     add_where_clause(
         &mut ast.generics.where_clause,
@@ -58,7 +58,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
     let derive = match ast.data {
         Data::Struct(ref mut data) => saveload_struct(data, &mut ast.ident, &mut ast.generics),
         Data::Enum(ref data) => saveload_enum(data, &ast.ident, &ast.generics),
-        Data::Union(_) => panic!("Unions cannot derive `IntoSerialize`/`FromDeserialize`"),
+        Data::Union(_) => panic!("Unions cannot derive `ConvertSaveload`/`ConvertSaveload`"),
     };
 
     let name = ast.ident;
@@ -80,7 +80,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
         #[serde(bound = "MA: ::specs::saveload::Marker")]
         pub #type_def
 
-        impl #impl_generics ::specs::saveload::IntoSerialize<MA> for #name #ty_generics #where_clause {
+        impl #impl_generics ::specs::saveload::ConvertSaveload<MA> for #name #ty_generics #where_clause {
             type Data = #saveload_name #saveload_ty_generics;
             type Error = ::specs::error::NoError;
 
@@ -90,11 +90,6 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
             {
                 #ser
             }
-        }
-
-        impl #impl_generics ::specs::saveload::FromDeserialize<MA> for #name #ty_generics #where_clause {
-            type Data = #saveload_name #saveload_ty_generics;
-            type Error = ::specs::error::NoError;
 
             fn from<F>(data: Self::Data, mut ids: F) -> Result<Self, Self::Error>
             where
@@ -105,7 +100,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
         }
     };
 
-    panic!("{}", tt);
+    // panic!("{}", tt);
 
     tt
 }
@@ -144,7 +139,7 @@ fn saveload_struct(
             &saveload_fields,
         )
     } else {
-        panic!("Every unit struct `Serialize`/`Deserialize` thus blanket impl already implements `FromDeserialize` and `IntoSerialize` for them.");
+        panic!("Every unit struct `Serialize`/`Deserialize` thus blanket impl already implements `ConvertSaveload` for them.");
     };
 
     SaveloadDerive {
@@ -162,7 +157,7 @@ fn saveload_struct(
 ///
 /// ```nobuild
 /// struct FooSaveloadData<MA> where MA: Serialize+Marker, for<'de> MA: Deserialize<'de> {
-///    e: <Entity as IntoSerialize<MA>>::Data
+///    e: <Entity as ConvertSaveload<MA>>::Data
 /// }
 /// ```
 ///
@@ -172,12 +167,10 @@ fn saveload_struct(
 /// ```nobuild
 ///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
 ///      FooSaveloadData {
-///          e: IntoSerialize::into(&self.e, &mut ids)?
+///          e: ConvertSaveload::into(&self.e, &mut ids)?
 ///      }
 ///  }
 /// ```
-///
-/// And similar for `FromDeserialize`.
 fn saveload_named_struct(
     name: &Ident,
     saveload_name: &Ident,
@@ -197,7 +190,7 @@ fn saveload_named_struct(
     let tmp = field_names.clone();
     let ser = quote! {
         Ok(#saveload_name {
-            # ( #field_names: ::specs::saveload::IntoSerialize::into(&self.#field_names_2, &mut ids)? ),*
+            # ( #field_names: ::specs::saveload::ConvertSaveload::into(&self.#field_names_2, &mut ids)? ),*
         })
     };
 
@@ -205,7 +198,7 @@ fn saveload_named_struct(
     let field_names_2 = field_names.clone();
     let de = quote! {
         Ok(#name {
-            # ( #field_names: ::specs::saveload::FromDeserialize::from(data.#field_names_2, &mut ids)? ),*
+            # ( #field_names: ::specs::saveload::ConvertSaveload::from(data.#field_names_2, &mut ids)? ),*
         })
     };
 
@@ -219,7 +212,7 @@ fn saveload_named_struct(
 ///
 /// ```nobuild
 /// struct FooSaveloadData<MA> (
-///    <Entity as IntoSerialize<MA>>::Data
+///    <Entity as ConvertSaveload<MA>>::Data
 /// ) where MA: Serialize+Marker, for<'de> MA: Deserialize<'de>;
 /// ```
 ///
@@ -229,12 +222,10 @@ fn saveload_named_struct(
 /// ```nobuild
 ///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
 ///      FooSaveloadData (
-///          IntoSerialize::into(&self.0, &mut ids)?
+///          ConvertSaveload::into(&self.0, &mut ids)?
 ///      )
 ///  }
 /// ```
-///
-/// And similar for `FromDeserialize`.
 fn saveload_tuple_struct(
     data: &DataStruct,
     name: &Ident,
@@ -259,14 +250,14 @@ fn saveload_tuple_struct(
     let tmp = field_ids.clone();
     let ser = quote!{
         Ok(#saveload_name (
-            # ( ::specs::saveload::IntoSerialize::into(&self.#field_ids, &mut ids)? ),*
+            # ( ::specs::saveload::ConvertSaveload::into(&self.#field_ids, &mut ids)? ),*
         ))
     };
 
     let field_ids = tmp;
     let de = quote! {
         Ok(#name (
-            # ( ::specs::saveload::FromDeserialize::from(data.#field_ids, &mut ids)? ),*
+            # ( ::specs::saveload::ConvertSaveload::from(data.#field_ids, &mut ids)? ),*
         ))
     };
 
@@ -283,8 +274,8 @@ fn saveload_tuple_struct(
 ///
 /// ```nobuild
 /// enum FooSaveloadData<MA> where MA: Serialize+Marker, for<'de> MA: Deserialize<'de> {
-///    Bar(<Entity as IntoSerialize<MA>>::Data),
-///    Baz { e: <Entity as IntoSerialize<MA>>::Data },
+///    Bar(<Entity as ConvertSaveload<MA>>::Data),
+///    Baz { e: <Entity as ConvertSaveload<MA>>::Data },
 ///    Unit
 /// };
 /// ```
@@ -295,14 +286,12 @@ fn saveload_tuple_struct(
 /// ```nobuild
 ///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
 ///      match *self {
-///          Foo::Bar(ref field0) => FooSaveloadData::Bar(IntoSerialize::into(field0, &mut ids)? ),
-///          Foo::Baz{ ref e } => FooSaveloadData::Baz{ e: IntoSerialize::into(e, &mut ids)? },
+///          Foo::Bar(ref field0) => FooSaveloadData::Bar(ConvertSaveload::into(field0, &mut ids)? ),
+///          Foo::Baz{ ref e } => FooSaveloadData::Baz{ e: ConvertSaveload::into(e, &mut ids)? },
 ///          Foo::Unit => FooSaveloadData::Unit,
 ///      }
 ///  }
 /// ```
-///
-/// And similar for `FromDeserialize`.
 fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> SaveloadDerive {
     use syn::Fields;
 
@@ -349,7 +338,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
                 big_match_ser = quote!{
                     #big_match_ser
-                    #name::#ident { #( ref #names ),* } => #saveload_name::#ident { #( #names_3: ::specs::saveload::IntoSerialize::into(#names_2, ids)? ),* },
+                    #name::#ident { #( ref #names ),* } => #saveload_name::#ident { #( #names_3: ::specs::saveload::ConvertSaveload::into(#names_2, ids)? ),* },
                 };
 
                 let names = get_names();
@@ -358,7 +347,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
                 big_match_de = quote!{
                     #big_match_de
-                    #saveload_name::#ident { #( #names ),* } => #name::#ident { #( #names_3: ::specs::saveload::FromDeserialize::from(#names_2, &mut ids)? ),* },
+                    #saveload_name::#ident { #( #names ),* } => #name::#ident { #( #names_3: ::specs::saveload::ConvertSaveload::from(#names_2, &mut ids)? ),* },
                 };
             }
             Fields::Unnamed(fields) => {
@@ -374,7 +363,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
                 big_match_ser = quote!{
                     #big_match_ser
-                    #name::#ident( #( ref #field_ids ),* ) => #saveload_name::#ident( #( ::specs::saveload::IntoSerialize::into(#field_ids_2, &mut ids)? ),* ),
+                    #name::#ident( #( ref #field_ids ),* ) => #saveload_name::#ident( #( ::specs::saveload::ConvertSaveload::into(#field_ids_2, &mut ids)? ),* ),
                 };
 
                 let field_ids = tmp;
@@ -382,7 +371,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
                 big_match_de = quote!{
                     #big_match_de
-                    #saveload_name::#ident( #( #field_ids ),* ) => #name::#ident( #( ::specs::saveload::FromDeserialize::from(#field_ids_2, &mut ids)? ),* ),
+                    #saveload_name::#ident( #( #field_ids ),* ) => #name::#ident( #( ::specs::saveload::ConvertSaveload::from(#field_ids_2, &mut ids)? ),* ),
                 };
             }
             Fields::Unit => {
@@ -456,7 +445,7 @@ fn replace_entity_type(ty: &mut Type) {
         Type::Paren(ty) => replace_entity_type(&mut *ty.elem),
         Type::Path(ty) => {
             let ty_tok = ty.clone();
-            *ty = parse_quote!(<#ty_tok as ::specs::saveload::IntoSerialize<MA>>::Data);
+            *ty = parse_quote!(<#ty_tok as ::specs::saveload::ConvertSaveload<MA>>::Data);
         }
         Type::Group(ty) => replace_entity_type(&mut *ty.elem),
 

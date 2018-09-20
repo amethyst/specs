@@ -7,65 +7,72 @@ extern crate specs;
 #[macro_use]
 extern crate specs_derive;
 
-// #[derive(Saveload)]
-// struct OneFieldNamed {
-//     e: Entity,
-// }
+#[derive(ConvertSaveload)]
+struct OneFieldNamed {
+    e: ::specs::Entity,
+}
 
-// #[derive(Saveload)]
-// struct TwoField {
-//     a: u32,
-//     e: Entity,
-// }
+#[derive(ConvertSaveload)]
+struct TwoField {
+    a: u32,
+    e: ::specs::Entity,
+}
 
-// // Tests a struct that owns a parent
-// // that derives Saveload
-// #[derive(Saveload)]
-// struct LevelTwo {
-//     owner: OneFieldNamed,
-// }
+// Tests a struct that owns a parent
+// that derives Saveload
+#[derive(ConvertSaveload)]
+struct LevelTwo {
+    owner: OneFieldNamed,
+}
 
-// #[derive(Saveload)]
-// struct OneFieldTuple(Entity);
+#[derive(ConvertSaveload)]
+struct OneFieldTuple(::specs::Entity);
 
-// #[derive(Saveload)]
-// struct TwoFieldTuple(Entity, u32);
+#[derive(ConvertSaveload)]
+struct TwoFieldTuple(::specs::Entity, u32);
 
-// #[derive(Saveload)]
-// struct LevelTwoTuple(OneFieldNamed);
+#[derive(ConvertSaveload)]
+struct LevelTwoTuple(OneFieldNamed);
 
-// #[derive(Saveload)]
-// enum AnEnum {
-//     E(Entity),
-//     F { e: Entity },
-//     Unit,
-// }
+#[derive(ConvertSaveload)]
+enum AnEnum {
+    E(::specs::Entity),
+    F { e: ::specs::Entity },
+    Unit,
+}
 
-#[derive(Saveload)]
-struct Generic<E>(E);
+#[derive(ConvertSaveload)]
+struct Generic<E: EntityLike>(E);
 
-// mod tests {
-//     use super::*;
-//     use specs::saveload::{FromDeserialize, IntoSerialize, U64Marker};
+trait EntityLike {}
 
-//     /* Just a compile test to verify that we meet the proper bounds.
-//     Does not need to be #[test] since it's a compile test */
+impl EntityLike for ::specs::Entity {}
 
-//     fn type_check() {
-//         let mut world = World::new();
-//         let entity = world.create_entity().build();
+mod tests {
+    use super::*;
+    use specs::{Builder, World};
+    use specs::saveload::{ConvertSaveload, U64Marker};
 
-//         black_box::<U64Marker, _>(OneFieldNamed { e: entity });
-//         black_box::<U64Marker, _>(TwoField { a: 5, e: entity });
-//         black_box::<U64Marker, _>(LevelTwo {
-//             owner: OneFieldNamed { e: entity },
-//         });
-//         black_box::<U64Marker, _>(OneFieldTuple(entity));
-//         black_box::<U64Marker, _>(TwoFieldTuple(entity, 5));
-//         // The derive will work for all variants
-//         // so no need to test anything but unit
-//         black_box::<U64Marker, _>(AnEnum::Unit);
-//     }
+    /* Just a compile test to verify that we meet the proper bounds.
+    Does not need to be #[test] since it's a compile test */
 
-//     fn black_box<M, T: IntoSerialize<M> + FromDeserialize<M>>(_item: T) {}
-// }
+    fn type_check() {
+        let mut world = World::new();
+        let entity = world.create_entity().build();
+
+        black_box::<U64Marker, _>(OneFieldNamed { e: entity });
+        black_box::<U64Marker, _>(TwoField { a: 5, e: entity });
+        black_box::<U64Marker, _>(LevelTwo {
+            owner: OneFieldNamed { e: entity },
+        });
+        black_box::<U64Marker, _>(OneFieldTuple(entity));
+        black_box::<U64Marker, _>(TwoFieldTuple(entity, 5));
+        // The derive will work for all variants
+        // so no need to test anything but unit
+        black_box::<U64Marker, _>(AnEnum::Unit);
+        
+        black_box::<U64Marker, _>(Generic(entity));
+    }
+
+    fn black_box<M, T: ConvertSaveload<M>>(_item: T) {}
+}
