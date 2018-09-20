@@ -1,3 +1,4 @@
+use std::fmt;
 use std::num::NonZeroU32;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -363,8 +364,15 @@ impl<'a> Drop for EntityResBuilder<'a> {
 /// Index generation. When a new entity is placed at an old index,
 /// it bumps the `Generation` by 1. This allows to avoid using components
 /// from the entities that were deleted.
-#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Generation(NonZeroU32);
+
+// Show the inner value as i32 instead of u32.
+impl fmt::Debug for Generation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("Generation").field(&self.id()).finish()
+    }
+}
 
 impl Generation {
     pub(crate) const ONE: Generation = Generation(unsafe { NonZeroU32::new_unchecked(1) });
@@ -416,7 +424,8 @@ impl ZeroableGeneration {
     /// Panics if it is alive.
     fn raised(&self) -> Generation {
         assert!(!self.is_alive());
-        Generation(unsafe { NonZeroU32::new_unchecked((1 - self.id()) as u32) })
+        let gen = 1i32.checked_sub(self.id()).expect("generation overflow");
+        Generation(unsafe { NonZeroU32::new_unchecked(gen as u32) })
     }
 
     /// Revives and increments a dead `ZeroableGeneration`.
