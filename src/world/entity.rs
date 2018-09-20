@@ -214,13 +214,13 @@ impl Entity {
 
     /// Returns the index of the `Entity`.
     #[inline]
-    pub fn id(&self) -> Index {
+    pub fn id(self) -> Index {
         self.0
     }
 
     /// Returns the `Generation` of the `Entity`.
     #[inline]
-    pub fn gen(&self) -> Generation {
+    pub fn gen(self) -> Generation {
         self.1
     }
 }
@@ -366,13 +366,13 @@ impl Generation {
 
     /// Returns the id of the generation.
     #[inline]
-    pub fn id(&self) -> i32 {
+    pub fn id(self) -> i32 {
         self.0
     }
 
     /// Returns `true` if entities of this `Generation` are alive.
     #[inline]
-    pub fn is_alive(&self) -> bool {
+    pub fn is_alive(self) -> bool {
         self.0 > 0
     }
 
@@ -440,7 +440,7 @@ fn atomic_increment(i: &AtomicUsize) -> Option<usize> {
             Err(next_prev) => prev = next_prev,
         }
     }
-    return None;
+    None
 }
 
 /// Increments `i` atomically without wrapping on overflow.
@@ -454,5 +454,5 @@ fn atomic_decrement(i: &AtomicUsize) -> Option<usize> {
             Err(next_prev) => prev = next_prev,
         }
     }
-    return None;
+    None
 }

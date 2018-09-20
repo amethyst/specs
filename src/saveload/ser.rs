@@ -112,7 +112,7 @@ where
     /// In this case serialization of this component may perform workaround or fail.
     /// So the function doesn't recursively mark referenced entities.
     /// For recursive marking see `serialize_recursive`
-    fn serialize<'ms, S>(
+    fn serialize<S>(
         &self,
         entities: &EntitiesRes,
         markers: &ReadStorage<M>,

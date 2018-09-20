@@ -21,7 +21,7 @@ where
     type Data: DeserializeOwned;
 
     /// Loads `Component`s to entity from `Data` deserializable representation
-    fn deserialize_entity<'a, F>(
+    fn deserialize_entity<F>(
         &mut self,
         entity: Entity,
         components: Self::Data,
@@ -244,7 +244,7 @@ macro_rules! deserialize_components {
             );
 
             #[allow(unused)]
-            fn deserialize_entity<'a, F>(
+            fn deserialize_entity<F>(
                 &mut self,
                 entity: Entity,
                 components: Self::Data,
