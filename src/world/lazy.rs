@@ -30,7 +30,7 @@ impl<'a> Builder for LazyBuilder<'a> {
     {
         let entity = self.entity;
         self.lazy.exec(move |world| {
-            if let Err(_) = world.write_storage::<C>().insert(entity, component) {
+            if world.write_storage::<C>().insert(entity, component).is_err() {
                 warn!(
                     "Lazy insert of component failed because {:?} was dead.",
                     entity
@@ -141,7 +141,7 @@ impl LazyUpdate {
         C: Component + Send + Sync,
     {
         self.exec(move |world| {
-            if let Err(_) = world.write_storage::<C>().insert(e, c) {
+            if world.write_storage::<C>().insert(e, c).is_err() {
                 warn!("Lazy insert of component failed because {:?} was dead.", e);
             }
         });
@@ -181,7 +181,7 @@ impl LazyUpdate {
         self.exec(move |world| {
             let mut storage = world.write_storage::<C>();
             for (e, c) in iter {
-                if let Err(_) = storage.insert(e, c) {
+                if storage.insert(e, c).is_err() {
                     warn!("Lazy insert of component failed because {:?} was dead.", e);
                 }
             }

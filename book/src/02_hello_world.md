@@ -80,7 +80,7 @@ need to create a world in which to store all of our components.
 ## The `World`
 
 ```rust,ignore
-use specs::World;
+use specs::{World, Builder};
 
 let mut world = World::new();
 world.register::<Position>();
