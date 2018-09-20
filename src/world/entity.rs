@@ -139,7 +139,6 @@ impl Allocator {
         self.raised.add_atomic(id);
         let gen = self
             .generation(id)
-            .map(|gen| if gen.is_alive() { gen } else { gen.raised() })
             .unwrap_or(Generation::ONE);
         Entity(id, gen)
     }
@@ -320,7 +319,6 @@ impl<'a> Join for &'a EntitiesRes {
         let gen = v
             .alloc
             .generation(idx)
-            .map(|gen| if gen.is_alive() { gen } else { gen.raised() })
             .unwrap_or(Generation::ONE);
         Entity(idx, gen)
     }
