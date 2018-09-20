@@ -6,7 +6,9 @@ use std::cell::UnsafeCell;
 use hibitset::{BitIter, BitProducer, BitSetAll, BitSetAnd, BitSetLike};
 use rayon::iter::plumbing::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
 use rayon::iter::ParallelIterator;
+use std::ops::{Deref, DerefMut};
 use tuple_utils::Split;
+use shred::{Fetch, FetchMut, Read, ReadExpect, Resource, Write, WriteExpect};
 
 use world::{Entities, Entity, Index};
 
@@ -130,7 +132,7 @@ bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 ///     // `Read<EntitiesRes>` can also be referred to by `Entities` which
 ///     // is a shorthand type definition to the former type.
 ///
-///     let joined: Vec<_> = (&*entities, &pos, &vel).join().collect(); // note the `&*entities`
+///     let joined: Vec<_> = (&entities, &pos, &vel).join().collect();
 ///     assert_eq!(joined, vec![(ent, &Pos, &Vel)]);
 /// }
 /// ```
@@ -547,3 +549,81 @@ define_open!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O}
 define_open!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 define_open!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
 define_open!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R);
+
+/// `Fetch`/`Read`/`Write`/etc. all implement `Deref`/`DerefMut` but Rust does not implicitly
+/// dereference the wrapper type when we are joining which creates annoying scenarios like
+/// `&*entities` where we have to reborrow the type unnecessarily.
+///
+/// So instead, we implement `Join` on the wrapper types and forward the implementations to the
+/// underlying types so that Rust doesn't have to do implicit magic to figure out what we want
+/// to do with the type.
+macro_rules! immutable_resource_join {
+    ($($ty:ty),*) => {
+        $(
+        impl<'a, 'b, T> Join for &'a $ty
+        where
+            &'a T: Join,
+            T: Resource,
+        {
+            type Type = <&'a T as Join>::Type;
+            type Value = <&'a T as Join>::Value;
+            type Mask = <&'a T as Join>::Mask;
+            unsafe fn open(self) -> (Self::Mask, Self::Value) {
+                self.deref().open()
+            }
+
+            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
+                <&'a T as Join>::get(v, i)
+            }
+
+            #[inline]
+            fn is_unconstrained() -> bool {
+                <&'a T as Join>::is_unconstrained()
+            }
+        }
+
+        unsafe impl<'a, 'b, T> ParJoin for &'a $ty
+        where
+            &'a T: ParJoin,
+            T: Resource
+        {}
+        )*
+    };
+}
+
+macro_rules! mutable_resource_join {
+    ($($ty:ty),*) => {
+        $(
+        impl<'a, 'b, T> Join for &'a mut $ty
+        where
+            &'a mut T: Join,
+            T: Resource,
+        {
+            type Type = <&'a mut T as Join>::Type;
+            type Value = <&'a mut T as Join>::Value;
+            type Mask = <&'a mut T as Join>::Mask;
+            unsafe fn open(self) -> (Self::Mask, Self::Value) {
+                self.deref_mut().open()
+            }
+
+            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
+                <&'a mut T as Join>::get(v, i)
+            }
+
+            #[inline]
+            fn is_unconstrained() -> bool {
+                <&'a mut T as Join>::is_unconstrained()
+            }
+        }
+
+        unsafe impl<'a, 'b, T> ParJoin for &'a mut $ty
+        where
+            &'a mut T: ParJoin,
+            T: Resource
+        {}
+        )*
+    };
+}
+
+immutable_resource_join!(Fetch<'b, T>, Read<'b, T>, ReadExpect<'b, T>);
+mutable_resource_join!(FetchMut<'b, T>, Write<'b, T>, WriteExpect<'b, T>);

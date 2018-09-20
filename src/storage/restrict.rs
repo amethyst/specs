@@ -51,7 +51,7 @@ impl ImmutableAliasing for ImmutableParallelRestriction {}
 ///     );
 ///     fn run(&mut self, (entities, mut some_comps): Self::SystemData) {
 ///         for (entity, mut comps) in (
-///             &*entities,
+///             &entities,
 ///             &mut some_comps.restrict_mut()
 ///         ).join() {
 ///             // Check if the reference is fine to mutate.

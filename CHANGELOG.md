@@ -1,3 +1,10 @@
+
+# Unreleased
+
+* Implement `Join` on `Fetch`/`Read`/`Write`/etc. to eliminate unnecessary dereference ([#472])
+
+[#472]: https://github.com/slide-rs/specs/pull/472
+
 # 0.12.3
 
 * Add `MaybeJoin` to iterate over components without filtering the joint set ([#455])

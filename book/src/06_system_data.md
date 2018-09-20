@@ -41,9 +41,6 @@ methods, respectively. After dynamic entity deletion,
 a call to `World::maintain` is necessary in order to make the changes
 persistent and delete associated components.
 
-**When joining over entities, you need to dereference `Read`
-and re-reference the returned `EntitiesRes`, i.e. `&*entities`.**
-
 ## Adding and removing components
 
 Adding or removing components can be done by modifying
