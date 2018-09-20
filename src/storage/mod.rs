@@ -397,6 +397,10 @@ where
 
     /// Inserts new data for a given `Entity`.
     /// Returns the result of the operation as a `InsertResult<T>`
+    ///
+    /// If a component already existed for the given `Entity`, then it will
+    /// be overwritten with the new component. If it did overwrite, then the
+    /// result will contain `Some(T)` where `T` is the previous component.
     pub fn insert(&mut self, e: Entity, mut v: T) -> InsertResult<T> {
         if self.entities.is_alive(e) {
             let id = e.id();
