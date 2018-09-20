@@ -146,7 +146,7 @@ value, or a combination of component values. There are a couple of ways to deal 
 problem. The first and most straightforward is to just sort `Join` results.
 
 ```rust,ignore
-let data = (&*entities, &comps).join().collect::<Vec<_>>();
+let data = (&entities, &comps).join().collect::<Vec<_>>();
 data.sort_by(|&a, &b| ...);
 for entity in data.iter().map(|d| d.0) {
     // Here we get entities in sorted order

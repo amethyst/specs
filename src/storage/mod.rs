@@ -583,7 +583,7 @@ mod tests_inline {
         let mut world = World::new();
         world.create_entity().build();
         world.exec(|(entities, pos): (Entities, ReadStorage<Pos>)| {
-            (&*entities, !&pos).par_join().for_each(|(ent, ())| {
+            (&entities, !&pos).par_join().for_each(|(ent, ())| {
                 println!("Processing entity: {:?}", ent);
             });
         });

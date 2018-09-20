@@ -39,6 +39,8 @@ use world::{Entity, Index};
 /// }
 /// # }
 /// ```
+#[derive(Derivative)]
+#[derivative(Default(bound = ""))]
 pub struct ChangeSet<T> {
     mask: BitSet,
     inner: DenseVecStorage<T>,
@@ -47,10 +49,7 @@ pub struct ChangeSet<T> {
 impl<T> ChangeSet<T> {
     /// Create a new change set
     pub fn new() -> Self {
-        ChangeSet {
-            mask: BitSet::default(),
-            inner: DenseVecStorage::default(),
-        }
+        Default::default()
     }
 
     /// Add a value to the change set. If the entity already have a value in the change set, the

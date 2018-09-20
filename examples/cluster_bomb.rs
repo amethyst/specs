@@ -58,7 +58,7 @@ impl<'a> System<'a> for ClusterBombSystem {
     fn run(&mut self, (entities, mut bombs, positions, updater): Self::SystemData) {
         let durability_range = Range::new(10, 20);
         // Join components in potentially parallel way using rayon.
-        (&*entities, &mut bombs, &positions)
+        (&entities, &mut bombs, &positions)
             .par_join()
             .for_each(|(entity, bomb, position)| {
                 let mut rng = rand::thread_rng();
@@ -101,7 +101,7 @@ impl<'a> System<'a> for ShrapnelSystem {
     type SystemData = (Entities<'a>, WriteStorage<'a, Shrapnel>);
 
     fn run(&mut self, (entities, mut shrapnels): Self::SystemData) {
-        (&*entities, &mut shrapnels)
+        (&entities, &mut shrapnels)
             .par_join()
             .for_each(|(entity, shrapnel)| {
                 if shrapnel.durability == 0 {

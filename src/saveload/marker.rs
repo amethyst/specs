@@ -195,7 +195,7 @@ impl<'a> EntityResBuilder<'a> {
 ///     }
 ///
 ///     fn maintain(&mut self, entities: &EntitiesRes, storage: &ReadStorage<NetMarker>) {
-///        self.mapping = (&*entities, storage)
+///        self.mapping = (entities, storage)
 ///            .join()
 ///            .map(|(e, m)| (m.id(), e))
 ///            .collect();
@@ -217,7 +217,7 @@ impl<'a> EntityResBuilder<'a> {
 ///     let storage = &mut world.write_storage::<NetMarker>();
 ///     let marker = storage.get(entity).unwrap().clone();
 ///     assert_eq!(
-///         world.write_resource::<NetNode>().retrieve_entity(marker, storage, &*world.entities()),
+///         world.write_resource::<NetNode>().retrieve_entity(marker, storage, &world.entities()),
 ///         entity
 ///     );
 /// }
@@ -411,7 +411,7 @@ impl MarkerAllocator<U64Marker> for U64MarkerAllocator {
 
     fn maintain(&mut self, entities: &EntitiesRes, storage: &ReadStorage<U64Marker>) {
         // FIXME: may be too slow
-        self.mapping = (&*entities, storage)
+        self.mapping = (entities, storage)
             .join()
             .map(|(e, m)| (m.id(), e))
             .collect();

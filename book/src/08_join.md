@@ -27,11 +27,10 @@ specified components are **required**.
 
 Sometimes, we want not only get the components of entities,
 but also the entity value themselves. To do that, we can simply join over
-`&EntitiesRes`. We can get `&EntitiesRes` by de-referencing `Entities`
-and re-referencing the returned value.
+`&EntitiesRes`.
 
 ```rust,ignore
-for (ent, pos, vel) in (&*entities, &mut pos_storage, &vel_storage).join() {
+for (ent, pos, vel) in (&entities, &mut pos_storage, &vel_storage).join() {
     println!("Processing entity: {:?}", ent);
     *pos += *vel;
 }
@@ -43,7 +42,7 @@ If we iterate over the `&EntitiesRes` as shown above, we can simply
 use the returned `Entity` values to get components from storages as usual.
 
 ```rust,ignore
-for (ent, pos, vel) in (&*entities, &mut pos_storage, &vel_storage).join() {
+for (ent, pos, vel) in (&entities, &mut pos_storage, &vel_storage).join() {
     println!("Processing entity: {:?}", ent);
     *pos += *vel;
     
@@ -70,7 +69,7 @@ on the respective component storage. Its return value is a unit (`()`).
 
 ```rust,ignore
 for (ent, pos, vel, ()) in (
-    &*entities,
+    &entities,
     &mut pos_storage,
     &vel_storage,
     !&freezed_storage,

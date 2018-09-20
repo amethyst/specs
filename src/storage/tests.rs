@@ -718,7 +718,7 @@ mod test {
             }
         }
 
-        for (entity, id) in (&*w.entities(), s1.mask().clone()).join() {
+        for (entity, id) in (&w.entities(), s1.mask().clone()).join() {
             if id % 3 == 0 {
                 let _ = s1.get_mut(entity);
             } else {
@@ -781,13 +781,13 @@ mod test {
             s1.populate_removed(&mut removed_id, &mut removed);
         }
 
-        for (entity, _) in (&*w.entities(), &s1).join() {
+        for (entity, _) in (&w.entities(), &s1).join() {
             assert!(inserted.contains(entity.id()));
             assert!(!modified.contains(entity.id()));
             assert!(!removed.contains(entity.id()));
         }
 
-        for (_, mut comp) in (&*w.entities(), &mut s1).join() {
+        for (_, mut comp) in (&w.entities(), &mut s1).join() {
             comp.0 += 1;
         }
 
@@ -800,13 +800,13 @@ mod test {
             s1.populate_removed(&mut removed_id, &mut removed);
         }
 
-        for (entity, _) in (&*w.entities(), &s1).join() {
+        for (entity, _) in (&w.entities(), &s1).join() {
             assert!(!inserted.contains(entity.id()));
             assert!(modified.contains(entity.id()));
             assert!(!removed.contains(entity.id()));
         }
 
-        for (entity, _) in (&*w.entities(), s1.mask().clone()).join() {
+        for (entity, _) in (&w.entities(), s1.mask().clone()).join() {
             s1.remove(entity);
         }
 
@@ -819,7 +819,7 @@ mod test {
             s1.populate_removed(&mut removed_id, &mut removed);
         }
 
-        for (entity, _) in (&*w.entities(), &s1).join() {
+        for (entity, _) in (&w.entities(), &s1).join() {
             assert!(!inserted.contains(entity.id()));
             assert!(!modified.contains(entity.id()));
             assert!(removed.contains(entity.id()));

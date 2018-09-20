@@ -36,7 +36,7 @@ pub type Index = u32;
 /// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
 /// # let mut world = World::new(); world.register::<Pos>();
 /// # let entities = world.entities(); let positions = world.write_storage::<Pos>();
-/// for (e, pos) in (&*entities, &positions).join() {
+/// for (e, pos) in (&entities, &positions).join() {
 ///     // Do something
 /// #   let _ = e;
 /// #   let _ = pos;
@@ -225,13 +225,13 @@ impl Entity {
 
     /// Returns the index of the `Entity`.
     #[inline]
-    pub fn id(&self) -> Index {
+    pub fn id(self) -> Index {
         self.0
     }
 
     /// Returns the `Generation` of the `Entity`.
     #[inline]
-    pub fn gen(&self) -> Generation {
+    pub fn gen(self) -> Generation {
         self.1
     }
 }
@@ -378,14 +378,8 @@ impl Generation {
 
     /// Returns the id of the generation.
     #[inline]
-    pub fn id(&self) -> i32 {
+    pub fn id(self) -> i32 {
         self.0.get() as i32
-    }
-
-    /// Returns `true` if entities of this `Generation` are alive.
-    #[inline]
-    pub fn is_alive(&self) -> bool {
-        self.id() > 0
     }
 
     /// Revives and increments a dead `Generation`.
@@ -406,7 +400,7 @@ struct ZeroableGeneration(Option<Generation>);
 impl ZeroableGeneration {
     /// Returns the id of the generation.
     #[inline]
-    pub fn id(&self) -> i32 {
+    pub fn id(self) -> i32 {
         // should optimise to a noop.
         self.0.map(|gen| gen.id()).unwrap_or(0)
     }
@@ -499,7 +493,7 @@ fn atomic_increment(i: &AtomicUsize) -> Option<usize> {
             Err(next_prev) => prev = next_prev,
         }
     }
-    return None;
+    None
 }
 
 /// Increments `i` atomically without wrapping on overflow.
@@ -513,5 +507,5 @@ fn atomic_decrement(i: &AtomicUsize) -> Option<usize> {
             Err(next_prev) => prev = next_prev,
         }
     }
-    return None;
+    None
 }

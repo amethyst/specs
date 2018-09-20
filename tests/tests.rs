@@ -100,8 +100,7 @@ fn dynamic_create_and_delete() {
     let mut world = create_world();
 
     {
-        let entities = world.entities();
-        let entities = &*entities;
+        let entities = &world.entities();
         let five: Vec<_> = entities.create_iter().take(5).collect();
 
         for e in five {
@@ -216,7 +215,7 @@ fn stillborn_entities() {
 
         fn run(&mut self, (entities, comp_int, rand): Self::SystemData) {
             let mut lowest = Vec::new();
-            for (&CompInt(k), entity) in (&comp_int, &*entities).join() {
+            for (&CompInt(k), entity) in (&comp_int, &entities).join() {
                 if lowest.iter().all(|&(n, _)| n >= k) {
                     lowest.push((k, entity));
                 }
@@ -407,7 +406,7 @@ fn par_join_many_entities_and_systems() {
         type SystemData = (Entities<'a>, WriteStorage<'a, CompInt>);
 
         fn run(&mut self, (entities, mut ints): Self::SystemData) {
-            (&mut ints, &*entities).par_join().for_each(|(int, _)| {
+            (&mut ints, &entities).par_join().for_each(|(int, _)| {
                 int.0 += 1;
             });
         }
@@ -421,7 +420,7 @@ fn par_join_many_entities_and_systems() {
         type SystemData = (Entities<'a>, ReadStorage<'a, CompInt>);
 
         fn run(&mut self, (entities, ints): Self::SystemData) {
-            (&ints, &*entities).par_join().for_each(|(int, entity)| {
+            (&ints, &entities).par_join().for_each(|(int, entity)| {
                 if int.0 != 127 {
                     self.0.lock().unwrap().push((entity.id(), int.0));
                 }
@@ -513,7 +512,7 @@ fn maintain_entity_deletion() {
 
         fn run(&mut self, (entities, ints, bools): Self::SystemData) {
             assert_eq!(
-                (&*entities, &ints, &bools).join().count(),
+                (&entities, &ints, &bools).join().count(),
                 (&ints, &bools).join().count()
             );
         }

@@ -58,7 +58,7 @@ mod tests {
         let entities = world.entities();
 
         {
-            let mut iter = (comps.drain(), &*entities).join();
+            let mut iter = (comps.drain(), &entities).join();
 
             assert_eq!(iter.next().unwrap(), (Comp, b));
             assert_eq!(iter.next().unwrap(), (Comp, c));
