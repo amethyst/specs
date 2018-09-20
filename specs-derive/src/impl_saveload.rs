@@ -15,7 +15,7 @@
 // I'll write `Entity` instead of `::specs::Entity` which is actually what's generated).
 
 use quote::Tokens;
-use syn::{DataEnum, DataStruct, DeriveInput, Field, Generics, Ident, Type, TypeParamBound};
+use syn::{DataEnum, DataStruct, DeriveInput, Field, Generics, Ident, Type, GenericParam, WhereClause, WherePredicate};
 
 /// Handy collection since tuples got unwieldy and
 /// unclear in purpose
@@ -24,7 +24,6 @@ struct SaveloadDerive {
     ser: Tokens,
     de: Tokens,
     saveload_name: Ident,
-    saveload_generics: Generics,
 }
 
 /// The main entrypoint, sets things up and delegates to the
@@ -32,23 +31,29 @@ struct SaveloadDerive {
 pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
     use syn::Data;
 
-    if !ast.generics.params.is_empty() {
-        panic!("Deriving `Saveload` does not, at the moment, support generic types (i.e. `struct Foo<T>`).
-        
-        This limitation may be fixed in the future, but for now you can usually work around this by newtyping
-        your generic data structure to a concrete-variant (e.g. `struct FooU32(Foo<u32>);`), or implementing `IntoSerialize` and `FromDeserialize` 
-        yourself, which is relatively straightforward if tedious (see the documentation for those traits).")
-    }
-
-    add_bound(
-        &mut ast.generics,
-        parse_quote!(::specs::saveload::IntoSerialize),
+    add_where_clauses(
+        &mut ast.generics.where_clause,
+        &ast.generics.params,
+        |ty| parse_quote!(#ty: ::specs::saveload::IntoSerialize<MA, Error = ::specs::error::NoError> + ::specs::saveload::FromDeserialize<MA, Error = ::specs::error::NoError>)
     );
-    add_bound(
-        &mut ast.generics,
-        parse_quote!(::specs::saveload::FromDeserialize),
+    add_where_clauses(
+        &mut ast.generics.where_clause,
+        &ast.generics.params,
+        |ty| parse_quote!(<#ty as ::specs::saveload::IntoSerialize<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone)
     );
-    add_bound(&mut ast.generics, parse_quote!(Clone));
+    add_where_clauses(
+        &mut ast.generics.where_clause,
+        &ast.generics.params,
+        |ty| parse_quote!(<#ty as ::specs::saveload::FromDeserialize<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone)
+    );
+    add_where_clause(
+        &mut ast.generics.where_clause,
+        parse_quote!(MA: ::serde::Serialize + ::serde::de::DeserializeOwned + ::specs::saveload::Marker)
+    );
+    add_where_clause(
+        &mut ast.generics.where_clause,
+        parse_quote!(for <'deser> MA: ::serde::Deserialize<'deser>)
+    );
 
     let derive = match ast.data {
         Data::Struct(ref mut data) => saveload_struct(data, &mut ast.ident, &mut ast.generics),
@@ -59,16 +64,13 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
     let name = ast.ident;
 
     let mut impl_generics = ast.generics.clone();
-    impl_generics.params.push(parse_quote!(
-        MA: ::serde::Serialize + ::serde::de::DeserializeOwned + ::specs::saveload::Marker
-    ));
-    let (impl_generics, _, where_clause) = impl_generics.split_for_impl();
+    impl_generics.params.push(parse_quote!(MA));
+    let (impl_generics, saveload_ty_generics, where_clause) = impl_generics.split_for_impl();
     let (_, ty_generics, _) = ast.generics.split_for_impl(); // We don't want the type generics we just made
                                                              // because they have MA which our normal type doesn't have
 
     let type_def = derive.type_def;
     let saveload_name = derive.saveload_name;
-    let saveload_generics = derive.saveload_generics;
 
     let ser = derive.ser;
     let de = derive.de;
@@ -79,7 +81,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
         pub #type_def
 
         impl #impl_generics ::specs::saveload::IntoSerialize<MA> for #name #ty_generics #where_clause {
-            type Data = #saveload_name #saveload_generics;
+            type Data = #saveload_name #saveload_ty_generics;
             type Error = ::specs::error::NoError;
 
             fn into<F>(&self, mut ids: F) -> Result<Self::Data, Self::Error>
@@ -91,19 +93,19 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
         }
 
         impl #impl_generics ::specs::saveload::FromDeserialize<MA> for #name #ty_generics #where_clause {
-            type Data = #saveload_name #saveload_generics;
+            type Data = #saveload_name #saveload_ty_generics;
             type Error = ::specs::error::NoError;
 
             fn from<F>(data: Self::Data, mut ids: F) -> Result<Self, Self::Error>
             where
-                F: FnMut(MA) -> Option<Entity>
+                F: FnMut(MA) -> Option<::specs::Entity>
             {
                 #de
             }
         }
     };
 
-    // panic!("{}", tt);
+    panic!("{}", tt);
 
     tt
 }
@@ -118,16 +120,6 @@ fn saveload_struct(
 
     let mut saveload_generics = generics.clone();
     saveload_generics.params.push(parse_quote!(MA));
-    match &mut saveload_generics.where_clause {
-        Some(clause) => clause.predicates.push(parse_quote!(
-            MA: ::serde::Serialize + ::serde::de::DeserializeOwned + ::specs::saveload::Marker,
-            for <'deser> MA: ::serde::Deserialize<'deser>
-        )),
-        clause => *clause = Some(parse_quote!(
-            where MA: ::serde::Serialize + ::serde::de::DeserializeOwned + ::specs::saveload::Marker,
-            for <'deser> MA: ::serde::Deserialize<'deser>
-        ))
-    }
 
     let saveload_name = Ident::new(&format!("{}SaveloadData", name), name.span);
 
@@ -160,7 +152,6 @@ fn saveload_struct(
         ser,
         de,
         saveload_name,
-        saveload_generics,
     }
 }
 
@@ -204,7 +195,7 @@ fn saveload_named_struct(
     let field_names = saveload_fields.iter().map(|f| f.ident.clone());
     let field_names_2 = field_names.clone();
     let tmp = field_names.clone();
-    let ser = quote!{
+    let ser = quote! {
         Ok(#saveload_name {
             # ( #field_names: ::specs::saveload::IntoSerialize::into(&self.#field_names_2, &mut ids)? ),*
         })
@@ -318,17 +309,6 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
     let mut saveload_generics = generics.clone();
     saveload_generics.params.push(parse_quote!(MA));
 
-    match &mut saveload_generics.where_clause {
-        Some(clause) => clause.predicates.push(parse_quote!(
-            MA: ::serde::Serialize + ::serde::de::DeserializeOwned + ::specs::saveload::Marker,
-            for <'deser> MA: ::serde::Deserialize<'deser>
-        )),
-        clause =>  *clause = Some(parse_quote!(
-            where MA: ::serde::Serialize + ::serde::de::DeserializeOwned + ::specs::saveload::Marker,
-            for <'deser> MA: ::serde::Deserialize<'deser>
-        ))
-    }
-
     let saveload_name = Ident::new(&format!("{}SaveloadData", name), name.span);
 
     let mut saveload = data.clone();
@@ -436,21 +416,32 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
         ser,
         de,
         saveload_name,
-        saveload_generics: saveload_generics.clone(), // dumb borrow checker, don't feel like fixing because it's probably NBD
     }
 }
 
-/// Edits the bounds of the input type to ensure all fields have `bound`.
-fn add_bound(generics: &mut Generics, bound: TypeParamBound) {
+/// Adds where clause for each type parameter
+fn add_where_clauses<'a, F, I>(where_clause: &mut Option<WhereClause>, generics: I, mut clause: F)
+    where F: FnMut(Ident) -> WherePredicate,
+          I: IntoIterator<Item = &'a GenericParam>,
+{
     use syn::GenericParam;
-    for param in &mut generics.params {
-        if let GenericParam::Type(type_param) = param {
-            if type_param.bounds.iter().any(|b| bound == *b) {
-                continue;
-            }
-            type_param.bounds.push(bound.clone());
+    let preds = &mut where_clause
+        .get_or_insert(parse_quote!(where))
+        .predicates;
+    for generic in generics {
+        if let GenericParam::Type(ty_param) = generic {
+            let ty_param = ty_param.ident;
+            preds.push(clause(ty_param));
         }
     }
+}
+
+/// Adds where clause
+fn add_where_clause(where_clause: &mut Option<WhereClause>, pred: WherePredicate) {
+    where_clause
+        .get_or_insert(parse_quote!(where))
+        .predicates
+        .push(pred);
 }
 
 /// Replaces the type with its corresponding `Data` type.
@@ -475,8 +466,8 @@ fn replace_entity_type(ty: &mut Type) {
         Type::Reference(_) => panic!("References are unsupported"),
         Type::Ptr(_) => panic!("Raw pointer types are unsupported"),
         Type::BareFn(_) => panic!("Function types are unsupported"),
+        Type::Never(_) => panic!("Never type is unsupported"),
         /* We're in a struct so it doesn't matter */
-        Type::Never(_) => unreachable!(),
         Type::Infer(_) => unreachable!(),
         Type::Macro(_) => unreachable!(),
         Type::Verbatim(_) => unimplemented!(),
