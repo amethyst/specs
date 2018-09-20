@@ -381,16 +381,6 @@ impl Generation {
     pub fn id(self) -> i32 {
         self.0.get() as i32
     }
-
-    /// Revives and increments a dead `Generation`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if it is alive.
-    fn raised(self) -> Generation {
-        assert!(!self.is_alive());
-        unsafe { Generation(NonZeroU32::new_unchecked((1 - self.id()) as u32)) }
-    }
 }
 
 /// Convenience wrapper around Option<Generation>
