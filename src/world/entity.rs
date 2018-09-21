@@ -366,6 +366,10 @@ impl<'a> Drop for EntityResBuilder<'a> {
 /// Index generation. When a new entity is placed at an old index,
 /// it bumps the `Generation` by 1. This allows to avoid using components
 /// from the entities that were deleted.
+
+// Note that conceptually, the wrapped value in a Generation is an i32. 
+// Unfortunately, NonZeroI32 was removed, forcing us to use NonZeroU32 
+// here instead.
 #[derive(Clone, Copy, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Generation(NonZeroU32);
 
