@@ -10,8 +10,10 @@ Note this bumps the minimum supported rust version to 1.28.0 ([#447]).
 # 0.12.3
 
 * Add `MaybeJoin` to iterate over components without filtering the joint set ([#455])
+* Implement `Join` on `Fetch`/`Read`/`Write`/etc. to eliminate unnecessary dereference ([#472])
 
 [#455]: https://github.com/slide-rs/specs/pull/455
+[#472]: https://github.com/slide-rs/specs/pull/472
 
 # 0.12.2
 
