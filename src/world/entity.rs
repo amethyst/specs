@@ -390,6 +390,12 @@ impl Generation {
         self.0.get() as i32
     }
 
+    /// Returns `true` if entities of this `Generation` are alive.
+    #[inline]
+    pub fn is_alive(self) -> bool {
+        self.id() > 0
+    }
+
     /// Revives and increments a dead `Generation`.
     ///
     /// # Panics
@@ -415,7 +421,7 @@ impl ZeroableGeneration {
 
     /// Returns `true` if entities of this `Generation` are alive.
     #[inline]
-    fn is_alive(&self) -> bool {
+    fn is_alive(self) -> bool {
         self.id() > 0
     }
 
@@ -434,7 +440,7 @@ impl ZeroableGeneration {
     /// # Panics
     ///
     /// Panics if it is alive.
-    fn raised(&self) -> Generation {
+    fn raised(self) -> Generation {
         assert!(!self.is_alive());
         let gen = 1i32.checked_sub(self.id()).expect("generation overflow");
         Generation(unsafe { NonZeroU32::new_unchecked(gen as u32) })
