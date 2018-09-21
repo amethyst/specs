@@ -1,7 +1,7 @@
 # Unreleased
 
 * Implement `Join` on `Fetch`/`Read`/`Write`/etc. to eliminate unnecessary dereference ([#472])
-* Generation now internally uses the new `NonZeroU32`, meaning `Option<Entity>` is the same size as `Entity`.
+* Generation now internally uses the new `NonZeroI32` from `nonzero_signed`, meaning `Option<Entity>` is the same size as `Entity`.
 Note this bumps the minimum supported rust version to 1.28.0 ([#447]).
 
 [#447]: https://github.com/slide-rs/specs/pull/447
