@@ -384,7 +384,7 @@ where
             let gen = self.entities
                 .alloc
                 .generation(e.id())
-                .unwrap_or(Generation::ONE);
+                .unwrap_or(Generation::one());
             Err(WrongGeneration {
                 action: "attempting to get an entry to a storage",
                 actual_gen: gen,
