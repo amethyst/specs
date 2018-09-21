@@ -1,6 +1,3 @@
-// These are mostly just compile tests
-#![allow(dead_code)]
-
 #[macro_use]
 extern crate serde;
 extern crate specs;
@@ -53,9 +50,7 @@ mod tests {
     use specs::{Builder, World};
     use specs::saveload::{ConvertSaveload, U64Marker};
 
-    /* Just a compile test to verify that we meet the proper bounds.
-    Does not need to be #[test] since it's a compile test */
-
+    #[test]
     fn type_check() {
         let mut world = World::new();
         let entity = world.create_entity().build();
