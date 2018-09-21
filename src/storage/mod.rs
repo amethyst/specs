@@ -383,10 +383,8 @@ where
         } else {
             let gen = self.entities
                 .alloc
-                .generations
-                .get(e.id() as usize)
-                .cloned()
-                .unwrap_or(Generation(1));
+                .generation(e.id())
+                .unwrap_or(Generation::one());
             Err(WrongGeneration {
                 action: "attempting to get an entry to a storage",
                 actual_gen: gen,

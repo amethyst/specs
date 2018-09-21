@@ -548,11 +548,7 @@ impl World {
         assert!(e.gen().is_alive(), "Generation is dead");
 
         let alloc: &Allocator = &self.entities().alloc;
-        alloc
-            .generations
-            .get(e.id() as usize)
-            .map(|&x| x == e.gen())
-            .unwrap_or(false)
+        alloc.generation(e.id()) == Some(e.gen())
     }
 
     /// Merges in the appendix, recording all the dynamically created

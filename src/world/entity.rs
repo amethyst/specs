@@ -1,6 +1,8 @@
+use std::fmt;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
+use nonzero_signed::NonZeroI32;
 use shred::Read;
 
 use error::WrongGeneration;
@@ -46,7 +48,7 @@ pub type Entities<'a> = Read<'a, EntitiesRes>;
 /// Internally used structure for `Entity` allocation.
 #[derive(Default, Debug)]
 pub(crate) struct Allocator {
-    pub(crate) generations: Vec<Generation>,
+    generations: Vec<ZeroableGeneration>,
 
     alive: BitSet,
     raised: AtomicBitSet,
@@ -70,7 +72,7 @@ impl Allocator {
             self.update_generation_length(id);
 
             if self.raised.remove(entity.id()) {
-                self.generations[id] = self.generations[id].raised();
+                self.generations[id].raise();
             }
             self.generations[id].die();
         }
@@ -94,7 +96,9 @@ impl Allocator {
     pub(crate) fn del_err(&self, e: Entity) -> Result<(), WrongGeneration> {
         Err(WrongGeneration {
             action: "delete",
-            actual_gen: self.generations[e.id() as usize],
+            actual_gen: self.generations[e.id() as usize]
+                .0
+                .unwrap_or(Generation::one()),
             entity: e,
         })
     }
@@ -103,17 +107,25 @@ impl Allocator {
     pub fn is_alive(&self, e: Entity) -> bool {
         e.gen() == match self.generations.get(e.id() as usize) {
             Some(g) if !g.is_alive() && self.raised.contains(e.id()) => g.raised(),
-            Some(g) => *g,
-            None => Generation(1),
+            Some(g) => g.0.unwrap_or(Generation::one()),
+            None => Generation::one(),
         }
+    }
+
+    /// Returns the `Generation` of the given `Index`, if any.
+    pub fn generation(&self, id: Index) -> Option<Generation> {
+        self.generations
+            .get(id as usize)
+            .cloned()
+            .and_then(|gen| gen.0)
     }
 
     /// Returns the current alive entity with the given `Index`.
     pub fn entity(&self, id: Index) -> Entity {
         let gen = match self.generations.get(id as usize) {
             Some(g) if !g.is_alive() && self.raised.contains(id) => g.raised(),
-            Some(g) => *g,
-            None => Generation(1),
+            Some(g) => g.0.unwrap_or(Generation::one()),
+            None => Generation::one(),
         };
 
         Entity(id, gen)
@@ -127,10 +139,9 @@ impl Allocator {
 
         self.raised.add_atomic(id);
         let gen = self
-            .generations
-            .get(id as usize)
-            .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
-            .unwrap_or(Generation(1));
+            .generation(id)
+            .map(|gen| if gen.is_alive() { gen } else { gen.raised() })
+            .unwrap_or(Generation::one());
         Entity(id, gen)
     }
 
@@ -146,9 +157,9 @@ impl Allocator {
 
         self.alive.add(id as Index);
 
-        self.generations[id as usize] = self.generations[id as usize].raised();
+        let gen = self.generations[id as usize].raise();
 
-        Entity(id as Index, self.generations[id as usize])
+        Entity(id as Index, gen)
     }
 
     /// Maintains the allocated entities, mainly dealing with atomically
@@ -162,14 +173,14 @@ impl Allocator {
         self.update_generation_length(max_id + 1);
 
         for i in (&self.raised).iter() {
-            self.generations[i as usize] = self.generations[i as usize].raised();
+            self.generations[i as usize].raise();
             self.alive.add(i);
         }
         self.raised.clear();
 
         for i in (&self.killed).iter() {
             self.alive.remove(i);
-            deleted.push(Entity(i, self.generations[i as usize]));
+            deleted.push(Entity(i, self.generations[i as usize].0.unwrap()));
             self.generations[i as usize].die();
         }
         self.killed.clear();
@@ -181,7 +192,8 @@ impl Allocator {
 
     fn update_generation_length(&mut self, i: usize) {
         if self.generations.len() <= i as usize {
-            self.generations.resize(i as usize + 1, Generation(0));
+            self.generations
+                .resize(i as usize + 1, ZeroableGeneration(None));
         }
     }
 }
@@ -308,10 +320,9 @@ impl<'a> Join for &'a EntitiesRes {
     unsafe fn get(v: &mut &'a EntitiesRes, idx: Index) -> Entity {
         let gen = v
             .alloc
-            .generations
-            .get(idx as usize)
-            .map(|&gen| if gen.is_alive() { gen } else { gen.raised() })
-            .unwrap_or(Generation(1));
+            .generation(idx)
+            .map(|gen| if gen.is_alive() { gen } else { gen.raised() })
+            .unwrap_or(Generation::one());
         Entity(idx, gen)
     }
 }
@@ -355,25 +366,65 @@ impl<'a> Drop for EntityResBuilder<'a> {
 /// Index generation. When a new entity is placed at an old index,
 /// it bumps the `Generation` by 1. This allows to avoid using components
 /// from the entities that were deleted.
-#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Generation(pub(crate) i32);
+#[derive(Clone, Copy, Hash, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Generation(NonZeroI32);
+
+// Show the inner value as i32 instead of u32.
+impl fmt::Debug for Generation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("Generation").field(&self.id()).finish()
+    }
+}
 
 impl Generation {
+    pub(crate) fn one() -> Self {
+        Generation(unsafe { NonZeroI32::new_unchecked(1) })
+    }
+
     #[cfg(test)]
     pub fn new(v: i32) -> Self {
-        Generation(v)
+        Generation(NonZeroI32::new(v).expect("generation id must be non-zero"))
     }
 
     /// Returns the id of the generation.
     #[inline]
     pub fn id(self) -> i32 {
-        self.0
+        self.0.get()
     }
 
     /// Returns `true` if entities of this `Generation` are alive.
     #[inline]
     pub fn is_alive(self) -> bool {
-        self.0 > 0
+        self.id() > 0
+    }
+
+    /// Revives and increments a dead `Generation`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if it is alive.
+    fn raised(self) -> Generation {
+        assert!(!self.is_alive());
+        unsafe { Generation(NonZeroI32::new_unchecked(1 - self.id())) }
+    }
+}
+
+/// Convenience wrapper around Option<Generation>
+#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
+struct ZeroableGeneration(Option<Generation>);
+
+impl ZeroableGeneration {
+    /// Returns the id of the generation.
+    #[inline]
+    pub fn id(self) -> i32 {
+        // should optimise to a noop.
+        self.0.map(|gen| gen.id()).unwrap_or(0)
+    }
+
+    /// Returns `true` if entities of this `Generation` are alive.
+    #[inline]
+    fn is_alive(self) -> bool {
+        self.id() > 0
     }
 
     /// Kills this `Generation`.
@@ -383,18 +434,37 @@ impl Generation {
     /// Panics in debug mode if it's not alive.
     fn die(&mut self) {
         debug_assert!(self.is_alive());
-        self.0 = -self.0;
+        self.0 = NonZeroI32::new(-self.id()).map(Generation);
     }
 
     /// Revives and increments a dead `Generation`.
     ///
     /// # Panics
     ///
-    /// Panics in debug mode if it is alive.
+    /// Panics if it is alive.
     fn raised(self) -> Generation {
-        debug_assert!(!self.is_alive());
-        Generation(1 - self.0)
+        assert!(!self.is_alive());
+        let gen = 1i32.checked_sub(self.id()).expect("generation overflow");
+        Generation(unsafe { NonZeroI32::new_unchecked(gen) })
     }
+
+    /// Revives and increments a dead `ZeroableGeneration`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if it is alive.
+    fn raise(&mut self) -> Generation {
+        let gen = self.raised();
+        self.0 = Some(gen);
+        gen
+    }
+}
+
+#[test]
+fn test_nonzero_optimization() {
+    use std::mem::size_of;
+    assert_eq!(size_of::<Option<Generation>>(), size_of::<Generation>());
+    assert_eq!(size_of::<Option<Entity>>(), size_of::<Entity>());
 }
 
 #[derive(Default, Debug)]

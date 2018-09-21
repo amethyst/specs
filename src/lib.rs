@@ -192,6 +192,7 @@ extern crate fnv;
 extern crate hibitset;
 #[macro_use]
 extern crate log;
+extern crate nonzero_signed;
 extern crate mopa;
 extern crate rayon;
 extern crate shrev;
