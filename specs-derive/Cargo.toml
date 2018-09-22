@@ -1,6 +1,6 @@
 [package]
 name = "specs-derive"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Eyal Kalderon <ebkalderon@gmail.com>"]
 description = "Custom derive macro for Specs components"
 documentation = "https://docs.rs/specs-derive"
