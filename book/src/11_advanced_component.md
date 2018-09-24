@@ -42,11 +42,11 @@ impl<'a> System<'a> for Sys {
     
     fn run(&mut self, (drag, velocity, mut position): Self::SystemData) {
         // Update positions with drag
-        for (pos, vel, _) in (&mut position, &velocity, &drag) {
+        for (pos, vel, _) in (&mut position, &velocity, &drag).join() {
             pos += vel - self.drag * vel * vel;
         }
         // Update positions without drag
-        for (pos, vel, _) in (&mut position, &velocity, !&drag) {
+        for (pos, vel, _) in (&mut position, &velocity, !&drag).join() {
             pos += vel;
         }
     } 
@@ -84,7 +84,7 @@ impl<'a> System<'a> for FollowTargetSys {
     );
     
     fn run(&mut self, (entity, target, transform): Self::SystemData) {
-        for (entity, t) in (&*entity, &target) {
+        for (entity, t) in (&*entity, &target).join() {
             let new_transform = transform.get(t.target).cloned().unwrap() + t.offset;
             *transform.get_mut(entity).unwrap() = new_transform;
         }
@@ -127,7 +127,7 @@ impl<'a> System<'a> for Render {
         let camera = camera.get(active_cam.0).unwrap();
         let view_matrix = transform.get(active_cam.0).unwrap().invert();
         // Set projection and view matrix uniforms
-        for (mesh, transform) in (&mesh, &transform) {
+        for (mesh, transform) in (&mesh, &transform).join() {
             // Set world transform matrix
             // Render mesh
         }
