@@ -1,14 +1,5 @@
 //! Contains implementations for `#[derive(Saveload)]`
 //! which derives `ConvertSaveload`.
-//!
-//! Since this requires a proxy "Data" `struct`/`enum`, these two need
-//! to be derived together or it begins requiring unwieldy attribute explosion.
-//!
-//! Currently there is one major limitation to this implementation: it cannot handle
-//! generic types such as `struct Foo<T> { x: T, e: Entity }`. I'm not good enough at
-//! using `syn` to iron this out, but since specs requires explicit references to non-generic
-//! components in system data, it can generally be worked around by newtyping like
-//! `struct TypedFoo(Foo<u32>);` and the like.
 
 // NOTE: All examples given in the documentation below are "cleaned up" into readable Rust,
 // so it doesn't give an entirely accurate view of what's actually generated (for instance,
@@ -58,7 +49,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
     let derive = match ast.data {
         Data::Struct(ref mut data) => saveload_struct(data, &mut ast.ident, &mut ast.generics),
         Data::Enum(ref data) => saveload_enum(data, &ast.ident, &ast.generics),
-        Data::Union(_) => panic!("Unions cannot derive `ConvertSaveload`/`ConvertSaveload`"),
+        Data::Union(_) => panic!("Unions cannot derive `ConvertSaveload`"),
     };
 
     let name = ast.ident;
