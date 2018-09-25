@@ -55,22 +55,21 @@ pub struct EntityData<M, D> {
 /// [`Clone`], [`Serialize`] and [`DeserializeOwned`].
 ///
 /// Implementing this yourself is usually only needed if you
-/// have a component that points to another Entity, or has a field which does,
+/// have a component that points to another [`Entity`], or has a field which does,
 ///  and you wish to [`Serialize`] it.
 ///
 /// *Note*: if you're using `specs_derive`
-/// and your struct does not have a generic bound (i.e. `struct Foo<T>`),
-/// you can use `#[derive(Saveload)]` to automatically derive this and
-/// [`FromDeserialize`]. You can get around generic type bounds by exploiting
-/// the newtype pattern (e.g. `struct FooU32(Foo<u32>);`).
+/// you can use `#[derive(Saveload)]` to automatically derive this.
 ///
 /// You must add the `derive` to any type that your component holds which does
-/// not auto-implement these two traits, including the component itself (similar to how
+/// not auto-implement this traits, including the component itself (similar to how
 /// normal [`Serialize`] and [`Deserialize`] work).
 ///
 /// [`Component`]: ../trait.Component.html
+/// [`Entity`]: ../struct.Entity.html
 /// [`Serialize`]: https://docs.serde.rs/serde/trait.Serialize.html
 /// [`Deserialize`]: https://docs.serde.rs/serde/trait.Deserialize.html
+/// [`DeserializeOwned`]: https://docs.serde.rs/serde/de/trait.DeserializeOwned.html
 ///
 /// # Example
 ///
