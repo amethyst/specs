@@ -110,7 +110,7 @@ macro_rules! serialize_components {
             M: Marker,
             $(
                 $sto: GenericReadStorage<Component = $comp>,
-                $comp : ConvertSaveload<M> + Component,
+                $comp: ConvertSaveload<M> + Component,
                 E: From<<$comp as ConvertSaveload<M>>::Error>,
             )*
         {

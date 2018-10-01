@@ -1,4 +1,4 @@
-//! Implements the `#[derive(Component)]` macro and `#[component]` attribute for
+//! Implements the `#[derive(Component)]`, `#[derive(Saveload)]` macro and `#[component]` attribute for
 //! [Specs][sp].
 //!
 //! [sp]: https://slide-rs.github.io/specs-website/

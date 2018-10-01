@@ -138,7 +138,7 @@ macro_rules! deserialize_components {
             M: Marker,
             $(
                 $sto: GenericWriteStorage,
-                <$sto as GenericWriteStorage>::Component: ConvertSaveload<M>+Component,
+                <$sto as GenericWriteStorage>::Component: ConvertSaveload<M> + Component,
                 E: From<<
                     <$sto as GenericWriteStorage>::Component as ConvertSaveload<M>
                 >::Error>,

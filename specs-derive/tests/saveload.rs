@@ -65,7 +65,6 @@ mod tests {
         // The derive will work for all variants
         // so no need to test anything but unit
         black_box::<U64Marker, _>(AnEnum::Unit);
-        
         black_box::<U64Marker, _>(Generic(entity));
     }
 
