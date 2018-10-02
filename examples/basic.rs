@@ -43,8 +43,15 @@ fn main() {
     // and other resources.
 
     let mut world = World::new();
-    world.register::<Pos>();
-    world.register::<Vel>();
+
+    // This builds a dispatcher.
+    // The third parameter of `add` specifies
+    // logical dependencies on other systems.
+    // Since we only have one, we don't depend on anything.
+    // See the `full` example for dependencies.
+    let mut dispatcher = DispatcherBuilder::new().with(SysA, "sys_a", &[]).build();
+
+    dispatcher.setup(&mut world.res);
 
     // An entity may or may not contain some component.
 
@@ -54,13 +61,6 @@ fn main() {
 
     // This entity does not have `Vel`, so it won't be dispatched.
     world.create_entity().with(Pos(2.0)).build();
-
-    // This builds a dispatcher.
-    // The third parameter of `add` specifies
-    // logical dependencies on other systems.
-    // Since we only have one, we don't depend on anything.
-    // See the `full` example for dependencies.
-    let mut dispatcher = DispatcherBuilder::new().with(SysA, "sys_a", &[]).build();
 
     // This dispatches all the systems in parallel (but blocking).
     dispatcher.dispatch(&world.res);
