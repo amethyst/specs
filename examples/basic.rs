@@ -51,6 +51,8 @@ fn main() {
     // See the `full` example for dependencies.
     let mut dispatcher = DispatcherBuilder::new().with(SysA, "sys_a", &[]).build();
 
+    // setup() must be called before creating any entity, it will register
+    // all Components and Resources that Systems depend on
     dispatcher.setup(&mut world.res);
 
     // An entity may or may not contain some component.

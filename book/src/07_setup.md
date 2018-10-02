@@ -144,19 +144,17 @@ requiring our users to create and add resources manually to `World`!
 
 **If we override the `setup` function on a `System`, it is vitally important that we
 remember to add `Self::SystemData::setup(res);`, or setup will not be performed for
-the `System`s `SystemData`.** This usually causes panics during setup or during
+the `System`s `SystemData`.** This could cause panics during setup or during
 the first dispatch.
 
 ## Setting up in bulk
 
-In the case of libraries making use of `specs`, it is sometimes helpful to provide
-a way to add many Systems, Components and/or Resources at once. While `specs` could
-have something like a trait to generalize that, it is probably easier and more helpful
-for libraries themselves to create their own way. An example would be to simply have
-a standalone function:
+It's generally recommended to provide a standalone function to register multiple
+Components/Resources at once, while allowing the user to add individual systems
+by themselves.
 
-```
-fn add_physics_engine(&mut World, config: LibraryConfig) -> Result<(), LibraryError> {
+```rust,ignore
+fn add_physics_engine(world: &mut World, config: LibraryConfig) -> Result<(), LibraryError> {
     world.register::<Velocity>();
     // etc
 }
