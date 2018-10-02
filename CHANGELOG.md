@@ -4,10 +4,12 @@
 * Generation now internally uses the new `NonZeroI32` from `nonzero_signed`, meaning `Option<Entity>` is the same size as `Entity`.
 Note this bumps the minimum supported rust version to 1.28.0 ([#447]).
 * Deprecated `world::Bundle` ([#486])
+* Updated Chapter 7: Setup to be more explicit, updated examples to follow that methodology ([#487])
 
 [#447]: https://github.com/slide-rs/specs/pull/447
 [#472]: https://github.com/slide-rs/specs/pull/472
 [#486]: https://github.com/slide-rs/specs/pull/486
+[#487]: https://github.com/slide-rs/specs/pull/487
 
 # 0.12.3
 
