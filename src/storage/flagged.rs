@@ -3,8 +3,10 @@ use std::marker::PhantomData;
 use hibitset::BitSetLike;
 
 use storage::TryDefault;
-use storage::{DenseVecStorage, TrackChannels, Tracked, UnprotectedStorage};
+use storage::{ComponentEvent, DenseVecStorage, Tracked, UnprotectedStorage};
 use world::{Component, Index};
+
+use shrev::EventChannel;
 
 /// Wrapper storage that tracks modifications, insertions, and removals of components
 /// through an `EventChannel`.
@@ -127,7 +129,7 @@ use world::{Component, Index};
 /// ```
 ///
 pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
-    trackers: TrackChannels,
+    channel: EventChannel<ComponentEvent>,
     storage: T,
     phantom: PhantomData<C>,
 }
@@ -138,7 +140,7 @@ where
 {
     fn default() -> Self {
         FlaggedStorage {
-            trackers: TrackChannels::default(),
+            channel: EventChannel::<ComponentEvent>::default(),
             storage: T::unwrap_default(),
             phantom: PhantomData,
         }
@@ -159,27 +161,27 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         // calling `.iter()` on an unconstrained mutable storage will flag everything
-        self.trackers.modify.single_write(id.into());
+        self.channel.single_write(ComponentEvent::Modified(id));
         self.storage.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
-        self.trackers.insert.single_write(id.into());
+        self.channel.single_write(ComponentEvent::Inserted(id));
         self.storage.insert(id, comp);
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
-        self.trackers.remove.single_write(id.into());
+        self.channel.single_write(ComponentEvent::Removed(id));
         self.storage.remove(id)
     }
 }
 
 impl<C, T> Tracked for FlaggedStorage<C, T> {
-    fn channels(&self) -> &TrackChannels {
-        &self.trackers
+    fn channel(&self) -> &EventChannel<ComponentEvent> {
+        &self.channel
     }
 
-    fn channels_mut(&mut self) -> &mut TrackChannels {
-        &mut self.trackers
+    fn channel_mut(&mut self) -> &mut EventChannel<ComponentEvent> {
+        &mut self.channel
     }
 }

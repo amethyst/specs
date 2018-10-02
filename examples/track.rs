@@ -12,8 +12,10 @@ impl Component for TrackedComponent {
 
 #[derive(Default)]
 struct SysA {
-    modified_id: Option<ReaderId<ModifiedFlag>>,
+    reader_id: Option<ReaderId<ComponentEvent>>,
+    inserted: BitSet,
     modified: BitSet,
+    removed: BitSet,
 }
 
 impl<'a> System<'a> for SysA {
@@ -21,11 +23,16 @@ impl<'a> System<'a> for SysA {
 
     fn setup(&mut self, res: &mut Resources) {
         Self::SystemData::setup(res);
-        self.modified_id = Some(WriteStorage::<TrackedComponent>::fetch(&res).track_modified());
+        self.reader_id = Some(WriteStorage::<TrackedComponent>::fetch(&res).track());
     }
 
     fn run(&mut self, (entities, tracked): Self::SystemData) {
-        tracked.populate_modified(&mut self.modified_id.as_mut().unwrap(), &mut self.modified);
+        self.modified.clear();
+        let events = tracked.channel().read(self.reader_id.as_mut().expect("ReaderId not found"));
+        self.modified.extend(events.filter_map(|event| match event {
+            ComponentEvent::Modified(index) => Some(index),
+            _ => None,
+        }));
 
         for (entity, _tracked, _) in (&entities, &tracked, &self.modified).join() {
             println!("modified: {:?}", entity);
