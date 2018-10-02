@@ -16,6 +16,7 @@ pub trait Tracked {
     fn channel_mut(&mut self) -> &mut EventChannel<ComponentEvent>;
 }
 
+#[derive(Debug, Copy, Clone)]
 pub enum ComponentEvent {
     Inserted(Index),
     Modified(Index),
