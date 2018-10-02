@@ -5,30 +5,27 @@ extern crate specs;
 use specs::prelude::*;
 
 struct TrackedComponent(u64);
+
 impl Component for TrackedComponent {
     type Storage = FlaggedStorage<Self>;
 }
 
+#[derive(Default)]
 struct SysA {
-    modified_id: ReaderId<ModifiedFlag>,
+    modified_id: Option<ReaderId<ModifiedFlag>>,
     modified: BitSet,
-}
-
-impl SysA {
-    fn new(world: &mut World) -> Self {
-        let mut components = world.write_storage::<TrackedComponent>();
-        let readerid = components.track_modified();
-        SysA {
-            modified_id: readerid,
-            modified: BitSet::new(),
-        }
-    }
 }
 
 impl<'a> System<'a> for SysA {
     type SystemData = (Entities<'a>, ReadStorage<'a, TrackedComponent>);
+
+    fn setup(&mut self, res: &mut Resources) {
+        Self::SystemData::setup(res);
+        self.modified_id = Some(WriteStorage::<TrackedComponent>::fetch(&res).track_modified());
+    }
+
     fn run(&mut self, (entities, tracked): Self::SystemData) {
-        tracked.populate_modified(&mut self.modified_id, &mut self.modified);
+        tracked.populate_modified(&mut self.modified_id.as_mut().unwrap(), &mut self.modified);
 
         for (entity, _tracked, _) in (&entities, &tracked, &self.modified).join() {
             println!("modified: {:?}", entity);
@@ -52,18 +49,17 @@ impl<'a> System<'a> for SysB {
 
 fn main() {
     let mut world = World::new();
-    world.register::<TrackedComponent>();
 
-    let sysa = SysA::new(&mut world);
+    let mut dispatcher = DispatcherBuilder::new()
+        .with(SysA::default(), "sys_a", &[])
+        .with(SysB::default(), "sys_b", &[])
+        .build();
+
+    dispatcher.setup(&mut world.res);
 
     for _ in 0..10000 {
         world.create_entity().with(TrackedComponent(0)).build();
     }
-
-    let mut dispatcher = DispatcherBuilder::new()
-        .with(sysa, "sys_a", &[])
-        .with(SysB::default(), "sys_b", &[])
-        .build();
 
     dispatcher.dispatch(&mut world.res);
     world.maintain();

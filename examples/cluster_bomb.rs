@@ -115,21 +115,19 @@ impl<'a> System<'a> for ShrapnelSystem {
 
 fn main() {
     let mut world = World::new();
-    world.register::<Pos>();
-    world.register::<Vel>();
-    world.register::<Shrapnel>();
-    world.register::<ClusterBomb>();
-
-    world
-        .create_entity()
-        .with(Pos(0., 0.))
-        .with(ClusterBomb { fuse: 3 })
-        .build();
 
     let mut dispatcher = DispatcherBuilder::new()
         .with(PhysicsSystem, "physics", &[])
         .with(ClusterBombSystem, "cluster_bombs", &[])
         .with(ShrapnelSystem, "shrapnels", &[])
+        .build();
+
+    dispatcher.setup(&mut world.res);
+
+    world
+        .create_entity()
+        .with(Pos(0., 0.))
+        .with(ClusterBomb { fuse: 3 })
         .build();
 
     let mut step = 0;

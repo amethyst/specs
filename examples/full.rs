@@ -36,8 +36,9 @@ impl Component for CompFloat {
 }
 
 // -- Resources --
-// Resources can be accessed
-// from systems.
+// Resources are unique and can be accessed
+// from systems using the same sync strategy
+// as component storages
 
 #[derive(Clone, Debug)]
 struct Sum(usize);
@@ -212,10 +213,26 @@ impl<'a> System<'a> for AddIntToFloat {
 
 fn main() {
     let mut w = World::new();
-    // All components types should be registered before working with them
-    w.register::<CompInt>();
-    w.register::<CompBool>();
-    w.register::<CompFloat>();
+    // This builds our dispatcher, which contains the systems.
+    // Every system has a name and can depend on other systems.
+    // "check_positive" depends on  "print_bool" for example,
+    // because we want to print the components before executing
+    // `SysCheckPositive`.
+    let mut dispatcher = DispatcherBuilder::new()
+        .with(SysPrintBool, "print_bool", &[])
+        .with(SysCheckPositive, "check_positive", &["print_bool"])
+        .with(SysStoreMax::new(), "store_max", &["check_positive"])
+        .with(SysSpawn::new(), "spawn", &[])
+        .with(SysPrintBool, "print_bool2", &["check_positive"])
+        .with(JoinParallel, "join_par", &[])
+        .with_barrier() // we want to make sure all systems finished before running the last one
+        .with(AddIntToFloat, "add_float_int", &[])
+        .build();
+
+    // setup() will setup all Systems we added, registering all resources and components that
+    // they will try to read from and write to
+    dispatcher.setup(&mut w.res);
+
     // create_entity() of World provides with an EntityBuilder to add components to an Entity
     w.create_entity()
         .with(CompInt(4))
@@ -233,27 +250,6 @@ fn main() {
     w.create_entity().with(CompInt(127)).build();
     w.create_entity().with(CompBool(false)).build();
     w.create_entity().with(CompFloat(0.1)).build();
-
-    // resources can be installed, these are nothing fancy, but allow you
-    // to pass data to systems and follow the same sync strategy as the
-    // component storage does.
-    w.add_resource(Sum(0xdead_beef));
-
-    // This builds our dispatcher, which contains the systems.
-    // Every system has a name and can depend on other systems.
-    // "check_positive" depends on  "print_bool" for example,
-    // because we want to print the components before executing
-    // `SysCheckPositive`.
-    let mut dispatcher = DispatcherBuilder::new()
-        .with(SysPrintBool, "print_bool", &[])
-        .with(SysCheckPositive, "check_positive", &["print_bool"])
-        .with(SysStoreMax::new(), "store_max", &["check_positive"])
-        .with(SysSpawn::new(), "spawn", &[])
-        .with(SysPrintBool, "print_bool2", &["check_positive"])
-        .with(JoinParallel, "join_par", &[])
-        .with_barrier() // we want to make sure all systems finished before running the last one
-        .with(AddIntToFloat, "add_float_int", &[])
-        .build();
 
     dispatcher.dispatch(&w.res);
     w.maintain();
