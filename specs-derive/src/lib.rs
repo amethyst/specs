@@ -69,6 +69,18 @@ fn impl_component(ast: &DeriveInput) -> Tokens {
     }
 }
 
+/// Custom derive macro for the `ConvertSaveload` trait.
+/// 
+/// Requires `Entity`, `ConvertSaveload`, `Marker` and `NoError` to be in a scope.
+///
+/// ## Example
+///
+/// ```rust,ignore
+/// use specs::{Entity, saveload::{ConvertSaveload, Marker}, error::NoError};
+/// 
+/// #[derive(ConvertSaveload)]
+/// struct Target(Entity);
+/// ```
 #[proc_macro_derive(ConvertSaveload)]
 pub fn saveload(input: TokenStream) -> TokenStream {
     use impl_saveload::impl_saveload;

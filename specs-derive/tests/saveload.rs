@@ -1,18 +1,21 @@
 #[macro_use]
 extern crate serde;
-extern crate specs;
+// Specs is renamed here so that the custom derive cannot refer specs directly
+extern crate specs as spocs;
 #[macro_use]
 extern crate specs_derive;
 
+use spocs::{Entity, saveload::{ConvertSaveload, Marker}, error::NoError};
+
 #[derive(ConvertSaveload)]
 struct OneFieldNamed {
-    e: ::specs::Entity,
+    e: Entity,
 }
 
 #[derive(ConvertSaveload)]
 struct TwoField {
     a: u32,
-    e: ::specs::Entity,
+    e: Entity,
 }
 
 // Tests a struct that owns a parent
@@ -23,18 +26,18 @@ struct LevelTwo {
 }
 
 #[derive(ConvertSaveload)]
-struct OneFieldTuple(::specs::Entity);
+struct OneFieldTuple(Entity);
 
 #[derive(ConvertSaveload)]
-struct TwoFieldTuple(::specs::Entity, u32);
+struct TwoFieldTuple(Entity, u32);
 
 #[derive(ConvertSaveload)]
 struct LevelTwoTuple(OneFieldNamed);
 
 #[derive(ConvertSaveload)]
 enum AnEnum {
-    E(::specs::Entity),
-    F { e: ::specs::Entity },
+    E(Entity),
+    F { e: Entity },
     Unit,
 }
 
@@ -43,12 +46,12 @@ struct Generic<E: EntityLike>(E);
 
 trait EntityLike {}
 
-impl EntityLike for ::specs::Entity {}
+impl EntityLike for Entity {}
 
 mod tests {
     use super::*;
-    use specs::{Builder, World};
-    use specs::saveload::{ConvertSaveload, U64Marker};
+    use spocs::{Builder, World};
+    use spocs::saveload::{ConvertSaveload, U64Marker};
 
     #[test]
     fn type_check() {
