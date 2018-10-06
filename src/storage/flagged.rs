@@ -37,8 +37,7 @@ use shrev::EventChannel;
 ///
 /// pub struct CompSystem {
 ///     // These keep track of where you left off in the event channel.
-///     modified_id: ReaderId<ModifiedFlag>,
-///     inserted_id: ReaderId<InsertedFlag>,
+///     reader_id: ReaderId<ComponentEvent>,
 ///
 ///     // The bitsets you want to populate with modification/insertion events.
 ///     modified: BitSet,
@@ -62,16 +61,21 @@ use shrev::EventChannel;
 ///         self.modified.clear();
 ///         self.inserted.clear();
 ///
-///         // This allows us to use the modification events in a `Join`. Otherwise we
-///         // would have to iterate through the events which may not be in order.
-///         //
-///         // This does not populate the bitset with inserted components, only pre-existing
-///         // components that were changed by a `get_mut` call to the storage.
-///         comps.populate_modified(&mut self.modified_id, &mut self.modified);
-///
-///         // This will only include inserted components from last read, note that this
-///         // will not include `insert` calls if there already was a pre-existing component.
-///         comps.populate_inserted(&mut self.inserted_id, &mut self.inserted);
+///         // Here we can populate the bitsets by iterating over the events.
+///         // You can also just iterate over the events without using a bitset, but this
+///         // allows us to use them in joins with components.
+///         {
+///             let events = comps.channel()
+///                 .read(&mut self.reader_id)
+///                 .collect::<Vec<&ComponentEvent>>();
+///             for event in events {
+///                 match event {
+///                     ComponentEvent::Modified(id) => { self.modified.add(*id); },
+///                     ComponentEvent::Inserted(id) => { self.inserted.add(*id); },
+///                     _ => { },
+///                 };
+///             }
+///         }
 ///
 ///         // Iterates over all components like normal.
 ///         for comp in (&comps).join() {
@@ -120,8 +124,7 @@ use shrev::EventChannel;
 ///     // you start tracking them.
 ///     let mut comps = world.write_storage::<Comp>();
 ///     let comp_system = CompSystem {
-///         modified_id: comps.track_modified(),
-///         inserted_id: comps.track_inserted(),
+///         reader_id: comps.track(),
 ///         modified: BitSet::new(),
 ///         inserted: BitSet::new(),
 ///     };
