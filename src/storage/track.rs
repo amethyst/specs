@@ -1,4 +1,3 @@
-use std::iter::Extend;
 use std::ops::{Deref, DerefMut};
 
 use shrev::{EventChannel, ReaderId};
@@ -17,9 +16,16 @@ pub trait Tracked {
 }
 
 #[derive(Debug, Copy, Clone)]
+/// Component storage events received from a `FlaggedStorage` or any storage that implements
+/// `Tracked`.
 pub enum ComponentEvent {
+    /// An insertion event, note that a modification event will be triggered if the entity
+    /// already had a component and had a new one inserted.
     Inserted(Index),
+    /// A modification event, this will be sent any time a component is accessed mutably so be
+    /// careful with joins over `&mut storages` as it could potentially flag all of them.
     Modified(Index),
+    /// A removal event.
     Removed(Index),
 }
 
