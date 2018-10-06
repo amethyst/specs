@@ -66,8 +66,7 @@ use shrev::EventChannel;
 ///         // allows us to use them in joins with components.
 ///         {
 ///             let events = comps.channel()
-///                 .read(&mut self.reader_id)
-///                 .collect::<Vec<&ComponentEvent>>();
+///                 .read(&mut self.reader_id);
 ///             for event in events {
 ///                 match event {
 ///                     ComponentEvent::Modified(id) => { self.modified.add(*id); },

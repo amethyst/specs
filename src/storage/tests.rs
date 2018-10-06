@@ -769,12 +769,11 @@ mod test {
         }
 
         {
-            let events = s1.channel().read(&mut reader_id).collect::<Vec<&ComponentEvent>>();
-
             inserted.clear();
             modified.clear();
             removed.clear();
 
+            let events = s1.channel().read(&mut reader_id);
             for event in events {
                 match event {
                     ComponentEvent::Modified(id) => modified.add(*id),
@@ -796,12 +795,11 @@ mod test {
 
 
         {
-            let events = s1.channel().read(&mut reader_id).collect::<Vec<&ComponentEvent>>();
-
             inserted.clear();
             modified.clear();
             removed.clear();
 
+            let events = s1.channel().read(&mut reader_id);
             for event in events {
                 match event {
                     ComponentEvent::Modified(id) => modified.add(*id),
@@ -822,12 +820,11 @@ mod test {
         }
 
         {
-            let events = s1.channel().read(&mut reader_id).collect::<Vec<&ComponentEvent>>();
-
             inserted.clear();
             modified.clear();
             removed.clear();
 
+            let events = s1.channel().read(&mut reader_id);
             for event in events {
                 match event {
                     ComponentEvent::Modified(id) => modified.add(*id),
