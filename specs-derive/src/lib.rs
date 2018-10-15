@@ -1,7 +1,9 @@
-//! Implements the `#[derive(Component)]` macro and `#[component]` attribute for
+//! Implements the `#[derive(Component)]`, `#[derive(Saveload)]` macro and `#[component]` attribute for
 //! [Specs][sp].
 //!
 //! [sp]: https://slide-rs.github.io/specs-website/
+
+#![recursion_limit = "128"]
 
 extern crate proc_macro;
 #[macro_use]
@@ -13,6 +15,8 @@ use proc_macro::TokenStream;
 use quote::Tokens;
 use syn::synom::Synom;
 use syn::{DeriveInput, Path};
+
+mod impl_saveload;
 
 /// Custom derive macro for the `Component` trait.
 ///
@@ -47,7 +51,8 @@ fn impl_component(ast: &DeriveInput) -> Tokens {
     let name = &ast.ident;
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
-    let storage = ast.attrs
+    let storage = ast
+        .attrs
         .iter()
         .find(|attr| attr.path.segments[0].ident == "storage")
         .map(|attr| {
@@ -62,4 +67,25 @@ fn impl_component(ast: &DeriveInput) -> Tokens {
             type Storage = #storage<Self>;
         }
     }
+}
+
+/// Custom derive macro for the `ConvertSaveload` trait.
+/// 
+/// Requires `Entity`, `ConvertSaveload`, `Marker` and `NoError` to be in a scope.
+///
+/// ## Example
+///
+/// ```rust,ignore
+/// use specs::{Entity, saveload::{ConvertSaveload, Marker}, error::NoError};
+/// 
+/// #[derive(ConvertSaveload)]
+/// struct Target(Entity);
+/// ```
+#[proc_macro_derive(ConvertSaveload)]
+pub fn saveload(input: TokenStream) -> TokenStream {
+    use impl_saveload::impl_saveload;
+    let mut ast = syn::parse(input).unwrap();
+
+    let gen = impl_saveload(&mut ast);
+    gen.into()
 }

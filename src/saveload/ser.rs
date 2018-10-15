@@ -2,95 +2,12 @@ use std::fmt::Display;
 
 use serde::ser::{self, Serialize, SerializeSeq, Serializer};
 
-use error::NoError;
 use join::Join;
-use saveload::EntityData;
 use saveload::marker::{Marker, MarkerAllocator};
+use saveload::EntityData;
 use storage::{GenericReadStorage, ReadStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
-
-/// Converts a component into its serialized form.
-///
-/// This is automatically implemented for any type that is both
-/// a [`Component`] and [`Serialize`], yielding itself.
-///
-/// Implementing this yourself is usually only needed if you
-/// have a component that points to another Entity and you
-/// wish to [`Serialize`] it.
-///
-/// In most cases, you also likely want to implement the companion
-/// trait [`FromDeserialize`].
-///
-/// [`Component`]: ../trait.Component.html
-/// [`Serialize`]: https://docs.serde.rs/serde/trait.Serialize.html
-/// [`FromDeserialize`]: trait.FromDeserialize.html
-///
-/// # Example
-///
-/// ```rust
-/// # extern crate specs;
-/// # #[macro_use] extern crate serde;
-/// use serde::Serialize;
-/// use specs::prelude::*;
-/// use specs::error::NoError;
-/// use specs::saveload::{Marker, IntoSerialize};
-///
-/// struct Target(Entity);
-///
-/// impl Component for Target {
-///     type Storage = VecStorage<Self>;
-/// }
-///
-/// // We need a matching "data" struct to hold our
-/// // marker. In general, you just need a single struct
-/// // per component you want to make `Serialize` with each
-/// // instance of `Entity` replaced with a generic "M".
-/// #[derive(Serialize)]
-/// struct TargetData<M>(M);
-///
-/// impl<M: Marker + Serialize> IntoSerialize<M> for Target {
-///     type Data = TargetData<M>;
-///     type Error = NoError;
-///
-///     fn into<F>(&self, mut ids: F) -> Result<Self::Data, Self::Error>
-///     where
-///         F: FnMut(Entity) -> Option<M>
-///     {
-///         let marker = ids(self.0).unwrap();
-///         Ok(TargetData(marker))
-///     }
-/// }
-///
-/// ```
-///
-pub trait IntoSerialize<M>: Component {
-    /// Serializable data representation for component
-    type Data: Serialize;
-
-    /// Error may occur during serialization or deserialization of component
-    type Error;
-
-    /// Convert this component into serializable form (`Data`) using
-    /// entity to marker mapping function
-    fn into<F>(&self, ids: F) -> Result<Self::Data, Self::Error>
-    where
-        F: FnMut(Entity) -> Option<M>;
-}
-
-impl<C, M> IntoSerialize<M> for C
-where
-    C: Clone + Component + Serialize,
-{
-    type Data = Self;
-    type Error = NoError;
-
-    fn into<F>(&self, _: F) -> Result<Self::Data, Self::Error>
-    where
-        F: FnMut(Entity) -> Option<M>,
-    {
-        Ok(self.clone())
-    }
-}
+use super::ConvertSaveload;
 
 /// A trait which allows to serialize entities and their components.
 pub trait SerializeComponents<E, M>
@@ -127,7 +44,8 @@ where
         for (entity, marker) in (entities, markers).join() {
             serseq.serialize_element(&EntityData::<M, Self::Data> {
                 marker: marker.clone(),
-                components: self.serialize_entity(entity, &ids)
+                components: self
+                    .serialize_entity(entity, &ids)
                     .map_err(ser::Error::custom)?,
             })?;
         }
@@ -173,7 +91,8 @@ where
                 for (entity, marker) in to_serialize {
                     serseq.serialize_element(&EntityData::<M, Self::Data> {
                         marker,
-                        components: self.serialize_entity(entity, &mut ids)
+                        components: self
+                            .serialize_entity(entity, &mut ids)
                             .map_err(ser::Error::custom)?,
                     })?;
                 }
@@ -191,8 +110,8 @@ macro_rules! serialize_components {
             M: Marker,
             $(
                 $sto: GenericReadStorage<Component = $comp>,
-                $comp : IntoSerialize<M>,
-                E: From<<$comp as IntoSerialize<M>>::Error>,
+                $comp: ConvertSaveload<M> + Component,
+                E: From<<$comp as ConvertSaveload<M>>::Error>,
             )*
         {
             type Data = ($(Option<$comp::Data>,)*);
