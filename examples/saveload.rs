@@ -11,8 +11,8 @@ use specs::saveload::{DeserializeComponents, MarkedBuilder, SerializeComponents,
 
 // This is an example of how the serialized data of two entities might look on disk.
 //
-// When serializing entities, they are written in an array of unnamed structs, each struct representing one entity.
-// The entity's marker and components are written as fields into these structs, knowing nothing about the original entity's id.
+// When serializing entities, they are written in an array of tuples, each tuple representing one entity.
+// The entity's marker and components are written as fields into these tuples, knowing nothing about the original entity's id.
 const ENTITIES: &str = "
 [
     (
@@ -82,7 +82,7 @@ impl From<ron::ser::Error> for Combined {
     }
 }
 
-// This returns nothing, in case a `NoError` is received. 
+// This cannot be called. 
 impl From<NoError> for Combined {
     fn from(e: NoError) -> Self {
         match e {}
