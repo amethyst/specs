@@ -4,21 +4,21 @@
 // NOTE: All examples given in the documentation below are "cleaned up" into readable Rust,
 // so it doesn't give an entirely accurate view of what's actually generated.
 
-use quote::Tokens;
 use syn::{DataEnum, DataStruct, DeriveInput, Field, Generics, Ident, Type, GenericParam, WhereClause, WherePredicate};
+use proc_macro2::{Span, TokenStream};
 
 /// Handy collection since tuples got unwieldy and
 /// unclear in purpose
 struct SaveloadDerive {
-    type_def: Tokens,
-    ser: Tokens,
-    de: Tokens,
+    type_def: TokenStream,
+    ser: TokenStream,
+    de: TokenStream,
     saveload_name: Ident,
 }
 
 /// The main entrypoint, sets things up and delegates to the
 /// type we're deriving on.
-pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
+pub fn impl_saveload(ast: &mut DeriveInput) -> TokenStream {
     use syn::Data;
 
     add_where_clauses(
@@ -51,7 +51,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> Tokens {
         Data::Union(_) => panic!("Unions cannot derive `ConvertSaveload`"),
     };
 
-    let name = ast.ident;
+    let name = &ast.ident;
 
     let mut impl_generics = ast.generics.clone();
     impl_generics.params.push(parse_quote!(MA));
@@ -106,7 +106,7 @@ fn saveload_struct(
     let mut saveload_generics = generics.clone();
     saveload_generics.params.push(parse_quote!(MA));
 
-    let saveload_name = Ident::new(&format!("{}SaveloadData", name), name.span);
+    let saveload_name = Ident::new(&format!("{}SaveloadData", name), Span::call_site());
 
     let saveload_fields: Vec<_> = data
         .fields
@@ -166,7 +166,7 @@ fn saveload_named_struct(
     saveload_name: &Ident,
     generics: &Generics,
     saveload_fields: &[Field],
-) -> (Tokens, Tokens, Tokens) {
+) -> (TokenStream, TokenStream, TokenStream) {
     let (_, ty_generics, where_clause) = generics.split_for_impl();
 
     let struct_def = quote!{
@@ -222,7 +222,7 @@ fn saveload_tuple_struct(
     saveload_name: &Ident,
     generics: &Generics,
     saveload_fields: &[Field],
-) -> (Tokens, Tokens, Tokens) {
+) -> (TokenStream, TokenStream, TokenStream) {
     use syn::Index;
 
     let (_, ty_generics, where_clause) = generics.split_for_impl();
@@ -235,7 +235,7 @@ fn saveload_tuple_struct(
 
     let field_ids = saveload_fields.iter().enumerate().map(|(i, _)| Index {
         index: i as u32,
-        span: data.struct_token.0.clone(),
+        span: data.struct_token.span.clone(),
     });
     let tmp = field_ids.clone();
     let ser = quote!{
@@ -288,7 +288,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
     let mut saveload_generics = generics.clone();
     saveload_generics.params.push(parse_quote!(MA));
 
-    let saveload_name = Ident::new(&format!("{}SaveloadData", name), name.span);
+    let saveload_name = Ident::new(&format!("{}SaveloadData", name), Span::call_site());
 
     let mut saveload = data.clone();
 
@@ -321,7 +321,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
         match &variant.fields {
             Fields::Named(fields) => {
-                let get_names = || fields.named.iter().map(|f| f.ident);
+                let get_names = || fields.named.iter().map(|f| f.ident.clone());
                 let names = get_names();
                 let names_2 = get_names();
                 let names_3 = get_names();
@@ -346,7 +346,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
                     .iter()
                     .cloned()
                     .enumerate()
-                    .map(|(i, _)| Some(Ident::new(&format!("field{}", i), data.enum_token.0)))
+                    .map(|(i, _)| Some(Ident::new(&format!("field{}", i), data.enum_token.span)))
                     .collect();
                 let field_ids_2 = field_ids.clone();
                 let tmp = field_ids.clone();
@@ -409,7 +409,7 @@ fn add_where_clauses<'a, F, I>(where_clause: &mut Option<WhereClause>, generics:
         .predicates;
     for generic in generics {
         if let GenericParam::Type(ty_param) = generic {
-            let ty_param = ty_param.ident;
+            let ty_param = ty_param.ident.clone();
             preds.push(clause(ty_param));
         }
     }

@@ -9,8 +9,9 @@ keywords = ["gamedev", "parallel", "specs", "ecs", "derive"]
 license = "MIT/Apache-2.0"
 
 [dependencies]
-syn = { version = "0.12", features = ["extra-traits"] }
-quote = "0.4"
+proc-macro2 = "0.4"
+syn = "0.15"
+quote = "0.6"
 
 [dev-dependencies]
 specs = { path = "..", features = ["serde"] }

@@ -22,7 +22,7 @@ use std::error::Error;
 use std::io::Write;
 use std::marker::PhantomData;
 
-use crossbeam::sync::MsQueue;
+use crossbeam::queue::MsQueue;
 use futures::executor::{spawn, Notify, Spawn};
 use futures::{Async, Future};
 
