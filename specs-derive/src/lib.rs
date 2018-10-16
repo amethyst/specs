@@ -6,15 +6,14 @@
 #![recursion_limit = "128"]
 
 extern crate proc_macro;
+extern crate proc_macro2;
 #[macro_use]
 extern crate quote;
 #[macro_use]
 extern crate syn;
 
 use proc_macro::TokenStream;
-use quote::Tokens;
-use syn::synom::Synom;
-use syn::{DeriveInput, Path};
+use syn::{DeriveInput, Path, parse::{Parse, ParseStream, Result}};
 
 mod impl_saveload;
 
@@ -40,14 +39,18 @@ struct StorageAttribute {
     storage: Path,
 }
 
-impl Synom for StorageAttribute {
-    named!(parse -> Self, map!(
-        parens!(syn!(Path)),
-        |(_, storage)| StorageAttribute { storage }
-    ));
+impl Parse for StorageAttribute {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        let _parenthesized_token = parenthesized!(content in input);
+
+        Ok(StorageAttribute {
+            storage: content.parse()?
+        })
+    }
 }
 
-fn impl_component(ast: &DeriveInput) -> Tokens {
+fn impl_component(ast: &DeriveInput) -> proc_macro2::TokenStream {
     let name = &ast.ident;
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 

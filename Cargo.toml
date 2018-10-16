@@ -21,7 +21,7 @@ autobenches = false
 travis-ci = { repository = "slide-rs/specs" }
 
 [dependencies]
-crossbeam = "0.3.0"
+crossbeam = "0.4.1"
 derivative = "1"
 fnv = "1.0"
 hibitset = { version = "0.5.2", features = ["parallel"] }
@@ -48,7 +48,7 @@ nightly = ["shred/nightly"]
 features = ["common", "serde"]
 
 [dev-dependencies]
-cgmath =  { version = "0.14", features = ["eders"] }
+cgmath =  { version = "0.16" }
 criterion = "0.2"
 ron = "0.4"
 rand = "0.5.5"
