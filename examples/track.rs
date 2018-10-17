@@ -23,7 +23,7 @@ impl<'a> System<'a> for SysA {
 
     fn setup(&mut self, res: &mut Resources) {
         Self::SystemData::setup(res);
-        self.reader_id = Some(WriteStorage::<TrackedComponent>::fetch(&res).track());
+        self.reader_id = Some(WriteStorage::<TrackedComponent>::fetch(&res).register_reader());
     }
 
     fn run(&mut self, (entities, tracked): Self::SystemData) {

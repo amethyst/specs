@@ -53,12 +53,14 @@ where
         unsafe { self.open() }.1.channel_mut()
     }
 
-    /// Starts tracking component events.
-    pub fn track(&mut self) -> ReaderId<ComponentEvent> {
+    /// Starts tracking component events. Note that this reader id should be used every frame,
+    /// otherwise events will pile up and memory use by the event channel will grow waiting
+    /// for this reader.
+    pub fn register_reader(&mut self) -> ReaderId<ComponentEvent> {
         self.channel_mut().register_reader()
     }
 
-    /// Flags an index.
+    /// Flags an index with a `ComponentEvent`.
     pub fn flag(&mut self, event: ComponentEvent) {
         self.channel_mut().single_write(event);
     }

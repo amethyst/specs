@@ -62,8 +62,9 @@ use shrev::EventChannel;
 ///         self.inserted.clear();
 ///
 ///         // Here we can populate the bitsets by iterating over the events.
-///         // You can also just iterate over the events without using a bitset, but this
-///         // allows us to use them in joins with components.
+///         // You can also just iterate over the events without using a bitset which will
+///         // give you an ordered history of the events (which is good for caches and synchronizing
+///         // other storages, but this allows us to use them in joins with components.
 ///         {
 ///             let events = comps.channel()
 ///                 .read(&mut self.reader_id);
@@ -91,7 +92,9 @@ use shrev::EventChannel;
 ///             // ...
 ///         }
 ///
-///         // Instead do something like:
+///         // Instead you will want to restrict the amount of components iterated over, either through
+///         // other components in the join, or by using `RestrictedStorage` and only getting the component
+///         // mutably when you are sure you need to modify it.
 ///#        let condition = true;
 ///         for (entity, mut comps) in (&entities, &mut comps.restrict_mut()).join() {
 ///             if condition { // check whether this component should be modified.
@@ -123,7 +126,7 @@ use shrev::EventChannel;
 ///     // you start tracking them.
 ///     let mut comps = world.write_storage::<Comp>();
 ///     let comp_system = CompSystem {
-///         reader_id: comps.track(),
+///         reader_id: comps.register_reader(),
 ///         modified: BitSet::new(),
 ///         inserted: BitSet::new(),
 ///     };

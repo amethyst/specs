@@ -759,7 +759,7 @@ mod test {
         let mut inserted = BitSet::new();
         let mut modified = BitSet::new();
         let mut removed = BitSet::new();
-        let mut reader_id = s1.track();
+        let mut reader_id = s1.register_reader();
 
         for i in 0..15 {
             let entity = w.entities().create();

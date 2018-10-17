@@ -23,19 +23,27 @@ impl<'a> System<'a> for SysA {
 
     fn setup(&mut self, res: &mut Resources) {
         Self::SystemData::setup(res);
-        self.reader_id = Some(WriteStorage::<TrackedComponent>::fetch(&res).track());
+        self.reader_id = Some(WriteStorage::<TrackedComponent>::fetch(&res).register_reader());
     }
 
     fn run(&mut self, (entities, tracked): Self::SystemData) {
         let events = tracked
             .channel()
             .read(self.reader_id.as_mut().expect("ReaderId not found"));
+
+        // These events are received in the same order they were operated on in the last frame.
+        // However, be careful. Just because you received a `Modified/Inserted` event does not mean that the
+        // entity at that index has a component. To get the current state of the entity, you should replay the
+        // events in order to see the final result of the component. Partial iteration over the events might lead
+        // to weird bugs and issues.
         for event in events {
             match event {
                 ComponentEvent::Modified(id) => {
                     let entity = entities.entity(*id);
                     if let Some(component) = tracked.get(entity) {
-                        *self.cache.get_mut(id).unwrap() = (entity, component.0);
+                        // This is safe because it can only occur after an `Inserted` event, not a 
+                        // `Removed` event.
+                        *self.cache.get_mut(id).unwrap() = (entity, component.0); 
                         println!("{:?} was changed to {:?}", entity, component.0);
                     } else {
                         println!(
