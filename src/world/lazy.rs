@@ -1,4 +1,4 @@
-use crossbeam::sync::SegQueue;
+use crossbeam::queue::SegQueue;
 
 use world::{Builder, Component, EntitiesRes, Entity, World};
 
