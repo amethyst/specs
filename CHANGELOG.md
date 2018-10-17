@@ -5,10 +5,12 @@ Note this bumps the minimum supported rust version to 1.28.0 ([#447]).
 * Deprecated `world::Bundle` ([#486])
 * Updated Chapter 7: Setup to be more explicit, updated examples to follow that methodology ([#487])
 * Updated dependency versions ([#494])
+* FlaggedStorage rewrite with single event channel instead of multiple for odering. ([#489])
 
 [#447]: https://github.com/slide-rs/specs/pull/447
 [#486]: https://github.com/slide-rs/specs/pull/486
 [#487]: https://github.com/slide-rs/specs/pull/487
+[#489]: https://github.com/slide-rs/specs/pull/489
 [#494]: https://github.com/slide-rs/specs/pull/494
 
 # 0.12.3
