@@ -6,7 +6,9 @@ use nonzero_signed::NonZeroI32;
 use shred::Read;
 
 use error::WrongGeneration;
-use join::{Join, ParJoin};
+use join::Join;
+#[cfg(feature = "parallel")]
+use join::ParJoin;
 use storage::WriteStorage;
 use world::Component;
 
@@ -327,6 +329,7 @@ impl<'a> Join for &'a EntitiesRes {
     }
 }
 
+#[cfg(feature = "parallel")]
 unsafe impl<'a> ParJoin for &'a EntitiesRes {}
 
 /// An entity builder from `EntitiesRes`.  Allows building an entity with its

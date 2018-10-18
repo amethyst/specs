@@ -5,7 +5,10 @@ use std::ops::{Deref, DerefMut};
 use hibitset::BitSet;
 use shred::Fetch;
 
-use join::{Join, ParJoin};
+use join::Join;
+
+#[cfg(feature = "parallel")]
+use join::ParJoin;
 use storage::{MaskedStorage, Storage, UnprotectedStorage};
 use world::{Component, EntitiesRes, Entity, Index};
 
@@ -76,6 +79,7 @@ where
     phantom: PhantomData<(C, Restrict)>,
 }
 
+#[cfg(feature = "parallel")]
 unsafe impl<'rf, 'st: 'rf, C, S, B> ParJoin
     for &'rf mut RestrictedStorage<'rf, 'st, C, S, B, MutableParallelRestriction>
 where
@@ -85,6 +89,7 @@ where
 {
 }
 
+#[cfg(feature = "parallel")]
 unsafe impl<'rf, 'st: 'rf, C, S, B, Restrict> ParJoin
     for &'rf RestrictedStorage<'rf, 'st, C, S, B, Restrict>
 where

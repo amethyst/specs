@@ -1,10 +1,18 @@
 //! Joining of components for iteration over entities with specific components.
 
 use std;
+#[cfg(feature = "parallel")]
 use std::cell::UnsafeCell;
 
-use hibitset::{BitIter, BitProducer, BitSetAll, BitSetAnd, BitSetLike};
+use hibitset::{BitIter, BitSetAll, BitSetAnd, BitSetLike};
+
+#[cfg(feature = "parallel")]
+use hibitset::BitProducer;
+
+#[cfg(feature = "parallel")]
 use rayon::iter::plumbing::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
+
+#[cfg(feature = "parallel")]
 use rayon::iter::ParallelIterator;
 use std::ops::{Deref, DerefMut};
 use tuple_utils::Split;
@@ -241,6 +249,7 @@ pub trait Join {
 /// The purpose of the `ParJoin` trait is to provide a way
 /// to access multiple storages in parallel at the same time with
 /// the merged bit set.
+#[cfg(feature = "parallel")]
 pub unsafe trait ParJoin: Join {
     /// Create a joined parallel iterator over the contents.
     fn par_join(self) -> JoinParIter<Self>
@@ -399,9 +408,11 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
 }
 
 /// `JoinParIter` is a `ParallelIterator` over a group of `Storages`.
+#[cfg(feature = "parallel")]
 #[must_use]
 pub struct JoinParIter<J>(J);
 
+#[cfg(feature = "parallel")]
 impl<J> ParallelIterator for JoinParIter<J>
 where
     J: Join + Send,
@@ -424,6 +435,7 @@ where
     }
 }
 
+#[cfg(feature = "parallel")]
 struct JoinProducer<'a, J>
 where
     J: Join + Send,
@@ -435,6 +447,7 @@ where
     values: &'a UnsafeCell<J::Value>,
 }
 
+#[cfg(feature = "parallel")]
 impl<'a, J> JoinProducer<'a, J>
 where
     J: Join + Send,
@@ -447,6 +460,7 @@ where
     }
 }
 
+#[cfg(feature = "parallel")]
 unsafe impl<'a, J> Send for JoinProducer<'a, J>
 where
     J: Join + Send,
@@ -455,6 +469,7 @@ where
     J::Mask: 'a + Send + Sync,
 {}
 
+#[cfg(feature = "parallel")]
 impl<'a, J> UnindexedProducer for JoinProducer<'a, J>
 where
     J: Join + Send,
@@ -523,6 +538,7 @@ macro_rules! define_open {
                 unconstrained
             }
         }
+        #[cfg(feature = "parallel")]
         unsafe impl<$($from,)*> ParJoin for ($($from),*,)
             where $($from: ParJoin),*,
                   ($(<$from as Join>::Mask,)*): BitAnd,
@@ -582,6 +598,7 @@ macro_rules! immutable_resource_join {
             }
         }
 
+        #[cfg(feature = "parallel")]
         unsafe impl<'a, 'b, T> ParJoin for &'a $ty
         where
             &'a T: ParJoin,
@@ -616,6 +633,7 @@ macro_rules! mutable_resource_join {
             }
         }
 
+        #[cfg(feature = "parallel")]
         unsafe impl<'a, 'b, T> ParJoin for &'a mut $ty
         where
             &'a mut T: ParJoin,
