@@ -1,24 +1,19 @@
 //! Joining of components for iteration over entities with specific components.
 
 use std;
-#[cfg(feature = "parallel")]
-use std::cell::UnsafeCell;
 
 use hibitset::{BitIter, BitSetAll, BitSetAnd, BitSetLike};
-
-#[cfg(feature = "parallel")]
-use hibitset::BitProducer;
-
-#[cfg(feature = "parallel")]
-use rayon::iter::plumbing::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
-
-#[cfg(feature = "parallel")]
-use rayon::iter::ParallelIterator;
 use std::ops::{Deref, DerefMut};
 use tuple_utils::Split;
 use shred::{Fetch, FetchMut, Read, ReadExpect, Resource, Write, WriteExpect};
 
 use world::{Entities, Entity, Index};
+
+#[cfg(feature = "parallel")]
+mod par_join;
+
+#[cfg(feature = "parallel")]
+pub use self::par_join::{ParJoin, JoinParIter};
 
 /// `BitAnd` is a helper method to & bitsets together resulting in a tree.
 pub trait BitAnd {
@@ -246,24 +241,6 @@ pub trait Join {
     }
 }
 
-/// The purpose of the `ParJoin` trait is to provide a way
-/// to access multiple storages in parallel at the same time with
-/// the merged bit set.
-#[cfg(feature = "parallel")]
-pub unsafe trait ParJoin: Join {
-    /// Create a joined parallel iterator over the contents.
-    fn par_join(self) -> JoinParIter<Self>
-    where
-        Self: Sized,
-    {
-        if <Self as Join>::is_unconstrained() {
-            println!("WARNING: `ParJoin` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length.");
-        }
-
-        JoinParIter(self)
-    }
-}
-
 /// A `Join`-able structure that yields all indices, returning `None` for all
 /// missing elements and `Some(T)` for found elements.
 ///
@@ -404,104 +381,6 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
         self.keys
             .next()
             .map(|idx| unsafe { J::get(&mut self.values, idx) })
-    }
-}
-
-/// `JoinParIter` is a `ParallelIterator` over a group of `Storages`.
-#[cfg(feature = "parallel")]
-#[must_use]
-pub struct JoinParIter<J>(J);
-
-#[cfg(feature = "parallel")]
-impl<J> ParallelIterator for JoinParIter<J>
-where
-    J: Join + Send,
-    J::Mask: Send + Sync,
-    J::Type: Send,
-    J::Value: Send,
-{
-    type Item = J::Type;
-
-    fn drive_unindexed<C>(self, consumer: C) -> C::Result
-    where
-        C: UnindexedConsumer<Self::Item>,
-    {
-        let (keys, values) = unsafe { self.0.open() };
-        // Create a bit producer which splits on up to three levels
-        let producer = BitProducer((&keys).iter(), 3);
-        let values = UnsafeCell::new(values);
-
-        bridge_unindexed(JoinProducer::<J>::new(producer, &values), consumer)
-    }
-}
-
-#[cfg(feature = "parallel")]
-struct JoinProducer<'a, J>
-where
-    J: Join + Send,
-    J::Mask: Send + Sync + 'a,
-    J::Type: Send,
-    J::Value: Send + 'a,
-{
-    keys: BitProducer<'a, J::Mask>,
-    values: &'a UnsafeCell<J::Value>,
-}
-
-#[cfg(feature = "parallel")]
-impl<'a, J> JoinProducer<'a, J>
-where
-    J: Join + Send,
-    J::Type: Send,
-    J::Value: 'a + Send,
-    J::Mask: 'a + Send + Sync,
-{
-    fn new(keys: BitProducer<'a, J::Mask>, values: &'a UnsafeCell<J::Value>) -> Self {
-        JoinProducer { keys, values }
-    }
-}
-
-#[cfg(feature = "parallel")]
-unsafe impl<'a, J> Send for JoinProducer<'a, J>
-where
-    J: Join + Send,
-    J::Type: Send,
-    J::Value: 'a + Send,
-    J::Mask: 'a + Send + Sync,
-{}
-
-#[cfg(feature = "parallel")]
-impl<'a, J> UnindexedProducer for JoinProducer<'a, J>
-where
-    J: Join + Send,
-    J::Type: Send,
-    J::Value: 'a + Send,
-    J::Mask: 'a + Send + Sync,
-{
-    type Item = J::Type;
-    fn split(self) -> (Self, Option<Self>) {
-        let (cur, other) = self.keys.split();
-        let values = self.values;
-        let first = JoinProducer::new(cur, values);
-        let second = other.map(|o| JoinProducer::new(o, values));
-
-        (first, second)
-    }
-
-    fn fold_with<F>(self, folder: F) -> F
-    where
-        F: Folder<Self::Item>,
-    {
-        let JoinProducer { values, keys, .. } = self;
-        let iter = keys.0.map(|idx| unsafe {
-            // This unsafe block should be safe if the `J::get`
-            // can be safely called from different threads with distinct indices.
-
-            // The indices here are guaranteed to be distinct because of the fact
-            // that the bit set is split.
-            J::get(&mut *values.get(), idx)
-        });
-
-        folder.consume_iter(iter)
     }
 }
 
