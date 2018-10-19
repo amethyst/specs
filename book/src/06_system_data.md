@@ -78,28 +78,6 @@ impl<'a> System<'a> for StoneCreator {
 > **Note:** After using `LazyUpdate` a call to `World::maintain`
   is necessary to actually execute the changes.
 
-## `Default` for resources
-
-As we have learned in previous chapters, to fetch a `Resource` in our 
-`SystemData`, we use `Read` or `Write`. However, there is one issue we 
-have not mentioned yet, and that is the fact that `Read` and `Write` require
-`Default` to be implemented on the resource. This is because Specs will 
-automatically try to add a `Default` version of a resource to the `World` 
-during `setup` (we will come back to the `setup` stage in the next chapter).
-But how do we handle the case when we can't implement `Default` for our resource?
-
-There are actually three ways of doing this:
-
-* Using a custom `SetupHandler` implementation, you can provide this in `SystemData`
-  with `Read<'a, Resource, TheSetupHandlerType>`.
-* By replacing `Read` and `Write` with `ReadExpect` and `WriteExpect`, which will 
-  cause the first dispatch of the `System` to panic unless the resource has been
-  added manually to `World` first.
-* By using `Option<Read<'a, Resource>>`, if the resource really is optional. Note
-  that the order here is important, using `Read<'a, Option<Resource>>` will not 
-  result in the same behavior (it will try to fetch `Option<Resource>` from `World`, 
-  instead of doing an optional check if `Resource` exists).
-
 ## Specifying `SystemData`
 
 As mentioned earlier, `SystemData` is implemented for tuples up to 26 elements. Should you ever need
