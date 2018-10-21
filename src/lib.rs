@@ -194,6 +194,7 @@ extern crate hibitset;
 extern crate log;
 extern crate nonzero_signed;
 extern crate mopa;
+#[cfg(feature = "parallel")]
 extern crate rayon;
 extern crate shrev;
 extern crate tuple_utils;
@@ -222,12 +223,14 @@ pub mod storage;
 pub mod world;
 
 pub use hibitset::BitSet;
-pub use join::{Join, ParJoin};
+pub use join::Join;
+#[cfg(feature = "parallel")]
+pub use join::ParJoin;
 pub use shred::{Accessor, Dispatcher, DispatcherBuilder, Read, ReadExpect, Resources, RunNow,
                 StaticAccessor, System, SystemData, Write, WriteExpect};
 pub use shrev::ReaderId;
 
-#[cfg(not(target_os = "emscripten"))]
+#[cfg(feature = "parallel")]
 pub use shred::AsyncDispatcher;
 
 pub use changeset::ChangeSet;

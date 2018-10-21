@@ -21,7 +21,9 @@ use shred::{CastFrom, Fetch};
 
 use self::drain::Drain;
 use error::{Error, WrongGeneration};
-use join::{Join, ParJoin};
+use join::Join;
+#[cfg(feature = "parallel")]
+use join::ParJoin;
 use world::{Component, EntitiesRes, Entity, Generation, Index};
 
 mod data;
@@ -54,6 +56,7 @@ impl<'a> Join for AntiStorage<'a> {
 
 unsafe impl<'a> DistinctStorage for AntiStorage<'a> {}
 
+#[cfg(feature = "parallel")]
 unsafe impl<'a> ParJoin for AntiStorage<'a> {}
 
 /// A dynamic storage.
@@ -479,6 +482,7 @@ where
     }
 }
 
+#[cfg(feature = "parallel")]
 unsafe impl<'a, 'e, T, D> ParJoin for &'a Storage<'e, T, D>
 where
     T: Component,
@@ -508,6 +512,7 @@ where
     }
 }
 
+#[cfg(feature = "parallel")]
 unsafe impl<'a, 'e, T, D> ParJoin for &'a mut Storage<'e, T, D>
 where
     T: Component,

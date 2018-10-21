@@ -6,7 +6,9 @@
 
 use hibitset::{AtomicBitSet, BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr, BitSetXor};
 
-use join::{Join, ParJoin};
+use join::Join;
+#[cfg(feature = "parallel")]
+use join::ParJoin;
 use world::Index;
 
 macro_rules! define_bit_join {
@@ -25,6 +27,7 @@ macro_rules! define_bit_join {
             }
         }
 
+        #[cfg(feature = "parallel")]
         unsafe impl<$( $lifetime, )* $( $arg ),*> ParJoin for $bitset
             where $( $arg: BitSetLike ),*
         { }
