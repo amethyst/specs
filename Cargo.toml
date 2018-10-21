@@ -76,6 +76,9 @@ name = "bitset"
 name = "track"
 
 [[example]]
+name = "ordered_track"
+
+[[example]]
 name = "common"
 required-features = ["common"]
 

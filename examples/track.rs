@@ -12,8 +12,10 @@ impl Component for TrackedComponent {
 
 #[derive(Default)]
 struct SysA {
-    modified_id: Option<ReaderId<ModifiedFlag>>,
+    reader_id: Option<ReaderId<ComponentEvent>>,
+    inserted: BitSet,
     modified: BitSet,
+    removed: BitSet,
 }
 
 impl<'a> System<'a> for SysA {
@@ -21,14 +23,41 @@ impl<'a> System<'a> for SysA {
 
     fn setup(&mut self, res: &mut Resources) {
         Self::SystemData::setup(res);
-        self.modified_id = Some(WriteStorage::<TrackedComponent>::fetch(&res).track_modified());
+        self.reader_id = Some(WriteStorage::<TrackedComponent>::fetch(&res).register_reader());
     }
 
     fn run(&mut self, (entities, tracked): Self::SystemData) {
-        tracked.populate_modified(&mut self.modified_id.as_mut().unwrap(), &mut self.modified);
+        self.modified.clear();
+        self.inserted.clear();
+        self.removed.clear();
+
+        let events = tracked
+            .channel()
+            .read(self.reader_id.as_mut().expect("ReaderId not found"));
+        for event in events {
+            match event {
+                ComponentEvent::Modified(id) => {
+                    self.modified.add(*id);
+                }
+                ComponentEvent::Inserted(id) => {
+                    self.inserted.add(*id);
+                }
+                ComponentEvent::Removed(id) => {
+                    self.removed.add(*id);
+                }
+            }
+        }
 
         for (entity, _tracked, _) in (&entities, &tracked, &self.modified).join() {
             println!("modified: {:?}", entity);
+        }
+
+        for (entity, _tracked, _) in (&entities, &tracked, &self.inserted).join() {
+            println!("inserted: {:?}", entity);
+        }
+
+        for (entity, _tracked, _) in (&entities, &tracked, &self.removed).join() {
+            println!("removed: {:?}", entity);
         }
     }
 }
@@ -57,12 +86,22 @@ fn main() {
 
     dispatcher.setup(&mut world.res);
 
-    for _ in 0..10000 {
+    for _ in 0..50 {
         world.create_entity().with(TrackedComponent(0)).build();
     }
 
     dispatcher.dispatch(&mut world.res);
     world.maintain();
+
+    let entities = (&world.entities(), &world.read_storage::<TrackedComponent>())
+        .join()
+        .map(|(e, _)| e)
+        .collect::<Vec<Entity>>();
+    world.delete_entities(&entities);
+
+    for _ in 0..50 {
+        world.create_entity().with(TrackedComponent(0)).build();
+    }
 
     dispatcher.dispatch(&mut world.res);
     world.maintain();

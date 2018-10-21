@@ -234,7 +234,6 @@ pub use shrev::ReaderId;
 pub use shred::AsyncDispatcher;
 
 pub use changeset::ChangeSet;
-pub use storage::{DenseVecStorage, FlaggedStorage, HashMapStorage, InsertedFlag, ModifiedFlag,
-                  NullStorage, ReadStorage, RemovedFlag, Storage, Tracked, VecStorage,
+pub use storage::{DenseVecStorage, FlaggedStorage, HashMapStorage, NullStorage, ReadStorage, Storage, Tracked, VecStorage,
                   WriteStorage};
 pub use world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate, World};

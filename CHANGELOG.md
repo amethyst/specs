@@ -6,10 +6,12 @@ Note this bumps the minimum supported rust version to 1.28.0 ([#447]).
 * Updated Chapter 7: Setup to be more explicit, updated examples to follow that methodology ([#487])
 * Added some comments to the `saveload` example ([#492])
 * Updated dependency versions ([#494])
+* FlaggedStorage rewrite with single event channel instead of multiple for ordering. ([#489])
 
 [#447]: https://github.com/slide-rs/specs/pull/447
 [#486]: https://github.com/slide-rs/specs/pull/486
 [#487]: https://github.com/slide-rs/specs/pull/487
+[#489]: https://github.com/slide-rs/specs/pull/489
 [#492]: https://github.com/slide-rs/specs/pull/492
 [#494]: https://github.com/slide-rs/specs/pull/494
 

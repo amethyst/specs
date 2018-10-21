@@ -3,8 +3,10 @@ use std::marker::PhantomData;
 use hibitset::BitSetLike;
 
 use storage::TryDefault;
-use storage::{DenseVecStorage, TrackChannels, Tracked, UnprotectedStorage};
+use storage::{ComponentEvent, DenseVecStorage, Tracked, UnprotectedStorage};
 use world::{Component, Index};
+
+use shrev::EventChannel;
 
 /// Wrapper storage that tracks modifications, insertions, and removals of components
 /// through an `EventChannel`.
@@ -35,8 +37,7 @@ use world::{Component, Index};
 ///
 /// pub struct CompSystem {
 ///     // These keep track of where you left off in the event channel.
-///     modified_id: ReaderId<ModifiedFlag>,
-///     inserted_id: ReaderId<InsertedFlag>,
+///     reader_id: ReaderId<ComponentEvent>,
 ///
 ///     // The bitsets you want to populate with modification/insertion events.
 ///     modified: BitSet,
@@ -60,16 +61,21 @@ use world::{Component, Index};
 ///         self.modified.clear();
 ///         self.inserted.clear();
 ///
-///         // This allows us to use the modification events in a `Join`. Otherwise we
-///         // would have to iterate through the events which may not be in order.
-///         //
-///         // This does not populate the bitset with inserted components, only pre-existing
-///         // components that were changed by a `get_mut` call to the storage.
-///         comps.populate_modified(&mut self.modified_id, &mut self.modified);
-///
-///         // This will only include inserted components from last read, note that this
-///         // will not include `insert` calls if there already was a pre-existing component.
-///         comps.populate_inserted(&mut self.inserted_id, &mut self.inserted);
+///         // Here we can populate the bitsets by iterating over the events.
+///         // You can also just iterate over the events without using a bitset which will
+///         // give you an ordered history of the events (which is good for caches and synchronizing
+///         // other storages, but this allows us to use them in joins with components.
+///         {
+///             let events = comps.channel()
+///                 .read(&mut self.reader_id);
+///             for event in events {
+///                 match event {
+///                     ComponentEvent::Modified(id) => { self.modified.add(*id); },
+///                     ComponentEvent::Inserted(id) => { self.inserted.add(*id); },
+///                     _ => { },
+///                 };
+///             }
+///         }
 ///
 ///         // Iterates over all components like normal.
 ///         for comp in (&comps).join() {
@@ -86,7 +92,9 @@ use world::{Component, Index};
 ///             // ...
 ///         }
 ///
-///         // Instead do something like:
+///         // Instead you will want to restrict the amount of components iterated over, either through
+///         // other components in the join, or by using `RestrictedStorage` and only getting the component
+///         // mutably when you are sure you need to modify it.
 ///#        let condition = true;
 ///         for (entity, mut comps) in (&entities, &mut comps.restrict_mut()).join() {
 ///             if condition { // check whether this component should be modified.
@@ -118,8 +126,7 @@ use world::{Component, Index};
 ///     // you start tracking them.
 ///     let mut comps = world.write_storage::<Comp>();
 ///     let comp_system = CompSystem {
-///         modified_id: comps.track_modified(),
-///         inserted_id: comps.track_inserted(),
+///         reader_id: comps.register_reader(),
 ///         modified: BitSet::new(),
 ///         inserted: BitSet::new(),
 ///     };
@@ -127,7 +134,7 @@ use world::{Component, Index};
 /// ```
 ///
 pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
-    trackers: TrackChannels,
+    channel: EventChannel<ComponentEvent>,
     storage: T,
     phantom: PhantomData<C>,
 }
@@ -138,7 +145,7 @@ where
 {
     fn default() -> Self {
         FlaggedStorage {
-            trackers: TrackChannels::default(),
+            channel: EventChannel::<ComponentEvent>::default(),
             storage: T::unwrap_default(),
             phantom: PhantomData,
         }
@@ -159,27 +166,27 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         // calling `.iter()` on an unconstrained mutable storage will flag everything
-        self.trackers.modify.single_write(id.into());
+        self.channel.single_write(ComponentEvent::Modified(id));
         self.storage.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
-        self.trackers.insert.single_write(id.into());
+        self.channel.single_write(ComponentEvent::Inserted(id));
         self.storage.insert(id, comp);
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
-        self.trackers.remove.single_write(id.into());
+        self.channel.single_write(ComponentEvent::Removed(id));
         self.storage.remove(id)
     }
 }
 
 impl<C, T> Tracked for FlaggedStorage<C, T> {
-    fn channels(&self) -> &TrackChannels {
-        &self.trackers
+    fn channel(&self) -> &EventChannel<ComponentEvent> {
+        &self.channel
     }
 
-    fn channels_mut(&mut self) -> &mut TrackChannels {
-        &mut self.trackers
+    fn channel_mut(&mut self) -> &mut EventChannel<ComponentEvent> {
+        &mut self.channel
     }
 }

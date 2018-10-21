@@ -757,13 +757,9 @@ mod test {
         let mut s1: Storage<FlaggedCvec, _> = w.write_storage();
 
         let mut inserted = BitSet::new();
-        let mut inserted_id = s1.track_inserted();
-
         let mut modified = BitSet::new();
-        let mut modified_id = s1.track_modified();
-
         let mut removed = BitSet::new();
-        let mut removed_id = s1.track_removed();
+        let mut reader_id = s1.register_reader();
 
         for i in 0..15 {
             let entity = w.entities().create();
@@ -774,11 +770,17 @@ mod test {
 
         {
             inserted.clear();
-            s1.populate_inserted(&mut inserted_id, &mut inserted);
             modified.clear();
-            s1.populate_modified(&mut modified_id, &mut modified);
             removed.clear();
-            s1.populate_removed(&mut removed_id, &mut removed);
+
+            let events = s1.channel().read(&mut reader_id);
+            for event in events {
+                match event {
+                    ComponentEvent::Modified(id) => modified.add(*id),
+                    ComponentEvent::Inserted(id) => inserted.add(*id),
+                    ComponentEvent::Removed(id) => removed.add(*id),
+                };
+            }
         }
 
         for (entity, _) in (&w.entities(), &s1).join() {
@@ -791,13 +793,20 @@ mod test {
             comp.0 += 1;
         }
 
+
         {
             inserted.clear();
-            s1.populate_inserted(&mut inserted_id, &mut inserted);
             modified.clear();
-            s1.populate_modified(&mut modified_id, &mut modified);
             removed.clear();
-            s1.populate_removed(&mut removed_id, &mut removed);
+
+            let events = s1.channel().read(&mut reader_id);
+            for event in events {
+                match event {
+                    ComponentEvent::Modified(id) => modified.add(*id),
+                    ComponentEvent::Inserted(id) => inserted.add(*id),
+                    ComponentEvent::Removed(id) => removed.add(*id),
+                };
+            }
         }
 
         for (entity, _) in (&w.entities(), &s1).join() {
@@ -812,11 +821,17 @@ mod test {
 
         {
             inserted.clear();
-            s1.populate_inserted(&mut inserted_id, &mut inserted);
             modified.clear();
-            s1.populate_modified(&mut modified_id, &mut modified);
             removed.clear();
-            s1.populate_removed(&mut removed_id, &mut removed);
+
+            let events = s1.channel().read(&mut reader_id);
+            for event in events {
+                match event {
+                    ComponentEvent::Modified(id) => modified.add(*id),
+                    ComponentEvent::Inserted(id) => inserted.add(*id),
+                    ComponentEvent::Removed(id) => removed.add(*id),
+                };
+            }
         }
 
         for (entity, _) in (&w.entities(), &s1).join() {
