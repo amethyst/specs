@@ -168,7 +168,11 @@ impl<'a> System<'a> for SysStoreMax {
 struct JoinParallel;
 
 impl<'a> System<'a> for JoinParallel {
-    type SystemData = (ReadStorage<'a, CompBool>, ReadStorage<'a, CompInt>, WriteStorage<'a, CompFloat>);
+    type SystemData = (
+        ReadStorage<'a, CompBool>,
+        ReadStorage<'a, CompInt>,
+        WriteStorage<'a, CompFloat>,
+    );
 
     fn run(&mut self, (comp_bool, comp_int, mut comp_float): Self::SystemData) {
         use rayon::prelude::*;
@@ -239,7 +243,8 @@ fn main() {
         .with(CompBool(false))
         .build();
     // build() returns an entity, we will use it later to perform a deletion
-    let e = w.create_entity()
+    let e = w
+        .create_entity()
         .with(CompInt(9))
         .with(CompBool(true))
         .build();

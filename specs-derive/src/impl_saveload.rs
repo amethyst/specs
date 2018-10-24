@@ -4,8 +4,11 @@
 // NOTE: All examples given in the documentation below are "cleaned up" into readable Rust,
 // so it doesn't give an entirely accurate view of what's actually generated.
 
-use syn::{DataEnum, DataStruct, DeriveInput, Field, Generics, Ident, Type, GenericParam, WhereClause, WherePredicate};
 use proc_macro2::{Span, TokenStream};
+use syn::{
+    DataEnum, DataStruct, DeriveInput, Field, GenericParam, Generics, Ident, Type, WhereClause,
+    WherePredicate,
+};
 
 /// Handy collection since tuples got unwieldy and
 /// unclear in purpose
@@ -24,25 +27,25 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> TokenStream {
     add_where_clauses(
         &mut ast.generics.where_clause,
         &ast.generics.params,
-        |ty| parse_quote!(#ty: ConvertSaveload<MA, Error = NoError> + ConvertSaveload<MA, Error = NoError>)
+        |ty| parse_quote!(#ty: ConvertSaveload<MA, Error = NoError> + ConvertSaveload<MA, Error = NoError>),
     );
     add_where_clauses(
         &mut ast.generics.where_clause,
         &ast.generics.params,
-        |ty| parse_quote!(<#ty as ConvertSaveload<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone)
+        |ty| parse_quote!(<#ty as ConvertSaveload<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone),
     );
     add_where_clauses(
         &mut ast.generics.where_clause,
         &ast.generics.params,
-        |ty| parse_quote!(<#ty as ConvertSaveload<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone)
+        |ty| parse_quote!(<#ty as ConvertSaveload<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone),
     );
     add_where_clause(
         &mut ast.generics.where_clause,
-        parse_quote!(MA: ::serde::Serialize + ::serde::de::DeserializeOwned + Marker)
+        parse_quote!(MA: ::serde::Serialize + ::serde::de::DeserializeOwned + Marker),
     );
     add_where_clause(
         &mut ast.generics.where_clause,
-        parse_quote!(for <'deser> MA: ::serde::Deserialize<'deser>)
+        parse_quote!(for <'deser> MA: ::serde::Deserialize<'deser>),
     );
 
     let derive = match ast.data {
@@ -400,13 +403,12 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
 /// Adds where clause for each type parameter
 fn add_where_clauses<'a, F, I>(where_clause: &mut Option<WhereClause>, generics: I, mut clause: F)
-    where F: FnMut(Ident) -> WherePredicate,
-          I: IntoIterator<Item = &'a GenericParam>,
+where
+    F: FnMut(Ident) -> WherePredicate,
+    I: IntoIterator<Item = &'a GenericParam>,
 {
     use syn::GenericParam;
-    let preds = &mut where_clause
-        .get_or_insert(parse_quote!(where))
-        .predicates;
+    let preds = &mut where_clause.get_or_insert(parse_quote!(where)).predicates;
     for generic in generics {
         if let GenericParam::Type(ty_param) = generic {
             let ty_param = ty_param.ident.clone();
@@ -441,7 +443,9 @@ fn replace_entity_type(ty: &mut Type) {
 
         Type::TraitObject(_) => {}
         Type::ImplTrait(_) => {}
-        Type::Slice(_) => panic!("Slices are unsupported, use owned types like Vecs or Arrays instead"),
+        Type::Slice(_) => {
+            panic!("Slices are unsupported, use owned types like Vecs or Arrays instead")
+        }
         Type::Reference(_) => panic!("References are unsupported"),
         Type::Ptr(_) => panic!("Raw pointer types are unsupported"),
         Type::BareFn(_) => panic!("Function types are unsupported"),

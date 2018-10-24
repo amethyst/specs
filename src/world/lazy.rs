@@ -25,7 +25,7 @@ pub struct LazyBuilder<'a> {
 impl<'a> Builder for LazyBuilder<'a> {
     /// Inserts a component using [`LazyUpdate`].
     ///
-    /// If a component was already associated with the entity, it will 
+    /// If a component was already associated with the entity, it will
     /// overwrite the previous component.
     fn with<C>(self, component: C) -> Self
     where
@@ -33,7 +33,11 @@ impl<'a> Builder for LazyBuilder<'a> {
     {
         let entity = self.entity;
         self.lazy.exec(move |world| {
-            if world.write_storage::<C>().insert(entity, component).is_err() {
+            if world
+                .write_storage::<C>()
+                .insert(entity, component)
+                .is_err()
+            {
                 warn!(
                     "Lazy insert of component failed because {:?} was dead.",
                     entity
@@ -81,7 +85,7 @@ where
 #[derive(Derivative)]
 #[derivative(Default)]
 pub struct LazyUpdate {
-    #[derivative(Default(value="Some(Default::default())"))]
+    #[derivative(Default(value = "Some(Default::default())"))]
     queue: Option<Queue<Box<LazyUpdateInternal>>>,
 }
 
@@ -258,7 +262,11 @@ impl LazyUpdate {
     where
         F: FnOnce(&World) + 'static + Send + Sync,
     {
-        self.queue.as_ref().unwrap().0.push(Box::new(|w: &mut World| f(w)));
+        self.queue
+            .as_ref()
+            .unwrap()
+            .0
+            .push(Box::new(|w: &mut World| f(w)));
     }
 
     /// Lazily executes a closure with mutable world access.

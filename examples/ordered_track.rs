@@ -41,9 +41,9 @@ impl<'a> System<'a> for SysA {
                 ComponentEvent::Modified(id) => {
                     let entity = entities.entity(*id);
                     if let Some(component) = tracked.get(entity) {
-                        // This is safe because it can only occur after an `Inserted` event, not a 
+                        // This is safe because it can only occur after an `Inserted` event, not a
                         // `Removed` event.
-                        *self.cache.get_mut(id).unwrap() = (entity, component.0); 
+                        *self.cache.get_mut(id).unwrap() = (entity, component.0);
                         println!("{:?} was changed to {:?}", entity, component.0);
                     } else {
                         println!(

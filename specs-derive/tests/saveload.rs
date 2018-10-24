@@ -5,7 +5,11 @@ extern crate specs as spocs;
 #[macro_use]
 extern crate specs_derive;
 
-use spocs::{Entity, saveload::{ConvertSaveload, Marker}, error::NoError};
+use spocs::{
+    error::NoError,
+    saveload::{ConvertSaveload, Marker},
+    Entity,
+};
 
 #[derive(ConvertSaveload)]
 struct OneFieldNamed {
@@ -50,8 +54,8 @@ impl EntityLike for Entity {}
 
 mod tests {
     use super::*;
-    use spocs::{Builder, World};
     use spocs::saveload::{ConvertSaveload, U64Marker};
+    use spocs::{Builder, World};
 
     #[test]
     fn type_check() {

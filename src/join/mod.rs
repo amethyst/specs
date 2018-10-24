@@ -3,9 +3,9 @@
 use std;
 
 use hibitset::{BitIter, BitSetAll, BitSetAnd, BitSetLike};
+use shred::{Fetch, FetchMut, Read, ReadExpect, Resource, Write, WriteExpect};
 use std::ops::{Deref, DerefMut};
 use tuple_utils::Split;
-use shred::{Fetch, FetchMut, Read, ReadExpect, Resource, Write, WriteExpect};
 
 use world::{Entities, Entity, Index};
 
@@ -13,7 +13,7 @@ use world::{Entities, Entity, Index};
 mod par_join;
 
 #[cfg(feature = "parallel")]
-pub use self::par_join::{ParJoin, JoinParIter};
+pub use self::par_join::{JoinParIter, ParJoin};
 
 /// `BitAnd` is a helper method to & bitsets together resulting in a tree.
 pub trait BitAnd {

@@ -86,8 +86,7 @@ where
     C: Component,
     S: BorrowMut<C::Storage> + 'rf,
     B: Borrow<BitSet> + 'rf,
-{
-}
+{}
 
 #[cfg(feature = "parallel")]
 unsafe impl<'rf, 'st: 'rf, C, S, B, Restrict> ParJoin
@@ -97,8 +96,7 @@ where
     S: Borrow<C::Storage> + 'rf,
     B: Borrow<BitSet> + 'rf,
     Restrict: ImmutableAliasing,
-{
-}
+{}
 
 impl<'rf, 'st: 'rf, C, S, B, Restrict> Join for &'rf RestrictedStorage<'rf, 'st, C, S, B, Restrict>
 where

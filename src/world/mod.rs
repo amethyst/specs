@@ -1,8 +1,9 @@
 //! Entities, resources, components, and general world management.
 
 pub use self::comp::Component;
-pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, EntityResBuilder,
-                       Generation, Index};
+pub use self::entity::{
+    CreateIterAtomic, Entities, EntitiesRes, Entity, EntityResBuilder, Generation, Index,
+};
 pub use self::lazy::{LazyBuilder, LazyUpdate};
 
 use self::entity::Allocator;
@@ -41,7 +42,7 @@ impl<'a> Iterator for CreateIter<'a> {
 pub trait Builder {
     /// Appends a component and associates it with the entity.
     ///
-    /// If a component was already associated with the entity, it should 
+    /// If a component was already associated with the entity, it should
     /// overwrite the previous component.
     ///
     /// # Panics
@@ -100,7 +101,7 @@ pub struct EntityBuilder<'a> {
 impl<'a> Builder for EntityBuilder<'a> {
     /// Inserts a component for this entity.
     ///
-    /// If a component was already associated with the entity, it will 
+    /// If a component was already associated with the entity, it will
     /// overwrite the previous component.
     #[inline]
     fn with<T: Component>(self, c: T) -> Self {
@@ -575,7 +576,9 @@ impl World {
     }
 
     /// Adds the given bundle of resources/components.
-    #[deprecated(note="Please read the book's chapter on setup: https://slide-rs.github.io/specs/07_setup.html")]
+    #[deprecated(
+        note = "Please read the book's chapter on setup: https://slide-rs.github.io/specs/07_setup.html"
+    )]
     pub fn add_bundle<B>(&mut self, bundle: B)
     where
         B: Bundle,
@@ -614,7 +617,9 @@ impl Default for World {
 }
 
 /// Trait used to bundle up resources/components for easy registration with `World`.
-#[deprecated(note="Please read the book's chapter on setup: https://slide-rs.github.io/specs/07_setup.html")]
+#[deprecated(
+    note = "Please read the book's chapter on setup: https://slide-rs.github.io/specs/07_setup.html"
+)]
 pub trait Bundle {
     /// Add resources/components to `world`.
     fn add_to_world(self, world: &mut World);

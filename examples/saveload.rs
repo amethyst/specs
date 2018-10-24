@@ -7,7 +7,9 @@ use std::fmt;
 
 use specs::error::NoError;
 use specs::prelude::*;
-use specs::saveload::{DeserializeComponents, MarkedBuilder, SerializeComponents, U64Marker, U64MarkerAllocator};
+use specs::saveload::{
+    DeserializeComponents, MarkedBuilder, SerializeComponents, U64Marker, U64MarkerAllocator,
+};
 
 // This is an example of how the serialized data of two entities might look on disk.
 //
@@ -82,7 +84,7 @@ impl From<ron::ser::Error> for Combined {
     }
 }
 
-// This cannot be called. 
+// This cannot be called.
 impl From<NoError> for Combined {
     fn from(e: NoError) -> Self {
         match e {}
@@ -142,11 +144,11 @@ fn main() {
             let mut ser = ron::ser::Serializer::new(Some(Default::default()), true);
 
             // For serialization we use the [`SerializeComponents`](struct.SerializeComponents.html)-trait's `serialize` function.
-            // It takes two generic parameters: 
+            // It takes two generic parameters:
             // * An unbound type -> `NoError` (However, the serialize function expects it to be bound by the `Display`-trait)
             // * A type implementing the `Marker`-trait -> [U64Marker](struct.U64Marker.html) (a convenient, predefined marker)
             //
-            // The first parameter resembles the `.join()` syntax from other specs-systems, 
+            // The first parameter resembles the `.join()` syntax from other specs-systems,
             // every component that should be serialized has to be put inside a tuple.
             //
             // The second and third parameters are just the entity-storage and marker-storage, which get `.join()`ed internally.
@@ -157,7 +159,8 @@ fn main() {
                 &ents,
                 &markers,
                 &mut ser,
-            ).unwrap_or_else(|e| eprintln!("Error: {}", e));
+            )
+            .unwrap_or_else(|e| eprintln!("Error: {}", e));
             // TODO: Specs should return an error which combines serialization
             // and component errors.
 
@@ -167,7 +170,7 @@ fn main() {
         }
     }
 
-    // Running the system results in a print to the standard output channel, in `.ron`-format, 
+    // Running the system results in a print to the standard output channel, in `.ron`-format,
     // showing how the serialized dummy entities look like.
     Serialize.run_now(&world.res);
 
@@ -189,7 +192,7 @@ fn main() {
 
         fn run(&mut self, (ent, mut alloc, pos, mass, mut markers): Self::SystemData) {
             // The `const ENTITIES: &str` at the top of this file was formatted according to the `.ron`-specs,
-            // therefore we need a `.ron`-deserializer. 
+            // therefore we need a `.ron`-deserializer.
             // Others can be used, as long as they implement the `serde::de::Deserializer`-trait.
             use ron::de::Deserializer;
 
@@ -206,7 +209,8 @@ fn main() {
                     &mut markers,
                     &mut alloc,
                     &mut de,
-                ).unwrap_or_else(|e| eprintln!("Error: {}", e));
+                )
+                .unwrap_or_else(|e| eprintln!("Error: {}", e));
             }
         }
     }

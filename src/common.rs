@@ -147,7 +147,8 @@ impl Errors {
             &mut stderr,
             "Exiting program because of {} errors...",
             errors.len()
-        ).unwrap();
+        )
+        .unwrap();
 
         for (ind, error) in errors.drain(..).enumerate() {
             let error = error.as_ref();
@@ -256,9 +257,9 @@ mod test {
     use std::error::Error;
     use std::fmt::{Display, Formatter, Result as FmtResult};
 
-    use futures::Poll;
     use futures::future::{result, Future, FutureResult};
     use futures::task;
+    use futures::Poll;
 
     use common::{BoxedErr, Errors, Merge};
     use shred::DispatcherBuilder;

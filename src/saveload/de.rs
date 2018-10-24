@@ -5,11 +5,11 @@ use serde::de::{
     self, Deserialize, DeserializeOwned, DeserializeSeed, Deserializer, SeqAccess, Visitor,
 };
 
+use super::ConvertSaveload;
 use saveload::marker::{Marker, MarkerAllocator};
 use saveload::EntityData;
 use storage::{GenericWriteStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
-use super::ConvertSaveload;
 
 /// A trait which allows to deserialize entities and their components.
 pub trait DeserializeComponents<E, M>

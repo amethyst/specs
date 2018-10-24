@@ -2,12 +2,12 @@ use std::fmt::Display;
 
 use serde::ser::{self, Serialize, SerializeSeq, Serializer};
 
+use super::ConvertSaveload;
 use join::Join;
 use saveload::marker::{Marker, MarkerAllocator};
 use saveload::EntityData;
 use storage::{GenericReadStorage, ReadStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
-use super::ConvertSaveload;
 
 /// A trait which allows to serialize entities and their components.
 pub trait SerializeComponents<E, M>

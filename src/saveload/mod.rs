@@ -23,7 +23,7 @@
 //! see the docs for the `Marker` trait.
 //!
 
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 
 use error::NoError;
 use world::Entity;
@@ -34,9 +34,9 @@ mod ser;
 #[cfg(test)]
 mod tests;
 
-pub use self::de::{DeserializeComponents};
+pub use self::de::DeserializeComponents;
 pub use self::marker::{MarkedBuilder, Marker, MarkerAllocator, U64Marker, U64MarkerAllocator};
-pub use self::ser::{SerializeComponents};
+pub use self::ser::SerializeComponents;
 
 /// A struct used for deserializing entity data.
 #[derive(Serialize, Deserialize)]
@@ -46,7 +46,6 @@ pub struct EntityData<M, D> {
     /// The components associated with an entity.
     pub components: D,
 }
-
 
 /// Converts a data type (usually a [`Component`]) into its serializable form
 /// and back to actual data from it's deserialized form.

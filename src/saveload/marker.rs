@@ -80,7 +80,7 @@ impl<'a> MarkedBuilder for LazyBuilder<'a> {
     /// added to the `World`.
     fn marked<M>(self) -> Self
     where
-        M: Marker
+        M: Marker,
     {
         let entity = self.entity;
         self.lazy.exec(move |world| {

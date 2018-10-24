@@ -333,8 +333,8 @@ fn join_two_components() {
 
 #[test]
 fn par_join_two_components() {
-    use std::sync::Mutex;
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Mutex;
     let mut world = create_world();
     world
         .create_entity()
