@@ -15,10 +15,11 @@ extern crate syn;
 use proc_macro::TokenStream;
 use syn::{
     parse::{Parse, ParseStream, Result},
-    DeriveInput, Path,
+    AttributeArgs, DeriveInput, ItemFn, Path,
 };
 
 mod impl_saveload;
+mod impl_specs_system;
 
 /// Custom derive macro for the `Component` trait.
 ///
@@ -93,5 +94,28 @@ pub fn saveload(input: TokenStream) -> TokenStream {
     let mut ast = syn::parse(input).unwrap();
 
     let gen = impl_saveload(&mut ast);
+    gen.into()
+}
+
+/// Custom derive macro for the `ConvertSaveload` trait.
+///
+/// Requires `System`, and `SystemData` to be in scope.
+///
+/// ## Example
+///
+/// ```rust,ignore
+/// use specs::{System, SystemData};
+///
+/// #[specs_system(SimpleSystem)]
+/// fn run();
+/// ```
+#[proc_macro_attribute]
+pub fn specs_system(args: TokenStream, input: TokenStream) -> TokenStream {
+    use impl_specs_system::impl_specs_system;
+
+    let args = parse_macro_input!(args as AttributeArgs);
+    let input = parse_macro_input!(input as ItemFn);
+
+    let gen = impl_specs_system(args, input);
     gen.into()
 }

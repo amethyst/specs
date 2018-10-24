@@ -86,6 +86,12 @@ required-features = ["common"]
 name = "saveload"
 required-features = ["serde"]
 
+[[example]]
+name = "system_derive_simple"
+
+[[example]]
+name = "system_derive_with_components"
+
 [[bench]]
 name = "benches_main"
 harness = false
