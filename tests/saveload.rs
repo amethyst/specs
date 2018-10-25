@@ -1,57 +1,63 @@
+#[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde;
 // Specs is renamed here so that the custom derive cannot refer specs directly
+#[cfg(feature = "serde")]
 extern crate specs as spocs;
+
+#[cfg(feature = "serde")]
 #[macro_use]
 extern crate specs_derive;
 
-use spocs::{Entity, saveload::{ConvertSaveload, Marker}, error::NoError};
+#[cfg(feature = "serde")]
+use spocs::{Entity, saveload::Marker, error::NoError};
 
-#[derive(ConvertSaveload)]
-struct OneFieldNamed {
-    e: Entity,
-}
-
-#[derive(ConvertSaveload)]
-struct TwoField {
-    a: u32,
-    e: Entity,
-}
-
-// Tests a struct that owns a parent
-// that derives Saveload
-#[derive(ConvertSaveload)]
-struct LevelTwo {
-    owner: OneFieldNamed,
-}
-
-#[derive(ConvertSaveload)]
-struct OneFieldTuple(Entity);
-
-#[derive(ConvertSaveload)]
-struct TwoFieldTuple(Entity, u32);
-
-#[derive(ConvertSaveload)]
-struct LevelTwoTuple(OneFieldNamed);
-
-#[derive(ConvertSaveload)]
-enum AnEnum {
-    E(Entity),
-    F { e: Entity },
-    Unit,
-}
-
-#[derive(ConvertSaveload)]
-struct Generic<E: EntityLike>(E);
-
-trait EntityLike {}
-
-impl EntityLike for Entity {}
-
+#[cfg(feature = "serde")]
 mod tests {
     use super::*;
     use spocs::{Builder, World};
     use spocs::saveload::{ConvertSaveload, U64Marker};
+
+    #[derive(ConvertSaveload)]
+    struct OneFieldNamed {
+        e: Entity,
+    }
+
+    #[derive(ConvertSaveload)]
+    struct TwoField {
+        a: u32,
+        e: Entity,
+    }
+
+    // Tests a struct that owns a parent
+    // that derives Saveload
+    #[derive(ConvertSaveload)]
+    struct LevelTwo {
+        owner: OneFieldNamed,
+    }
+
+    #[derive(ConvertSaveload)]
+    struct OneFieldTuple(Entity);
+
+    #[derive(ConvertSaveload)]
+    struct TwoFieldTuple(Entity, u32);
+
+    #[derive(ConvertSaveload)]
+    struct LevelTwoTuple(OneFieldNamed);
+
+    #[derive(ConvertSaveload)]
+    enum AnEnum {
+        E(Entity),
+        F { e: Entity },
+        Unit,
+    }
+
+    #[derive(ConvertSaveload)]
+    struct Generic<E: EntityLike>(E);
+
+    trait EntityLike {}
+
+    impl EntityLike for Entity {}
 
     #[test]
     fn type_check() {

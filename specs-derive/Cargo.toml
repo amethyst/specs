@@ -13,9 +13,5 @@ proc-macro2 = "0.4"
 syn = "0.15"
 quote = "0.6"
 
-[dev-dependencies]
-specs = { path = "..", features = ["serde"] }
-serde = "1"
-
 [lib]
 proc-macro = true
