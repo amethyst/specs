@@ -78,6 +78,12 @@ impl<'a> System<'a> for StoneCreator {
 > **Note:** After using `LazyUpdate` a call to `World::maintain`
   is necessary to actually execute the changes.
 
+## `SetupHandler` / `Default` for resources
+
+Please refer to [the resources chapter for automatic creation of resources][c04].
+
+[c4]: ./04_resources.html
+
 ## Specifying `SystemData`
 
 As mentioned earlier, `SystemData` is implemented for tuples up to 26 elements. Should you ever need
