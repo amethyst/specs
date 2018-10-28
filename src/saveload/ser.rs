@@ -125,7 +125,7 @@ macro_rules! serialize_components {
                 let ($(ref $comp,)*) = *self;
 
                 Ok(($(
-                    $comp.get(entity).map(|c| c.into(&mut ids).map(Some)).unwrap_or(Ok(None))?,
+                    $comp.get(entity).map(|c| c.convert_into(&mut ids).map(Some)).unwrap_or(Ok(None))?,
                 )*))
             }
         }

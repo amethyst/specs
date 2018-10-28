@@ -166,7 +166,7 @@ macro_rules! deserialize_components {
                 let ($($comp,)*) = components;
                 $(
                     if let Some(component) = $comp {
-                        $sto.insert(entity, ConvertSaveload::<M>::from(component, &mut ids)?);
+                        $sto.insert(entity, ConvertSaveload::<M>::convert_from(component, &mut ids)?);
                     } else {
                         $sto.remove(entity);
                     }

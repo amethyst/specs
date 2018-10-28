@@ -100,7 +100,7 @@ pub struct EntityData<M, D> {
 ///     type Data = TargetData<M>;
 ///     type Error = NoError;
 ///
-///     fn into<F>(&self, mut ids: F) -> Result<Self::Data, Self::Error>
+///     fn convert_into<F>(&self, mut ids: F) -> Result<Self::Data, Self::Error>
 ///     where
 ///         F: FnMut(Entity) -> Option<M>
 ///     {
@@ -108,7 +108,7 @@ pub struct EntityData<M, D> {
 ///         Ok(TargetData(marker))
 ///     }
 ///
-///     fn from<F>(data: Self::Data, mut ids: F) -> Result<Self, Self::Error>
+///     fn convert_from<F>(data: Self::Data, mut ids: F) -> Result<Self, Self::Error>
 ///     where
 ///         F: FnMut(M) -> Option<Entity>
 ///     {
@@ -128,13 +128,13 @@ pub trait ConvertSaveload<M>: Sized {
 
     /// Convert this data from a deserializable form (`Data`) using
     /// entity to marker mapping function
-    fn from<F>(data: Self::Data, ids: F) -> Result<Self, Self::Error>
+    fn convert_from<F>(data: Self::Data, ids: F) -> Result<Self, Self::Error>
     where
         F: FnMut(M) -> Option<Entity>;
 
     /// Convert this data type into serializable form (`Data`) using
     /// entity to marker mapping function
-    fn into<F>(&self, ids: F) -> Result<Self::Data, Self::Error>
+    fn convert_into<F>(&self, ids: F) -> Result<Self::Data, Self::Error>
     where
         F: FnMut(Entity) -> Option<M>;
 }
@@ -146,14 +146,14 @@ where
     type Data = Self;
     type Error = NoError;
 
-    fn into<F>(&self, _: F) -> Result<Self::Data, Self::Error>
+    fn convert_into<F>(&self, _: F) -> Result<Self::Data, Self::Error>
     where
         F: FnMut(Entity) -> Option<M>,
     {
         Ok(self.clone())
     }
 
-    fn from<F>(data: Self::Data, _: F) -> Result<Self, Self::Error>
+    fn convert_from<F>(data: Self::Data, _: F) -> Result<Self, Self::Error>
     where
         F: FnMut(M) -> Option<Entity>,
     {
@@ -168,14 +168,14 @@ where
     type Data = M;
     type Error = NoError;
 
-    fn into<F>(&self, mut func: F) -> Result<Self::Data, Self::Error>
+    fn convert_into<F>(&self, mut func: F) -> Result<Self::Data, Self::Error>
     where
         F: FnMut(Entity) -> Option<M>,
     {
         Ok(func(*self).unwrap())
     }
 
-    fn from<F>(data: Self::Data, mut func: F) -> Result<Self, Self::Error>
+    fn convert_from<F>(data: Self::Data, mut func: F) -> Result<Self, Self::Error>
     where
         F: FnMut(M) -> Option<Entity>,
     {

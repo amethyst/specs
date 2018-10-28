@@ -74,14 +74,14 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> TokenStream {
             type Data = #saveload_name #saveload_ty_generics;
             type Error = NoError;
 
-            fn into<F>(&self, mut ids: F) -> Result<Self::Data, Self::Error>
+            fn convert_into<F>(&self, mut ids: F) -> Result<Self::Data, Self::Error>
             where
                 F: FnMut(Entity) -> Option<MA>
             {
                 #ser
             }
 
-            fn from<F>(data: Self::Data, mut ids: F) -> Result<Self, Self::Error>
+            fn convert_from<F>(data: Self::Data, mut ids: F) -> Result<Self, Self::Error>
             where
                 F: FnMut(MA) -> Option<Entity>
             {
@@ -157,7 +157,7 @@ fn saveload_struct(
 /// ```nobuild
 ///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
 ///      FooSaveloadData {
-///          e: ConvertSaveload::into(&self.e, &mut ids)?
+///          e: ConvertSaveload::convert_into(&self.e, &mut ids)?
 ///      }
 ///  }
 /// ```
@@ -180,7 +180,7 @@ fn saveload_named_struct(
     let tmp = field_names.clone();
     let ser = quote! {
         Ok(#saveload_name {
-            # ( #field_names: ConvertSaveload::into(&self.#field_names_2, &mut ids)? ),*
+            # ( #field_names: ConvertSaveload::convert_into(&self.#field_names_2, &mut ids)? ),*
         })
     };
 
@@ -188,7 +188,7 @@ fn saveload_named_struct(
     let field_names_2 = field_names.clone();
     let de = quote! {
         Ok(#name {
-            # ( #field_names: ConvertSaveload::from(data.#field_names_2, &mut ids)? ),*
+            # ( #field_names: ConvertSaveload::convert_from(data.#field_names_2, &mut ids)? ),*
         })
     };
 
@@ -212,7 +212,7 @@ fn saveload_named_struct(
 /// ```nobuild
 ///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
 ///      FooSaveloadData (
-///          ConvertSaveload::into(&self.0, &mut ids)?
+///          ConvertSaveload::convert_into(&self.0, &mut ids)?
 ///      )
 ///  }
 /// ```
@@ -240,14 +240,14 @@ fn saveload_tuple_struct(
     let tmp = field_ids.clone();
     let ser = quote!{
         Ok(#saveload_name (
-            # ( ConvertSaveload::into(&self.#field_ids, &mut ids)? ),*
+            # ( ConvertSaveload::convert_into(&self.#field_ids, &mut ids)? ),*
         ))
     };
 
     let field_ids = tmp;
     let de = quote! {
         Ok(#name (
-            # ( ConvertSaveload::from(data.#field_ids, &mut ids)? ),*
+            # ( ConvertSaveload::convert_from(data.#field_ids, &mut ids)? ),*
         ))
     };
 
@@ -276,8 +276,8 @@ fn saveload_tuple_struct(
 /// ```nobuild
 ///  fn into<F: FnMut(Entity) -> Option<MA>>(&self, mut ids: F) -> Result<Self::Data, Self::Error> {
 ///      match *self {
-///          Foo::Bar(ref field0) => FooSaveloadData::Bar(ConvertSaveload::into(field0, &mut ids)? ),
-///          Foo::Baz{ ref e } => FooSaveloadData::Baz{ e: ConvertSaveload::into(e, &mut ids)? },
+///          Foo::Bar(ref field0) => FooSaveloadData::Bar(ConvertSaveload::convert_into(field0, &mut ids)? ),
+///          Foo::Baz{ ref e } => FooSaveloadData::Baz{ e: ConvertSaveload::convert_into(e, &mut ids)? },
 ///          Foo::Unit => FooSaveloadData::Unit,
 ///      }
 ///  }
@@ -328,7 +328,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
                 big_match_ser = quote!{
                     #big_match_ser
-                    #name::#ident { #( ref #names ),* } => #saveload_name::#ident { #( #names_3: ConvertSaveload::into(#names_2, ids)? ),* },
+                    #name::#ident { #( ref #names ),* } => #saveload_name::#ident { #( #names_3: ConvertSaveload::convert_into(#names_2, ids)? ),* },
                 };
 
                 let names = get_names();
@@ -337,7 +337,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
                 big_match_de = quote!{
                     #big_match_de
-                    #saveload_name::#ident { #( #names ),* } => #name::#ident { #( #names_3: ConvertSaveload::from(#names_2, &mut ids)? ),* },
+                    #saveload_name::#ident { #( #names ),* } => #name::#ident { #( #names_3: ConvertSaveload::convert_from(#names_2, &mut ids)? ),* },
                 };
             }
             Fields::Unnamed(fields) => {
@@ -353,7 +353,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
                 big_match_ser = quote!{
                     #big_match_ser
-                    #name::#ident( #( ref #field_ids ),* ) => #saveload_name::#ident( #( ConvertSaveload::into(#field_ids_2, &mut ids)? ),* ),
+                    #name::#ident( #( ref #field_ids ),* ) => #saveload_name::#ident( #( ConvertSaveload::convert_into(#field_ids_2, &mut ids)? ),* ),
                 };
 
                 let field_ids = tmp;
@@ -361,7 +361,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
                 big_match_de = quote!{
                     #big_match_de
-                    #saveload_name::#ident( #( #field_ids ),* ) => #name::#ident( #( ConvertSaveload::from(#field_ids_2, &mut ids)? ),* ),
+                    #saveload_name::#ident( #( #field_ids ),* ) => #name::#ident( #( ConvertSaveload::convert_from(#field_ids_2, &mut ids)? ),* ),
                 };
             }
             Fields::Unit => {
