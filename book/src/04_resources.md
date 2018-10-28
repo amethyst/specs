@@ -10,6 +10,7 @@ the velocity. Let's see how we can do this the right way.
 [c3]: ./03_dispatcher.html
 
 ```rust,ignore
+#[derive(Default)]
 struct DeltaTime(f32);
 ```
 
