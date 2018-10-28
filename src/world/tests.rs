@@ -125,26 +125,6 @@ fn delete_twice() {
 }
 
 #[test]
-fn test_bundle() {
-    let mut world = World::new();
-
-    pub struct SomeResource {
-        pub v: u32,
-    }
-
-    pub struct TestBundle;
-
-    impl Bundle for TestBundle {
-        fn add_to_world(self, world: &mut World) {
-            world.add_resource(SomeResource { v: 12 });
-        }
-    }
-
-    world.add_bundle(TestBundle);
-    assert_eq!(12, world.read_resource::<SomeResource>().v);
-}
-
-#[test]
 fn delete_and_lazy() {
     let mut world = World::new();
     {

@@ -107,7 +107,7 @@ fn main() {
         // then you will find the new inserted component rather than the modified one from earlier.
         tracked.get_mut(e3).unwrap().0 = 20;
         tracked.remove(e3);
-        tracked.insert(e3, TrackedComponent(10));
+        tracked.insert(e3, TrackedComponent(10)).unwrap();
     }
 
     dispatcher.dispatch(&mut world.res);

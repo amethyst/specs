@@ -1,19 +1,35 @@
-# Unreleased
+# [Unreleased]
 
-* Generation now internally uses the new `NonZeroI32` from `nonzero_signed`, meaning `Option<Entity>` is the same size as `Entity`.
-Note this bumps the minimum supported rust version to 1.28.0 ([#447]).
-* Deprecated `world::Bundle` ([#486])
+
+# 0.14.0
+
+* Changed `ConvertSaveload::convert_into` and `ConvertSaveload::convert_from` ([#504])
+
+[#504]: https://github.com/slide-rs/specs/pull/504
+
+# 0.13.0
+
+This release can be skipped; please use `0.14` instead.
+
+* Generation now internally uses the new `NonZeroI32` from `nonzero_signed`, meaning `Option<Entity>` is the same
+  size as `Entity`. Note this bumps the minimum supported rust version to 1.28.0 ([#447]).
+* Improved `saveload` and added custom derive for components with `Entity` ([#460])
+* Removed `world::Bundle` ([#486], [#505])
 * Updated Chapter 7: Setup to be more explicit, updated examples to follow that methodology ([#487])
 * Added some comments to the `saveload` example ([#492])
 * Updated dependency versions ([#494])
 * FlaggedStorage rewrite with single event channel instead of multiple for ordering. ([#489])
+* Make it possible to run on wasm ([#495])
 
 [#447]: https://github.com/slide-rs/specs/pull/447
+[#460]: https://github.com/slide-rs/specs/pull/460
 [#486]: https://github.com/slide-rs/specs/pull/486
 [#487]: https://github.com/slide-rs/specs/pull/487
 [#489]: https://github.com/slide-rs/specs/pull/489
 [#492]: https://github.com/slide-rs/specs/pull/492
 [#494]: https://github.com/slide-rs/specs/pull/494
+[#495]: https://github.com/slide-rs/specs/pull/495
+[#505]: https://github.com/slide-rs/specs/pull/505
 
 # 0.12.3
 
