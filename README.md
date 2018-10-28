@@ -32,7 +32,7 @@ Unlike most other ECS libraries out there, it provides
       other and you can use barriers to force several stages in system execution
 * high performance for real-world applications
 
-Minimum Rust version: 1.21
+Minimum Rust version: 1.28
 
 ## [Link to the book][book]
 
