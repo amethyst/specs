@@ -97,7 +97,7 @@ fn main() {
         .join()
         .map(|(e, _)| e)
         .collect::<Vec<Entity>>();
-    world.delete_entities(&entities);
+    world.delete_entities(&entities).unwrap();
 
     for _ in 0..50 {
         world.create_entity().with(TrackedComponent(0)).build();

@@ -574,15 +574,6 @@ impl World {
         }
     }
 
-    /// Adds the given bundle of resources/components.
-    #[deprecated(note="Please read the book's chapter on setup: https://slide-rs.github.io/specs/07_setup.html")]
-    pub fn add_bundle<B>(&mut self, bundle: B)
-    where
-        B: Bundle,
-    {
-        bundle.add_to_world(self);
-    }
-
     fn any_storages(&self) -> FetchMut<MetaTable<AnyStorage>> {
         self.res.fetch_mut::<MetaTable<AnyStorage>>()
     }
@@ -611,11 +602,4 @@ impl Default for World {
 
         World { res }
     }
-}
-
-/// Trait used to bundle up resources/components for easy registration with `World`.
-#[deprecated(note="Please read the book's chapter on setup: https://slide-rs.github.io/specs/07_setup.html")]
-pub trait Bundle {
-    /// Add resources/components to `world`.
-    fn add_to_world(self, world: &mut World);
 }
