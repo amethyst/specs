@@ -100,7 +100,7 @@ pub struct EntityData<M, D> {
 ///     type Data = TargetData<M>;
 ///     type Error = NoError;
 ///
-///     fn into<F>(&self, mut ids: F) -> Result<Self::Data, Self::Error>
+///     fn convert_into<F>(&self, mut ids: F) -> Result<Self::Data, Self::Error>
 ///     where
 ///         F: FnMut(Entity) -> Option<M>
 ///     {
@@ -108,7 +108,7 @@ pub struct EntityData<M, D> {
 ///         Ok(TargetData(marker))
 ///     }
 ///
-///     fn from<F>(data: Self::Data, mut ids: F) -> Result<Self, Self::Error>
+///     fn convert_from<F>(data: Self::Data, mut ids: F) -> Result<Self, Self::Error>
 ///     where
 ///         F: FnMut(M) -> Option<Entity>
 ///     {
