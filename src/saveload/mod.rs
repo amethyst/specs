@@ -172,13 +172,13 @@ where
     where
         F: FnMut(Entity) -> Option<M>,
     {
-        Ok(func(*self).unwrap_or_else(|| panic!("No marker found for entity; has the entity been deleted?")))
+        Ok(func(*self).expect("No marker found for entity; has the entity been deleted?"))
     }
 
     fn convert_from<F>(data: Self::Data, mut func: F) -> Result<Self, Self::Error>
     where
         F: FnMut(M) -> Option<Entity>,
     {
-        Ok(func(data).unwrap_or_else(|| panic!("No entity found for marker; has the entity been deleted?")))
+        Ok(func(data).expect("No entity found for marker; has the entity been deleted?"))
     }
 }
