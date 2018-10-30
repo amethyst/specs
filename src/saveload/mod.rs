@@ -25,7 +25,7 @@
 
 use serde::{Serialize, de::DeserializeOwned};
 
-use error::NoError;
+use error::{Error, NoError};
 use world::Entity;
 
 mod de;
@@ -166,19 +166,19 @@ where
     M: Serialize + DeserializeOwned,
 {
     type Data = M;
-    type Error = NoError;
+    type Error = Error;
 
     fn convert_into<F>(&self, mut func: F) -> Result<Self::Data, Self::Error>
     where
         F: FnMut(Entity) -> Option<M>,
     {
-        Ok(func(*self).expect("No marker found for entity; has the entity been deleted?"))
+        func(*self).ok_or(Error::NoMarker)
     }
 
     fn convert_from<F>(data: Self::Data, mut func: F) -> Result<Self, Self::Error>
     where
         F: FnMut(M) -> Option<Entity>,
     {
-        Ok(func(data).expect("No entity found for marker; has the entity been deleted?"))
+        func(data).ok_or(Error::NoEntity)
     }
 }

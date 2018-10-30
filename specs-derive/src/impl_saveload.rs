@@ -72,7 +72,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> TokenStream {
 
         impl #impl_generics ConvertSaveload<MA> for #name #ty_generics #where_clause {
             type Data = #saveload_name #saveload_ty_generics;
-            type Error = NoError;
+            type Error = Error;
 
             fn convert_into<F>(&self, mut ids: F) -> Result<Self::Data, Self::Error>
             where

@@ -59,6 +59,10 @@ pub enum Error {
     Custom(BoxedErr),
     /// Wrong generation error.
     WrongGeneration(WrongGeneration),
+    /// No marker was found for entity.
+    NoMarker,
+    /// No entity was found for marker
+    NoEntity,
 
     #[doc(hidden)]
     __NonExhaustive,
@@ -69,7 +73,8 @@ impl Display for Error {
         match *self {
             Error::Custom(ref e) => write!(f, "Custom: {}", e),
             Error::WrongGeneration(ref e) => write!(f, "Wrong generation: {}", e),
-
+            Error::NoMarker => write!(f, "No marker found for entity; has the entity been deleted?"),
+            Error::NoEntity => write!(f, "No entity found for marker; has the entity been deleted?"),
             Error::__NonExhaustive => unimplemented!(),
         }
     }
@@ -96,11 +101,18 @@ impl StdError for Error {
         let e = match *self {
             Error::Custom(ref e) => e.as_ref(),
             Error::WrongGeneration(ref e) => e,
-
+            Error::NoMarker => unimplemented!(),
+            Error::NoEntity => unimplemented!(),
             Error::__NonExhaustive => unimplemented!(),
         };
 
         Some(e)
+    }
+}
+
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_string() == other.to_string()
     }
 }
 

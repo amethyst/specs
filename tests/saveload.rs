@@ -11,7 +11,12 @@ extern crate specs_derive;
 
 #[cfg(feature = "serde")]
 mod tests {
-    use spocs::{Builder, Entity, saveload::{ConvertSaveload, Marker, U64Marker}, error::NoError, World};
+    use spocs::{
+        Builder, Entity,
+        saveload::{ConvertSaveload, Marker, U64Marker, U64MarkerAllocator, MarkedBuilder, SerializeComponents},
+        error::{Error, NoError},
+        World, ReadStorage, DenseVecStorage, Component
+    };
 
     #[derive(ConvertSaveload)]
     struct OneFieldNamed {
@@ -69,7 +74,52 @@ mod tests {
         // The derive will work for all variants
         // so no need to test anything but unit
         black_box::<U64Marker, _>(AnEnum::Unit);
-        black_box::<U64Marker, _>(Generic(entity));
+        //black_box::<U64Marker, _>(Generic(entity));
+    }
+
+    #[test]
+    fn test_entity_reference_error() {
+        #[derive(Component)]
+        struct Parent(Entity);
+
+        impl ConvertSaveload<U64Marker> for Parent {
+            type Data = U64Marker;
+            type Error = Error;
+
+            fn convert_into<F: FnMut(Entity) -> Option<U64Marker>>(&self, ids: F) -> Result<Self::Data, Self::Error> {
+                self.0.convert_into(ids)
+            }
+
+            fn convert_from<F: FnMut(U64Marker) -> Option<Entity>>(marker: Self::Data, ids: F) -> Result<Self, Self::Error> {
+                Entity::convert_from(marker,  ids).map(|entity| Parent(entity))
+            }
+        }
+
+        let mut world = World::new();
+
+        world.register::<Parent>();
+        world.register::<U64Marker>();
+        world.add_resource(U64MarkerAllocator::new());
+
+        let parent = world.create_entity()
+            .marked::<U64Marker>()
+            .build();
+
+        let child = world.create_entity()
+            .with(Parent(parent))
+            .marked::<U64Marker>()
+            .build();
+
+        world.delete_entity(parent).unwrap();
+
+        let (parents, markers): (ReadStorage<Parent>, ReadStorage<U64Marker>) = world.system_data();
+
+        let ids = |entity| markers.get(entity).cloned();
+
+        assert_eq!(
+            (&parents,).serialize_entity(child, ids),
+            Err(Error::NoMarker)
+        );
     }
 
     fn black_box<M, T: ConvertSaveload<M>>(_item: T) {}
