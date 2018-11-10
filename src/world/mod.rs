@@ -88,6 +88,43 @@ pub trait Builder {
 ///     .with(Pos { x: 1.0, y: 3.0 })
 ///     .build(); // Returns the `Entity`
 /// ```
+///
+/// ### Distinguishing Mandatory Components from Optional Components
+///
+/// ```
+/// use specs::prelude::*;
+/// use specs::storage::HashMapStorage;
+///
+/// struct MandatoryHealth(f32);
+///
+/// impl Component for MandatoryHealth {
+///     type Storage = HashMapStorage<Self>;
+/// }
+///
+/// struct OptionalPos {
+///     x: f32,
+///     y: f32,
+/// }
+///
+/// impl Component for OptionalPos {
+///     type Storage = DenseVecStorage<Self>;
+/// }
+///
+/// let mut world = World::new();
+/// world.register::<MandatoryHealth>();
+/// world.register::<OptionalPos>();
+///
+/// let mut entitybuilder = world.create_entity().with(MandatoryHealth(4.0));
+///
+/// // something trivial to serve as our conditional
+/// let include_optional = true; 
+///
+/// if include_optional == true {
+///     entitybuilder = entitybuilder.with(OptionalPos { x: 1.0, y: 3.0 })
+/// }
+///
+/// let entity = entitybuilder.build();
+/// ```
 #[must_use = "Please call .build() on this to finish building it."]
 pub struct EntityBuilder<'a> {
     /// The (already created) entity for which components will be inserted.
