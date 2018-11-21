@@ -27,16 +27,17 @@ use world::{Component, EntitiesRes};
 /// something like this:
 ///
 /// ```
-/// # use specs::prelude::*;
-/// #
-/// # struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
-/// # struct Vel; impl Component for Vel { type Storage = VecStorage<Self>; }
-/// #
-/// # let mut world = World::new(); world.register::<Pos>(); world.register::<Vel>();
-/// # let pos_storage = world.read_storage::<Pos>();
-/// # let vel_storage = world.read_storage::<Vel>();
-/// (&pos_storage, &vel_storage).join()
-/// # ;
+/// use specs::prelude::*;
+///
+/// struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
+/// struct Vel; impl Component for Vel { type Storage = VecStorage<Self>; }
+///
+/// let mut world = World::new(); world.register::<Pos>(); world.register::<Vel>();
+/// let pos_storage = world.read_storage::<Pos>();
+/// let vel_storage = world.read_storage::<Vel>();
+///
+/// for (pos, vel) in (&pos_storage, &vel_storage).join() {
+/// }
 /// ```
 ///
 /// This joins the position and the velocity storage, which means it only
