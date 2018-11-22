@@ -202,6 +202,15 @@ where
         &self.data.inner
     }
 
+    /// Returns the `EntitesRes` resource fetched by this storage.
+    /// **This does not have anything to do with the components inside.**
+    /// You only want to use this when implementing additional methods
+    /// for `Storage` via an extension trait.
+    #[doc(hidden)]
+    pub fn entitites(&self) -> &EntitiesRes {
+        &self.entities
+    }
+
     /// Tries to read the data associated with an `Entity`.
     pub fn get(&self, e: Entity) -> Option<&T> {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
