@@ -11,6 +11,7 @@ pub use self::restrict::{
 pub use self::storages::RudyStorage;
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 pub use self::track::{ComponentEvent, Tracked};
+pub use self::entry::{Entries, OccupiedEntry, VacantEntry, StorageEntry};
 
 use std;
 use std::marker::PhantomData;
@@ -35,6 +36,7 @@ mod storages;
 #[cfg(test)]
 mod tests;
 mod track;
+mod entry;
 
 /// An inverted storage type, only useful to iterate entities
 /// that do not have a particular component type.
@@ -231,105 +233,6 @@ where
     }
 }
 
-/// An entry to a storage which has a component associated to the entity.
-pub struct OccupiedEntry<'a, 'b: 'a, T: 'a, D: 'a> {
-    entity: Entity,
-    storage: &'a mut Storage<'b, T, D>,
-}
-
-impl<'a, 'b, T, D> OccupiedEntry<'a, 'b, T, D>
-where
-    T: Component,
-    D: Deref<Target = MaskedStorage<T>>,
-{
-    /// Get a reference to the component associated with the entity.
-    pub fn get(&self) -> &T {
-        unsafe { self.storage.data.inner.get(self.entity.id()) }
-    }
-}
-
-impl<'a, 'b, T, D> OccupiedEntry<'a, 'b, T, D>
-where
-    T: Component,
-    D: DerefMut<Target = MaskedStorage<T>>,
-{
-    /// Get a mutable reference to the component associated with the entity.
-    pub fn get_mut(&mut self) -> &mut T {
-        unsafe { self.storage.data.inner.get_mut(self.entity.id()) }
-    }
-
-    /// Converts the `OccupiedEntry` into a mutable reference bounded by
-    /// the storage's lifetime.
-    pub fn into_mut(self) -> &'a mut T {
-        unsafe { self.storage.data.inner.get_mut(self.entity.id()) }
-    }
-
-    /// Inserts a value into the storage and returns the old one.
-    pub fn insert(&mut self, mut component: T) -> T {
-        std::mem::swap(&mut component, self.get_mut());
-        component
-    }
-
-    /// Removes the component from the storage and returns it.
-    pub fn remove(self) -> T {
-        self.storage.data.remove(self.entity.id()).unwrap()
-    }
-}
-
-/// An entry to a storage which does not have a component associated to the entity.
-pub struct VacantEntry<'a, 'b: 'a, T: 'a, D: 'a> {
-    entity: Entity,
-    storage: &'a mut Storage<'b, T, D>,
-}
-
-impl<'a, 'b, T, D> VacantEntry<'a, 'b, T, D>
-where
-    T: Component,
-    D: DerefMut<Target = MaskedStorage<T>>,
-{
-    /// Inserts a value into the storage.
-    pub fn insert(self, component: T) -> &'a mut T {
-        let id = self.entity.id();
-        self.storage.data.mask.add(id);
-        unsafe {
-            self.storage.data.inner.insert(id, component);
-            self.storage.data.inner.get_mut(id)
-        }
-    }
-}
-
-/// Entry to a storage for convenient filling of components or removal based on whether
-/// the entity has a component.
-pub enum StorageEntry<'a, 'b: 'a, T: 'a, D: 'a> {
-    /// Entry variant that is returned if the entity does has a component.
-    Occupied(OccupiedEntry<'a, 'b, T, D>),
-    /// Entry variant that is returned if the entity does not have a component.
-    Vacant(VacantEntry<'a, 'b, T, D>),
-}
-
-impl<'a, 'b, T, D> StorageEntry<'a, 'b, T, D>
-where
-    T: Component,
-    D: DerefMut<Target = MaskedStorage<T>>,
-{
-    /// Inserts a component if the entity does not contain a component.
-    pub fn or_insert(self, component: T) -> &'a mut T {
-        self.or_insert_with(|| component)
-    }
-
-    /// Inserts a component using a lazily called function that is only called
-    /// when inserting the component.
-    pub fn or_insert_with<F>(self, default: F) -> &'a mut T
-    where
-        F: FnOnce() -> T,
-    {
-        match self {
-            StorageEntry::Occupied(occupied) => occupied.into_mut(),
-            StorageEntry::Vacant(vacant) => vacant.insert(default()),
-        }
-    }
-}
-
 impl<'e, T, D> Storage<'e, T, D>
 where
     T: Component,
@@ -349,61 +252,6 @@ where
             Some(unsafe { self.data.inner.get_mut(e.id()) })
         } else {
             None
-        }
-    }
-
-    /// Returns an entry to the component associated to the entity.
-    ///
-    /// Behaves somewhat similarly to `std::collections::HashMap`'s entry api.
-    ///
-    /// ## Example
-    ///
-    /// ```rust
-    /// # extern crate specs;
-    /// # use specs::prelude::*;
-    /// # struct Comp {
-    /// #    field: u32
-    /// # }
-    /// # impl Component for Comp {
-    /// #    type Storage = DenseVecStorage<Self>;
-    /// # }
-    /// # fn main() {
-    /// # let mut world = World::new();
-    /// # world.register::<Comp>();
-    /// # let entity = world.create_entity().build();
-    /// # let mut storage = world.write_storage::<Comp>();
-    ///  if let Ok(entry) = storage.entry(entity) {
-    ///      entry.or_insert(Comp { field: 55 });
-    ///  }
-    /// # }
-    /// ```
-    pub fn entry<'a>(&'a mut self, e: Entity) -> Result<StorageEntry<'a, 'e, T, D>, WrongGeneration>
-    where
-        'e: 'a,
-    {
-        if self.entities.is_alive(e) {
-            if self.data.mask.contains(e.id()) {
-                Ok(StorageEntry::Occupied(OccupiedEntry {
-                    entity: e,
-                    storage: self,
-                }))
-            } else {
-                Ok(StorageEntry::Vacant(VacantEntry {
-                    entity: e,
-                    storage: self,
-                }))
-            }
-        } else {
-            let gen = self
-                .entities
-                .alloc
-                .generation(e.id())
-                .unwrap_or(Generation::one());
-            Err(WrongGeneration {
-                action: "attempting to get an entry to a storage",
-                actual_gen: gen,
-                entity: e,
-            })
         }
     }
 
