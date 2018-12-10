@@ -58,6 +58,62 @@ where
 
     /// Returns a `Join`-able structure that yields all indices, returning
     /// `Entry` for all elements
+    ///
+    /// WARNING: Do not have a join of only `Entries`s. Otherwise the join will
+    /// iterate over every single index of the bitset. If you want a join with
+    /// all `Entries`s, add an `EntitiesRes` to the join as well to bound the
+    /// join to all entities that are alive.
+    /// 
+    /// ## Example
+    /// 
+    /// ```rust
+    /// # extern crate specs;
+    /// # use specs::prelude::*;
+    /// #
+    /// # #[derive(Default)]
+    /// # struct Counter(u32);
+    /// #
+    /// # impl Counter {
+    /// #     fn increase(&mut self) {
+    /// #         self.0 += 1
+    /// #     }
+    /// #     fn reached_limit(&self) -> bool {
+    /// #         return self.0 >= 100;
+    /// #     }
+    /// #     fn reset(&mut self) {
+    /// #         return self.0 = 0;
+    /// #     }
+    /// # }
+    /// #
+    /// # impl Component for Counter {
+    /// #     type Storage = VecStorage<Self>;
+    /// # }
+    /// #
+    /// # #[derive(Default)]
+    /// # struct AllowCounter;
+    /// #
+    /// # impl Component for AllowCounter {
+    /// #     type Storage = NullStorage<Self>;
+    /// # }
+    /// #
+    /// # let mut world = World::new();
+    /// # world.register::<Counter>();
+    /// # for _ in 0..15 {
+    /// #     world.create_entity().build();
+    /// # }
+    /// # 
+    /// # world.exec(|(mut counters, marker): (WriteStorage<Counter>, ReadStorage<AllowCounter>)| {
+    /// for (mut counter, _) in (counters.entries(), &marker).join() {
+    ///     let counter = counter.or_insert_with(Default::default);
+    ///     counter.increase();
+    ///         
+    ///     if counter.reached_limit() {
+    ///         counter.reset();
+    ///         // Do something
+    ///     }
+    /// }
+    /// # });
+    /// ```
     pub fn entries<'a>(&'a mut self) -> Entries<'a, 'e, T, D> {
         Entries(self)
     }
