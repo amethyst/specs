@@ -188,7 +188,9 @@ where
     }
 
     /// Inserts a component using a lazily called function that is only called
-    /// when inserting the component.
+    /// when inserting the component. Ensures this entry has a value and if not, 
+    /// inserts one using the result of the passed closure. Returns a reference 
+    /// to the value afterwards.
     pub fn or_insert_with<F>(self, default: F) -> &'a mut T
     where
         F: FnOnce() -> T,
