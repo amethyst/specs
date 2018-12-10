@@ -233,6 +233,18 @@ mod test {
         type Storage = NullStorage<Self>;
     }
 
+    struct CEntries(u32);
+
+    impl From<u32> for CEntries {
+        fn from(v: u32) -> CEntries {
+            CEntries(v)
+        }
+    }
+
+    impl Component for CEntries {
+        type Storage = VecStorage<Self>;
+    }
+
     fn test_add<T: Component + From<u32> + Debug + Eq>()
     where
         T::Storage: Default,
@@ -839,5 +851,42 @@ mod test {
             assert!(!modified.contains(entity.id()));
             assert!(removed.contains(entity.id()));
         }
+    }
+
+    #[test]
+    fn entries() {
+        use join::Join;
+        use world::Entities;
+        use storage::WriteStorage;
+
+        let mut w = World::new();
+
+        w.register::<CEntries>();
+
+        {
+            let mut s: Storage<CEntries, _> = w.write_storage();
+
+            for i in 0..15 {
+                let entity = w.entities().create();
+                if let Err(err) = s.insert(entity, i.into()) {
+                    panic!("Failed to insert component into entity! {:?}", err);
+                }
+            }
+
+            for i in 0..15 {
+                w.entities().create();
+            }
+        }
+
+        let mut sum = 0;
+        
+        w.exec(|(e, mut s): (Entities, WriteStorage<CEntries>)| {
+            sum = (&e, s.entries()).join().fold(0, |acc, (_, value)| {
+                let v = value.or_insert(2.into());
+                acc + v.0
+            });
+        });
+
+        assert_eq!(sum, 135);
     }
 }
