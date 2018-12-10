@@ -66,6 +66,13 @@ where
 /// `Join`-able structure that yields all indices, returning `Entry` for all elements
 pub struct Entries<'a, 'b: 'a, T: 'a, D: 'a>(&'a mut Storage<'b, T, D>);
 
+#[cfg(feature = "parallel")]
+unsafe impl<'a, 'b: 'a, T: 'a, D: 'a> ParJoin for Entries<'a, 'b, T, D>
+where
+    &'a mut Storage<'b, T, D>: ParJoin,
+    T: Component,
+{}
+
 impl<'a, 'b: 'a, T: 'a, D: 'a> Join for Entries<'a, 'b, T, D>
 where
     T: Component,
