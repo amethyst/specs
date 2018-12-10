@@ -171,7 +171,7 @@ where
 /// Entry to a storage for convenient filling of components or removal based on whether
 /// the entity has a component.
 pub enum StorageEntry<'a, 'b: 'a, T: 'a, D: 'a> {
-    /// Entry variant that is returned if the entity does has a component.
+    /// Entry variant that is returned if the entity has a component.
     Occupied(OccupiedEntry<'a, 'b, T, D>),
     /// Entry variant that is returned if the entity does not have a component.
     Vacant(VacantEntry<'a, 'b, T, D>),
@@ -182,7 +182,7 @@ where
     T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,
 {
-    /// Inserts a component if the entity does not contain a component.
+    /// Inserts a component if the entity does not have it already.
     pub fn or_insert(self, component: T) -> &'a mut T {
         self.or_insert_with(|| component)
     }
