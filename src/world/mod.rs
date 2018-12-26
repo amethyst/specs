@@ -440,6 +440,13 @@ impl World {
         }
     }
 
+    /// Adds a resource to the world, if the resource does not exist yet. See `add_resource` for more information.
+    pub fn add_resource_soft<T: Resource>(&mut self, res: T) {
+        if !self.res.has_value::<T>() {
+            self.add_resource(res);
+        }
+    }
+
     /// Fetches a component's storage for reading.
     ///
     /// ## Panics
@@ -482,6 +489,13 @@ impl World {
     /// Panics if the resource has not been added.
     pub fn write_resource<T: Resource>(&self) -> FetchMut<T> {
         self.res.fetch_mut()
+    }
+
+    /// Updates a resource if the resource is None. 
+    pub fn update_resource_if_none<T: Resource>(&mut self, res: Option<T>) {
+        if (self.read_resource::<Option<T>>()).is_none() {
+            *self.write_resource() = res
+        }
     }
 
     /// Convenience method for fetching entities.
