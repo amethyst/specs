@@ -255,26 +255,26 @@ where
         }
     }
 
-    /// Tries to retrieve `e` from the storage and passes a mutable reference to `and_then`.
+    /// Tries to retrieve `entity` from the storage and passes a mutable reference to `f`.
     /// This is useful for accessing multiple components mutably.
     ///
     /// # Parameters
     ///
-    /// * `e`: The `Entity` you want to retrieve the component for. If it is not alive (was deleted)
-    ///   or there is no component for `e` in this storage, `None` will be passed to `and_then`.
-    /// * `and_then`: A closure executed independently of the existence of the component. It will
+    /// * `entity`: The `Entity` you want to retrieve the component for. If it is not alive (was deleted)
+    ///   or there is no component for `e` in this storage, `None` will be passed to `f`.
+    /// * `f`: A closure executed independently of the existence of the component. It will
     ///   be passed `self` as a first argument, and an optional reference to the component (in
     ///   case it existed and is alive). The closure may return a value of type `R`, which will
     ///   be returned from this method.
     ///
     /// # How this works
     ///
-    /// This implementation removes and re-inserts the component at `e` to prove to the compiler
-    /// the accessed components are distinct (or you will get a `None`).
+    /// This implementation removes and re-inserts the component at `entity` to prove to the
+    /// compiler the accessed components are distinct (or you will get a `None`).
     ///
     /// # Recommended usage
     ///
-    /// Check entities for equality prior to using this method; that way, if you get `None`, the
+    /// Check entities for inequality prior to using this method; that way, if you get `None`, the
     /// error is limited to a missing component.
     ///
     /// # Examples
@@ -332,6 +332,14 @@ where
     /// ```
     /// use specs::prelude::*;
     ///
+    /// /// This is used to mark enemy robots.
+    /// #[derive(Default)]
+    /// pub struct Enemy;
+    ///
+    /// impl Component for Enemy {
+    ///     type Storage = NullStorage<Self>;
+    /// }
+    ///
     /// pub enum FightResult {
     ///     Won,
     ///     Lost,
@@ -342,12 +350,20 @@ where
     ///     type Storage = HashMapStorage<Self>;
     /// }
     ///
-    /// pub struct Robot;
+    /// pub struct Robot {
+    ///     name: String,
+    ///     level: i32,
+    /// }
     ///
     /// impl Robot {
     ///     pub fn fight(&mut self, _other: &mut Robot) -> FightResult {
-    ///         // This one is actually pacifist
-    ///         FightResult::Undecided
+    ///         match self.name.as_ref() {
+    ///             "Earl" => {
+    ///                 // This one is actually pacifist
+    ///                 FightResult::Undecided
+    ///             }
+    ///             _ => FightResult::Lost,
+    ///         }
     ///     }
     /// }
     ///
@@ -356,23 +372,41 @@ where
     /// }
     ///
     /// /// This system transforms a set of `Robot`s into a set of `FightResult`s.
-    /// pub struct Fighting {
-    ///     bitset: BitSet,
-    /// }
+    /// /// Each non-enemy robot will fight against each enemy robot.
+    /// pub struct Fighting;
     ///
     /// impl<'a> System<'a> for Fighting {
     ///     type SystemData = (
     ///         Entities<'a>,
+    ///         ReadStorage<'a, Enemy>,
     ///         WriteStorage<'a, FightResult>,
-    ///         WriteStorage<'a, Robot>
+    ///         WriteStorage<'a, Robot>,
     ///     );
     ///
-    ///     fn run(&mut self, (entities, results, robots): Self::SystemData) {
-    ///         self.bitset.clear();
-    ///         self.bitset.extend(robots.mask().into_iter().cloned());
+    ///     fn run(&mut self, (entities, enemies, mut results, mut robots): Self::SystemData) {
+    ///         for (enemy_entity, _) in (&*entities, &enemies).join() {
+    ///             // Start with a set of all robots...
+    ///             let mut non_enemy_robots = robots.mask().clone();
+    ///             // ...and remove all enemies by performing an OR
+    ///             // with the negation of the enemies
+    ///             non_enemy_robots |= &!enemies.mask();
     ///
-    ///         for (e, _) in (entities, &self.bitset).join() {
+    ///             for (robot_entity, _) in (&*entities, non_enemy_robots).join() {
+    ///                 assert!(enemy_entity != robot_entity); // This should never be able to panic
     ///
+    ///                 // Now, `enemy_entity` and `robot_entity` need to fight
+    ///                 let fight_result = robots.with_mut(robot_entity, |robots, robot| {
+    ///                     let enemy = robots.get_mut(enemy_entity);
+    ///
+    ///                     let robot = robot.expect("Joining ensured the component exists");
+    ///                     let enemy = enemy.expect("Joining ensured the component exists");
+    ///
+    ///                     robot.fight(enemy)
+    ///                 });
+    ///
+    ///                 // Let's store the results together with the fighting robot
+    ///                 results.insert(robot_entity, fight_result).expect("Entity must be valid");
+    ///             }
     ///         }
     ///     }
     /// }
@@ -380,21 +414,21 @@ where
     ///
     /// # Panics
     ///
-    /// Panics if component for `e` gets inserted inside `and_then`.
-    pub fn with_mut<F, R>(&mut self, e: Entity, and_then: F) -> R
+    /// Panics if the component of `entity` gets inserted inside `f`.
+    pub fn with_mut<F, R>(&mut self, entity: Entity, f: F) -> R
     where
         F: FnOnce(&mut Self, Option<&mut T>) -> R,
     {
-        let mut component = self.remove(e);
+        let mut component = self.remove(entity);
 
-        let r = and_then(self, component.as_mut());
+        let r = f(self, component.as_mut());
 
         if let Some(component) = component {
             assert!(
-                "Closure inserted a component for `e`; please modify the component instead.",
-                self.insert(e, component)
+                self.insert(entity, component)
                     .expect("Unreachable: Entity has to be alive")
-                    .is_none()
+                    .is_none(),
+                "Closure inserted a component for `entity`; please modify the component instead.",
             );
         }
 
