@@ -78,6 +78,9 @@ unsafe impl<T> DistinctStorage for HashMapStorage<T> {}
 /// Dense vector storage. Has a redirection 2-way table
 /// between entities and components, allowing to leave
 /// no gaps within the data.
+///
+/// Note that this only stores the data (`T`) densely; indices
+/// to the data are stored in a sparse `Vec`.
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct DenseVecStorage<T> {
