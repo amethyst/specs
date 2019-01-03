@@ -70,6 +70,8 @@ impl Allocator {
             }
 
             self.alive.remove(entity.id());
+            // If the `Entity` was killed by `kill_atomic`, remove the bit set by it.
+            self.killed.remove(entity.id());
 
             self.update_generation_length(id);
 
@@ -463,13 +465,6 @@ impl ZeroableGeneration {
     }
 }
 
-#[test]
-fn test_nonzero_optimization() {
-    use std::mem::size_of;
-    assert_eq!(size_of::<Option<Generation>>(), size_of::<Generation>());
-    assert_eq!(size_of::<Option<Entity>>(), size_of::<Entity>());
-}
-
 #[derive(Default, Debug)]
 struct EntityCache {
     cache: Vec<Index>,
@@ -528,4 +523,49 @@ fn atomic_decrement(i: &AtomicUsize) -> Option<usize> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_nonzero_optimization() {
+        use std::mem::size_of;
+        assert_eq!(size_of::<Option<Generation>>(), size_of::<Generation>());
+        assert_eq!(size_of::<Option<Entity>>(), size_of::<Entity>());
+    }
+
+    #[test]
+    fn kill_atomic_create_merge() {
+        let mut allocator = Allocator::default();
+
+        let entity = allocator.allocate();
+        assert_eq!(entity.id(), 0);
+
+        allocator.kill_atomic(entity).unwrap();
+
+        assert_ne!(allocator.allocate(), entity);
+
+        assert_eq!(allocator.killed.contains(entity.id()), true);
+        assert_eq!(allocator.merge(), vec![entity]);
+    }
+
+    #[test]
+    fn kill_atomic_kill_now_create_merge() {
+        let mut allocator = Allocator::default();
+
+        let entity = allocator.allocate();
+
+        allocator.kill_atomic(entity).unwrap();
+
+        assert_ne!(allocator.allocate(), entity);
+
+        allocator.kill(&[entity]).unwrap();
+
+        allocator.allocate();
+
+        assert_eq!(allocator.killed.contains(entity.id()), false);
+        assert_eq!(allocator.merge(), vec![]);
+    }
 }
