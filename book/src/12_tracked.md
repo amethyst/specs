@@ -51,7 +51,11 @@ impl<'a> System<'a> for Sys {
                 ComponentEvent::Modified(id) | ComponentEvent::Inserted(id) => {
                     self.dirty.add(*id);
                 }
-                ComponentEvent::Removed(_) => (),
+                 // We don't need to take this event into account since
+                 // removed components will be filtered out by the join;
+                 // if you want to, you can use `self.dirty.remove(*id);`
+                 // so the bit set only contains IDs that still exist
+                 ComponentEvent::Removed(_) => (),
             }
         }
 
