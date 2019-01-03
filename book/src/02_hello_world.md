@@ -209,6 +209,7 @@ impl<'a> System<'a> for HelloWorld {
 fn main() {
     let mut world = World::new();
     world.register::<Position>();
+    world.register::<Velocity>();
 
     world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
 
