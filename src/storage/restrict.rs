@@ -33,8 +33,8 @@ impl ImmutableAliasing for SequentialRestriction {}
 impl ImmutableAliasing for ImmutableParallelRestriction {}
 
 /// Similar to a `MaskedStorage` and a `Storage` combined, but restricts usage
-/// to only getting and modifying the components. That means nothing that would
-/// modify the inner bitset so the iteration cannot be invalidated. For example,
+/// to only getting and modifying the components. That means it's not possible to
+/// modify the inner bitset so the iteration cannot be invalidated. In other words,
 /// no insertion or removal is allowed.
 ///
 /// Example Usage:
