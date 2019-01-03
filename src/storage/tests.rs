@@ -805,7 +805,6 @@ mod test {
             comp.0 += 1;
         }
 
-
         {
             inserted.clear();
             modified.clear();

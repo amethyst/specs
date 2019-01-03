@@ -65,4 +65,3 @@ where
         self.channel_mut().single_write(event);
     }
 }
-

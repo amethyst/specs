@@ -255,6 +255,152 @@ where
         }
     }
 
+    /// Tries to retrieve `e` from the storage and passes a mutable reference to `and_then`.
+    /// This is useful for accessing multiple components mutably.
+    ///
+    /// # Parameters
+    ///
+    /// * `e`: The `Entity` you want to retrieve the component for. If it is not alive (was deleted)
+    ///   or there is no component for `e` in this storage, `None` will be passed to `and_then`.
+    /// * `and_then`: A closure executed independently of the existence of the component. It will
+    ///   be passed `self` as a first argument, and an optional reference to the component (in
+    ///   case it existed and is alive). The closure may return a value of type `R`, which will
+    ///   be returned from this method.
+    ///
+    /// # How this works
+    ///
+    /// This implementation removes and re-inserts the component at `e` to prove to the compiler
+    /// the accessed components are distinct (or you will get a `None`).
+    ///
+    /// # Recommended usage
+    ///
+    /// Check entities for equality prior to using this method; that way, if you get `None`, the
+    /// error is limited to a missing component.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use specs::prelude::*;
+    ///
+    /// pub enum FightResult {
+    ///     Won,
+    ///     Lost,
+    ///     Undecided,
+    /// }
+    ///
+    /// pub struct Robot;
+    ///
+    /// impl Robot {
+    ///     pub fn fight(&mut self, _other: &mut Robot) -> FightResult {
+    ///         // This one is actually pacifist
+    ///         FightResult::Undecided
+    ///     }
+    /// }
+    ///
+    /// impl Component for Robot {
+    ///     type Storage = HashMapStorage<Self>;
+    /// }
+    ///
+    /// let mut world = World::new();
+    ///
+    /// world.register::<Robot>();
+    ///
+    /// let robot_entity1 = world
+    ///     .create_entity()
+    ///     .with(Robot)
+    ///     .build();
+    ///
+    /// let robot_entity2 = world
+    ///     .create_entity()
+    ///     .with(Robot)
+    ///     .build();
+    ///
+    /// let mut robots = world.write_storage::<Robot>(); // equivalent to `WriteStorage<Robot>`
+    /// robots.with_mut(robot_entity1, |storage, robot| {
+    ///     if let Some((robot1, robot2)) = robot
+    ///         .and_then(|robot1| storage.get_mut(robot_entity2).map(|robot2| (robot1, robot2)))
+    ///     {
+    ///         let result = robot1.fight(robot2);
+    ///     } else {
+    ///         println!("Robots are identical or at least one is dead!");
+    ///     }
+    /// });
+    /// ```
+    ///
+    /// Using this together with `.join()`:
+    ///
+    /// ```
+    /// use specs::prelude::*;
+    ///
+    /// pub enum FightResult {
+    ///     Won,
+    ///     Lost,
+    ///     Undecided,
+    /// }
+    ///
+    /// impl Component for FightResult {
+    ///     type Storage = HashMapStorage<Self>;
+    /// }
+    ///
+    /// pub struct Robot;
+    ///
+    /// impl Robot {
+    ///     pub fn fight(&mut self, _other: &mut Robot) -> FightResult {
+    ///         // This one is actually pacifist
+    ///         FightResult::Undecided
+    ///     }
+    /// }
+    ///
+    /// impl Component for Robot {
+    ///     type Storage = HashMapStorage<Self>;
+    /// }
+    ///
+    /// /// This system transforms a set of `Robot`s into a set of `FightResult`s.
+    /// pub struct Fighting {
+    ///     bitset: BitSet,
+    /// }
+    ///
+    /// impl<'a> System<'a> for Fighting {
+    ///     type SystemData = (
+    ///         Entities<'a>,
+    ///         WriteStorage<'a, FightResult>,
+    ///         WriteStorage<'a, Robot>
+    ///     );
+    ///
+    ///     fn run(&mut self, (entities, results, robots): Self::SystemData) {
+    ///         self.bitset.clear();
+    ///         self.bitset.extend(robots.mask().into_iter().cloned());
+    ///
+    ///         for (e, _) in (entities, &self.bitset).join() {
+    ///
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if component for `e` gets inserted inside `and_then`.
+    pub fn with_mut<F, R>(&mut self, e: Entity, and_then: F) -> R
+    where
+        F: FnOnce(&mut Self, Option<&mut T>) -> R,
+    {
+        let mut component = self.remove(e);
+
+        let r = and_then(self, component.as_mut());
+
+        if let Some(component) = component {
+            assert!(
+                "Closure inserted a component for `e`; please modify the component instead.",
+                self.insert(e, component)
+                    .expect("Unreachable: Entity has to be alive")
+                    .is_none()
+            );
+        }
+
+        r
+    }
+
     /// Inserts new data for a given `Entity`.
     /// Returns the result of the operation as a `InsertResult<T>`
     ///
