@@ -6,9 +6,9 @@ modified.
 
 To avoid a lot of unnecessary computation when updating components it
 would be nice if we could somehow check for only those entities that are updated
-and recalculate only those. 
+and recalculate only those.
 
-We might also need to keep an external resource in sync with changes 
+We might also need to keep an external resource in sync with changes
 to components in Specs `World`, and we only want to propagate actual changes, not
 do a full sync every frame.
 
@@ -30,8 +30,7 @@ impl Component for Data {
 #[derive(Default)]
 pub struct Sys {
     pub dirty: BitSet,
-    pub modify_reader_id: Option<ReaderId<ModifiedFlag>>,
-    pub insert_reader_id: Option<ReaderId<InsertedFlag>>,
+    pub reader_id: Option<ReaderId<ComponentEvent>>,
 }
 
 impl<'a> System<'a> for Sys {
@@ -39,64 +38,44 @@ impl<'a> System<'a> for Sys {
         ReadStorage<'a, Data>,
         WriteStorage<'a, SomeOtherData>,
     );
-    
-    fn run(&mut self, (data, some_other_data): Self::SystemData) {
+
+    fn run(&mut self, (data, mut some_other_data): Self::SystemData) {
         self.dirty.clear();
-        
-        data.populate_inserted(&mut self.insert_reader_id.as_mut().unwrap(), &mut self.dirty);
-        
-        // Note that we could use separate bitsets here, we only use one to simplify the example
-        data.populate_modified(&mut self.modify_reader_id.as_mut().unwrap(), &mut self.dirty);
-        
-        for (d, other, _) in (&data, &mut some_other_data, &self.dirty) {
+
+        let events = data.channel().read(self.reader_id.as_mut().unwrap());
+
+        // Note that we could use separate bitsets here, we only use one to
+        // simplify the example
+        for event in events {
+            match event {
+                ComponentEvent::Modified(id) | ComponentEvent::Inserted(id) => {
+                    self.dirty.add(*id);
+                }
+                ComponentEvent::Removed(_) => (),
+            }
+        }
+
+        for (d, other, _) in (&data, &mut some_other_data, &self.dirty).join() {
             // Mutate `other` based on the update data in `d`
         }
     }
-    
+
     fn setup(&mut self, res: &mut Resources) {
         Self::SystemData::setup(res);
-        let mut storage: WriteStorage<Data> = SystemData::fetch(&res);
-        self.modify_reader_id = Some(storage.track_modified());
-        self.insert_reader_id = Some(storage.track_inserted());
+        self.reader_id = Some(WriteStorage::<Data>::fetch(&res).register_reader());
     }
 }
-
 ```
 
-There are three different event types that we can subscribe to:
+There are three different event types that we can receive:
 
-* InsertedFlag - will be sent when a component is added to the storage
-* ModifiedFlag - will be sent when a component is fetched mutably from the storage
-* RemovedFlag - will be sent when a component is removed from the storage
+* `ComponentEvent::Inserted` - will be sent when a component is added to the
+  storage
+* `ComponentEvent::Modified` - will be sent when a component is fetched mutably
+  from the storage
+* `ComponentEvent::Removed` - will be sent when a component is removed from the
+  storage
 
-Note that because of how `ModifiedFlag` works, if you iterate mutably over a 
+Note that because of how `ComponentEvent` works, if you iterate mutably over a
 component storage using `Join`, all entities that are fetched by the `Join` will
 be flagged as modified even if nothing was updated in them.
-
-For `InsertedFlag` and `ModifiedFlag`, always check that the `Component` still exist
-in the storage, and that the `Entity` is still alive. More on this below.
-
-It is also quite important to process `RemovedFlag` events first if you are trying to
-keep something in sync with the Specs `World`. This is because otherwise you might
-miss synchronization for the following scenario:
-
-* `System` runs.
-* `Entity` with `Index` `X` get removed.
-* `World::maintain` is called.
-* `Entity` is created and get `Index` `X`.
-* `System` runs.
-
-At this point you will get both a `RemovedFlag` and an `InsertedFlag` in the same update.
-If you process `InsertedFlag` events first you will see "X is new", and then `RemovedFlag`
- and see "X is removed". Now the synchronized state is invalid.
-
-The following scenario will also need some consideration:
-
-* `Entity` is created and get `Index` `X`.
-* `Entity` with `Index` `X` get removed.
-* `System` runs.
-
-In this scenario, if you process `RemovedFlag` first, the removal event should be ignored 
-because `X` will not have been synchronized before. It is because of this scenario you 
-should always verify that the `Component` still exist in the storage, and that the `Entity` 
-is still alive.
