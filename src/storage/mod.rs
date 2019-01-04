@@ -184,7 +184,8 @@ pub struct Storage<'e, T, D> {
 }
 
 impl<'e, T, D> Storage<'e, T, D> {
-    /// Create a new `Storage`
+    /// Creates a new `Storage` from a fetched allocator and a immutable or mutable `MaskedStorage`,
+    /// named `data`.
     pub fn new(entities: Fetch<'e, EntitiesRes>, data: D) -> Storage<'e, T, D> {
         Storage {
             data,
@@ -204,7 +205,7 @@ where
         &self.data.inner
     }
 
-    /// Returns the `EntitesRes` resource fetched by this storage.
+    /// Returns the `EntitiesRes` resource fetched by this storage.
     /// **This does not have anything to do with the components inside.**
     /// You only want to use this when implementing additional methods
     /// for `Storage` via an extension trait.
@@ -219,6 +220,17 @@ where
         } else {
             None
         }
+    }
+
+    /// Computes the number of elements this `Storage` contains by counting the bits in the bit set.
+    /// This operation will never be performed in constant time.
+    pub fn count(&self) -> usize {
+        self.mask().iter().count()
+    }
+
+    /// Checks whether this `Storage` is empty. This operation is very cheap.
+    pub fn is_empty(&self) -> bool {
+        self.mask().is_empty()
     }
 
     /// Returns true if the storage has a component for this entity, and that entity is alive.
