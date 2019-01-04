@@ -53,7 +53,7 @@ features = ["common", "serde"]
 cgmath =  { version = "0.16" }
 criterion = "0.2"
 ron = "0.4"
-rand = "0.5.5"
+rand = "0.6.1"
 serde_json = "1.0"
 specs-derive = { path = "specs-derive", version = "0.4.0" }
 
