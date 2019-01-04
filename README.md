@@ -111,6 +111,14 @@ fn main() {
 
 Please look into [the examples directory](examples) for more.
 
+## Public dependencies
+
+| crate    | version                                                                                        |
+|----------|------------------------------------------------------------------------------------------------|
+| hibitset | [![hibitset](https://img.shields.io/crates/v/hibitset.svg)](https://crates.rs/crates/hibitset) |
+| rayon    | [![rayon](https://img.shields.io/crates/v/rayon.svg)](https://crates.rs/crates/rayon)          |
+| shred    | [![shred](https://img.shields.io/crates/v/shred.svg)](https://crates.rs/crates/shred)          |
+
 ## Contribution
 
 Contribution is very welcome! If you didn't contribute before,
