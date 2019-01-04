@@ -1,5 +1,28 @@
-# [Unreleased]
+# 0.14.2
 
+* Add `Join`-able entries API to `Storage` ([#518])
+* Several docs / meta improvements ([#526], [#527], [#528], [#530], [#531])
+* Fix bug when re-killing Entity after atomic killing followed by alloc ([#533])
+* Add `Storage::count` and `Storage::is_empty` ([#534])
+
+[#518]: https://github.com/slide-rs/specs/pull/518
+[#526]: https://github.com/slide-rs/specs/pull/526
+[#527]: https://github.com/slide-rs/specs/pull/527
+[#528]: https://github.com/slide-rs/specs/pull/528
+[#530]: https://github.com/slide-rs/specs/pull/530
+[#531]: https://github.com/slide-rs/specs/pull/531
+[#533]: https://github.com/slide-rs/specs/pull/533
+[#534]: https://github.com/slide-rs/specs/pull/534
+
+# 0.14.1
+
+* Allow accessing the `EntitiesRes` fetched by a `Storage` ([#515])
+* Book / API doc improvements ([#496], [#507], [#511])
+
+[#496]: https://github.com/slide-rs/specs/pull/496
+[#507]: https://github.com/slide-rs/specs/pull/507
+[#511]: https://github.com/slide-rs/specs/pull/511
+[#515]: https://github.com/slide-rs/specs/pull/515
 
 # 0.14.0
 
