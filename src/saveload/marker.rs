@@ -22,7 +22,7 @@ pub trait MarkedBuilder {
     /// use specs::prelude::*;
     /// use specs::saveload::{MarkedBuilder, U64Marker, U64MarkerAllocator};
     ///
-    /// fn MarkEntity<M: Builder + MarkedBuilder>(markable: M) -> Entity {
+    /// fn mark_entity<M: Builder + MarkedBuilder>(markable: M) -> Entity {
     ///    markable
     ///    /* .with(Component1) */
     ///     .marked::<U64Marker>()
@@ -33,7 +33,7 @@ pub trait MarkedBuilder {
     /// world.register::<U64Marker>();
     /// world.add_resource(U64MarkerAllocator::new());
     ///
-    /// MarkEntity(world.create_entity());
+    /// mark_entity(world.create_entity());
     /// ```
     fn marked<M: Marker>(self) -> Self;
 }
