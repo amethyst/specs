@@ -2,8 +2,7 @@ extern crate rand;
 extern crate rayon;
 extern crate specs;
 
-use rand::Rng;
-use rand::distributions::{Distribution, Range};
+use rand::prelude::*;
 
 use rayon::iter::ParallelIterator;
 
@@ -56,7 +55,9 @@ impl<'a> System<'a> for ClusterBombSystem {
     );
 
     fn run(&mut self, (entities, mut bombs, positions, updater): Self::SystemData) {
-        let durability_range = Range::new(10, 20);
+        use rand::distributions::{Distribution, Uniform};
+
+        let durability_range = Uniform::new(10, 20);
         // Join components in potentially parallel way using rayon.
         (&entities, &mut bombs, &positions)
             .par_join()
