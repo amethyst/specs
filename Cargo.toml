@@ -21,7 +21,7 @@ autobenches = false
 travis-ci = { repository = "slide-rs/specs" }
 
 [dependencies]
-crossbeam = "0.4.1"
+crossbeam = "0.6.0"
 derivative = "1"
 fnv = "1.0"
 hibitset = { version = "0.5.3", default-features = false }
