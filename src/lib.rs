@@ -199,17 +199,9 @@ extern crate rayon;
 extern crate shrev;
 extern crate tuple_utils;
 
-#[cfg(feature = "common")]
-extern crate futures;
 #[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde;
-
-#[cfg(feature = "rudy")]
-extern crate rudy;
-
-#[cfg(feature = "common")]
-pub mod common;
 
 #[cfg(feature = "serde")]
 pub mod saveload;

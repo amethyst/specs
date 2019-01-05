@@ -7,8 +7,6 @@ pub use self::restrict::{
     ImmutableParallelRestriction, MutableParallelRestriction, RestrictedStorage,
     SequentialRestriction,
 };
-#[cfg(feature = "rudy")]
-pub use self::storages::RudyStorage;
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 pub use self::track::{ComponentEvent, Tracked};
 pub use self::entry::{Entries, OccupiedEntry, VacantEntry, StorageEntry};
