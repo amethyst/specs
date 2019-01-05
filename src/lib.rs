@@ -205,9 +205,6 @@ extern crate futures;
 #[macro_use]
 extern crate serde;
 
-#[cfg(feature = "rudy")]
-extern crate rudy;
-
 #[cfg(feature = "common")]
 pub mod common;
 

@@ -8,9 +8,6 @@ use hibitset::BitSetLike;
 use storage::{DistinctStorage, UnprotectedStorage};
 use world::Index;
 
-#[cfg(feature = "rudy")]
-use rudy::rudymap::RudyMap;
-
 /// BTreeMap-based storage.
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
@@ -225,39 +222,3 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
 }
 
 unsafe impl<T> DistinctStorage for VecStorage<T> {}
-
-/// Rudy-based storage.
-#[cfg(feature = "rudy")]
-#[derive(Derivative)]
-#[derivative(Default(bound = ""))]
-pub struct RudyStorage<T>(RudyMap<Index, T>);
-
-#[cfg(feature = "rudy")]
-impl<T> UnprotectedStorage<T> for RudyStorage<T> {
-    unsafe fn clean<B>(&mut self, _has: B)
-    where
-        B: BitSetLike,
-    {
-    }
-
-    unsafe fn get(&self, id: Index) -> &T {
-        self.0.get(id).unwrap()
-    }
-
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
-        self.0.get_mut(id).unwrap()
-    }
-
-    unsafe fn insert(&mut self, id: Index, v: T) {
-        self.0.insert(id, v);
-    }
-
-    unsafe fn remove(&mut self, id: Index) -> T {
-        self.0.remove(id).unwrap()
-    }
-}
-
-// Rudy does satisfy the DistinctStorage guarantee:
-//   https://github.com/adevore/rudy/issues/12
-#[cfg(feature = "rudy")]
-unsafe impl<T> DistinctStorage for RudyStorage<T> {}
