@@ -2,13 +2,13 @@
 name = "specs"
 version = "0.14.2"
 description = """
-Specs is an Entity-Component System library written in Rust.
+Specs is an Entity-Component-System library written in Rust.
 """
 documentation = "https://docs.rs/specs/"
 repository = "https://github.com/slide-rs/specs"
 homepage = "https://slide-rs.github.io/"
 readme = "README.md"
-keywords = ["gamedev", "ecs"]
+keywords = ["gamedev", "ecs", "entity", "component"]
 categories = ["concurrency"]
 license = "MIT/Apache-2.0"
 authors = ["slide-rs hackers"]
@@ -34,17 +34,15 @@ tuple_utils = "0.3"
 rayon = { version = "1.0.0", optional = true }
 nonzero_signed = "1.0.1"
 
-futures = { version = "0.1", optional = true }
 serde = { version = "1.0", optional = true, features = ["serde_derive"] }
 
 [features]
 default = ["parallel"]
 parallel = ["rayon", "shred/parallel", "hibitset/parallel"]
-common = ["futures"]
 nightly = ["shred/nightly"]
 
 [package.metadata.docs.rs]
-features = ["common", "serde"]
+features = ["parallel", "nightly"]
 
 [dev-dependencies]
 cgmath =  { version = "0.16" }
@@ -74,10 +72,6 @@ name = "track"
 
 [[example]]
 name = "ordered_track"
-
-[[example]]
-name = "common"
-required-features = ["common"]
 
 [[example]]
 name = "saveload"
