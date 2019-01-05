@@ -2,7 +2,7 @@ language: rust
 
 rust:
 - nightly
-- 1.28
+- 1.28.0
 - stable
 
 cache:
@@ -23,9 +23,9 @@ script:
     cargo test --all-features --verbose --no-run;
     cargo bench --verbose --no-run --all-features;
   else
-    cargo build --verbose --no-default-features
-    cargo test --verbose --no-default-features
-    cargo test --verbose --all-features
+    cargo build --verbose --no-default-features;
+    cargo test --verbose --no-default-features;
+    cargo test --verbose --all-features;
   fi
 - cargo build --manifest-path ./specs-derive/Cargo.toml --verbose
 - cargo test --manifest-path ./specs-derive/Cargo.toml --verbose
