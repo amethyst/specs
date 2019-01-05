@@ -1,7 +1,8 @@
 language: rust
+
 rust:
 - nightly
-- beta
+- 1.28
 - stable
 
 cache:
@@ -17,12 +18,14 @@ before_script:
 - export PATH="$PATH:$HOME/.cargo/bin"
 
 script:
-- cargo build --verbose --features "common serde rudy"
-- cargo test --verbose --features "common serde rudy"
 - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
     cargo build --all-features --verbose;
-    cargo test --all-features --verbose;
+    cargo test --all-features --verbose --no-run;
     cargo bench --verbose --no-run --all-features;
+  else
+    cargo build --verbose --no-default-features
+    cargo test --verbose --no-default-features
+    cargo test --verbose --all-features
   fi
 - cargo build --manifest-path ./specs-derive/Cargo.toml --verbose
 - cargo test --manifest-path ./specs-derive/Cargo.toml --verbose
