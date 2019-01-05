@@ -22,10 +22,15 @@ script:
     cargo build --all-features --verbose;
     cargo test --all-features --verbose --no-run;
     cargo bench --verbose --no-run --all-features;
+  elif [ "$TRAVIS_RUST_VERSION" == "1.28.0" ]; then
+    cargo check --tests --no-default-features;
+    cargo check --tests --no-default-features --features "parallel";
+    cargo check --tests --no-default-features --features "serde";
+    cargo check --tests --no-default-features --features "serde,parallel";
   else
     cargo build --verbose --no-default-features;
     cargo test --verbose --no-default-features;
-    cargo test --verbose --all-features;
+    cargo test --verbose --features "parallel,serde";
   fi
 - cargo build --manifest-path ./specs-derive/Cargo.toml --verbose
 - cargo test --manifest-path ./specs-derive/Cargo.toml --verbose
