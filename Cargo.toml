@@ -45,7 +45,7 @@ nightly = ["shred/nightly"]
 features = ["parallel", "nightly"]
 
 [dev-dependencies]
-cgmath =  { version = "0.16" }
+cgmath =  { version = "0.17" }
 criterion = "0.2"
 ron = "0.4"
 rand = "0.6.1"
