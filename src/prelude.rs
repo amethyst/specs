@@ -6,7 +6,7 @@ pub use hibitset::BitSet;
 pub use join::Join;
 #[cfg(feature = "parallel")]
 pub use join::ParJoin;
-pub use shred::{Accessor, Dispatcher, DispatcherBuilder, Read, ReadExpect, Resources, RunNow,
+pub use shred::{Accessor, Dispatcher, DispatcherBuilder, Read, ReadExpect, World, RunNow,
                 StaticAccessor, System, SystemData, Write, WriteExpect};
 pub use shrev::ReaderId;
 
@@ -20,4 +20,4 @@ pub use storage::{
     DenseVecStorage, FlaggedStorage, HashMapStorage, NullStorage, ReadStorage, Storage, Tracked,
     VecStorage, WriteStorage, ComponentEvent,
 };
-pub use world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate, World};
+pub use world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate};
