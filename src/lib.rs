@@ -23,7 +23,7 @@
 //! `World` is where component storages, resources and entities are stored.
 //! See the docs of [`World`] for more.
 //!
-//! [`World`]: struct.World.html
+//! [`World`]: world/struct.World.html
 //!
 //! [`Component`]s can be easily implemented like this:
 //!
