@@ -7,7 +7,7 @@ to the same resource where at least one of them needs write access to it).
 
 [c3]: ./03_dispatcher.html
 
-## Basic parallization
+## Basic parallelization
 
 What isn't automatically parallelized by Specs are
 the joins made within a single system:
