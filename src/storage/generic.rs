@@ -83,6 +83,9 @@ pub trait GenericWriteStorage {
     /// Get mutable access to an `Entity`s component
     fn get_mut(&mut self, entity: Entity) -> Option<&mut Self::Component>;
 
+    /// Get mutable access to an `Entity`s component. If the component does not exist, it is automatically created using `Default::default()`.
+    fn get_mut_or_default(&mut self, entity: Entity) -> &mut Self::Component where Self::Component: Default;
+
     /// Insert a component for an `Entity`
     fn insert(&mut self, entity: Entity, comp: Self::Component) -> InsertResult<Self::Component>;
 
@@ -101,6 +104,13 @@ where
 
     fn get_mut(&mut self, entity: Entity) -> Option<&mut Self::Component> {
         WriteStorage::get_mut(self, entity)
+    }
+
+    fn get_mut_or_default(&mut self, entity: Entity) -> &mut Self::Component where Self::Component: Default {
+        if self.get(entity).is_none() {
+            self.insert(entity, Default::default()).unwrap();
+        }
+        self.get_mut(entity).unwrap()
     }
 
     fn insert(&mut self, entity: Entity, comp: Self::Component) -> InsertResult<Self::Component> {
@@ -124,6 +134,13 @@ where
 
     fn get_mut(&mut self, entity: Entity) -> Option<&mut Self::Component> {
         WriteStorage::get_mut(*self, entity)
+    }
+
+    fn get_mut_or_default(&mut self, entity: Entity) -> &mut Self::Component where Self::Component: Default {
+        if self.get(entity).is_none() {
+            self.insert(entity, Default::default()).unwrap();
+        }
+        self.get_mut(entity).unwrap()
     }
 
     fn insert(&mut self, entity: Entity, comp: Self::Component) -> InsertResult<Self::Component> {
