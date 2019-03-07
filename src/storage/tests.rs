@@ -136,7 +136,7 @@ mod test {
         type Storage = NullStorage<Self>;
     }
 
-    #[derive(PartialEq, Eq, Debug)]
+    #[derive(PartialEq, Eq, Debug, Default)]
     struct Cvec(u32);
     impl From<u32> for Cvec {
         fn from(v: u32) -> Cvec {
@@ -295,6 +295,42 @@ mod test {
         }
     }
 
+    fn test_get_mut_or_default<T: Component + Default + From<u32> + AsMut<u32> + Debug + Eq>()
+    where
+        T::Storage: Default,
+    {
+        let mut w = World::new();
+        let mut s: Storage<T, _> = create(&mut w);
+
+        // Insert the first 500 components manually, leaving indices 500..1000 unoccupied.
+        for i in 0..500 {
+            if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i).into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
+        }
+
+        for i in 0..1_000 {
+            *s.get_mut_or_default(Entity::new(i, Generation::new(1)))
+                .as_mut() += i;
+        }
+
+        // The first 500 were initialized, and should be i*2.
+        for i in 0..500 {
+            assert_eq!(
+                s.get(Entity::new(i, Generation::new(1))).unwrap(),
+                &(i + i).into()
+            );
+        }
+
+        // The rest were Default-initialized, and should equal i.
+        for i in 500..1_000 {
+            assert_eq!(
+                s.get(Entity::new(i, Generation::new(1))).unwrap(),
+                &(i).into()
+            );
+        }
+    }
+
     fn test_add_gen<T: Component + From<u32> + Debug + Eq>()
     where
         T::Storage: Default,
@@ -389,6 +425,10 @@ mod test {
     #[test]
     fn vec_test_get_mut() {
         test_get_mut::<Cvec>();
+    }
+    #[test]
+    fn vec_test_get_mut_or_default() {
+        test_get_mut_or_default::<Cvec>();
     }
     #[test]
     fn vec_test_add_gen() {

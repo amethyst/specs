@@ -83,6 +83,14 @@ pub trait GenericWriteStorage {
     /// Get mutable access to an `Entity`s component
     fn get_mut(&mut self, entity: Entity) -> Option<&mut Self::Component>;
 
+    /// Get mutable access to an `Entity`s component. If the component does not exist, it
+    /// is automatically created using `Default::default()`.
+    /// 
+    /// # Panics
+    /// Panics if the component insertion or recovery fails. This should never happen, but
+    /// is handled just in case.
+    fn get_mut_or_default(&mut self, entity: Entity) -> &mut Self::Component where Self::Component: Default;
+
     /// Insert a component for an `Entity`
     fn insert(&mut self, entity: Entity, comp: Self::Component) -> InsertResult<Self::Component>;
 
@@ -101,6 +109,14 @@ where
 
     fn get_mut(&mut self, entity: Entity) -> Option<&mut Self::Component> {
         WriteStorage::get_mut(self, entity)
+    }
+
+    fn get_mut_or_default(&mut self, entity: Entity) -> &mut Self::Component where Self::Component: Default {
+        if !self.contains(entity) {
+            self.insert(entity, Default::default()).expect("Insertion of default component failed");
+        }
+        // At this point it is reasonably safe to assume the component exists.
+        self.get_mut(entity).expect("Fetching a default component failed")
     }
 
     fn insert(&mut self, entity: Entity, comp: Self::Component) -> InsertResult<Self::Component> {
@@ -124,6 +140,14 @@ where
 
     fn get_mut(&mut self, entity: Entity) -> Option<&mut Self::Component> {
         WriteStorage::get_mut(*self, entity)
+    }
+
+    fn get_mut_or_default(&mut self, entity: Entity) -> &mut Self::Component where Self::Component: Default {
+        if !self.contains(entity) {
+            self.insert(entity, Default::default()).expect("Insertion of default component failed");
+        }
+        // At this point it is reasonably safe to assume the component exists.
+        self.get_mut(entity).expect("Fetching a default component failed")
     }
 
     fn insert(&mut self, entity: Entity, comp: Self::Component) -> InsertResult<Self::Component> {
