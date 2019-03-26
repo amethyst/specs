@@ -25,7 +25,7 @@ use specs::{Component, VecStorage};
 #[derive(Debug)]
 struct Position {
     x: f32,
-    y: f32
+    y: f32,
 }
 
 impl Component for Position {
@@ -58,7 +58,7 @@ use specs::VecStorage;
 #[storage(VecStorage)]
 struct Position {
     x: f32,
-    y: f32
+    y: f32,
 }
 
 #[derive(Component, Debug)]
@@ -84,9 +84,10 @@ use specs::{World, Builder};
 
 let mut world = World::new();
 world.register::<Position>();
+world.register::<Velocity>();
 ```
 
-This will create a component storage for `Position`s.
+This will create component storages for `Position`s and `Velocity`s.
 
 ```rust,ignore
 let ball = world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
@@ -175,7 +176,7 @@ use specs::{Builder, Component, ReadStorage, System, VecStorage, World, RunNow};
 #[derive(Debug)]
 struct Position {
     x: f32,
-    y: f32
+    y: f32,
 }
 
 impl Component for Position {
