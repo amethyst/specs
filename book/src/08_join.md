@@ -8,7 +8,7 @@ iterate over many components? Maybe some of them are required, others might
 be optional and maybe there is even a need to exclude some components?
 If we wanted to do that using only `Storage::get`, the code would become very ugly.
 So instead we worked out a way to conveniently specify that. This concept is
-known as "Joining".
+known as "joining".
 
 ## Basic joining
 
@@ -72,7 +72,7 @@ for (ent, pos, vel, ()) in (
     &*entities,
     &mut pos_storage,
     &vel_storage,
-    !&freezed_storage,
+    !&frozen_storage,
 ).join() {
     println!("Processing entity: {:?}", ent);
     *pos += *vel;
@@ -83,7 +83,7 @@ This will simply iterate over all entities that
 
 * have a position
 * have a velocity
-* do not have a `Freezed` component
+* do not have a `Frozen` component
 
 ## How joining works
 

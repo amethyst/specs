@@ -80,7 +80,7 @@ impl<'a> System<'a> for StoneCreator {
 
 ## `SetupHandler` / `Default` for resources
 
-Please refer to [the resources chapter for automatic creation of resources][c04].
+Please refer to [the resources chapter for automatic creation of resources][c4].
 
 [c4]: ./04_resources.html
 
