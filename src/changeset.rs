@@ -59,10 +59,12 @@ impl<T> ChangeSet<T> {
         T: AddAssign,
     {
         if self.mask.contains(entity.id()) {
+            // SAFETY: we checked the mask, thus it's safe to call
             unsafe {
                 *self.inner.get_mut(entity.id()) += value;
             }
         } else {
+            // SAFETY: we checked the mask, thus it's safe to call
             unsafe {
                 self.inner.insert(entity.id(), value);
             }
@@ -73,6 +75,7 @@ impl<T> ChangeSet<T> {
     /// Clear the changeset
     pub fn clear(&mut self) {
         for id in &self.mask {
+            // SAFETY: we checked the mask, thus it's safe to call
             unsafe {
                 self.inner.remove(id);
             }
@@ -110,10 +113,13 @@ impl<'a, T> Join for &'a mut ChangeSet<T> {
     type Value = &'a mut DenseVecStorage<T>;
     type Mask = &'a BitSet;
 
+    // SAFETY: No unsafe code and no invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, &mut self.inner)
     }
 
+    // SAFETY: No unsafe code and no invariants to meet.
+    // `DistinctStorage` invariants are also met, but no `ParJoin` implementation exists yet.
     unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
         let value: *mut Self::Value = v as *mut Self::Value;
         (*value).get_mut(id)
@@ -125,24 +131,31 @@ impl<'a, T> Join for &'a ChangeSet<T> {
     type Value = &'a DenseVecStorage<T>;
     type Mask = &'a BitSet;
 
+    // SAFETY: No unsafe code and no invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, &self.inner)
     }
 
+    // SAFETY: No unsafe code and no invariants to meet.
+    // `DistinctStorage` invariants are also met, but no `ParJoin` implementation exists yet.
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         value.get(id)
     }
 }
 
+/// A `Join` implementation for `ChangeSet` that simply removes all the entries on a call to `get`.
 impl<T> Join for ChangeSet<T> {
     type Type = T;
     type Value = DenseVecStorage<T>;
     type Mask = BitSet;
 
+    // SAFETY: No unsafe code and no invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (self.mask, self.inner)
     }
 
+    // SAFETY: No unsafe code and no invariants to meet.
+    // `DistinctStorage` invariants are also met, but no `ParJoin` implementation exists yet.
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         value.remove(id)
     }
