@@ -2,7 +2,7 @@
 
 > **S**pecs **P**arallel **ECS**
 
-[![Build Status][bi]][bl] [![Crates.io][ci]][cl] [![Gitter][gi]][gl] ![MIT/Apache][li] [![Docs.rs][di]][dl] ![LoC][lo]
+[![Build Status][bi]][bl] [![Crates.io][ci]][cl] [![Gitter][gi]][gl] ![MIT/Apache][li] [![Docs.rs][di]][dl] [![Code coverage][s7]][cov] ![LoC][lo]
 
 [bi]: https://travis-ci.org/slide-rs/specs.svg?branch=master
 [bl]: https://travis-ci.org/slide-rs/specs
@@ -17,6 +17,9 @@
 
 [gi]: https://badges.gitter.im/slide-rs/specs.svg
 [gl]: https://gitter.im/slide-rs/specs
+
+[coi]: https://img.shields.io/codecov/c/gitlab/torkleyy/specs/master.svg
+[cov]: https://codecov.io/gl/torkleyy/specs/branch/master
 
 [lo]: https://tokei.rs/b1/github/slide-rs/specs?category=code
 

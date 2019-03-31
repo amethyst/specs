@@ -1,0 +1,11 @@
+image: "rust:latest"
+
+run kcov:
+  stage: test
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker --version
+    - ./scripts/kcov.sh
+    - curl -v -s https://codecov.io/bash | bash
