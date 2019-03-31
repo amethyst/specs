@@ -19,12 +19,14 @@ where
     type Value = &'a mut MaskedStorage<T>;
     type Mask = BitSet;
 
+    // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let mask = self.data.mask.clone();
 
         (mask, self.data)
     }
 
+    // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn get(value: &mut Self::Value, id: Index) -> T {
         value.remove(id).expect("Tried to access same index twice")
     }

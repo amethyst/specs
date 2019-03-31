@@ -19,9 +19,13 @@ macro_rules! define_bit_join {
             type Type = Index;
             type Value = ();
             type Mask = $bitset;
+
+            // SAFETY: This just moves a `BitSet`; invariants of `Join` are fulfilled, since `Self::Value` cannot be mutated.
             unsafe fn open(self) -> (Self::Mask, Self::Value) {
                 (self, ())
             }
+
+            // SAFETY: No unsafe code and no invariants to meet.
             unsafe fn get(_: &mut Self::Value, id: Index) -> Self::Type {
                 id
             }
