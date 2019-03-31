@@ -10,7 +10,9 @@ run kcov:
   script:
     - docker --version
     - ./scripts/kcov.sh
-    - curl -v -s https://codecov.io/bash | bash
+  only:
+    refs:
+      - master
 
 deploy codecov.io:
   stage: deploy
@@ -20,3 +22,6 @@ deploy codecov.io:
   script:
     - ls
     - curl -v -s https://codecov.io/bash | bash
+  only:
+    refs:
+      - master
