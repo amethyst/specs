@@ -1,4 +1,6 @@
-image: "rust:latest"
+stages:
+  - test
+  - deploy
 
 run kcov:
   stage: test
@@ -8,4 +10,13 @@ run kcov:
   script:
     - docker --version
     - ./scripts/kcov.sh
+    - curl -v -s https://codecov.io/bash | bash
+
+deploy codecov.io:
+  stage: deploy
+  image: alpine
+  before_script:
+    - apk add --no-cache curl bash
+  script:
+    - ls
     - curl -v -s https://codecov.io/bash | bash
