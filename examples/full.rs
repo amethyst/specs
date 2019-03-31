@@ -6,7 +6,7 @@ extern crate specs;
 
 use specs::prelude::*;
 use specs::storage::HashMapStorage;
-
+use specs::WorldExt;
 // -- Components --
 // A component exists for 0..n
 // entities.

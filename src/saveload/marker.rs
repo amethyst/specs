@@ -7,7 +7,7 @@ use std::hash::Hash;
 use join::Join;
 use shred::Resource;
 use storage::{DenseVecStorage, ReadStorage, WriteStorage};
-use world::{Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder};
+use world::{Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder, WorldExt};
 
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;

@@ -7,7 +7,7 @@ use rand::prelude::*;
 use rayon::iter::ParallelIterator;
 
 use specs::prelude::*;
-use specs::storage::HashMapStorage;
+use specs::{WorldExt, storage::HashMapStorage};
 
 const TAU: f32 = 2. * std::f32::consts::PI;
 

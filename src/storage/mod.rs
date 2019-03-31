@@ -23,7 +23,7 @@ use error::{Error, WrongGeneration};
 use join::Join;
 #[cfg(feature = "parallel")]
 use join::ParJoin;
-use world::{Component, EntitiesRes, Entity, Generation, Index};
+use world::{WorldExt, Component, EntitiesRes, Entity, Generation, Index};
 
 mod data;
 mod drain;

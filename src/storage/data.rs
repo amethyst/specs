@@ -1,7 +1,7 @@
 use shred::{Fetch, FetchMut, MetaTable, ResourceId, World, SystemData};
 
 use storage::{AnyStorage, MaskedStorage, Storage, TryDefault};
-use world::{Component, EntitiesRes};
+use world::{WorldExt,Component, EntitiesRes};
 
 /// A storage with read access.
 ///
