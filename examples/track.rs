@@ -3,6 +3,7 @@ extern crate shrev;
 extern crate specs;
 
 use specs::prelude::*;
+use specs::shred::Resources;
 
 struct TrackedComponent(u64);
 

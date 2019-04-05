@@ -27,7 +27,7 @@ fnv = "1.0"
 hibitset = { version = "0.5.3", default-features = false }
 log = "0.4"
 mopa = "0.2"
-shred = { git="https://github.com/slide-rs/shred", version = "0.7.0", default-features = false }
+shred = { git="https://github.com/slide-rs/shred", version = "0.8.0", default-features = false }
 shrev = "1.0.0"
 shred-derive = "0.5.0"
 tuple_utils = "0.3"

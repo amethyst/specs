@@ -20,4 +20,4 @@ pub use storage::{
     DenseVecStorage, FlaggedStorage, HashMapStorage, NullStorage, ReadStorage, Storage, Tracked,
     VecStorage, WriteStorage, ComponentEvent,
 };
-pub use world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate};
+pub use world::{Builder, Component, WorldExt, Entities, Entity, EntityBuilder, LazyUpdate};

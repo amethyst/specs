@@ -51,7 +51,7 @@ fn task_panics() {
     DispatcherBuilder::new()
         .with(Sys, "s", &[])
         .build()
-        .dispatch(&mut world.res);
+        .dispatch(&mut world.resources);
 }
 
 #[test]
