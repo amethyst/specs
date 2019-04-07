@@ -196,7 +196,7 @@ pub trait Join {
     ///         .with(ExampleSystem, "example_system", &[])
     ///         .build();
     ///
-    ///     dispatcher.setup(&mut world.res);
+    ///     dispatcher.setup(&mut world);
     ///
     ///     let e1 = world.create_entity()
     ///         .with(Pos { x: 0, y: 0 })
@@ -207,7 +207,7 @@ pub trait Join {
     ///         .with(Pos { x: 0, y: 0 })
     ///         .build();
     ///
-    ///     dispatcher.dispatch(&mut world.res);
+    ///     dispatcher.dispatch(&mut world);
     ///
     ///     let positions = world.read_storage::<Pos>();
     ///     assert_eq!(positions.get(e1), Some(&Pos { x: 5, y: 2 }));

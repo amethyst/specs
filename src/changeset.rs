@@ -153,7 +153,8 @@ mod tests {
     use super::ChangeSet;
     use join::Join;
     use storage::DenseVecStorage;
-    use world::{Builder, Component};
+    use world::{Builder, Component, WorldExt};
+    use shred::Resources;
 
     pub struct Health(i32);
 
@@ -163,7 +164,7 @@ mod tests {
 
     #[test]
     fn test() {
-        let mut world = World::new();
+        let mut world = Resources::new();
         world.register::<Health>();
 
         let a = world.create_entity().with(Health(100)).build();
