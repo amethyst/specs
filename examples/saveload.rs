@@ -169,7 +169,7 @@ fn main() {
 
     // Running the system results in a print to the standard output channel, in `.ron`-format, 
     // showing how the serialized dummy entities look like.
-    Serialize.run_now(&world.res);
+    Serialize.run_now(&world);
 
     // -----------------
 
@@ -212,7 +212,7 @@ fn main() {
     }
 
     // If we run this system now, the `ENTITIES: &str` is going to be deserialized, and two entities are created.
-    Deserialize.run_now(&world.res);
+    Deserialize.run_now(&world);
 
     // Printing the `Pos`-component storage entries to show the result of deserializing.
     println!(

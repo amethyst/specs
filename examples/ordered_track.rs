@@ -21,7 +21,7 @@ struct SysA {
 impl<'a> System<'a> for SysA {
     type SystemData = (Entities<'a>, ReadStorage<'a, TrackedComponent>);
 
-    fn setup(&mut self, res: &mut Resources) {
+    fn setup(&mut self, res: &mut World) {
         Self::SystemData::setup(res);
         self.reader_id = Some(WriteStorage::<TrackedComponent>::fetch(&res).register_reader());
     }
@@ -78,14 +78,14 @@ fn main() {
         .with(SysA::default(), "sys_a", &[])
         .build();
 
-    dispatcher.setup(&mut world.res);
+    dispatcher.setup(&mut world);
 
     let e1 = world.create_entity().with(TrackedComponent(1)).build();
     let e2 = world.create_entity().with(TrackedComponent(2)).build();
     let e3 = world.create_entity().with(TrackedComponent(3)).build();
     let e4 = world.create_entity().with(TrackedComponent(4)).build();
 
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
     world.maintain();
 
     {
@@ -96,7 +96,7 @@ fn main() {
         tracked.remove(e1);
     }
 
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
     world.maintain();
 
     {
@@ -110,6 +110,6 @@ fn main() {
         tracked.insert(e3, TrackedComponent(10)).unwrap();
     }
 
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
     world.maintain();
 }

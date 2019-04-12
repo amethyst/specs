@@ -55,7 +55,7 @@ impl<'a> System<'a> for ClusterBombSystem {
     );
 
     fn run(&mut self, (entities, mut bombs, positions, updater): Self::SystemData) {
-        use rand::distributions::{Distribution, Uniform};
+        use rand::distributions::{Uniform};
 
         let durability_range = Uniform::new(10, 20);
         // Join components in potentially parallel way using rayon.
@@ -123,7 +123,7 @@ fn main() {
         .with(ShrapnelSystem, "shrapnels", &[])
         .build();
 
-    dispatcher.setup(&mut world.res);
+    dispatcher.setup(&mut world);
 
     world
         .create_entity()
@@ -165,7 +165,7 @@ fn main() {
             break;
         }
 
-        dispatcher.dispatch(&world.res);
+        dispatcher.dispatch(&world);
 
         // Maintain dynamically added and removed entities in dispatch.
         // This is what actually executes changes done by `LazyUpdate`.

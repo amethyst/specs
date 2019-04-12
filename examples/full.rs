@@ -231,7 +231,7 @@ fn main() {
 
     // setup() will setup all Systems we added, registering all resources and components that
     // they will try to read from and write to
-    dispatcher.setup(&mut w.res);
+    dispatcher.setup(&mut w);
 
     // create_entity() of World provides with an EntityBuilder to add components to an Entity
     w.create_entity()
@@ -251,7 +251,7 @@ fn main() {
     w.create_entity().with(CompBool(false)).build();
     w.create_entity().with(CompFloat(0.1)).build();
 
-    dispatcher.dispatch(&w.res);
+    dispatcher.dispatch(&w);
     w.maintain();
 
     // Insert a component, associated with `e`.
@@ -259,6 +259,6 @@ fn main() {
         eprintln!("Failed to insert component! {:?}", err);
     }
 
-    dispatcher.dispatch(&w.res);
+    dispatcher.dispatch(&w);
     w.maintain();
 }

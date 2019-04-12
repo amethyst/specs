@@ -3,7 +3,6 @@ extern crate shrev;
 extern crate specs;
 
 use specs::prelude::*;
-use specs::shred::Resources;
 
 struct TrackedComponent(u64);
 
@@ -22,7 +21,7 @@ struct SysA {
 impl<'a> System<'a> for SysA {
     type SystemData = (Entities<'a>, ReadStorage<'a, TrackedComponent>);
 
-    fn setup(&mut self, res: &mut Resources) {
+    fn setup(&mut self, res: &mut World) {
         Self::SystemData::setup(res);
         self.reader_id = Some(WriteStorage::<TrackedComponent>::fetch(&res).register_reader());
     }
@@ -85,13 +84,13 @@ fn main() {
         .with(SysB::default(), "sys_b", &[])
         .build();
 
-    dispatcher.setup(&mut world.res);
+    dispatcher.setup(&mut world);
 
     for _ in 0..50 {
         world.create_entity().with(TrackedComponent(0)).build();
     }
 
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
     world.maintain();
 
     let entities = (&world.entities(), &world.read_storage::<TrackedComponent>())
@@ -104,6 +103,6 @@ fn main() {
         world.create_entity().with(TrackedComponent(0)).build();
     }
 
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
     world.maintain();
 }

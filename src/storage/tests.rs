@@ -1,10 +1,10 @@
 use mopa::Any;
 
 use super::*;
-use world::{Component, Entity, Generation, Index};
-use shred::Resources;
+use world::{Component, Entity, Generation, Index, WorldExt};
+use shred::World;
 
-fn create<T: Component>(world: &mut Resources) -> WriteStorage<T>
+fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
     T::Storage: Default,
 {
@@ -28,7 +28,7 @@ mod map_test {
 
     #[test]
     fn insert() {
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut c = create(&mut w);
 
         for i in 0..1_000 {
@@ -44,7 +44,7 @@ mod map_test {
 
     #[test]
     fn insert_100k() {
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut c = create(&mut w);
 
         for i in 0..100_000 {
@@ -60,7 +60,7 @@ mod map_test {
 
     #[test]
     fn remove() {
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut c = create(&mut w);
 
         for i in 0..1_000 {
@@ -84,7 +84,7 @@ mod map_test {
 
     #[test]
     fn test_gen() {
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut c = create(&mut w);
 
         for i in 0..1_000i32 {
@@ -103,7 +103,7 @@ mod map_test {
 
     #[test]
     fn insert_same_key() {
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut c = create(&mut w);
 
         for i in 0..10_000 {
@@ -117,7 +117,7 @@ mod map_test {
     #[should_panic]
     #[test]
     fn wrap() {
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut c = create(&mut w);
 
         let _ = c.insert(ent(1 << 25), Comp(7));
@@ -130,6 +130,7 @@ mod test {
 
     use super::*;
     use world::Builder;
+    use World;
 
     #[derive(PartialEq, Eq, Debug, Default)]
     struct CMarker;
@@ -230,7 +231,7 @@ mod test {
     where
         T::Storage: Default,
     {
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..1_000 {
@@ -251,7 +252,7 @@ mod test {
     where
         T::Storage: Default,
     {
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..1_000 {
@@ -273,7 +274,7 @@ mod test {
     where
         T::Storage: Default,
     {
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..1_000 {
@@ -300,7 +301,7 @@ mod test {
     where
         T::Storage: Default,
     {
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..1_000 {
@@ -325,7 +326,7 @@ mod test {
     where
         T::Storage: Default,
     {
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..1_000 {
@@ -343,7 +344,7 @@ mod test {
     where
         T::Storage: Default,
     {
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..10 {
@@ -363,9 +364,7 @@ mod test {
     where
         T::Storage: Default,
     {
-        use join::Join;
-
-        let mut w = Resources::new();
+        let mut w = World::new();
         let mut s: Storage<T, _> = create::<T>(&mut w);
 
         for i in 0..10 {
@@ -484,7 +483,7 @@ mod test {
 
     #[test]
     fn test_null_insert_twice() {
-        let mut w = Resources::new();
+        let mut w = World::new();
 
         w.register::<Cnull>();
         let e = w.create_entity().build();
@@ -507,7 +506,7 @@ mod test {
         use join::Join;
         use std::collections::HashSet;
 
-        let mut w = Resources::new();
+        let mut w = World::new();
         w.register::<Cvec>();
         let mut s1: Storage<Cvec, _> = w.write_storage();
         let mut components = HashSet::new();
@@ -547,7 +546,7 @@ mod test {
         use std::collections::HashSet;
         use std::sync::Mutex;
 
-        let mut w = Resources::new();
+        let mut w = World::new();
         w.register::<Cvec>();
         let mut s1: Storage<Cvec, _> = w.write_storage();
         let mut components = HashSet::new();
@@ -586,7 +585,7 @@ mod test {
 
     #[test]
     fn storage_entry() {
-        let mut w = Resources::new();
+        let mut w = World::new();
         w.register::<Cvec>();
 
         let e1 = w.create_entity().build();
@@ -670,7 +669,7 @@ mod test {
     fn storage_mask() {
         use join::Join;
 
-        let mut w = Resources::new();
+        let mut w = World::new();
         w.register::<CMarker>();
         let mut s1: Storage<CMarker, _> = w.write_storage();
 
@@ -696,7 +695,7 @@ mod test {
         use join::ParJoin;
         use rayon::iter::ParallelIterator;
 
-        let mut w = Resources::new();
+        let mut w = World::new();
         w.register::<CMarker>();
         let mut s1: Storage<CMarker, _> = w.write_storage();
 
@@ -713,7 +712,7 @@ mod test {
     fn flagged() {
         use join::Join;
 
-        let mut w = Resources::new();
+        let mut w = World::new();
         w.register::<FlaggedCvec>();
 
         let mut s1: Storage<FlaggedCvec, _> = w.write_storage();
@@ -809,7 +808,7 @@ mod test {
         use world::Entities;
         use storage::WriteStorage;
 
-        let mut w = Resources::new();
+        let mut w = World::new();
 
         w.register::<CEntries>();
 

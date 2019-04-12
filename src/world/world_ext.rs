@@ -9,6 +9,7 @@ use shred::{Fetch, FetchMut, MetaTable, Read, Resource, World, SystemData};
 
 use error::WrongGeneration;
 use storage::{AnyStorage, MaskedStorage};
+use ::{ReadStorage, WriteStorage};
 
 /// This trait provides some extension methods to make working with `shred::World` easier.
 ///
@@ -77,7 +78,7 @@ use storage::{AnyStorage, MaskedStorage};
 /// }
 /// ```
 pub trait WorldExt {
-    /// Registers a new component, adding the component storage.
+     /// Registers a new component, adding the component storage.
      ///
      /// Calls `register_with_storage` with `Default::default()`.
      ///
@@ -233,13 +234,49 @@ pub trait WorldExt {
     /// ```
     fn add_resource<T: Resource>(&mut self, res: T) ;
 
+    /// Fetches a component storage for reading.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if it is already borrowed mutably.
+    /// Panics if the component has not been registered.
+    fn read_component<T: Component>(&self) -> ReadStorage<T>;
+
+    /// Fetches a component storage for writing.
+    ///
+    /// # Panics
+    ///
+    /// Panics if it is already borrowed.
+    /// Panics if the component has not been registered.
+    fn write_component<T: Component>(&self) -> WriteStorage<T>;
+
+    /// Fetches a component storage for reading.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if it is already borrowed mutably.
+    /// Panics if the component has not been registered.
+    fn read_storage<T: Component>(&self) -> ReadStorage<T> {
+        self.read_component()
+    }
+
+    /// Fetches a component storage for writing.
+    ///
+    /// # Panics
+    ///
+    /// Panics if it is already borrowed.
+    /// Panics if the component has not been registered.
+    fn write_storage<T: Component>(&self) -> WriteStorage<T> {
+        self.write_component()
+    }
+
     /// Fetches a resource for reading.
     ///
     /// ## Panics
     ///
     /// Panics if it is already borrowed mutably.
     /// Panics if the resource has not been added.
-    fn read_resource<T: Resource>(&self) -> Fetch<T> ;
+    fn read_resource<T: Resource>(&self) -> Fetch<T>;
 
     /// Fetches a resource for writing.
     ///
@@ -247,7 +284,7 @@ pub trait WorldExt {
     ///
     /// Panics if it is already borrowed.
     /// Panics if the resource has not been added.
-    fn write_resource<T: Resource>(&self) -> FetchMut<T> ;
+    fn write_resource<T: Resource>(&self) -> FetchMut<T>;
 
     /// Convenience method for fetching entities.
     ///
@@ -324,6 +361,7 @@ pub trait WorldExt {
     /// Additionally, `LazyUpdate` will be merged.
     fn maintain(&mut self);
 
+    #[doc(hidden)]
     fn delete_components(&mut self, delete: &[Entity]);
 }
 
@@ -370,8 +408,8 @@ impl WorldExt for World {
     {
         self.entry()
             .or_insert_with(move || MaskedStorage::<T>::new(storage()));
-        self.fetch_mut::<MetaTable<AnyStorage>>()
-            .register(&*self.fetch::<MaskedStorage<T>>());
+        self.entry::<MetaTable<AnyStorage>>().or_insert_with(Default::default);
+        self.fetch_mut::<MetaTable<AnyStorage>>().register(&*self.fetch::<MaskedStorage<T>>());
     }
 
     /// Gets `SystemData` `T` from the `World`.
@@ -506,6 +544,14 @@ impl WorldExt for World {
         } else {
             self.insert(res);
         }
+    }
+
+    fn read_component<T: Component>(&self) -> ReadStorage<T> {
+        self.system_data()
+    }
+
+    fn write_component<T: Component>(&self) -> WriteStorage<T> {
+        self.system_data()
     }
 
     /// Fetches a resource for reading.
@@ -650,6 +696,7 @@ impl WorldExt for World {
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {
+        self.entry::<MetaTable<AnyStorage>>().or_insert_with(Default::default);
         for storage in self.fetch_mut::<MetaTable<AnyStorage>>().iter_mut(&self) {
             storage.drop(delete);
         }
