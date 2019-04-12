@@ -1,13 +1,14 @@
 //! Entities, resources, components, and general world management.
 
+pub use shred::World;
+
 pub use self::comp::Component;
 pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, EntityResBuilder,
                        Generation, Index};
-pub use world::world_ext::WorldExt;
-
 pub use self::lazy::{LazyBuilder, LazyUpdate};
+pub use self::world_ext::WorldExt;
 
-use shred::{FetchMut, World, SystemData};
+use shred::{FetchMut, SystemData};
 
 use storage::WriteStorage;
 

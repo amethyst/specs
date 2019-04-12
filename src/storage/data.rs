@@ -1,7 +1,7 @@
 use shred::{Fetch, FetchMut, MetaTable, ResourceId, World, SystemData};
 
 use storage::{AnyStorage, MaskedStorage, Storage, TryDefault};
-use world::{WorldExt,Component, EntitiesRes};
+use world::{Component, EntitiesRes};
 
 /// A storage with read access.
 ///
@@ -251,10 +251,10 @@ mod tests {
 
         let mut d = DispatcherBuilder::new().with(Sys, "sys", &[]).build();
 
-        assert!(!w.res.has_value::<MaskedStorage<Foo>>());
+        assert!(!w.has_value::<MaskedStorage<Foo>>());
 
-        d.setup(&mut w.res);
+        d.setup(&mut w);
 
-        assert!(w.res.has_value::<MaskedStorage<Foo>>());
+        assert!(w.has_value::<MaskedStorage<Foo>>());
     }
 }

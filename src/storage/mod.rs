@@ -23,7 +23,7 @@ use error::{Error, WrongGeneration};
 use join::Join;
 #[cfg(feature = "parallel")]
 use join::ParJoin;
-use world::{WorldExt, Component, EntitiesRes, Entity, Generation, Index};
+use world::{Component, EntitiesRes, Entity, Generation, Index};
 
 mod data;
 mod drain;
@@ -444,7 +444,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
 mod tests_inline {
 
     use rayon::iter::ParallelIterator;
-    use {Builder, Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World};
+    use {Builder, Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World, WorldExt};
 
     struct Pos;
 
