@@ -78,7 +78,7 @@ use ::{ReadStorage, WriteStorage};
 /// }
 /// ```
 pub trait WorldExt {
-    /// Registers a new component, adding the component storage.
+     /// Registers a new component, adding the component storage.
      ///
      /// Calls `register_with_storage` with `Default::default()`.
      ///
@@ -408,8 +408,8 @@ impl WorldExt for World {
     {
         self.entry()
             .or_insert_with(move || MaskedStorage::<T>::new(storage()));
-        self.fetch_mut::<MetaTable<AnyStorage>>()
-            .register(&*self.fetch::<MaskedStorage<T>>());
+        self.entry::<MetaTable<AnyStorage>>().or_insert_with(Default::default);
+        self.fetch_mut::<MetaTable<AnyStorage>>().register(&*self.fetch::<MaskedStorage<T>>());
     }
 
     /// Gets `SystemData` `T` from the `World`.
@@ -696,6 +696,7 @@ impl WorldExt for World {
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {
+        self.entry::<MetaTable<AnyStorage>>().or_insert_with(Default::default);
         for storage in self.fetch_mut::<MetaTable<AnyStorage>>().iter_mut(&self) {
             storage.drop(delete);
         }
