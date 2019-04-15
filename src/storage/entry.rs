@@ -1,7 +1,7 @@
 use hibitset::BitSetAll;
 
-use join::Join;
 use super::*;
+use join::Join;
 
 impl<'e, T, D> Storage<'e, T, D>
 where
@@ -64,9 +64,9 @@ where
     /// iterate over every single index of the bitset. If you want a join with
     /// all `Entries`s, add an `EntitiesRes` to the join as well to bound the
     /// join to all entities that are alive.
-    /// 
+    ///
     /// ## Example
-    /// 
+    ///
     /// ```rust
     /// # extern crate specs;
     /// # use specs::prelude::*;
@@ -102,7 +102,7 @@ where
     /// # for _ in 0..15 {
     /// #     world.create_entity().build();
     /// # }
-    /// # 
+    /// #
     /// # world.exec(|(mut counters, marker): (WriteStorage<Counter>, ReadStorage<AllowCounter>)| {
     /// for (mut counter, _) in (counters.entries(), &marker).join() {
     ///     let counter = counter.or_insert_with(Default::default);
@@ -245,8 +245,8 @@ where
     }
 
     /// Inserts a component using a lazily called function that is only called
-    /// when inserting the component. Ensures this entry has a value and if not, 
-    /// inserts one using the result of the passed closure. Returns a reference 
+    /// when inserting the component. Ensures this entry has a value and if not,
+    /// inserts one using the result of the passed closure. Returns a reference
     /// to the value afterwards.
     pub fn or_insert_with<F>(self, default: F) -> &'a mut T
     where

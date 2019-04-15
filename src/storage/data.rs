@@ -1,4 +1,4 @@
-use shred::{Fetch, FetchMut, MetaTable, ResourceId, World, SystemData};
+use shred::{Fetch, FetchMut, MetaTable, ResourceId, SystemData, World};
 
 use storage::{AnyStorage, MaskedStorage, Storage, TryDefault};
 use world::{Component, EntitiesRes};

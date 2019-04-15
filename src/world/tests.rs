@@ -1,5 +1,5 @@
-use super::*;
 use super::WorldExt;
+use super::*;
 use join::Join;
 use storage::VecStorage;
 

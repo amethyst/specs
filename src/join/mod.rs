@@ -3,9 +3,9 @@
 use std;
 
 use hibitset::{BitIter, BitSetAll, BitSetAnd, BitSetLike};
+use shred::{Fetch, FetchMut, Read, ReadExpect, Resource, Write, WriteExpect};
 use std::ops::{Deref, DerefMut};
 use tuple_utils::Split;
-use shred::{Fetch, FetchMut, Read, ReadExpect, Resource, Write, WriteExpect};
 
 use world::{Entities, Entity, Index};
 
@@ -13,7 +13,7 @@ use world::{Entities, Entity, Index};
 mod par_join;
 
 #[cfg(feature = "parallel")]
-pub use self::par_join::{ParJoin, JoinParIter};
+pub use self::par_join::{JoinParIter, ParJoin};
 
 /// `BitAnd` is a helper method to & bitsets together resulting in a tree.
 pub trait BitAnd {
@@ -53,21 +53,21 @@ macro_rules! bitset_and {
     }
 }
 
-bitset_and!{A, B}
-bitset_and!{A, B, C}
-bitset_and!{A, B, C, D}
-bitset_and!{A, B, C, D, E}
-bitset_and!{A, B, C, D, E, F}
-bitset_and!{A, B, C, D, E, F, G}
-bitset_and!{A, B, C, D, E, F, G, H}
-bitset_and!{A, B, C, D, E, F, G, H, I}
-bitset_and!{A, B, C, D, E, F, G, H, I, J}
-bitset_and!{A, B, C, D, E, F, G, H, I, J, K}
-bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L}
-bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M}
-bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N}
-bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O}
-bitset_and!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
+bitset_and! {A, B}
+bitset_and! {A, B, C}
+bitset_and! {A, B, C, D}
+bitset_and! {A, B, C, D, E}
+bitset_and! {A, B, C, D, E, F}
+bitset_and! {A, B, C, D, E, F, G}
+bitset_and! {A, B, C, D, E, F, G, H}
+bitset_and! {A, B, C, D, E, F, G, H, I}
+bitset_and! {A, B, C, D, E, F, G, H, I, J}
+bitset_and! {A, B, C, D, E, F, G, H, I, J, K}
+bitset_and! {A, B, C, D, E, F, G, H, I, J, K, L}
+bitset_and! {A, B, C, D, E, F, G, H, I, J, K, L, M}
+bitset_and! {A, B, C, D, E, F, G, H, I, J, K, L, M, N}
+bitset_and! {A, B, C, D, E, F, G, H, I, J, K, L, M, N, O}
+bitset_and! {A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 
 /// The purpose of the `Join` trait is to provide a way
 /// to access multiple storages at the same time with
@@ -426,22 +426,22 @@ macro_rules! define_open {
     }
 }
 
-define_open!{A}
-define_open!{A, B}
-define_open!{A, B, C}
-define_open!{A, B, C, D}
-define_open!{A, B, C, D, E}
-define_open!{A, B, C, D, E, F}
-define_open!{A, B, C, D, E, F, G}
-define_open!{A, B, C, D, E, F, G, H}
-define_open!{A, B, C, D, E, F, G, H, I}
-define_open!{A, B, C, D, E, F, G, H, I, J}
-define_open!{A, B, C, D, E, F, G, H, I, J, K}
-define_open!{A, B, C, D, E, F, G, H, I, J, K, L}
-define_open!{A, B, C, D, E, F, G, H, I, J, K, L, M}
-define_open!{A, B, C, D, E, F, G, H, I, J, K, L, M, N}
-define_open!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O}
-define_open!{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
+define_open! {A}
+define_open! {A, B}
+define_open! {A, B, C}
+define_open! {A, B, C, D}
+define_open! {A, B, C, D, E}
+define_open! {A, B, C, D, E, F}
+define_open! {A, B, C, D, E, F, G}
+define_open! {A, B, C, D, E, F, G, H}
+define_open! {A, B, C, D, E, F, G, H, I}
+define_open! {A, B, C, D, E, F, G, H, I, J}
+define_open! {A, B, C, D, E, F, G, H, I, J, K}
+define_open! {A, B, C, D, E, F, G, H, I, J, K, L}
+define_open! {A, B, C, D, E, F, G, H, I, J, K, L, M}
+define_open! {A, B, C, D, E, F, G, H, I, J, K, L, M, N}
+define_open! {A, B, C, D, E, F, G, H, I, J, K, L, M, N, O}
+define_open! {A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 define_open!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
 define_open!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R);
 

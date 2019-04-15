@@ -7,7 +7,9 @@ use std::hash::Hash;
 use join::Join;
 use shred::Resource;
 use storage::{DenseVecStorage, ReadStorage, WriteStorage};
-use world::{Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder, WorldExt};
+use world::{
+    Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder, WorldExt,
+};
 
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
@@ -80,7 +82,7 @@ impl<'a> MarkedBuilder for LazyBuilder<'a> {
     /// added to the `World`.
     fn marked<M>(self) -> Self
     where
-        M: Marker
+        M: Marker,
     {
         let entity = self.entity;
         self.lazy.exec(move |world| {

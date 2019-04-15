@@ -152,9 +152,9 @@ impl<T> Join for ChangeSet<T> {
 mod tests {
     use super::ChangeSet;
     use join::Join;
+    use shred::Resources;
     use storage::DenseVecStorage;
     use world::{Builder, Component, WorldExt};
-    use shred::Resources;
 
     pub struct Health(i32);
 

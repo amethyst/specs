@@ -13,7 +13,10 @@ extern crate quote;
 extern crate syn;
 
 use proc_macro::TokenStream;
-use syn::{DeriveInput, Path, parse::{Parse, ParseStream, Result}};
+use syn::{
+    parse::{Parse, ParseStream, Result},
+    DeriveInput, Path,
+};
 
 mod impl_saveload;
 
@@ -45,7 +48,7 @@ impl Parse for StorageAttribute {
         let _parenthesized_token = parenthesized!(content in input);
 
         Ok(StorageAttribute {
-            storage: content.parse()?
+            storage: content.parse()?,
         })
     }
 }
@@ -73,14 +76,14 @@ fn impl_component(ast: &DeriveInput) -> proc_macro2::TokenStream {
 }
 
 /// Custom derive macro for the `ConvertSaveload` trait.
-/// 
+///
 /// Requires `Entity`, `ConvertSaveload`, `Marker` and `NoError` to be in a scope.
 ///
 /// ## Example
 ///
 /// ```rust,ignore
 /// use specs::{Entity, saveload::{ConvertSaveload, Marker}, error::NoError};
-/// 
+///
 /// #[derive(ConvertSaveload)]
 /// struct Target(Entity);
 /// ```

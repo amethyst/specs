@@ -109,11 +109,12 @@ impl Allocator {
 
     /// Return `true` if the entity is alive.
     pub fn is_alive(&self, e: Entity) -> bool {
-        e.gen() == match self.generations.get(e.id() as usize) {
-            Some(g) if !g.is_alive() && self.raised.contains(e.id()) => g.raised(),
-            Some(g) => g.0.unwrap_or(Generation::one()),
-            None => Generation::one(),
-        }
+        e.gen()
+            == match self.generations.get(e.id() as usize) {
+                Some(g) if !g.is_alive() && self.raised.contains(e.id()) => g.raised(),
+                Some(g) => g.0.unwrap_or(Generation::one()),
+                None => Generation::one(),
+            }
     }
 
     /// Returns the `Generation` of the given `Index`, if any.

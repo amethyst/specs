@@ -1,15 +1,13 @@
 use super::{
-    entity::{EntitiesRes, Entity, Allocator},
-    LazyUpdate,
     comp::Component,
-    CreateIter, EntityBuilder,
+    entity::{Allocator, EntitiesRes, Entity},
+    CreateIter, EntityBuilder, LazyUpdate,
 };
 
-use shred::{Fetch, FetchMut, MetaTable, Read, Resource, World, SystemData};
-
 use error::WrongGeneration;
+use shred::{Fetch, FetchMut, MetaTable, Read, Resource, SystemData, World};
 use storage::{AnyStorage, MaskedStorage};
-use ::{ReadStorage, WriteStorage};
+use {ReadStorage, WriteStorage};
 
 /// This trait provides some extension methods to make working with `shred::World` easier.
 ///
@@ -78,42 +76,45 @@ use ::{ReadStorage, WriteStorage};
 /// }
 /// ```
 pub trait WorldExt {
-     /// Registers a new component, adding the component storage.
-     ///
-     /// Calls `register_with_storage` with `Default::default()`.
-     ///
-     /// Does nothing if the component was already
-     /// registered.
-     ///
-     /// ## Examples
-     ///
-     /// ```
-     /// use specs::prelude::*;
-     ///
-     /// struct Pos {
-     ///     x: f32,
-     ///     y: f32,
-     /// }
-     ///
-     /// impl Component for Pos {
-     ///     type Storage = DenseVecStorage<Self>;
-     /// }
-     ///
-     /// let mut world = World::new();
-     /// world.register::<Pos>();
-     /// // Register all other components like this
-     /// ```
+    /// Constructs a new World instance.
+    fn new() -> Self;
+
+    /// Registers a new component, adding the component storage.
+    ///
+    /// Calls `register_with_storage` with `Default::default()`.
+    ///
+    /// Does nothing if the component was already
+    /// registered.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use specs::prelude::*;
+    ///
+    /// struct Pos {
+    ///     x: f32,
+    ///     y: f32,
+    /// }
+    ///
+    /// impl Component for Pos {
+    ///     type Storage = DenseVecStorage<Self>;
+    /// }
+    ///
+    /// let mut world = World::new();
+    /// world.register::<Pos>();
+    /// // Register all other components like this
+    /// ```
     fn register<T: Component>(&mut self)
-        where
-            T::Storage: Default;
+    where
+        T::Storage: Default;
 
     /// Registers a new component with a given storage.
     ///
     /// Does nothing if the component was already registered.
     fn register_with_storage<F, T>(&mut self, storage: F)
-        where
-            F: FnOnce() -> T::Storage,
-            T: Component;
+    where
+        F: FnOnce() -> T::Storage,
+        T: Component;
 
     /// Gets `SystemData` `T` from the `World`.
     ///
@@ -135,11 +136,11 @@ pub trait WorldExt {
     ///
     /// * Panics if `T` is already borrowed in an incompatible way.
     fn system_data<'a, T>(&'a self) -> T
-        where
-            T: SystemData<'a>;
+    where
+        T: SystemData<'a>;
 
     /// Sets up system data `T` for fetching afterwards.
-    fn setup<'a, T: SystemData<'a>>(&mut self) ;
+    fn setup<'a, T: SystemData<'a>>(&mut self);
 
     /// Executes `f` once, right now with the specified system data.
     ///
@@ -194,9 +195,9 @@ pub trait WorldExt {
     /// assert_eq!(world.read_resource::<MyRes>().field, 5);
     /// ```
     fn exec<'a, F, R, T>(&'a mut self, f: F) -> R
-        where
-            F: FnOnce(T) -> R,
-            T: SystemData<'a>;
+    where
+        F: FnOnce(T) -> R,
+        T: SystemData<'a>;
 
     /// Adds a resource to the world.
     ///
@@ -232,7 +233,7 @@ pub trait WorldExt {
     /// world.add_resource(timer);
     /// world.add_resource(server_con);
     /// ```
-    fn add_resource<T: Resource>(&mut self, res: T) ;
+    fn add_resource<T: Resource>(&mut self, res: T);
 
     /// Fetches a component storage for reading.
     ///
@@ -291,10 +292,10 @@ pub trait WorldExt {
     /// Creation and deletion of entities with the `Entities` struct
     /// are atomically, so the actual changes will be applied
     /// with the next call to `maintain()`.
-    fn entities(&self) -> Read<EntitiesRes> ;
+    fn entities(&self) -> Read<EntitiesRes>;
 
     /// Convenience method for fetching entities.
-    fn entities_mut(&self) -> FetchMut<EntitiesRes> ;
+    fn entities_mut(&self) -> FetchMut<EntitiesRes>;
 
     /// Allows building an entity with its components.
     ///
@@ -302,7 +303,7 @@ pub trait WorldExt {
     /// component storage this builder accesses may be borrowed.
     /// If it's necessary that you borrow a resource from the `World`
     /// while this builder is alive, you can use `create_entity_unchecked`.
-    fn create_entity(&mut self) -> EntityBuilder ;
+    fn create_entity(&mut self) -> EntityBuilder;
 
     /// Allows building an entity with its components.
     ///
@@ -311,7 +312,7 @@ pub trait WorldExt {
     ///
     /// This variant is only recommended if you need to borrow a resource
     /// during the entity building. If possible, try to use `create_entity`.
-    fn create_entity_unchecked(&self) -> EntityBuilder ;
+    fn create_entity_unchecked(&self) -> EntityBuilder;
 
     /// Returns an iterator for entity creation.
     /// This makes it easy to create a whole collection
@@ -330,10 +331,10 @@ pub trait WorldExt {
     fn create_iter(&mut self) -> CreateIter;
 
     /// Deletes an entity and its components.
-    fn delete_entity(&mut self, entity: Entity) -> Result<(), WrongGeneration> ;
+    fn delete_entity(&mut self, entity: Entity) -> Result<(), WrongGeneration>;
 
     /// Deletes the specified entities and their components.
-    fn delete_entities(&mut self, delete: &[Entity]) -> Result<(), WrongGeneration> ;
+    fn delete_entities(&mut self, delete: &[Entity]) -> Result<(), WrongGeneration>;
 
     /// Deletes all entities and their components.
     fn delete_all(&mut self);
@@ -366,6 +367,15 @@ pub trait WorldExt {
 }
 
 impl WorldExt for World {
+    fn new() -> Self {
+        let mut world = World::default();
+        world.add_resource(EntitiesRes::default());
+        world.add_resource(MetaTable::<AnyStorage>::default());
+        world.add_resource(LazyUpdate::default());
+
+        world
+    }
+
     /// Registers a new component, adding the component storage.
     ///
     /// Calls `register_with_storage` with `Default::default()`.
@@ -392,8 +402,8 @@ impl WorldExt for World {
     /// // Register all other components like this
     /// ```
     fn register<T: Component>(&mut self)
-        where
-            T::Storage: Default,
+    where
+        T::Storage: Default,
     {
         self.register_with_storage::<_, T>(Default::default);
     }
@@ -402,14 +412,16 @@ impl WorldExt for World {
     ///
     /// Does nothing if the component was already registered.
     fn register_with_storage<F, T>(&mut self, storage: F)
-        where
-            F: FnOnce() -> T::Storage,
-            T: Component,
+    where
+        F: FnOnce() -> T::Storage,
+        T: Component,
     {
         self.entry()
             .or_insert_with(move || MaskedStorage::<T>::new(storage()));
-        self.entry::<MetaTable<AnyStorage>>().or_insert_with(Default::default);
-        self.fetch_mut::<MetaTable<AnyStorage>>().register(&*self.fetch::<MaskedStorage<T>>());
+        self.entry::<MetaTable<AnyStorage>>()
+            .or_insert_with(Default::default);
+        self.fetch_mut::<MetaTable<AnyStorage>>()
+            .register(&*self.fetch::<MaskedStorage<T>>());
     }
 
     /// Gets `SystemData` `T` from the `World`.
@@ -432,8 +444,8 @@ impl WorldExt for World {
     ///
     /// * Panics if `T` is already borrowed in an incompatible way.
     fn system_data<'a, T>(&'a self) -> T
-        where
-            T: SystemData<'a>,
+    where
+        T: SystemData<'a>,
     {
         SystemData::fetch(&self)
     }
@@ -496,9 +508,9 @@ impl WorldExt for World {
     /// assert_eq!(world.read_resource::<MyRes>().field, 5);
     /// ```
     fn exec<'a, F, R, T>(&'a mut self, f: F) -> R
-        where
-            F: FnOnce(T) -> R,
-            T: SystemData<'a>,
+    where
+        F: FnOnce(T) -> R,
+        T: SystemData<'a>,
     {
         self.setup::<T>();
         f(self.system_data())
@@ -696,7 +708,8 @@ impl WorldExt for World {
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {
-        self.entry::<MetaTable<AnyStorage>>().or_insert_with(Default::default);
+        self.entry::<MetaTable<AnyStorage>>()
+            .or_insert_with(Default::default);
         for storage in self.fetch_mut::<MetaTable<AnyStorage>>().iter_mut(&self) {
             storage.drop(delete);
         }

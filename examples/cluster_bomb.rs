@@ -7,7 +7,7 @@ use rand::prelude::*;
 use rayon::iter::ParallelIterator;
 
 use specs::prelude::*;
-use specs::{WorldExt, storage::HashMapStorage};
+use specs::{storage::HashMapStorage, WorldExt};
 
 const TAU: f32 = 2. * std::f32::consts::PI;
 
@@ -55,7 +55,7 @@ impl<'a> System<'a> for ClusterBombSystem {
     );
 
     fn run(&mut self, (entities, mut bombs, positions, updater): Self::SystemData) {
-        use rand::distributions::{Uniform};
+        use rand::distributions::Uniform;
 
         let durability_range = Uniform::new(10, 20);
         // Join components in potentially parallel way using rayon.

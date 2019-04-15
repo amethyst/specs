@@ -3,8 +3,9 @@
 pub use shred::World;
 
 pub use self::comp::Component;
-pub use self::entity::{CreateIterAtomic, Entities, EntitiesRes, Entity, EntityResBuilder,
-                       Generation, Index};
+pub use self::entity::{
+    CreateIterAtomic, Entities, EntitiesRes, Entity, EntityResBuilder, Generation, Index,
+};
 pub use self::lazy::{LazyBuilder, LazyUpdate};
 pub use self::world_ext::WorldExt;
 
@@ -14,10 +15,10 @@ use storage::WriteStorage;
 
 mod comp;
 mod entity;
-mod world_ext;
 mod lazy;
 #[cfg(test)]
 mod tests;
+mod world_ext;
 
 /// An iterator for entity creation.
 /// Please note that you have to consume
@@ -40,7 +41,7 @@ impl<'a> Iterator for CreateIter<'a> {
 pub trait Builder {
     /// Appends a component and associates it with the entity.
     ///
-    /// If a component was already associated with the entity, it should 
+    /// If a component was already associated with the entity, it should
     /// overwrite the previous component.
     ///
     /// # Panics
@@ -116,7 +117,7 @@ pub trait Builder {
 /// let mut entitybuilder = world.create_entity().with(MandatoryHealth(4.0));
 ///
 /// // something trivial to serve as our conditional
-/// let include_optional = true; 
+/// let include_optional = true;
 ///
 /// if include_optional == true {
 ///     entitybuilder = entitybuilder.with(OptionalPos { x: 1.0, y: 3.0 })
@@ -136,7 +137,7 @@ pub struct EntityBuilder<'a> {
 impl<'a> Builder for EntityBuilder<'a> {
     /// Inserts a component for this entity.
     ///
-    /// If a component was already associated with the entity, it will 
+    /// If a component was already associated with the entity, it will
     /// overwrite the previous component.
     #[inline]
     fn with<T: Component>(self, c: T) -> Self {

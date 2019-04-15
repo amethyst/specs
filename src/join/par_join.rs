@@ -1,12 +1,10 @@
-
 use std::cell::UnsafeCell;
 
 use hibitset::{BitProducer, BitSetLike};
 
+use join::Join;
 use rayon::iter::plumbing::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer};
 use rayon::iter::ParallelIterator;
-use join::Join;
-
 
 /// The purpose of the `ParJoin` trait is to provide a way
 /// to access multiple storages in parallel at the same time with
@@ -80,7 +78,8 @@ where
     J::Type: Send,
     J::Value: 'a + Send,
     J::Mask: 'a + Send + Sync,
-{}
+{
+}
 
 impl<'a, J> UnindexedProducer for JoinProducer<'a, J>
 where

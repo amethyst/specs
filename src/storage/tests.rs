@@ -1,8 +1,8 @@
 use mopa::Any;
 
 use super::*;
-use world::{Component, Entity, Generation, Index, WorldExt};
 use shred::World;
+use world::{Component, Entity, Generation, Index, WorldExt};
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
@@ -754,7 +754,6 @@ mod test {
             comp.0 += 1;
         }
 
-
         {
             inserted.clear();
             modified.clear();
@@ -805,8 +804,8 @@ mod test {
     #[test]
     fn entries() {
         use join::Join;
-        use world::Entities;
         use storage::WriteStorage;
+        use world::Entities;
 
         let mut w = World::new();
 
@@ -828,7 +827,7 @@ mod test {
         }
 
         let mut sum = 0;
-        
+
         w.exec(|(e, mut s): (Entities, WriteStorage<CEntries>)| {
             sum = (&e, s.entries()).join().fold(0, |acc, (_, value)| {
                 let v = value.or_insert(2.into());
