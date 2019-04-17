@@ -6,6 +6,7 @@ First of all, thanks for trying out `specs`. Let's
 set it up first. Add the following line to your `Cargo.toml`:
 
 ```toml
+[dependencies]
 specs = "0.14.0"
 ```
 
@@ -45,14 +46,24 @@ impl Component for Velocity {
 
 These will be our two component types. Optionally, the `specs-derive` crate
 provides a convenient custom `#[derive]` you can use to define component types
-more succinctly:
+more succinctly. 
+
+But first, you will need to add specs-derive to your crate
+
+```toml
+[dependencies]
+specs = "0.14.0"
+specs-derive = "0.4.0"
+```
+
+Now you can use this:
 
 ```rust,ignore
 extern crate specs;
 #[macro_use]
 extern crate specs_derive;
 
-use specs::VecStorage;
+use specs::{Component, VecStorage};
 
 #[derive(Component, Debug)]
 #[storage(VecStorage)]
