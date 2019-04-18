@@ -125,8 +125,7 @@ mod map_test {
 }
 
 mod test {
-    use std::convert::AsMut;
-    use std::fmt::Debug;
+    use std::{convert::AsMut, fmt::Debug};
 
     use super::*;
     use world::Builder;
@@ -304,7 +303,8 @@ mod test {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
-        // Insert the first 500 components manually, leaving indices 500..1000 unoccupied.
+        // Insert the first 500 components manually, leaving indices 500..1000
+        // unoccupied.
         for i in 0..500 {
             if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i).into()) {
                 panic!("Failed to insert component into entity! {:?}", err);
@@ -584,8 +584,7 @@ mod test {
     fn par_restricted_storage() {
         use join::ParJoin;
         use rayon::iter::ParallelIterator;
-        use std::collections::HashSet;
-        use std::sync::Mutex;
+        use std::{collections::HashSet, sync::Mutex};
 
         let mut w = World::new();
         w.register::<Cvec>();

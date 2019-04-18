@@ -1,9 +1,11 @@
 extern crate rayon;
 extern crate specs;
 
-use specs::prelude::*;
-use specs::storage::HashMapStorage;
-use specs::world::{Builder, WorldExt};
+use specs::{
+    prelude::*,
+    storage::HashMapStorage,
+    world::{Builder, WorldExt},
+};
 
 #[derive(Clone, Debug, PartialEq)]
 struct CompInt(i8);
@@ -177,9 +179,11 @@ fn stillborn_entities() {
         fn new() -> Self {
             LCG(0xdead_beef)
         }
+
         fn geni(&mut self) -> i8 {
             ((self.gen() as i32) - 0x7f) as i8
         }
+
         fn gen(&mut self) -> u32 {
             self.0 = self.0.wrapping_mul(214_013).wrapping_add(2_531_011);
             self.0 % RANDMAX
@@ -333,8 +337,10 @@ fn join_two_components() {
 
 #[test]
 fn par_join_two_components() {
-    use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::Mutex;
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    };
     let mut world = create_world();
     world
         .create_entity()

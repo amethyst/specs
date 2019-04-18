@@ -16,14 +16,15 @@ pub trait Tracked {
 }
 
 #[derive(Debug, Copy, Clone)]
-/// Component storage events received from a `FlaggedStorage` or any storage that implements
-/// `Tracked`.
+/// Component storage events received from a `FlaggedStorage` or any storage
+/// that implements `Tracked`.
 pub enum ComponentEvent {
-    /// An insertion event, note that a modification event will be triggered if the entity
-    /// already had a component and had a new one inserted.
+    /// An insertion event, note that a modification event will be triggered if
+    /// the entity already had a component and had a new one inserted.
     Inserted(Index),
-    /// A modification event, this will be sent any time a component is accessed mutably so be
-    /// careful with joins over `&mut storages` as it could potentially flag all of them.
+    /// A modification event, this will be sent any time a component is accessed
+    /// mutably so be careful with joins over `&mut storages` as it could
+    /// potentially flag all of them.
     Modified(Index),
     /// A removal event.
     Removed(Index),
@@ -47,15 +48,15 @@ where
     T::Storage: Tracked,
     D: DerefMut<Target = MaskedStorage<T>>,
 {
-    /// Returns the event channel for insertions/removals/modifications of this storage's
-    /// components.
+    /// Returns the event channel for insertions/removals/modifications of this
+    /// storage's components.
     pub fn channel_mut(&mut self) -> &mut EventChannel<ComponentEvent> {
         unsafe { self.open() }.1.channel_mut()
     }
 
-    /// Starts tracking component events. Note that this reader id should be used every frame,
-    /// otherwise events will pile up and memory use by the event channel will grow waiting
-    /// for this reader.
+    /// Starts tracking component events. Note that this reader id should be
+    /// used every frame, otherwise events will pile up and memory use by
+    /// the event channel will grow waiting for this reader.
     pub fn register_reader(&mut self) -> ReaderId<ComponentEvent> {
         self.channel_mut().register_reader()
     }

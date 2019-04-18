@@ -2,14 +2,13 @@ use std::marker::PhantomData;
 
 use hibitset::BitSetLike;
 
-use storage::TryDefault;
-use storage::{ComponentEvent, DenseVecStorage, Tracked, UnprotectedStorage};
+use storage::{ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage};
 use world::{Component, Index};
 
 use shrev::EventChannel;
 
-/// Wrapper storage that tracks modifications, insertions, and removals of components
-/// through an `EventChannel`.
+/// Wrapper storage that tracks modifications, insertions, and removals of
+/// components through an `EventChannel`.
 ///
 /// **Note:** Joining over all components of a `FlaggedStorage`
 /// mutably will flag all components.
@@ -95,7 +94,7 @@ use shrev::EventChannel;
 ///         // Instead you will want to restrict the amount of components iterated over, either through
 ///         // other components in the join, or by using `RestrictedStorage` and only getting the component
 ///         // mutably when you are sure you need to modify it.
-///#        let condition = true;
+/// #        let condition = true;
 ///         for (entity, mut comps) in (&entities, &mut comps.restrict_mut()).join() {
 ///             if condition { // check whether this component should be modified.
 ///                  let mut comp = comps.get_mut_unchecked();
@@ -132,7 +131,6 @@ use shrev::EventChannel;
 ///     };
 /// }
 /// ```
-///
 pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
     channel: EventChannel<ComponentEvent>,
     storage: T,

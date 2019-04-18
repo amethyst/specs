@@ -4,8 +4,10 @@
 //! and additionally one `Error` type that can represent them all.
 //! Each error in this module has an `Into<Error>` implementation.
 
-use std::error::Error as StdError;
-use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
+use std::{
+    error::Error as StdError,
+    fmt::{Debug, Display, Formatter, Result as FmtResult},
+};
 
 use world::{Entity, Generation};
 

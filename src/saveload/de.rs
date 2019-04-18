@@ -1,13 +1,17 @@
-use std::fmt::{self, Display, Formatter};
-use std::marker::PhantomData;
+use std::{
+    fmt::{self, Display, Formatter},
+    marker::PhantomData,
+};
 
 use serde::de::{
     self, Deserialize, DeserializeOwned, DeserializeSeed, Deserializer, SeqAccess, Visitor,
 };
 
 use super::ConvertSaveload;
-use saveload::marker::{Marker, MarkerAllocator};
-use saveload::EntityData;
+use saveload::{
+    marker::{Marker, MarkerAllocator},
+    EntityData,
+};
 use storage::{GenericWriteStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
 
@@ -52,7 +56,8 @@ where
     }
 }
 
-/// Wrapper for `Entity` and tuple of `WriteStorage`s that implements `serde::Deserialize`.
+/// Wrapper for `Entity` and tuple of `WriteStorage`s that implements
+/// `serde::Deserialize`.
 struct DeserializeEntity<'a: 'b, 'b, E, M: Marker, S: 'b> {
     allocator: &'b mut M::Allocator,
     entities: &'b EntitiesRes,
@@ -68,6 +73,7 @@ where
     S: DeserializeComponents<E, M>,
 {
     type Value = ();
+
     fn deserialize<D>(self, deserializer: D) -> Result<(), D::Error>
     where
         D: Deserializer<'de>,
@@ -89,7 +95,8 @@ where
     }
 }
 
-/// Wrapper for `Entities` and tuple of `WriteStorage`s that implements `serde::de::Visitor`
+/// Wrapper for `Entities` and tuple of `WriteStorage`s that implements
+/// `serde::de::Visitor`
 struct VisitEntities<'a: 'b, 'b, E, M: Marker, S: 'b> {
     allocator: &'b mut M::Allocator,
     entities: &'b EntitiesRes,

@@ -15,9 +15,9 @@ impl<'a, T> Join for Drain<'a, T>
 where
     T: Component,
 {
+    type Mask = BitSet;
     type Type = T;
     type Value = &'a mut MaskedStorage<T>;
-    type Mask = BitSet;
 
     // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {

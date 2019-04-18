@@ -4,8 +4,10 @@ use serde::ser::{self, Serialize, SerializeSeq, Serializer};
 
 use super::ConvertSaveload;
 use join::Join;
-use saveload::marker::{Marker, MarkerAllocator};
-use saveload::EntityData;
+use saveload::{
+    marker::{Marker, MarkerAllocator},
+    EntityData,
+};
 use storage::{GenericReadStorage, ReadStorage, WriteStorage};
 use world::{Component, EntitiesRes, Entity};
 
@@ -17,7 +19,8 @@ where
     /// The data representation of the components.
     type Data: Serialize;
 
-    /// Serialize the components of a single entity using a entity -> marker mapping.
+    /// Serialize the components of a single entity using a entity -> marker
+    /// mapping.
     fn serialize_entity<F>(&self, entity: Entity, ids: F) -> Result<Self::Data, E>
     where
         F: FnMut(Entity) -> Option<M>;
@@ -26,8 +29,8 @@ where
     /// of all marked entities with provided serializer.
     /// When the component gets serialized the closure passed
     /// in `ids` argument returns `None` for unmarked `Entity`.
-    /// In this case serialization of this component may perform workaround or fail.
-    /// So the function doesn't recursively mark referenced entities.
+    /// In this case serialization of this component may perform workaround or
+    /// fail. So the function doesn't recursively mark referenced entities.
     /// For recursive marking see `serialize_recursive`
     fn serialize<S>(
         &self,
@@ -55,8 +58,8 @@ where
     /// Serialize components from specified storages
     /// of all marked entities with provided serializer.
     /// When the component gets serialized the closure passed
-    /// in `ids` argument marks unmarked `Entity` (the marker of which was requested)
-    /// and it will get serialized recursively.
+    /// in `ids` argument marks unmarked `Entity` (the marker of which was
+    /// requested) and it will get serialized recursively.
     /// For serializing without such recursion see `serialize` function.
     fn serialize_recursive<MS, S>(
         &self,

@@ -28,9 +28,9 @@ where
     /// # world.register::<Comp>();
     /// # let entity = world.create_entity().build();
     /// # let mut storage = world.write_storage::<Comp>();
-    ///  if let Ok(entry) = storage.entry(entity) {
-    ///      entry.or_insert(Comp { field: 55 });
-    ///  }
+    /// if let Ok(entry) = storage.entry(entity) {
+    ///     entry.or_insert(Comp { field: 55 });
+    /// }
     /// # }
     /// ```
     pub fn entry<'a>(&'a mut self, e: Entity) -> Result<StorageEntry<'a, 'e, T, D>, WrongGeneration>
@@ -42,7 +42,8 @@ where
                 let entries = self.entries();
                 // SAFETY: This is safe since we're not swapping out the mask or the values.
                 let (_, mut value): (BitSetAll, _) = entries.open();
-                // SAFETY: We did check the mask, because the mask is `BitSetAll` and every index is part of it.
+                // SAFETY: We did check the mask, because the mask is `BitSetAll` and every
+                // index is part of it.
                 Ok(Entries::get(&mut value, e.id()))
             }
         } else {
@@ -122,7 +123,8 @@ where
     }
 }
 
-/// `Join`-able structure that yields all indices, returning `Entry` for all elements
+/// `Join`-able structure that yields all indices, returning `Entry` for all
+/// elements
 pub struct Entries<'a, 'b: 'a, T: 'a, D: 'a>(&'a mut Storage<'b, T, D>);
 
 impl<'a, 'b: 'a, T: 'a, D: 'a> Join for Entries<'a, 'b, T, D>
@@ -130,9 +132,9 @@ where
     T: Component,
     D: Deref<Target = MaskedStorage<T>>,
 {
+    type Mask = BitSetAll;
     type Type = StorageEntry<'a, 'b, T, D>;
     type Value = &'a mut Storage<'b, T, D>;
-    type Mask = BitSetAll;
 
     // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
@@ -215,7 +217,8 @@ where
     }
 }
 
-/// An entry to a storage which does not have a component associated to the entity.
+/// An entry to a storage which does not have a component associated to the
+/// entity.
 pub struct VacantEntry<'a, 'b: 'a, T: 'a, D: 'a> {
     id: Index,
     storage: &'a mut Storage<'b, T, D>,
@@ -237,8 +240,8 @@ where
     }
 }
 
-/// Entry to a storage for convenient filling of components or removal based on whether
-/// the entity has a component.
+/// Entry to a storage for convenient filling of components or removal based on
+/// whether the entity has a component.
 pub enum StorageEntry<'a, 'b: 'a, T: 'a, D: 'a> {
     /// Entry variant that is returned if the entity has a component.
     Occupied(OccupiedEntry<'a, 'b, T, D>),

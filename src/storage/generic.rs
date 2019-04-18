@@ -75,7 +75,8 @@ where
     }
 }
 
-/// Provides generic write access to `WriteStorage`, both as a value and a mutable reference.
+/// Provides generic write access to `WriteStorage`, both as a value and a
+/// mutable reference.
 pub trait GenericWriteStorage {
     /// The component type of the storage
     type Component: Component;
@@ -83,8 +84,8 @@ pub trait GenericWriteStorage {
     /// Get mutable access to an `Entity`s component
     fn get_mut(&mut self, entity: Entity) -> Option<&mut Self::Component>;
 
-    /// Get mutable access to an `Entity`s component. If the component does not exist, it
-    /// is automatically created using `Default::default()`.
+    /// Get mutable access to an `Entity`s component. If the component does not
+    /// exist, it is automatically created using `Default::default()`.
     ///
     /// Returns None if the entity is dead.
     fn get_mut_or_default(&mut self, entity: Entity) -> Option<&mut Self::Component>
