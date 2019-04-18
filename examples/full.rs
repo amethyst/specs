@@ -4,6 +4,7 @@ extern crate shred;
 extern crate shred_derive;
 extern crate specs;
 
+use shred::ResourceId;
 use specs::{prelude::*, storage::HashMapStorage, WorldExt};
 // -- Components --
 // A component exists for 0..n

@@ -22,7 +22,6 @@ use std::{
 use hibitset::{BitSet, BitSetLike, BitSetNot};
 use shred::{CastFrom, Fetch};
 
-use self::drain::Drain;
 #[cfg(feature = "parallel")]
 use crate::join::ParJoin;
 use crate::{
@@ -30,6 +29,8 @@ use crate::{
     join::Join,
     world::{Component, EntitiesRes, Entity, Generation, Index},
 };
+
+use self::drain::Drain;
 
 mod data;
 mod drain;
