@@ -118,7 +118,8 @@ fn create_after_delete(b: &mut Bencher) {
             let mut w = World::new();
             let eids: Vec<_> = (0..1000).map(|_| w.create_entity().build()).collect();
 
-            (0..1000).choose_multiple(&mut rng, 100)
+            (0..1000)
+                .choose_multiple(&mut rng, 100)
                 .into_iter()
                 .map(|i| eids[i])
                 .for_each(|e| {

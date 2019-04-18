@@ -3,7 +3,7 @@ extern crate specs;
 
 use specs::prelude::*;
 use specs::storage::HashMapStorage;
-use specs::world::Builder;
+use specs::world::{Builder, WorldExt};
 
 #[derive(Clone, Debug, PartialEq)]
 struct CompInt(i8);
@@ -51,7 +51,7 @@ fn task_panics() {
     DispatcherBuilder::new()
         .with(Sys, "s", &[])
         .build()
-        .dispatch(&mut world.res);
+        .dispatch(&mut world);
 }
 
 #[test]
@@ -70,7 +70,7 @@ fn dynamic_create() {
     let mut dispatcher = DispatcherBuilder::new().with(Sys, "s", &[]).build();
 
     for _ in 0..1_000 {
-        dispatcher.dispatch(&mut world.res);
+        dispatcher.dispatch(&mut world);
     }
 }
 
@@ -91,7 +91,7 @@ fn dynamic_deletion() {
     let mut dispatcher = DispatcherBuilder::new().with(Sys, "s", &[]).build();
 
     for _ in 0..1_000 {
-        dispatcher.dispatch(&mut world.res);
+        dispatcher.dispatch(&mut world);
     }
 }
 
@@ -262,7 +262,7 @@ fn stillborn_entities() {
         .build();
 
     for _ in 0..100 {
-        dispatcher.dispatch(&mut world.res);
+        dispatcher.dispatch(&mut world);
     }
 }
 
@@ -328,13 +328,13 @@ fn join_two_components() {
         }
     }
     let mut dispatcher = DispatcherBuilder::new().with(Iter, "iter", &[]).build();
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
 }
 
 #[test]
 fn par_join_two_components() {
-    use std::sync::Mutex;
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Mutex;
     let mut world = create_world();
     world
         .create_entity()
@@ -375,7 +375,7 @@ fn par_join_two_components() {
     let mut dispatcher = DispatcherBuilder::new()
         .with(Iter(&first, &second, &error), "iter", &[])
         .build();
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
     assert_eq!(
         *error.lock().unwrap(),
         None,
@@ -431,7 +431,7 @@ fn par_join_many_entities_and_systems() {
         .with_barrier()
         .with(FindFailed(&failed), "find_failed", &[])
         .build();
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
     for &(id, n) in &*failed.lock().unwrap() {
         panic!(
             "Entity with id {} failed to count to 127. Count was {}",
@@ -519,7 +519,7 @@ fn maintain_entity_deletion() {
     }
 
     let mut check = CheckSys;
-    System::setup(&mut check, &mut world.res);
+    System::setup(&mut check, &mut world);
 
     let _e1 = world
         .create_entity()
@@ -540,9 +540,9 @@ fn maintain_entity_deletion() {
         .build();
 
     world.maintain();
-    check.run_now(&world.res);
+    check.run_now(&world);
     delete.entity = Some(e2);
-    delete.run_now(&world.res);
+    delete.run_now(&world);
     world.maintain();
-    check.run_now(&world.res);
+    check.run_now(&world);
 }

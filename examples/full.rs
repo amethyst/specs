@@ -6,7 +6,7 @@ extern crate specs;
 
 use specs::prelude::*;
 use specs::storage::HashMapStorage;
-
+use specs::WorldExt;
 // -- Components --
 // A component exists for 0..n
 // entities.
@@ -168,7 +168,11 @@ impl<'a> System<'a> for SysStoreMax {
 struct JoinParallel;
 
 impl<'a> System<'a> for JoinParallel {
-    type SystemData = (ReadStorage<'a, CompBool>, ReadStorage<'a, CompInt>, WriteStorage<'a, CompFloat>);
+    type SystemData = (
+        ReadStorage<'a, CompBool>,
+        ReadStorage<'a, CompInt>,
+        WriteStorage<'a, CompFloat>,
+    );
 
     fn run(&mut self, (comp_bool, comp_int, mut comp_float): Self::SystemData) {
         use rayon::prelude::*;
@@ -231,7 +235,7 @@ fn main() {
 
     // setup() will setup all Systems we added, registering all resources and components that
     // they will try to read from and write to
-    dispatcher.setup(&mut w.res);
+    dispatcher.setup(&mut w);
 
     // create_entity() of World provides with an EntityBuilder to add components to an Entity
     w.create_entity()
@@ -239,7 +243,8 @@ fn main() {
         .with(CompBool(false))
         .build();
     // build() returns an entity, we will use it later to perform a deletion
-    let e = w.create_entity()
+    let e = w
+        .create_entity()
         .with(CompInt(9))
         .with(CompBool(true))
         .build();
@@ -251,7 +256,7 @@ fn main() {
     w.create_entity().with(CompBool(false)).build();
     w.create_entity().with(CompFloat(0.1)).build();
 
-    dispatcher.dispatch(&w.res);
+    dispatcher.dispatch(&w);
     w.maintain();
 
     // Insert a component, associated with `e`.
@@ -259,6 +264,6 @@ fn main() {
         eprintln!("Failed to insert component! {:?}", err);
     }
 
-    dispatcher.dispatch(&w.res);
+    dispatcher.dispatch(&w);
     w.maintain();
 }

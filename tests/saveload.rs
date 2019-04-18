@@ -11,7 +11,11 @@ extern crate specs_derive;
 
 #[cfg(feature = "serde")]
 mod tests {
-    use spocs::{Builder, Entity, saveload::{ConvertSaveload, Marker, U64Marker}, error::NoError, World};
+    use spocs::{
+        error::NoError,
+        saveload::{ConvertSaveload, Marker, U64Marker},
+        Builder, Entity, World, WorldExt,
+    };
 
     #[derive(ConvertSaveload)]
     struct OneFieldNamed {

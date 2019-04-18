@@ -62,7 +62,8 @@ mod marker_test {
                     &ents,
                     &markers,
                     &mut ser,
-                ).unwrap();
+                )
+                .unwrap();
             },
         );
 
@@ -92,7 +93,8 @@ mod marker_test {
                     &mut markers,
                     &mut alloc,
                     &mut de,
-                ).unwrap();
+                )
+                .unwrap();
             },
         );
 

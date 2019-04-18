@@ -1,6 +1,7 @@
 //! Component storage types, implementations for component joins, etc.
 
 pub use self::data::{ReadStorage, WriteStorage};
+pub use self::entry::{Entries, OccupiedEntry, StorageEntry, VacantEntry};
 pub use self::flagged::FlaggedStorage;
 pub use self::generic::{GenericReadStorage, GenericWriteStorage};
 pub use self::restrict::{
@@ -9,7 +10,6 @@ pub use self::restrict::{
 };
 pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
 pub use self::track::{ComponentEvent, Tracked};
-pub use self::entry::{Entries, OccupiedEntry, VacantEntry, StorageEntry};
 
 use std;
 use std::marker::PhantomData;
@@ -27,6 +27,7 @@ use world::{Component, EntitiesRes, Entity, Generation, Index};
 
 mod data;
 mod drain;
+mod entry;
 mod flagged;
 mod generic;
 mod restrict;
@@ -34,7 +35,6 @@ mod storages;
 #[cfg(test)]
 mod tests;
 mod track;
-mod entry;
 
 /// An inverted storage type, only useful to iterate entities
 /// that do not have a particular component type.
@@ -69,7 +69,7 @@ pub trait AnyStorage {
     fn drop(&mut self, entities: &[Entity]);
 }
 
-impl<T> CastFrom<T> for AnyStorage
+unsafe impl<T> CastFrom<T> for AnyStorage
 where
     T: AnyStorage + 'static,
 {
@@ -331,7 +331,8 @@ where
 // accesses the storage and nothing else.
 unsafe impl<'a, T: Component, D> DistinctStorage for Storage<'a, T, D> where
     T::Storage: DistinctStorage
-{}
+{
+}
 
 impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
 where
@@ -374,7 +375,8 @@ where
     T: Component,
     D: Deref<Target = MaskedStorage<T>>,
     T::Storage: Sync,
-{}
+{
+}
 
 impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
 where
@@ -407,7 +409,8 @@ where
     T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,
     T::Storage: Sync + DistinctStorage,
-{}
+{
+}
 
 /// Tries to create a default value, returns an `Err` with the name of the storage and/or component
 /// if there's no default.
@@ -505,7 +508,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
 mod tests_inline {
 
     use rayon::iter::ParallelIterator;
-    use {Builder, Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World};
+    use {Builder, Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World, WorldExt};
 
     struct Pos;
 

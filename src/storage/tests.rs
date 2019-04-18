@@ -1,7 +1,8 @@
 use mopa::Any;
 
 use super::*;
-use world::{Component, Entity, Generation, Index, World};
+use shred::World;
+use world::{Component, Entity, Generation, Index, WorldExt};
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
@@ -129,6 +130,7 @@ mod test {
 
     use super::*;
     use world::Builder;
+    use World;
 
     #[derive(PartialEq, Eq, Debug, Default)]
     struct CMarker;
@@ -399,8 +401,6 @@ mod test {
     where
         T::Storage: Default,
     {
-        use join::Join;
-
         let mut w = World::new();
         let mut s: Storage<T, _> = create::<T>(&mut w);
 
@@ -845,8 +845,8 @@ mod test {
     #[test]
     fn entries() {
         use join::Join;
-        use world::Entities;
         use storage::WriteStorage;
+        use world::Entities;
 
         let mut w = World::new();
 

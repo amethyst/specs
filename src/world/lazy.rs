@@ -1,6 +1,7 @@
 use crossbeam::queue::SegQueue;
-
-use world::{Builder, Component, EntitiesRes, Entity, World};
+use shred::{SystemData, World};
+use storage::WriteStorage;
+use world::{Builder, Component, EntitiesRes, Entity};
 
 struct Queue<T>(SegQueue<T>);
 
@@ -25,7 +26,7 @@ pub struct LazyBuilder<'a> {
 impl<'a> Builder for LazyBuilder<'a> {
     /// Inserts a component using [`LazyUpdate`].
     ///
-    /// If a component was already associated with the entity, it will 
+    /// If a component was already associated with the entity, it will
     /// overwrite the previous component.
     fn with<C>(self, component: C) -> Self
     where
@@ -33,7 +34,8 @@ impl<'a> Builder for LazyBuilder<'a> {
     {
         let entity = self.entity;
         self.lazy.exec(move |world| {
-            if world.write_storage::<C>().insert(entity, component).is_err() {
+            let mut storage: WriteStorage<C> = SystemData::fetch(world);
+            if storage.insert(entity, component).is_err() {
                 warn!(
                     "Lazy insert of component failed because {:?} was dead.",
                     entity
@@ -81,7 +83,7 @@ where
 #[derive(Derivative)]
 #[derivative(Default)]
 pub struct LazyUpdate {
-    #[derivative(Default(value="Some(Default::default())"))]
+    #[derivative(Default(value = "Some(Default::default())"))]
     queue: Option<Queue<Box<LazyUpdateInternal>>>,
 }
 
@@ -144,7 +146,8 @@ impl LazyUpdate {
         C: Component + Send + Sync,
     {
         self.exec(move |world| {
-            if world.write_storage::<C>().insert(e, c).is_err() {
+            let mut storage: WriteStorage<C> = SystemData::fetch(world);
+            if storage.insert(e, c).is_err() {
                 warn!("Lazy insert of component failed because {:?} was dead.", e);
             }
         });
@@ -182,7 +185,7 @@ impl LazyUpdate {
         I: IntoIterator<Item = (Entity, C)> + Send + Sync + 'static,
     {
         self.exec(move |world| {
-            let mut storage = world.write_storage::<C>();
+            let mut storage: WriteStorage<C> = SystemData::fetch(world);
             for (e, c) in iter {
                 if storage.insert(e, c).is_err() {
                     warn!("Lazy insert of component failed because {:?} was dead.", e);
@@ -221,7 +224,8 @@ impl LazyUpdate {
         C: Component + Send + Sync,
     {
         self.exec(move |world| {
-            world.write_storage::<C>().remove(e);
+            let mut storage: WriteStorage<C> = SystemData::fetch(world);
+            storage.remove(e);
         });
     }
 
@@ -258,7 +262,11 @@ impl LazyUpdate {
     where
         F: FnOnce(&World) + 'static + Send + Sync,
     {
-        self.queue.as_ref().unwrap().0.push(Box::new(|w: &mut World| f(w)));
+        self.queue
+            .as_ref()
+            .unwrap()
+            .0
+            .push(Box::new(|w: &mut World| f(w)));
     }
 
     /// Lazily executes a closure with mutable world access.
