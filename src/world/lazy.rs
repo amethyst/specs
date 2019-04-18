@@ -1,7 +1,9 @@
+use crate::{
+    storage::WriteStorage,
+    world::{Builder, Component, EntitiesRes, Entity},
+};
 use crossbeam::queue::SegQueue;
 use shred::{SystemData, World};
-use crate::storage::WriteStorage;
-use crate::world::{Builder, Component, EntitiesRes, Entity};
 
 struct Queue<T>(SegQueue<T>);
 

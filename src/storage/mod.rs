@@ -23,11 +23,13 @@ use hibitset::{BitSet, BitSetLike, BitSetNot};
 use shred::{CastFrom, Fetch};
 
 use self::drain::Drain;
-use crate::error::{Error, WrongGeneration};
-use crate::join::Join;
 #[cfg(feature = "parallel")]
 use crate::join::ParJoin;
-use crate::world::{Component, EntitiesRes, Entity, Generation, Index};
+use crate::{
+    error::{Error, WrongGeneration},
+    join::Join,
+    world::{Component, EntitiesRes, Entity, Generation, Index},
+};
 
 mod data;
 mod drain;
@@ -517,15 +519,10 @@ pub trait UnprotectedStorage<T>: TryDefault {
 #[cfg(test)]
 mod tests_inline {
 
+    use crate::{
+        Builder, Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World, WorldExt,
+    };
     use rayon::iter::ParallelIterator;
-    use crate::Builder;
-    use crate::Component;
-    use crate::DenseVecStorage;
-    use crate::Entities;
-    use crate::ParJoin;
-    use crate::ReadStorage;
-    use crate::World;
-    use crate::WorldExt;
 
     struct Pos;
 

@@ -2,9 +2,11 @@ use std::ops::{Deref, DerefMut};
 
 use shrev::{EventChannel, ReaderId};
 
-use crate::join::Join;
-use crate::storage::{MaskedStorage, Storage};
-use crate::world::{Component, Index};
+use crate::{
+    join::Join,
+    storage::{MaskedStorage, Storage},
+    world::{Component, Index},
+};
 
 /// `UnprotectedStorage`s that track modifications, insertions, and
 /// removals of components.

@@ -2,12 +2,14 @@
 
 use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
-use crate::join::Join;
-use shred::Resource;
-use crate::storage::{DenseVecStorage, ReadStorage, WriteStorage};
-use crate::world::{
-    Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder, WorldExt,
+use crate::{
+    join::Join,
+    storage::{DenseVecStorage, ReadStorage, WriteStorage},
+    world::{
+        Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder, WorldExt,
+    },
 };
+use shred::Resource;
 
 use serde::{de::DeserializeOwned, ser::Serialize};
 

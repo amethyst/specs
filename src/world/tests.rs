@@ -1,6 +1,5 @@
 use super::{WorldExt, *};
-use crate::join::Join;
-use crate::storage::VecStorage;
+use crate::{join::Join, storage::VecStorage};
 
 struct Pos;
 

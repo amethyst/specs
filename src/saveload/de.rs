@@ -8,12 +8,14 @@ use serde::de::{
 };
 
 use super::ConvertSaveload;
-use crate::saveload::{
-    marker::{Marker, MarkerAllocator},
-    EntityData,
+use crate::{
+    saveload::{
+        marker::{Marker, MarkerAllocator},
+        EntityData,
+    },
+    storage::{GenericWriteStorage, WriteStorage},
+    world::{Component, EntitiesRes, Entity},
 };
-use crate::storage::{GenericWriteStorage, WriteStorage};
-use crate::world::{Component, EntitiesRes, Entity};
 
 /// A trait which allows to deserialize entities and their components.
 pub trait DeserializeComponents<E, M>

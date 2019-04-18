@@ -1,8 +1,10 @@
 extern crate ron;
 
 use super::*;
-use crate::error::{Error, NoError};
-use crate::prelude::*;
+use crate::{
+    error::{Error, NoError},
+    prelude::*,
+};
 
 mod marker_test {
     use super::*;

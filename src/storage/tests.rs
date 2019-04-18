@@ -1,8 +1,8 @@
 use mopa::Any;
 
 use super::*;
-use shred::World;
 use crate::world::{Component, Entity, Generation, Index, WorldExt};
+use shred::World;
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
@@ -128,8 +128,7 @@ mod test {
     use std::{convert::AsMut, fmt::Debug};
 
     use super::*;
-    use crate::world::Builder;
-    use crate::World;
+    use crate::{world::Builder, World};
 
     #[derive(PartialEq, Eq, Debug, Default)]
     struct CMarker;
@@ -843,9 +842,7 @@ mod test {
 
     #[test]
     fn entries() {
-        use crate::join::Join;
-        use crate::storage::WriteStorage;
-        use crate::world::Entities;
+        use crate::{join::Join, storage::WriteStorage, world::Entities};
 
         let mut w = World::new();
 

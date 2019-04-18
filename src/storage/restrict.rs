@@ -11,8 +11,10 @@ use crate::join::Join;
 
 #[cfg(feature = "parallel")]
 use crate::join::ParJoin;
-use crate::storage::{MaskedStorage, Storage, UnprotectedStorage};
-use crate::world::{Component, EntitiesRes, Entity, Index};
+use crate::{
+    storage::{MaskedStorage, Storage, UnprotectedStorage},
+    world::{Component, EntitiesRes, Entity, Index},
+};
 
 /// Specifies that the `RestrictedStorage` cannot run in parallel.
 ///

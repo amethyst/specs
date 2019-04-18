@@ -1,8 +1,10 @@
 use hibitset::BitSet;
 
-use crate::join::Join;
-use crate::storage::MaskedStorage;
-use crate::world::{Component, Index};
+use crate::{
+    join::Join,
+    storage::MaskedStorage,
+    world::{Component, Index},
+};
 
 /// A draining storage wrapper which has a `Join` implementation
 /// that removes the components.
@@ -36,9 +38,11 @@ where
 mod tests {
     #[test]
     fn basic_drain() {
-        use crate::join::Join;
-        use crate::storage::DenseVecStorage;
-        use crate::world::{Builder, Component, World, WorldExt};
+        use crate::{
+            join::Join,
+            storage::DenseVecStorage,
+            world::{Builder, Component, World, WorldExt},
+        };
 
         #[derive(Debug, PartialEq)]
         struct Comp;

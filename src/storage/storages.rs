@@ -5,8 +5,10 @@ use std::collections::BTreeMap;
 use fnv::FnvHashMap;
 use hibitset::BitSetLike;
 
-use crate::storage::{DistinctStorage, UnprotectedStorage};
-use crate::world::Index;
+use crate::{
+    storage::{DistinctStorage, UnprotectedStorage},
+    world::Index,
+};
 
 /// BTreeMap-based storage.
 #[derive(Derivative)]

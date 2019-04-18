@@ -7,12 +7,9 @@ use std::{
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use shred::Read;
 
-use crate::error::WrongGeneration;
-use crate::join::Join;
 #[cfg(feature = "parallel")]
 use crate::join::ParJoin;
-use crate::storage::WriteStorage;
-use crate::world::Component;
+use crate::{error::WrongGeneration, join::Join, storage::WriteStorage, world::Component};
 
 /// An index is basically the id of an `Entity`.
 pub type Index = u32;

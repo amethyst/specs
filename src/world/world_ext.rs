@@ -4,11 +4,12 @@ use super::{
     CreateIter, EntityBuilder, LazyUpdate,
 };
 
-use crate::error::WrongGeneration;
+use crate::{
+    error::WrongGeneration,
+    storage::{AnyStorage, MaskedStorage},
+    ReadStorage, WriteStorage,
+};
 use shred::{Fetch, FetchMut, MetaTable, Read, Resource, SystemData, World};
-use crate::storage::{AnyStorage, MaskedStorage};
-use crate::ReadStorage;
-use crate::WriteStorage;
 
 /// This trait provides some extension methods to make working with
 /// `shred::World` easier.
