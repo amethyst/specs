@@ -1,8 +1,8 @@
 use std::fmt;
+use std::num::NonZeroI32;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
-use nonzero_signed::NonZeroI32;
 use shred::Read;
 
 use error::WrongGeneration;

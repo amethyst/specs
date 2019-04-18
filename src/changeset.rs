@@ -165,7 +165,7 @@ impl<T> Join for ChangeSet<T> {
 mod tests {
     use super::ChangeSet;
     use join::Join;
-    use shred::Resources;
+    use shred::World;
     use storage::DenseVecStorage;
     use world::{Builder, Component, WorldExt};
 
@@ -177,7 +177,7 @@ mod tests {
 
     #[test]
     fn test() {
-        let mut world = Resources::new();
+        let mut world = World::new();
         world.register::<Health>();
 
         let a = world.create_entity().with(Health(100)).build();

@@ -407,7 +407,6 @@ where
     F: FnMut(Ident) -> WherePredicate,
     I: IntoIterator<Item = &'a GenericParam>,
 {
-    use syn::GenericParam;
     let preds = &mut where_clause.get_or_insert(parse_quote!(where)).predicates;
     for generic in generics {
         if let GenericParam::Type(ty_param) = generic {
