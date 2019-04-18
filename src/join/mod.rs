@@ -7,7 +7,7 @@ use shred::{Fetch, FetchMut, Read, ReadExpect, Resource, Write, WriteExpect};
 use std::ops::{Deref, DerefMut};
 use tuple_utils::Split;
 
-use world::{Entities, Entity, Index};
+use crate::world::{Entities, Entity, Index};
 
 #[cfg(feature = "parallel")]
 mod par_join;

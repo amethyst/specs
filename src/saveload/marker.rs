@@ -2,10 +2,10 @@
 
 use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
-use join::Join;
+use crate::join::Join;
 use shred::Resource;
-use storage::{DenseVecStorage, ReadStorage, WriteStorage};
-use world::{
+use crate::storage::{DenseVecStorage, ReadStorage, WriteStorage};
+use crate::world::{
     Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder, WorldExt,
 };
 

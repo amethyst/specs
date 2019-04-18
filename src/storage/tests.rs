@@ -2,7 +2,7 @@ use mopa::Any;
 
 use super::*;
 use shred::World;
-use world::{Component, Entity, Generation, Index, WorldExt};
+use crate::world::{Component, Entity, Generation, Index, WorldExt};
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
@@ -128,8 +128,8 @@ mod test {
     use std::{convert::AsMut, fmt::Debug};
 
     use super::*;
-    use world::Builder;
-    use World;
+    use crate::world::Builder;
+    use crate::World;
 
     #[derive(PartialEq, Eq, Debug, Default)]
     struct CMarker;
@@ -544,7 +544,7 @@ mod test {
 
     #[test]
     fn restricted_storage() {
-        use join::Join;
+        use crate::join::Join;
         use std::collections::HashSet;
 
         let mut w = World::new();
@@ -582,7 +582,7 @@ mod test {
 
     #[test]
     fn par_restricted_storage() {
-        use join::ParJoin;
+        use crate::join::ParJoin;
         use rayon::iter::ParallelIterator;
         use std::{collections::HashSet, sync::Mutex};
 
@@ -707,7 +707,7 @@ mod test {
 
     #[test]
     fn storage_mask() {
-        use join::Join;
+        use crate::join::Join;
 
         let mut w = World::new();
         w.register::<CMarker>();
@@ -732,7 +732,7 @@ mod test {
 
     #[test]
     fn par_storage_mask() {
-        use join::ParJoin;
+        use crate::join::ParJoin;
         use rayon::iter::ParallelIterator;
 
         let mut w = World::new();
@@ -750,7 +750,7 @@ mod test {
 
     #[test]
     fn flagged() {
-        use join::Join;
+        use crate::join::Join;
 
         let mut w = World::new();
         w.register::<FlaggedCvec>();
@@ -843,9 +843,9 @@ mod test {
 
     #[test]
     fn entries() {
-        use join::Join;
-        use storage::WriteStorage;
-        use world::Entities;
+        use crate::join::Join;
+        use crate::storage::WriteStorage;
+        use crate::world::Entities;
 
         let mut w = World::new();
 

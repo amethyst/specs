@@ -3,9 +3,9 @@
 use hibitset::BitSet;
 use std::{iter::FromIterator, ops::AddAssign};
 
-use join::Join;
-use storage::{DenseVecStorage, UnprotectedStorage};
-use world::{Entity, Index};
+use crate::join::Join;
+use crate::storage::{DenseVecStorage, UnprotectedStorage};
+use crate::world::{Entity, Index};
 
 /// Change set that can be collected from an iterator, and joined on for easy
 /// application to components.
@@ -167,10 +167,10 @@ impl<T> Join for ChangeSet<T> {
 #[cfg(test)]
 mod tests {
     use super::ChangeSet;
-    use join::Join;
+    use crate::join::Join;
     use shred::World;
-    use storage::DenseVecStorage;
-    use world::{Builder, Component, WorldExt};
+    use crate::storage::DenseVecStorage;
+    use crate::world::{Builder, Component, WorldExt};
 
     pub struct Health(i32);
 

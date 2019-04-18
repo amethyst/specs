@@ -5,5 +5,5 @@ use_field_init_shorthand = true
 use_try_shorthand = true
 format_doc_comments = true
 wrap_comments = true
-#edition = "2018"
+edition = "2018"
 version = "Two"

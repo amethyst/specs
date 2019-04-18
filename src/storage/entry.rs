@@ -1,7 +1,7 @@
 use hibitset::BitSetAll;
 
 use super::*;
-use join::Join;
+use crate::join::Join;
 
 impl<'e, T, D> Storage<'e, T, D>
 where

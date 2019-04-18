@@ -1,6 +1,6 @@
 use mopa::Any;
 
-use storage::UnprotectedStorage;
+use crate::storage::UnprotectedStorage;
 
 /// Abstract component type.
 /// Doesn't have to be Copy or even Clone.

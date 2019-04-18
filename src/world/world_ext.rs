@@ -4,11 +4,11 @@ use super::{
     CreateIter, EntityBuilder, LazyUpdate,
 };
 
-use error::WrongGeneration;
+use crate::error::WrongGeneration;
 use shred::{Fetch, FetchMut, MetaTable, Read, Resource, SystemData, World};
-use storage::{AnyStorage, MaskedStorage};
-use ReadStorage;
-use WriteStorage;
+use crate::storage::{AnyStorage, MaskedStorage};
+use crate::ReadStorage;
+use crate::WriteStorage;
 
 /// This trait provides some extension methods to make working with
 /// `shred::World` easier.
@@ -671,7 +671,7 @@ impl WorldExt for World {
 
     /// Deletes all entities and their components.
     fn delete_all(&mut self) {
-        use join::Join;
+        use crate::join::Join;
 
         let entities: Vec<_> = self.entities().join().collect();
 

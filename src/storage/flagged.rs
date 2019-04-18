@@ -2,8 +2,8 @@ use std::marker::PhantomData;
 
 use hibitset::BitSetLike;
 
-use storage::{ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage};
-use world::{Component, Index};
+use crate::storage::{ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage};
+use crate::world::{Component, Index};
 
 use shrev::EventChannel;
 

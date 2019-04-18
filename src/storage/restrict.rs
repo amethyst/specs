@@ -7,12 +7,12 @@ use std::{
 use hibitset::BitSet;
 use shred::Fetch;
 
-use join::Join;
+use crate::join::Join;
 
 #[cfg(feature = "parallel")]
-use join::ParJoin;
-use storage::{MaskedStorage, Storage, UnprotectedStorage};
-use world::{Component, EntitiesRes, Entity, Index};
+use crate::join::ParJoin;
+use crate::storage::{MaskedStorage, Storage, UnprotectedStorage};
+use crate::world::{Component, EntitiesRes, Entity, Index};
 
 /// Specifies that the `RestrictedStorage` cannot run in parallel.
 ///

@@ -6,10 +6,10 @@
 
 use hibitset::{AtomicBitSet, BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr, BitSetXor};
 
-use join::Join;
+use crate::join::Join;
 #[cfg(feature = "parallel")]
-use join::ParJoin;
-use world::Index;
+use crate::join::ParJoin;
+use crate::world::Index;
 
 macro_rules! define_bit_join {
     ( impl < ( $( $lifetime:tt )* ) ( $( $arg:ident ),* ) > for $bitset:ty ) => {

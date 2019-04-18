@@ -1,7 +1,7 @@
 use shred::{Fetch, FetchMut, MetaTable, ResourceId, SystemData, World};
 
-use storage::{AnyStorage, MaskedStorage, Storage, TryDefault};
-use world::{Component, EntitiesRes};
+use crate::storage::{AnyStorage, MaskedStorage, Storage, TryDefault};
+use crate::world::{Component, EntitiesRes};
 
 /// A storage with read access.
 ///
@@ -235,8 +235,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use prelude::*;
-    use storage::MaskedStorage;
+    use crate::prelude::*;
+    use crate::storage::MaskedStorage;
 
     struct Foo;
     impl Component for Foo {

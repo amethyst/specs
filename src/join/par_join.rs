@@ -2,7 +2,7 @@ use std::cell::UnsafeCell;
 
 use hibitset::{BitProducer, BitSetLike};
 
-use join::Join;
+use crate::join::Join;
 use rayon::iter::{
     plumbing::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer},
     ParallelIterator,

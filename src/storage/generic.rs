@@ -1,5 +1,5 @@
-use storage::{InsertResult, ReadStorage, WriteStorage};
-use world::{Component, Entity};
+use crate::storage::{InsertResult, ReadStorage, WriteStorage};
+use crate::world::{Component, Entity};
 
 pub struct Seal;
 

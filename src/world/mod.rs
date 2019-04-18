@@ -13,7 +13,7 @@ pub use self::{
 
 use shred::{FetchMut, SystemData};
 
-use storage::WriteStorage;
+use crate::storage::WriteStorage;
 
 mod comp;
 mod entity;

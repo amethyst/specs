@@ -26,8 +26,8 @@
 
 use serde::{de::DeserializeOwned, Serialize};
 
-use error::NoError;
-use world::Entity;
+use crate::error::NoError;
+use crate::world::Entity;
 
 mod de;
 mod marker;

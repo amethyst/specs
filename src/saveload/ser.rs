@@ -3,13 +3,13 @@ use std::fmt::Display;
 use serde::ser::{self, Serialize, SerializeSeq, Serializer};
 
 use super::ConvertSaveload;
-use join::Join;
-use saveload::{
+use crate::join::Join;
+use crate::saveload::{
     marker::{Marker, MarkerAllocator},
     EntityData,
 };
-use storage::{GenericReadStorage, ReadStorage, WriteStorage};
-use world::{Component, EntitiesRes, Entity};
+use crate::storage::{GenericReadStorage, ReadStorage, WriteStorage};
+use crate::world::{Component, EntitiesRes, Entity};
 
 /// A trait which allows to serialize entities and their components.
 pub trait SerializeComponents<E, M>
