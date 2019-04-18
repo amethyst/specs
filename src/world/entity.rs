@@ -1,16 +1,15 @@
-use std::fmt;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{
+    fmt,
+    num::NonZeroI32,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
-use nonzero_signed::NonZeroI32;
 use shred::Read;
 
-use error::WrongGeneration;
-use join::Join;
 #[cfg(feature = "parallel")]
-use join::ParJoin;
-use storage::WriteStorage;
-use world::Component;
+use crate::join::ParJoin;
+use crate::{error::WrongGeneration, join::Join, storage::WriteStorage, world::Component};
 
 /// An index is basically the id of an `Entity`.
 pub type Index = u32;
@@ -23,7 +22,7 @@ pub type Index = u32;
 /// # use specs::prelude::*;
 /// # struct Sys;
 /// # impl<'a> System<'a> for Sys {
-/// type SystemData = (Entities<'a>, /* ... */);
+/// type SystemData = (Entities<'a> /* ... */,);
 /// # fn run(&mut self, _: Self::SystemData) {}
 /// # }
 /// ```
@@ -86,7 +85,8 @@ impl Allocator {
         Ok(())
     }
 
-    /// Kills and entity atomically (will be updated when the allocator is maintained).
+    /// Kills and entity atomically (will be updated when the allocator is
+    /// maintained).
     pub fn kill_atomic(&self, e: Entity) -> Result<(), WrongGeneration> {
         if !self.is_alive(e) {
             return self.del_err(e);
@@ -243,8 +243,8 @@ impl Entity {
 }
 
 /// The entities of this ECS. This is a resource, stored in the `World`.
-/// If you just want to access it in your system, you can also use the `Entities`
-/// type def.
+/// If you just want to access it in your system, you can also use the
+/// `Entities` type def.
 ///
 /// **Please note that you should never get
 /// this mutably in a system, because it would
@@ -314,9 +314,9 @@ impl EntitiesRes {
 }
 
 impl<'a> Join for &'a EntitiesRes {
+    type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
     type Type = Entity;
     type Value = Self;
-    type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
 
     unsafe fn open(self) -> (Self::Mask, Self) {
         (BitSetOr(&self.alloc.alive, &self.alloc.raised), self)

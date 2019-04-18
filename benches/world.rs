@@ -8,8 +8,7 @@ extern crate specs;
 extern crate test;
 
 use criterion::{Bencher, Criterion};
-use specs::prelude::*;
-use specs::storage::HashMapStorage;
+use specs::{prelude::*, storage::HashMapStorage};
 
 #[derive(Clone, Debug)]
 struct CompInt(i32);

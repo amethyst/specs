@@ -4,9 +4,8 @@ extern crate shred;
 extern crate shred_derive;
 extern crate specs;
 
-use specs::prelude::*;
-use specs::storage::HashMapStorage;
-use specs::WorldExt;
+use shred::ResourceId;
+use specs::{prelude::*, storage::HashMapStorage, WorldExt};
 // -- Components --
 // A component exists for 0..n
 // entities.
@@ -193,9 +192,10 @@ impl<'a> System<'a> for AddIntToFloat {
 
     fn run(&mut self, (comp_int, comp_float): Self::SystemData) {
         // This system demonstrates the use of `.maybe()`.
-        // As the name implies, it doesn't filter any entities; it yields an `Option<CompInt>`.
-        // So the `join` will yield all entities that have a `CompFloat`, just returning a
-        // `CompInt` if the entity happens to have one.
+        // As the name implies, it doesn't filter any entities; it yields an
+        // `Option<CompInt>`. So the `join` will yield all entities that have a
+        // `CompFloat`, just returning a `CompInt` if the entity happens to have
+        // one.
         for (f, i) in (&comp_float, comp_int.maybe()).join() {
             let sum = f.0 + i.map(|i| i.0 as f32).unwrap_or(0.0);
             println!("Result: sum = {}", sum);
@@ -233,11 +233,12 @@ fn main() {
         .with(AddIntToFloat, "add_float_int", &[])
         .build();
 
-    // setup() will setup all Systems we added, registering all resources and components that
-    // they will try to read from and write to
+    // setup() will setup all Systems we added, registering all resources and
+    // components that they will try to read from and write to
     dispatcher.setup(&mut w);
 
-    // create_entity() of World provides with an EntityBuilder to add components to an Entity
+    // create_entity() of World provides with an EntityBuilder to add components to
+    // an Entity
     w.create_entity()
         .with(CompInt(4))
         .with(CompBool(false))

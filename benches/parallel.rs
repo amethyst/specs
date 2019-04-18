@@ -9,8 +9,10 @@ extern crate test;
 use cgmath::Vector2;
 use rand::thread_rng;
 use shred::RunningTime;
-use specs::prelude::*;
-use specs::storage::{HashMapStorage, NullStorage};
+use specs::{
+    prelude::*,
+    storage::{HashMapStorage, NullStorage},
+};
 use test::Bencher;
 
 type Vec2 = Vector2<f32>;

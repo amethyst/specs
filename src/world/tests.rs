@@ -1,7 +1,5 @@
-use super::WorldExt;
-use super::*;
-use join::Join;
-use storage::VecStorage;
+use super::{WorldExt, *};
+use crate::{join::Join, storage::VecStorage};
 
 struct Pos;
 
@@ -129,7 +127,7 @@ fn delete_twice() {
 fn delete_and_lazy() {
     let mut world = World::new();
     {
-        let lazy_update = world.write_resource::<::LazyUpdate>();
+        let lazy_update = world.write_resource::<crate::LazyUpdate>();
         lazy_update.exec(|world| {
             world.entities().create();
         })
@@ -137,7 +135,7 @@ fn delete_and_lazy() {
 
     world.maintain();
     {
-        let lazy_update = world.write_resource::<::LazyUpdate>();
+        let lazy_update = world.write_resource::<crate::LazyUpdate>();
         lazy_update.exec(|world| {
             world.entities().create();
         })

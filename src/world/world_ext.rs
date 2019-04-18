@@ -4,12 +4,15 @@ use super::{
     CreateIter, EntityBuilder, LazyUpdate,
 };
 
-use error::WrongGeneration;
+use crate::{
+    error::WrongGeneration,
+    storage::{AnyStorage, MaskedStorage},
+    ReadStorage, WriteStorage,
+};
 use shred::{Fetch, FetchMut, MetaTable, Read, Resource, SystemData, World};
-use storage::{AnyStorage, MaskedStorage};
-use {ReadStorage, WriteStorage};
 
-/// This trait provides some extension methods to make working with `shred::World` easier.
+/// This trait provides some extension methods to make working with
+/// `shred::World` easier.
 ///
 /// Many methods take `&self` which works because everything
 /// is stored with **interior mutability**. In case you violate
@@ -148,8 +151,10 @@ pub trait WorldExt {
     /// executes `f`. You can see this like a system that only runs once.
     ///
     /// This is especially useful if you either need a lot of system data or
-    /// you want to build an entity and for that you need to access resources first
-    /// - just fetching the resources and building the entity would cause a double borrow.
+    /// you want to build an entity and for that you need to access resources
+    /// first
+    /// - just fetching the resources and building the entity would cause a
+    ///   double borrow.
     ///
     /// **Calling this method is equivalent to:**
     ///
@@ -163,7 +168,8 @@ pub trait WorldExt {
     /// #     fn setup(res: &mut World) {}
     /// # }
     /// # let mut world = World::new();
-    /// { // note the extra scope
+    /// {
+    ///     // note the extra scope
     ///     world.setup::<MySystemData>();
     ///     let my_data: MySystemData = world.system_data();
     ///     my_data.do_something();
@@ -205,8 +211,9 @@ pub trait WorldExt {
     ///
     /// ## Difference between resources and components
     ///
-    /// While components exist per entity, resources are like globals in the `World`.
-    /// Components are stored in component storages, which are resources themselves.
+    /// While components exist per entity, resources are like globals in the
+    /// `World`. Components are stored in component storages, which are
+    /// resources themselves.
     ///
     /// Everything that is `Any + Send + Sync` can be a resource.
     ///
@@ -220,7 +227,8 @@ pub trait WorldExt {
     /// Both of them should only be fetched immutably, which is why
     /// the latter one has a type def for convenience: `Entities` which
     /// is just `Fetch<EntitiesRes>`. Both resources are special and need
-    /// to execute code at the end of the frame, which is done in `World::maintain`.
+    /// to execute code at the end of the frame, which is done in
+    /// `World::maintain`.
     ///
     /// ## Examples
     ///
@@ -461,8 +469,10 @@ impl WorldExt for World {
     /// executes `f`. You can see this like a system that only runs once.
     ///
     /// This is especially useful if you either need a lot of system data or
-    /// you want to build an entity and for that you need to access resources first
-    /// - just fetching the resources and building the entity would cause a double borrow.
+    /// you want to build an entity and for that you need to access resources
+    /// first
+    /// - just fetching the resources and building the entity would cause a
+    ///   double borrow.
     ///
     /// **Calling this method is equivalent to:**
     ///
@@ -476,7 +486,8 @@ impl WorldExt for World {
     /// #     fn setup(res: &mut World) {}
     /// # }
     /// # let mut world = World::new();
-    /// { // note the extra scope
+    /// {
+    ///     // note the extra scope
     ///     world.setup::<MySystemData>();
     ///     let my_data: MySystemData = world.system_data();
     ///     my_data.do_something();
@@ -522,8 +533,9 @@ impl WorldExt for World {
     ///
     /// ## Difference between resources and components
     ///
-    /// While components exist per entity, resources are like globals in the `World`.
-    /// Components are stored in component storages, which are resources themselves.
+    /// While components exist per entity, resources are like globals in the
+    /// `World`. Components are stored in component storages, which are
+    /// resources themselves.
     ///
     /// Everything that is `Any + Send + Sync` can be a resource.
     ///
@@ -537,7 +549,8 @@ impl WorldExt for World {
     /// Both of them should only be fetched immutably, which is why
     /// the latter one has a type def for convenience: `Entities` which
     /// is just `Fetch<EntitiesRes>`. Both resources are special and need
-    /// to execute code at the end of the frame, which is done in `World::maintain`.
+    /// to execute code at the end of the frame, which is done in
+    /// `World::maintain`.
     ///
     /// ## Examples
     ///
@@ -659,7 +672,7 @@ impl WorldExt for World {
 
     /// Deletes all entities and their components.
     fn delete_all(&mut self) {
-        use join::Join;
+        use crate::join::Join;
 
         let entities: Vec<_> = self.entities().join().collect();
 

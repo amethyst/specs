@@ -5,16 +5,20 @@ extern crate specs;
 
 use std::fmt;
 
-use specs::error::NoError;
-use specs::prelude::*;
-use specs::saveload::{
-    DeserializeComponents, MarkedBuilder, SerializeComponents, U64Marker, U64MarkerAllocator,
+use specs::{
+    error::NoError,
+    prelude::*,
+    saveload::{
+        DeserializeComponents, MarkedBuilder, SerializeComponents, U64Marker, U64MarkerAllocator,
+    },
 };
 
-// This is an example of how the serialized data of two entities might look on disk.
+// This is an example of how the serialized data of two entities might look on
+// disk.
 //
-// When serializing entities, they are written in an array of tuples, each tuple representing one entity.
-// The entity's marker and components are written as fields into these tuples, knowing nothing about the original entity's id.
+// When serializing entities, they are written in an array of tuples, each tuple
+// representing one entity. The entity's marker and components are written as
+// fields into these tuples, knowing nothing about the original entity's id.
 const ENTITIES: &str = "
 [
     (
@@ -59,16 +63,19 @@ impl Component for Mass {
     type Storage = VecStorage<Self>;
 }
 
-// It is necessary to supply the `(De)SerializeComponents`-trait with an error type that implements the `Display`-trait.
-// In this case we want to be able to return different errors, and we are going to use a `.ron`-file to store our data.
-// Therefore we use a custom enum, which can display both the `NoError`and `ron::ser::Error` type.
-// This enum could be extended to incorporate for example `std::io::Error` and more.
+// It is necessary to supply the `(De)SerializeComponents`-trait with an error
+// type that implements the `Display`-trait. In this case we want to be able to
+// return different errors, and we are going to use a `.ron`-file to store our
+// data. Therefore we use a custom enum, which can display both the `NoError`and
+// `ron::ser::Error` type. This enum could be extended to incorporate for
+// example `std::io::Error` and more.
 #[derive(Debug)]
 enum Combined {
     Ron(ron::ser::Error),
 }
 
-// Implementing the required `Display`-trait, by matching the `Combined` enum, allowing different error types to be displayed.
+// Implementing the required `Display`-trait, by matching the `Combined` enum,
+// allowing different error types to be displayed.
 impl fmt::Display for Combined {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -77,7 +84,8 @@ impl fmt::Display for Combined {
     }
 }
 
-// This returns the `ron::ser:Error` in form of the `Combined` enum, which can then be matched and displayed accordingly.
+// This returns the `ron::ser:Error` in form of the `Combined` enum, which can
+// then be matched and displayed accordingly.
 impl From<ron::ser::Error> for Combined {
     fn from(x: ron::ser::Error) -> Self {
         Combined::Ron(x)
@@ -94,15 +102,16 @@ impl From<NoError> for Combined {
 fn main() {
     let mut world = World::new();
 
-    // Since in this example no system uses these resources, they have to be registered manually.
-    // This is typically not required.
+    // Since in this example no system uses these resources, they have to be
+    // registered manually. This is typically not required.
     world.register::<Pos>();
     world.register::<Mass>();
     world.register::<U64Marker>();
 
     // Adds a predefined marker allocator to the world, as a resource.
-    // This predifined marker uses a `HashMap<u64, Entity>` to keep track of all entities that should be (de)serializable,
-    // as well as which ids are already in use.
+    // This predifined marker uses a `HashMap<u64, Entity>` to keep track of all
+    // entities that should be (de)serializable, as well as which ids are
+    // already in use.
     world.add_resource(U64MarkerAllocator::new());
 
     world
@@ -130,8 +139,8 @@ fn main() {
     struct Serialize;
 
     impl<'a> System<'a> for Serialize {
-        // This SystemData contains the entity-resource, as well as all components that shall be serialized,
-        // plus the marker component storage.
+        // This SystemData contains the entity-resource, as well as all components that
+        // shall be serialized, plus the marker component storage.
         type SystemData = (
             Entities<'a>,
             ReadStorage<'a, Pos>,
@@ -140,20 +149,26 @@ fn main() {
         );
 
         fn run(&mut self, (ents, pos, mass, markers): Self::SystemData) {
-            // First we need a serializer for the format of choice, in this case the `.ron`-format.
+            // First we need a serializer for the format of choice, in this case the
+            // `.ron`-format.
             let mut ser = ron::ser::Serializer::new(Some(Default::default()), true);
 
-            // For serialization we use the [`SerializeComponents`](struct.SerializeComponents.html)-trait's `serialize` function.
-            // It takes two generic parameters:
-            // * An unbound type -> `NoError` (However, the serialize function expects it to be bound by the `Display`-trait)
-            // * A type implementing the `Marker`-trait -> [U64Marker](struct.U64Marker.html) (a convenient, predefined marker)
+            // For serialization we use the
+            // [`SerializeComponents`](struct.SerializeComponents.html)-trait's `serialize`
+            // function. It takes two generic parameters:
+            // * An unbound type -> `NoError` (However, the serialize function expects it to
+            //   be bound by the `Display`-trait)
+            // * A type implementing the `Marker`-trait ->
+            //   [U64Marker](struct.U64Marker.html) (a convenient, predefined marker)
             //
             // The first parameter resembles the `.join()` syntax from other specs-systems,
             // every component that should be serialized has to be put inside a tuple.
             //
-            // The second and third parameters are just the entity-storage and marker-storage, which get `.join()`ed internally.
+            // The second and third parameters are just the entity-storage and
+            // marker-storage, which get `.join()`ed internally.
             //
-            // Lastly, we provide a mutable reference to the serializer of choice, which has to have the `serde::ser::Serializer`-trait implemented.
+            // Lastly, we provide a mutable reference to the serializer of choice, which has
+            // to have the `serde::ser::Serializer`-trait implemented.
             SerializeComponents::<NoError, U64Marker>::serialize(
                 &(&pos, &mass),
                 &ents,
@@ -164,14 +179,14 @@ fn main() {
             // TODO: Specs should return an error which combines serialization
             // and component errors.
 
-            // At this point, `ser` could be used to write its contents to a file, which is not done here.
-            // Instead we print the content of this pseudo-file.
+            // At this point, `ser` could be used to write its contents to a file, which is
+            // not done here. Instead we print the content of this pseudo-file.
             println!("{}", ser.into_output_string());
         }
     }
 
-    // Running the system results in a print to the standard output channel, in `.ron`-format,
-    // showing how the serialized dummy entities look like.
+    // Running the system results in a print to the standard output channel, in
+    // `.ron`-format, showing how the serialized dummy entities look like.
     Serialize.run_now(&world);
 
     // -----------------
@@ -180,8 +195,9 @@ fn main() {
     struct Deserialize;
 
     impl<'a> System<'a> for Deserialize {
-        // This requires all the component storages our serialized entities have, mutably,
-        // plus a `MarkerAllocator` resource to write the deserialized ids into, so that we can later serialize again.
+        // This requires all the component storages our serialized entities have,
+        // mutably, plus a `MarkerAllocator` resource to write the deserialized
+        // ids into, so that we can later serialize again.
         type SystemData = (
             Entities<'a>,
             Write<'a, U64MarkerAllocator>,
@@ -191,18 +207,21 @@ fn main() {
         );
 
         fn run(&mut self, (ent, mut alloc, pos, mass, mut markers): Self::SystemData) {
-            // The `const ENTITIES: &str` at the top of this file was formatted according to the `.ron`-specs,
-            // therefore we need a `.ron`-deserializer.
-            // Others can be used, as long as they implement the `serde::de::Deserializer`-trait.
+            // The `const ENTITIES: &str` at the top of this file was formatted according to
+            // the `.ron`-specs, therefore we need a `.ron`-deserializer.
+            // Others can be used, as long as they implement the
+            // `serde::de::Deserializer`-trait.
             use ron::de::Deserializer;
 
-            // Typical file operations are omitted in this example, since we do not have a seperate file, but a `const &str`.
-            // We use a convencience function of the `ron`-crate: `from_str`, to convert our data form the top of the file.
+            // Typical file operations are omitted in this example, since we do not have a
+            // seperate file, but a `const &str`. We use a convencience function
+            // of the `ron`-crate: `from_str`, to convert our data form the top of the file.
             if let Ok(mut de) = Deserializer::from_str(ENTITIES) {
                 // Again, we need to pass in a type implementing the `Display`-trait,
                 // as well as a type implementing the `Marker`-trait.
-                // However, from the function parameter `&mut markers`, which refers to the `U64Marker`-storage,
-                // the necessary type of marker can be inferred, hence the `, _>´.
+                // However, from the function parameter `&mut markers`, which refers to the
+                // `U64Marker`-storage, the necessary type of marker can be
+                // inferred, hence the `, _>´.
                 DeserializeComponents::<Combined, _>::deserialize(
                     &mut (pos, mass),
                     &ent,
@@ -215,10 +234,12 @@ fn main() {
         }
     }
 
-    // If we run this system now, the `ENTITIES: &str` is going to be deserialized, and two entities are created.
+    // If we run this system now, the `ENTITIES: &str` is going to be deserialized,
+    // and two entities are created.
     Deserialize.run_now(&world);
 
-    // Printing the `Pos`-component storage entries to show the result of deserializing.
+    // Printing the `Pos`-component storage entries to show the result of
+    // deserializing.
     println!(
         "{:#?}",
         (&world.read_storage::<Pos>()).join().collect::<Vec<_>>()

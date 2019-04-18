@@ -1,31 +1,33 @@
 //! Provides `Marker` and `MarkerAllocator` traits
 
-use std::collections::HashMap;
-use std::fmt::Debug;
-use std::hash::Hash;
+use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
-use join::Join;
-use shred::Resource;
-use storage::{DenseVecStorage, ReadStorage, WriteStorage};
-use world::{
-    Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder, WorldExt,
+use crate::{
+    join::Join,
+    storage::{DenseVecStorage, ReadStorage, WriteStorage},
+    world::{
+        Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder, WorldExt,
+    },
 };
+use shred::Resource;
 
-use serde::de::DeserializeOwned;
-use serde::ser::Serialize;
+use serde::{de::DeserializeOwned, ser::Serialize};
 
-/// A common trait for `EntityBuilder` and `LazyBuilder` with a marker function, allowing either to be used.
+/// A common trait for `EntityBuilder` and `LazyBuilder` with a marker function,
+/// allowing either to be used.
 pub trait MarkedBuilder {
     /// Add a `Marker` to the entity by fetching the associated allocator.
     ///
     /// ## Examples
     ///
     /// ```
-    /// use specs::prelude::*;
-    /// use specs::saveload::{MarkedBuilder, U64Marker, U64MarkerAllocator};
+    /// use specs::{
+    ///     prelude::*,
+    ///     saveload::{MarkedBuilder, U64Marker, U64MarkerAllocator},
+    /// };
     ///
     /// fn mark_entity<M: Builder + MarkedBuilder>(markable: M) -> Entity {
-    ///    markable
+    ///     markable
     ///    /* .with(Component1) */
     ///     .marked::<U64Marker>()
     ///     .build()
@@ -60,8 +62,10 @@ impl<'a> MarkedBuilder for LazyBuilder<'a> {
     /// ## Examples
     ///
     /// ```rust
-    /// use specs::prelude::*;
-    /// use specs::saveload::{MarkedBuilder, U64Marker, U64MarkerAllocator};
+    /// use specs::{
+    ///     prelude::*,
+    ///     saveload::{MarkedBuilder, U64Marker, U64MarkerAllocator},
+    /// };
     /// let mut world = World::new();
     ///
     /// world.register::<U64Marker>();
@@ -101,8 +105,10 @@ impl<'a> EntityResBuilder<'a> {
     /// ## Examples
     ///
     /// ```
-    /// use specs::prelude::*;
-    /// use specs::saveload::{U64Marker, U64MarkerAllocator};
+    /// use specs::{
+    ///     prelude::*,
+    ///     saveload::{U64Marker, U64MarkerAllocator},
+    /// };
     ///
     /// let mut world = World::new();
     /// world.register::<U64Marker>();
@@ -118,7 +124,6 @@ impl<'a> EntityResBuilder<'a> {
     ///     .marked(&mut storage, &mut alloc)
     ///     .build();
     /// ```
-    ///
     pub fn marked<M>(self, storage: &mut WriteStorage<M>, alloc: &mut M::Allocator) -> Self
     where
         M: Marker,
@@ -128,8 +133,8 @@ impl<'a> EntityResBuilder<'a> {
     }
 }
 
-/// This trait should be implemented by a component which is going to be used as marker.
-/// This marker should be set to entity that should be serialized.
+/// This trait should be implemented by a component which is going to be used as
+/// marker. This marker should be set to entity that should be serialized.
 /// If serialization strategy needs to set marker to some entity
 /// then it should use newly allocated marker from `Marker::Allocator`.
 ///
@@ -137,13 +142,15 @@ impl<'a> EntityResBuilder<'a> {
 ///
 /// ```rust
 /// extern crate specs;
-/// #[macro_use] extern crate serde;
-/// use std::collections::HashMap;
-/// use std::ops::Range;
+/// #[macro_use]
+/// extern crate serde;
+/// use std::{collections::HashMap, ops::Range};
 ///
-/// use specs::prelude::*;
-/// use specs::world::EntitiesRes;
-/// use specs::saveload::{MarkedBuilder, Marker, MarkerAllocator};
+/// use specs::{
+///     prelude::*,
+///     saveload::{MarkedBuilder, Marker, MarkerAllocator},
+///     world::EntitiesRes,
+/// };
 ///
 /// // Marker for entities that should be synced over network
 /// #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -157,8 +164,8 @@ impl<'a> EntityResBuilder<'a> {
 /// }
 ///
 /// impl Marker for NetMarker {
-///     type Identifier = u64;
 ///     type Allocator = NetNode;
+///     type Identifier = u64;
 ///
 ///     fn id(&self) -> u64 {
 ///         self.id
@@ -182,12 +189,11 @@ impl<'a> EntityResBuilder<'a> {
 /// impl MarkerAllocator<NetMarker> for NetNode {
 ///     fn allocate(&mut self, entity: Entity, id: Option<u64>) -> NetMarker {
 ///         let id = id.unwrap_or_else(|| {
-///             self.range.next().expect("Id range must be virtually endless")
+///             self.range
+///                 .next()
+///                 .expect("Id range must be virtually endless")
 ///         });
-///         let marker = NetMarker {
-///             id: id,
-///             seq: 0,
-///         };
+///         let marker = NetMarker { id, seq: 0 };
 ///         self.mapping.insert(id, entity);
 ///         marker
 ///     }
@@ -197,10 +203,10 @@ impl<'a> EntityResBuilder<'a> {
 ///     }
 ///
 ///     fn maintain(&mut self, entities: &EntitiesRes, storage: &ReadStorage<NetMarker>) {
-///        self.mapping = (entities, storage)
-///            .join()
-///            .map(|(e, m)| (m.id(), e))
-///            .collect();
+///         self.mapping = (entities, storage)
+///             .join()
+///             .map(|(e, m)| (m.id(), e))
+///             .collect();
 ///     }
 /// }
 ///
@@ -208,18 +214,18 @@ impl<'a> EntityResBuilder<'a> {
 ///     let mut world = World::new();
 ///     world.register::<NetMarker>();
 ///
-///     world.add_resource(
-///         NetNode {
-///             range: 0..100,
-///             mapping: HashMap::new(),
-///         }
-///     );
+///     world.add_resource(NetNode {
+///         range: 0..100,
+///         mapping: HashMap::new(),
+///     });
 ///
 ///     let entity = world.create_entity().marked::<NetMarker>().build();
 ///     let storage = &mut world.write_storage::<NetMarker>();
 ///     let marker = storage.get(entity).unwrap().clone();
 ///     assert_eq!(
-///         world.write_resource::<NetNode>().retrieve_entity(marker, storage, &world.entities()),
+///         world
+///             .write_resource::<NetNode>()
+///             .retrieve_entity(marker, storage, &world.entities()),
 ///         entity
 ///     );
 /// }
@@ -234,9 +240,9 @@ pub trait Marker: Clone + Component + Debug + Eq + Hash + DeserializeOwned + Ser
     /// The value of this method should be constant.
     fn id(&self) -> Self::Identifier;
 
-    /// This gets called when an entity is deserialized by `DeserializeComponents`.
-    /// It can be used to update internal data that is not used for
-    /// identification.
+    /// This gets called when an entity is deserialized by
+    /// `DeserializeComponents`. It can be used to update internal data that
+    /// is not used for identification.
     ///
     /// ## Contract
     ///
@@ -382,7 +388,8 @@ impl Default for U64MarkerAllocator {
 }
 
 impl U64MarkerAllocator {
-    /// Create new `U64MarkerAllocator` which will yield `U64Marker`s starting with `0`
+    /// Create new `U64MarkerAllocator` which will yield `U64Marker`s starting
+    /// with `0`
     pub fn new() -> Self {
         U64MarkerAllocator {
             index: 0,

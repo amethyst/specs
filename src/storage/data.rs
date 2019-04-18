@@ -1,7 +1,9 @@
 use shred::{Fetch, FetchMut, MetaTable, ResourceId, SystemData, World};
 
-use storage::{AnyStorage, MaskedStorage, Storage, TryDefault};
-use world::{Component, EntitiesRes};
+use crate::{
+    storage::{AnyStorage, MaskedStorage, Storage, TryDefault},
+    world::{Component, EntitiesRes},
+};
 
 /// A storage with read access.
 ///
@@ -29,15 +31,22 @@ use world::{Component, EntitiesRes};
 /// ```
 /// use specs::prelude::*;
 ///
-/// struct Pos; impl Component for Pos { type Storage = VecStorage<Self>; }
-/// struct Vel; impl Component for Vel { type Storage = VecStorage<Self>; }
+/// struct Pos;
+/// impl Component for Pos {
+///     type Storage = VecStorage<Self>;
+/// }
+/// struct Vel;
+/// impl Component for Vel {
+///     type Storage = VecStorage<Self>;
+/// }
 ///
-/// let mut world = World::new(); world.register::<Pos>(); world.register::<Vel>();
+/// let mut world = World::new();
+/// world.register::<Pos>();
+/// world.register::<Vel>();
 /// let pos_storage = world.read_storage::<Pos>();
 /// let vel_storage = world.read_storage::<Vel>();
 ///
-/// for (pos, vel) in (&pos_storage, &vel_storage).join() {
-/// }
+/// for (pos, vel) in (&pos_storage, &vel_storage).join() {}
 /// ```
 ///
 /// This joins the position and the velocity storage, which means it only
@@ -140,12 +149,13 @@ where
 
 /// A storage with read and write access.
 ///
-/// Additionally to what `ReadStorage` can do a storage with mutable access allows:
+/// Additionally to what `ReadStorage` can do a storage with mutable access
+/// allows:
 ///
 /// ## Aliasing
 ///
-/// **It is strictly disallowed to fetch both a `ReadStorage` and a `WriteStorage`
-/// of the same component.**
+/// **It is strictly disallowed to fetch both a `ReadStorage` and a
+/// `WriteStorage` of the same component.**
 /// Because Specs uses interior mutability for its resources, we can't check
 /// this at compile time. If you try to do this, you will get a panic.
 ///
@@ -199,7 +209,6 @@ where
 ///
 /// There's also an Entry-API similar to the one provided by
 /// `std::collections::HashMap`.
-///
 pub type WriteStorage<'a, T> = Storage<'a, T, FetchMut<'a, MaskedStorage<T>>>;
 
 impl<'a, T> SystemData<'a> for WriteStorage<'a, T>
@@ -228,8 +237,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use prelude::*;
-    use storage::MaskedStorage;
+    use crate::{prelude::*, storage::MaskedStorage};
 
     struct Foo;
     impl Component for Foo {

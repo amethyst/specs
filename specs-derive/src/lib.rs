@@ -1,5 +1,5 @@
-//! Implements the `#[derive(Component)]`, `#[derive(Saveload)]` macro and `#[component]` attribute for
-//! [Specs][sp].
+//! Implements the `#[derive(Component)]`, `#[derive(Saveload)]` macro and
+//! `#[component]` attribute for [Specs][sp].
 //!
 //! [sp]: https://slide-rs.github.io/specs-website/
 
@@ -77,7 +77,8 @@ fn impl_component(ast: &DeriveInput) -> proc_macro2::TokenStream {
 
 /// Custom derive macro for the `ConvertSaveload` trait.
 ///
-/// Requires `Entity`, `ConvertSaveload`, `Marker` and `NoError` to be in a scope.
+/// Requires `Entity`, `ConvertSaveload`, `Marker` and `NoError` to be in a
+/// scope.
 ///
 /// ## Example
 ///

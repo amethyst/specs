@@ -13,6 +13,7 @@ categories = ["concurrency", "game-engines"]
 license = "MIT/Apache-2.0"
 authors = ["slide-rs hackers"]
 exclude = ["bors.toml", ".travis.yml"]
+edition = "2018"
 
 # the `storage_cmp` and `storage_sparse` benches are called from `benches_main`
 autobenches = false
@@ -27,9 +28,9 @@ fnv = "1.0"
 hibitset = { version = "0.5.3", default-features = false }
 log = "0.4"
 mopa = "0.2"
-shred = { git="https://github.com/slide-rs/shred", branch = "master", default-features = false }
+shred = { version = "0.8.0", default-features = false }
 shrev = "1.0.0"
-shred-derive = "0.5.0"
+shred-derive = "0.6.0"
 tuple_utils = "0.3"
 rayon = { version = "1.0.0", optional = true }
 nonzero_signed = "1.0.1"

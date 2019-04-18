@@ -1,6 +1,5 @@
 use criterion::{Bencher, Criterion};
-use specs::prelude::*;
-use specs::storage;
+use specs::{prelude::*, storage};
 
 use super::black_box;
 

@@ -31,11 +31,12 @@ impl<'a> System<'a> for SysA {
             .channel()
             .read(self.reader_id.as_mut().expect("ReaderId not found"));
 
-        // These events are received in the same order they were operated on in the last frame.
-        // However, be careful. Just because you received a `Modified/Inserted` event does not mean that the
-        // entity at that index has a component. To get the current state of the entity, you should replay the
-        // events in order to see the final result of the component. Partial iteration over the events might lead
-        // to weird bugs and issues.
+        // These events are received in the same order they were operated on in the last
+        // frame. However, be careful. Just because you received a
+        // `Modified/Inserted` event does not mean that the entity at that index
+        // has a component. To get the current state of the entity, you should replay
+        // the events in order to see the final result of the component. Partial
+        // iteration over the events might lead to weird bugs and issues.
         for event in events {
             match event {
                 ComponentEvent::Modified(id) => {
@@ -58,7 +59,10 @@ impl<'a> System<'a> for SysA {
                         self.cache.insert(*id, (entity, component.0));
                         println!("{:?} had {:?} inserted", entity, component.0);
                     } else {
-                        println!("{:?} had a component inserted, but was removed before the next update.", entity);
+                        println!(
+                            "{:?} had a component inserted, but was removed before the next update.",
+                            entity
+                        );
                     }
                 }
                 ComponentEvent::Removed(id) => {
@@ -102,9 +106,10 @@ fn main() {
     {
         let mut tracked = world.write_storage::<TrackedComponent>();
 
-        // Note that any removal after a modification won't be seen in the next frame, instead you
-        // will find no component or if a new component was inserted right after it was inserted then
-        // then you will find the new inserted component rather than the modified one from earlier.
+        // Note that any removal after a modification won't be seen in the next frame,
+        // instead you will find no component or if a new component was inserted
+        // right after it was inserted then then you will find the new inserted
+        // component rather than the modified one from earlier.
         tracked.get_mut(e3).unwrap().0 = 20;
         tracked.remove(e3);
         tracked.insert(e3, TrackedComponent(10)).unwrap();

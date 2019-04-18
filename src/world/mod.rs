@@ -2,16 +2,18 @@
 
 pub use shred::World;
 
-pub use self::comp::Component;
-pub use self::entity::{
-    CreateIterAtomic, Entities, EntitiesRes, Entity, EntityResBuilder, Generation, Index,
+pub use self::{
+    comp::Component,
+    entity::{
+        CreateIterAtomic, Entities, EntitiesRes, Entity, EntityResBuilder, Generation, Index,
+    },
+    lazy::{LazyBuilder, LazyUpdate},
+    world_ext::WorldExt,
 };
-pub use self::lazy::{LazyBuilder, LazyUpdate};
-pub use self::world_ext::WorldExt;
 
 use shred::{FetchMut, SystemData};
 
-use storage::WriteStorage;
+use crate::storage::WriteStorage;
 
 mod comp;
 mod entity;
@@ -35,9 +37,9 @@ impl<'a> Iterator for CreateIter<'a> {
     }
 }
 
-/// A common trait for `EntityBuilder` and `LazyBuilder`, allowing either to be used.
-/// Entity is definitely alive, but the components may or may not exist before a call to
-/// `World::maintain`.
+/// A common trait for `EntityBuilder` and `LazyBuilder`, allowing either to be
+/// used. Entity is definitely alive, but the components may or may not exist
+/// before a call to `World::maintain`.
 pub trait Builder {
     /// Appends a component and associates it with the entity.
     ///
@@ -60,8 +62,7 @@ pub trait Builder {
 /// ## Examples
 ///
 /// ```
-/// use specs::prelude::*;
-/// use specs::storage::HashMapStorage;
+/// use specs::{prelude::*, storage::HashMapStorage};
 ///
 /// struct Health(f32);
 ///
@@ -92,8 +93,7 @@ pub trait Builder {
 /// ### Distinguishing Mandatory Components from Optional Components
 ///
 /// ```
-/// use specs::prelude::*;
-/// use specs::storage::HashMapStorage;
+/// use specs::{prelude::*, storage::HashMapStorage};
 ///
 /// struct MandatoryHealth(f32);
 ///
@@ -151,8 +151,8 @@ impl<'a> Builder for EntityBuilder<'a> {
         self
     }
 
-    /// Finishes the building and returns the entity. As opposed to `LazyBuilder`,
-    /// the components are available immediately.
+    /// Finishes the building and returns the entity. As opposed to
+    /// `LazyBuilder`, the components are available immediately.
     #[inline]
     fn build(mut self) -> Entity {
         self.built = true;

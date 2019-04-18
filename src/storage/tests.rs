@@ -1,8 +1,8 @@
 use mopa::Any;
 
 use super::*;
+use crate::world::{Component, Entity, Generation, Index, WorldExt};
 use shred::World;
-use world::{Component, Entity, Generation, Index, WorldExt};
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
@@ -125,12 +125,10 @@ mod map_test {
 }
 
 mod test {
-    use std::convert::AsMut;
-    use std::fmt::Debug;
+    use std::{convert::AsMut, fmt::Debug};
 
     use super::*;
-    use world::Builder;
-    use World;
+    use crate::{world::Builder, World};
 
     #[derive(PartialEq, Eq, Debug, Default)]
     struct CMarker;
@@ -304,7 +302,8 @@ mod test {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
-        // Insert the first 500 components manually, leaving indices 500..1000 unoccupied.
+        // Insert the first 500 components manually, leaving indices 500..1000
+        // unoccupied.
         for i in 0..500 {
             if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i).into()) {
                 panic!("Failed to insert component into entity! {:?}", err);
@@ -544,7 +543,7 @@ mod test {
 
     #[test]
     fn restricted_storage() {
-        use join::Join;
+        use crate::join::Join;
         use std::collections::HashSet;
 
         let mut w = World::new();
@@ -582,10 +581,9 @@ mod test {
 
     #[test]
     fn par_restricted_storage() {
-        use join::ParJoin;
+        use crate::join::ParJoin;
         use rayon::iter::ParallelIterator;
-        use std::collections::HashSet;
-        use std::sync::Mutex;
+        use std::{collections::HashSet, sync::Mutex};
 
         let mut w = World::new();
         w.register::<Cvec>();
@@ -708,7 +706,7 @@ mod test {
 
     #[test]
     fn storage_mask() {
-        use join::Join;
+        use crate::join::Join;
 
         let mut w = World::new();
         w.register::<CMarker>();
@@ -733,7 +731,7 @@ mod test {
 
     #[test]
     fn par_storage_mask() {
-        use join::ParJoin;
+        use crate::join::ParJoin;
         use rayon::iter::ParallelIterator;
 
         let mut w = World::new();
@@ -751,7 +749,7 @@ mod test {
 
     #[test]
     fn flagged() {
-        use join::Join;
+        use crate::join::Join;
 
         let mut w = World::new();
         w.register::<FlaggedCvec>();
@@ -844,9 +842,7 @@ mod test {
 
     #[test]
     fn entries() {
-        use join::Join;
-        use storage::WriteStorage;
-        use world::Entities;
+        use crate::{join::Join, storage::WriteStorage, world::Entities};
 
         let mut w = World::new();
 

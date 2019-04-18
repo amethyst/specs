@@ -1,29 +1,36 @@
 //! Component storage types, implementations for component joins, etc.
 
-pub use self::data::{ReadStorage, WriteStorage};
-pub use self::entry::{Entries, OccupiedEntry, StorageEntry, VacantEntry};
-pub use self::flagged::FlaggedStorage;
-pub use self::generic::{GenericReadStorage, GenericWriteStorage};
-pub use self::restrict::{
-    ImmutableParallelRestriction, MutableParallelRestriction, RestrictedStorage,
-    SequentialRestriction,
+pub use self::{
+    data::{ReadStorage, WriteStorage},
+    entry::{Entries, OccupiedEntry, StorageEntry, VacantEntry},
+    flagged::FlaggedStorage,
+    generic::{GenericReadStorage, GenericWriteStorage},
+    restrict::{
+        ImmutableParallelRestriction, MutableParallelRestriction, RestrictedStorage,
+        SequentialRestriction,
+    },
+    storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage},
+    track::{ComponentEvent, Tracked},
 };
-pub use self::storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage};
-pub use self::track::{ComponentEvent, Tracked};
 
-use std;
-use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut, Not};
+use std::{
+    self,
+    marker::PhantomData,
+    ops::{Deref, DerefMut, Not},
+};
 
 use hibitset::{BitSet, BitSetLike, BitSetNot};
 use shred::{CastFrom, Fetch};
 
-use self::drain::Drain;
-use error::{Error, WrongGeneration};
-use join::Join;
 #[cfg(feature = "parallel")]
-use join::ParJoin;
-use world::{Component, EntitiesRes, Entity, Generation, Index};
+use crate::join::ParJoin;
+use crate::{
+    error::{Error, WrongGeneration},
+    join::Join,
+    world::{Component, EntitiesRes, Entity, Generation, Index},
+};
+
+use self::drain::Drain;
 
 mod data;
 mod drain;
@@ -41,9 +48,9 @@ mod track;
 pub struct AntiStorage<'a>(&'a BitSet);
 
 impl<'a> Join for AntiStorage<'a> {
+    type Mask = BitSetNot<&'a BitSet>;
     type Type = ();
     type Value = ();
-    type Mask = BitSetNot<&'a BitSet>;
 
     // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn open(self) -> (Self::Mask, ()) {
@@ -95,8 +102,8 @@ where
 
 /// This is a marker trait which requires you to uphold the following guarantee:
 ///
-/// > Multiple threads may call `get_mut()` with distinct indices without causing
-/// > undefined behavior.
+/// > Multiple threads may call `get_mut()` with distinct indices without
+/// causing > undefined behavior.
 ///
 /// This is for example valid for `Vec`:
 ///
@@ -104,15 +111,15 @@ where
 /// vec![1, 2, 3];
 /// ```
 ///
-/// We may modify both element 1 and 2 at the same time; indexing the vector mutably
-/// does not modify anything else than the respective elements.
+/// We may modify both element 1 and 2 at the same time; indexing the vector
+/// mutably does not modify anything else than the respective elements.
 ///
 /// As a counter example, we may have some kind of cached storage; it caches
-/// elements when they're retrieved, so pushes a new element to some cache-vector.
-/// This storage is not allowed to implement `DistinctStorage`.
+/// elements when they're retrieved, so pushes a new element to some
+/// cache-vector. This storage is not allowed to implement `DistinctStorage`.
 ///
-/// Implementing this trait marks the storage safe for concurrent mutation (of distinct
-/// elements), thus allows `join_par()`.
+/// Implementing this trait marks the storage safe for concurrent mutation (of
+/// distinct elements), thus allows `join_par()`.
 pub unsafe trait DistinctStorage {}
 
 /// The status of an `insert()`ion into a storage.
@@ -189,8 +196,8 @@ pub struct Storage<'e, T, D> {
 }
 
 impl<'e, T, D> Storage<'e, T, D> {
-    /// Creates a new `Storage` from a fetched allocator and a immutable or mutable `MaskedStorage`,
-    /// named `data`.
+    /// Creates a new `Storage` from a fetched allocator and a immutable or
+    /// mutable `MaskedStorage`, named `data`.
     pub fn new(entities: Fetch<'e, EntitiesRes>, data: D) -> Storage<'e, T, D> {
         Storage {
             data,
@@ -228,8 +235,9 @@ where
         }
     }
 
-    /// Computes the number of elements this `Storage` contains by counting the bits in the bit set.
-    /// This operation will never be performed in constant time.
+    /// Computes the number of elements this `Storage` contains by counting the
+    /// bits in the bit set. This operation will never be performed in
+    /// constant time.
     pub fn count(&self) -> usize {
         self.mask().iter().count()
     }
@@ -239,7 +247,8 @@ where
         self.mask().is_empty()
     }
 
-    /// Returns true if the storage has a component for this entity, and that entity is alive.
+    /// Returns true if the storage has a component for this entity, and that
+    /// entity is alive.
     pub fn contains(&self, e: Entity) -> bool {
         self.data.mask.contains(e.id()) && self.entities.is_alive(e)
     }
@@ -261,7 +270,8 @@ where
     /// # Safety
     ///
     /// This is unsafe because modifying the wrapped storage without also
-    /// updating the mask bitset accordingly can result in illegal memory access.
+    /// updating the mask bitset accordingly can result in illegal memory
+    /// access.
     pub unsafe fn unprotected_storage_mut(&mut self) -> &mut T::Storage {
         &mut self.data.inner
     }
@@ -327,8 +337,8 @@ where
     }
 }
 
-// SAFETY: This is safe, since `T::Storage` is `DistinctStorage` and `Join::get` only
-// accesses the storage and nothing else.
+// SAFETY: This is safe, since `T::Storage` is `DistinctStorage` and `Join::get`
+// only accesses the storage and nothing else.
 unsafe impl<'a, T: Component, D> DistinctStorage for Storage<'a, T, D> where
     T::Storage: DistinctStorage
 {
@@ -339,17 +349,17 @@ where
     T: Component,
     D: Deref<Target = MaskedStorage<T>>,
 {
+    type Mask = &'a BitSet;
     type Type = &'a T;
     type Value = &'a T::Storage;
-    type Mask = &'a BitSet;
 
     // SAFETY: No unsafe code and no invariants.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.data.mask, &self.data.inner)
     }
 
-    // SAFETY: Since we require that the mask was checked, an element for `i` must have
-    // been inserted without being removed.
+    // SAFETY: Since we require that the mask was checked, an element for `i` must
+    // have been inserted without being removed.
     unsafe fn get(v: &mut Self::Value, i: Index) -> &'a T {
         v.get(i)
     }
@@ -367,8 +377,8 @@ where
     }
 }
 
-// SAFETY: This is always safe because immutable access can in no case cause memory
-// issues, even if access to common memory occurs.
+// SAFETY: This is always safe because immutable access can in no case cause
+// memory issues, even if access to common memory occurs.
 #[cfg(feature = "parallel")]
 unsafe impl<'a, 'e, T, D> ParJoin for &'a Storage<'e, T, D>
 where
@@ -383,9 +393,9 @@ where
     T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,
 {
+    type Mask = &'a BitSet;
     type Type = &'a mut T;
     type Value = &'a mut T::Storage;
-    type Mask = &'a BitSet;
 
     // SAFETY: No unsafe code and no invariants to fulfill.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
@@ -412,8 +422,8 @@ where
 {
 }
 
-/// Tries to create a default value, returns an `Err` with the name of the storage and/or component
-/// if there's no default.
+/// Tries to create a default value, returns an `Err` with the name of the
+/// storage and/or component if there's no default.
 pub trait TryDefault: Sized {
     /// Tries to create the default.
     fn try_default() -> Result<Self, String>;
@@ -482,23 +492,26 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// May only be called if `insert` was not called with `id` before, or
     /// was reverted by a call to `remove` with `id.
     ///
-    /// A mask should keep track of those states, and an `id` missing from the mask
-    /// is sufficient to call `insert`.
+    /// A mask should keep track of those states, and an `id` missing from the
+    /// mask is sufficient to call `insert`.
     unsafe fn insert(&mut self, id: Index, value: T);
 
     /// Removes the data associated with an `Index`.
     ///
     /// # Safety
     ///
-    /// May only be called if an element with `id` was `insert`ed and not yet removed / dropped.
+    /// May only be called if an element with `id` was `insert`ed and not yet
+    /// removed / dropped.
     unsafe fn remove(&mut self, id: Index) -> T;
 
     /// Drops the data associated with an `Index`.
-    /// This is simply more efficient than `remove` and can be used if the data is no longer needed.
+    /// This is simply more efficient than `remove` and can be used if the data
+    /// is no longer needed.
     ///
     /// # Safety
     ///
-    /// May only be called if an element with `id` was `insert`ed and not yet removed / dropped.
+    /// May only be called if an element with `id` was `insert`ed and not yet
+    /// removed / dropped.
     unsafe fn drop(&mut self, id: Index) {
         self.remove(id);
     }
@@ -507,8 +520,10 @@ pub trait UnprotectedStorage<T>: TryDefault {
 #[cfg(test)]
 mod tests_inline {
 
+    use crate::{
+        Builder, Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World, WorldExt,
+    };
     use rayon::iter::ParallelIterator;
-    use {Builder, Component, DenseVecStorage, Entities, ParJoin, ReadStorage, World, WorldExt};
 
     struct Pos;
 

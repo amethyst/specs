@@ -1,8 +1,10 @@
 extern crate ron;
 
 use super::*;
-use error::{Error, NoError};
-use prelude::*;
+use crate::{
+    error::{Error, NoError},
+    prelude::*,
+};
 
 mod marker_test {
     use super::*;
@@ -129,7 +131,8 @@ mod marker_test {
             .marked::<U64Marker>()
             .build();
 
-        // Check that markers of deserialized entities and newly created entities are unique
+        // Check that markers of deserialized entities and newly created entities are
+        // unique
         assert_marked_entity_count(&mut world, 4);
         assert_markers_are_unique(&mut world);
 
@@ -139,7 +142,8 @@ mod marker_test {
         assert_markers_are_unique(&mut world);
     }
 
-    /// Assert that the number of entities marked with `U64Marker` is equal to `count`
+    /// Assert that the number of entities marked with `U64Marker` is equal to
+    /// `count`
     fn assert_marked_entity_count(world: &mut World, count: usize) {
         world.exec(|(ents, markers): (Entities, ReadStorage<U64Marker>)| {
             let marked_entity_count = (&ents, &markers).join().count();

@@ -66,6 +66,7 @@ impl<'a> System<'a> for SysA {
 struct SysB;
 impl<'a> System<'a> for SysB {
     type SystemData = (Entities<'a>, WriteStorage<'a, TrackedComponent>);
+
     fn run(&mut self, (entities, mut tracked): Self::SystemData) {
         for (entity, mut restricted) in (&entities, &mut tracked.restrict_mut()).join() {
             if entity.id() % 2 == 0 {

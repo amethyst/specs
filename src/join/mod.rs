@@ -7,7 +7,7 @@ use shred::{Fetch, FetchMut, Read, ReadExpect, Resource, Write, WriteExpect};
 use std::ops::{Deref, DerefMut};
 use tuple_utils::Split;
 
-use world::{Entities, Entity, Index};
+use crate::world::{Entities, Entity, Index};
 
 #[cfg(feature = "parallel")]
 mod par_join;
@@ -29,6 +29,7 @@ where
     A: BitSetLike,
 {
     type Value = A;
+
     fn and(self) -> Self::Value {
         self.0
     }
@@ -99,10 +100,7 @@ bitset_and! {A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 ///     assert_eq!(joined, vec![]);
 /// }
 ///
-/// world
-///     .create_entity()
-///     .with(Pos)
-///     .build();
+/// world.create_entity().with(Pos).build();
 ///
 /// {
 ///     let pos = world.read_storage::<Pos>();
@@ -113,10 +111,7 @@ bitset_and! {A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 ///     assert_eq!(joined, vec![]);
 /// }
 ///
-/// let ent = world.create_entity()
-///     .with(Pos)
-///     .with(Vel)
-///     .build();
+/// let ent = world.create_entity().with(Pos).with(Vel).build();
 ///
 /// {
 ///     let pos = world.read_storage::<Pos>();
@@ -160,13 +155,13 @@ pub trait Join {
         JoinIter::new(self)
     }
 
-    /// Returns a `Join`-able structure that yields all indices, returning `None` for all
-    /// missing elements and `Some(T)` for found elements.
+    /// Returns a `Join`-able structure that yields all indices, returning
+    /// `None` for all missing elements and `Some(T)` for found elements.
     ///
-    /// WARNING: Do not have a join of only `MaybeJoin`s. Otherwise the join will
-    /// iterate over every single index of the bitset. If you want a join with
-    /// all `MaybeJoin`s, add an `EntitiesRes` to the join as well to bound the
-    /// join to all entities that are alive.
+    /// WARNING: Do not have a join of only `MaybeJoin`s. Otherwise the join
+    /// will iterate over every single index of the bitset. If you want a
+    /// join with all `MaybeJoin`s, add an `EntitiesRes` to the join as well
+    /// to bound the join to all entities that are alive.
     ///
     /// ```
     /// # use specs::prelude::*;
@@ -235,13 +230,16 @@ pub trait Join {
     ///
     /// # Safety
     ///
-    /// * A call to `get` must be preceded by a check if `id` is part of `Self::Mask`
-    /// * The implementation of this method may use unsafe code, but has no invariants to meet
+    /// * A call to `get` must be preceded by a check if `id` is part of
+    ///   `Self::Mask`
+    /// * The implementation of this method may use unsafe code, but has no
+    ///   invariants to meet
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type;
 
-    /// If this `Join` typically returns all indices in the mask, then iterating over only it
-    /// or combined with other joins that are also dangerous will cause the `JoinIter`/`ParJoin` to
-    /// go through all indices which is usually not what is wanted and will kill performance.
+    /// If this `Join` typically returns all indices in the mask, then iterating
+    /// over only it or combined with other joins that are also dangerous
+    /// will cause the `JoinIter`/`ParJoin` to go through all indices which
+    /// is usually not what is wanted and will kill performance.
     #[inline]
     fn is_unconstrained() -> bool {
         false
@@ -265,18 +263,20 @@ impl<T> Join for MaybeJoin<T>
 where
     T: Join,
 {
+    type Mask = BitSetAll;
     type Type = Option<<T as Join>::Type>;
     type Value = (<T as Join>::Mask, <T as Join>::Value);
-    type Mask = BitSetAll;
 
-    // SAFETY: This wraps another implementation of `open`, making it dependent on `J`'s correctness.
-    // We can safely assume `J` is valid, thus this must be valid, too. No invariants to meet.
+    // SAFETY: This wraps another implementation of `open`, making it dependent on
+    // `J`'s correctness. We can safely assume `J` is valid, thus this must be
+    // valid, too. No invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let (mask, value) = self.0.open();
         (BitSetAll, (mask, value))
     }
 
-    // SAFETY: No invariants to meet and the unsafe code checks the mask, thus fulfills the requirements for calling `get`
+    // SAFETY: No invariants to meet and the unsafe code checks the mask, thus
+    // fulfills the requirements for calling `get`
     unsafe fn get((mask, value): &mut Self::Value, id: Index) -> Self::Type {
         if mask.contains(id) {
             Some(<T as Join>::get(value, id))
@@ -302,10 +302,13 @@ impl<J: Join> JoinIter<J> {
     /// Create a new join iterator.
     pub fn new(j: J) -> Self {
         if <J as Join>::is_unconstrained() {
-            println!("WARNING: `Join` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length.");
+            println!(
+                "WARNING: `Join` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length."
+            );
         }
 
-        // SAFETY: We do not swap out the mask or the values, nor do we allow it by exposing them.
+        // SAFETY: We do not swap out the mask or the values, nor do we allow it by
+        // exposing them.
         let (keys, values) = unsafe { j.open() };
         JoinIter {
             keys: keys.iter(),
@@ -375,10 +378,11 @@ impl<J: Join> JoinIter<J> {
 
     /// Allows getting joined values for specific raw index.
     ///
-    /// The raw index for an `Entity` can be retrieved using `Entity::id` method.
+    /// The raw index for an `Entity` can be retrieved using `Entity::id`
+    /// method.
     ///
-    /// As this method operates on raw indices, there is no check to see if the entity is still alive,
-    /// so the caller should ensure it instead.
+    /// As this method operates on raw indices, there is no check to see if the
+    /// entity is still alive, so the caller should ensure it instead.
     pub fn get_unchecked(&mut self, index: Index) -> Option<J::Type> {
         if self.keys.contains(index) {
             // SAFETY: the mask (`keys`) is checked as specified in the docs of `get`.
@@ -393,8 +397,8 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
     type Item = J::Type;
 
     fn next(&mut self) -> Option<J::Type> {
-        // SAFETY: since `idx` is yielded from `keys` (the mask), it is necessarily a part of it.
-        // Thus, requirements are fulfilled for calling `get`.
+        // SAFETY: since `idx` is yielded from `keys` (the mask), it is necessarily a
+        // part of it. Thus, requirements are fulfilled for calling `get`.
         self.keys
             .next()
             .map(|idx| unsafe { J::get(&mut self.values, idx) })
@@ -471,13 +475,14 @@ define_open! {A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P}
 define_open!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
 define_open!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R);
 
-/// `Fetch`/`Read`/`Write`/etc. all implement `Deref`/`DerefMut` but Rust does not implicitly
-/// dereference the wrapper type when we are joining which creates annoying scenarios like
-/// `&*entities` where we have to reborrow the type unnecessarily.
+/// `Fetch`/`Read`/`Write`/etc. all implement `Deref`/`DerefMut` but Rust does
+/// not implicitly dereference the wrapper type when we are joining which
+/// creates annoying scenarios like `&*entities` where we have to reborrow the
+/// type unnecessarily.
 ///
-/// So instead, we implement `Join` on the wrapper types and forward the implementations to the
-/// underlying types so that Rust doesn't have to do implicit magic to figure out what we want
-/// to do with the type.
+/// So instead, we implement `Join` on the wrapper types and forward the
+/// implementations to the underlying types so that Rust doesn't have to do
+/// implicit magic to figure out what we want to do with the type.
 macro_rules! immutable_resource_join {
     ($($ty:ty),*) => {
         $(
