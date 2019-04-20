@@ -63,7 +63,7 @@ impl<'a> System<'a> for StoneCreator {
         Read<'a, LazyUpdate>,
     );
 
-    fn run(&mut self, (entities, stones, updater): Self::SystemData) {
+    fn run(&mut self, (entities, mut stones, updater): Self::SystemData) {
         let stone = entities.create();
 
         // 1) Either we insert the component by writing to its storage
