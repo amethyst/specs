@@ -3,8 +3,8 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use nonzero_signed::NonZeroI32;
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
+use nonzero_signed::NonZeroI32;
 use shred::Read;
 
 #[cfg(feature = "parallel")]

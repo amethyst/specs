@@ -5,15 +5,13 @@ use uuid::Uuid;
 use crate::{
     join::Join,
     saveload::{Marker, MarkerAllocator},
-    storage::{VecStorage, ReadStorage},
-    world::{
-        Component, EntitiesRes, Entity,
-    },
+    storage::{ReadStorage, VecStorage},
+    world::{Component, EntitiesRes, Entity},
 };
 
 /// Basic marker uuid implementation usable for saving and loading.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
-pub struct UuidMarker{
+pub struct UuidMarker {
     uuid: Uuid,
 }
 
@@ -33,17 +31,13 @@ impl Marker for UuidMarker {
 impl UuidMarker {
     /// Creates a new `UuidMarker` Component from the specified uuid.
     pub fn new(uuid: Uuid) -> Self {
-        UuidMarker {
-            uuid,
-        }
+        UuidMarker { uuid }
     }
 
     /// Creates a new `UuidMarker` Component with a random uuid.
     pub fn new_random() -> Self {
         let uuid = Uuid::new_v4();
-        UuidMarker {
-            uuid,
-        }
+        UuidMarker { uuid }
     }
 
     /// Get the current uuid.

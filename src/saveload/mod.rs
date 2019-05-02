@@ -36,13 +36,13 @@ mod tests;
 #[cfg(feature = "uuid_entity")]
 mod uuid;
 
+#[cfg(feature = "uuid_entity")]
+pub use self::uuid::*;
 pub use self::{
     de::DeserializeComponents,
     marker::{MarkedBuilder, Marker, MarkerAllocator, U64Marker, U64MarkerAllocator},
     ser::SerializeComponents,
 };
-#[cfg(feature = "uuid_entity")]
-pub use self::uuid::*;
 
 /// A struct used for deserializing entity data.
 #[derive(Serialize, Deserialize)]

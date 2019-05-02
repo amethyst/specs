@@ -36,12 +36,12 @@ mod marker_test {
     }
 
     fn bumps_index_after_reload_internal<M>(allocator: M::Allocator)
-        where
-            M: Marker + Component + Clone,
-            <M as Component>::Storage: Default,
-            <M as Marker>::Identifier: Clone + Hash + Eq,
-            <M as Marker>::Allocator: Default+Clone
-        {
+    where
+        M: Marker + Component + Clone,
+        <M as Component>::Storage: Default,
+        <M as Marker>::Identifier: Clone + Hash + Eq,
+        <M as Marker>::Allocator: Default + Clone,
+    {
         let mut world = World::new();
 
         world.add_resource(allocator.clone());
@@ -167,8 +167,10 @@ mod marker_test {
     }
 
     /// Ensure there are no duplicate marker .ids() in the world
-    fn assert_markers_are_unique<M: Marker>(world: &mut World) 
-        where <M as Marker>::Identifier: Clone + Eq + Hash {
+    fn assert_markers_are_unique<M: Marker>(world: &mut World)
+    where
+        <M as Marker>::Identifier: Clone + Eq + Hash,
+    {
         world.exec(|(ents, markers): (Entities, ReadStorage<M>)| {
             use std::collections::HashSet;
 
