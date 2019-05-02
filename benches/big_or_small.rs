@@ -7,10 +7,7 @@ extern crate specs;
 extern crate test;
 
 use cgmath::Vector3;
-use rand::thread_rng;
-use shred::RunningTime;
 use specs::prelude::*;
-use specs::storage::{HashMapStorage, NullStorage};
 use test::Bencher;
 
 type Vec3 = Vector3<f32>;
@@ -48,11 +45,9 @@ impl<'a> System<'a> for SmallSystem {
     );
 
     fn run(&mut self, (small, mut small2): Self::SystemData) {
-        let mut c = 0;
         for (s, mut s2) in (&small, &mut small2).join() {
-            c += 1;
+            s2.0.y += s.0.x;
         }
-        println!("c: {}", c);
     }
 }
 
@@ -64,56 +59,54 @@ impl<'a> System<'a> for BigSystem {
     );
 
     fn run(&mut self, (mut big,): Self::SystemData) {
-        let mut c = 0;
-        for (mut s) in (&mut big,).join() {
-            c += 1;
+        for (mut b,) in (&mut big,).join() {
+            b.0.y += b.0.x;
         }
-        println!("c: {}", c);
     }
 }
 
 #[bench]
 fn bench_big(b: &mut Bencher) {
-    let mut w = World::new();
+    let mut world = World::new();
 
-    w.register::<Big>();
+    world.register::<Big>();
 
-    for x in 0..100000 {
-        w.create_entity()
+    for _ in 0..100000 {
+        world.create_entity()
             .with(Big(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0)))
             .build();
     }
 
-    let mut d = DispatcherBuilder::new()
+    let mut dispatch = DispatcherBuilder::new()
         .with(BigSystem, "big_sys", &[])
         .build();
 
     b.iter(|| {
-        d.dispatch(&mut w.res);
-        w.maintain();
+        dispatch.dispatch(&mut world);
+        world.maintain();
     })
 }
 
 #[bench]
 fn bench_small(b: &mut Bencher) {
-    let mut w = World::new();
+    let mut world = World::new();
 
-    w.register::<Small>();
-    w.register::<Small2>();
+    world.register::<Small>();
+    world.register::<Small2>();
 
-    for x in 0..100000 {
-        w.create_entity()
+    for _ in 0..100000 {
+        world.create_entity()
             .with(Small(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0)))
             .with(Small2(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0)))
             .build();
     }
 
-    let mut d = DispatcherBuilder::new()
+    let mut dispatch = DispatcherBuilder::new()
         .with(SmallSystem, "small_sys", &[])
         .build();
 
     b.iter(|| {
-        d.dispatch(&mut w.res);
-        w.maintain();
+        dispatch.dispatch(&mut world);
+        world.maintain();
     })
 }

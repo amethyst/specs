@@ -1,9 +1,9 @@
 use std::{
     fmt,
-    num::NonZeroI32,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
+use nonzero_signed::NonZeroI32;
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use shred::Read;
 
