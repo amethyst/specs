@@ -199,6 +199,8 @@ extern crate nonzero_signed;
 extern crate rayon;
 extern crate shrev;
 extern crate tuple_utils;
+#[cfg(feature = "uuid_entity")]
+pub extern crate uuid;
 
 #[cfg(feature = "serde")]
 #[macro_use]

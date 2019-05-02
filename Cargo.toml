@@ -34,6 +34,7 @@ shred-derive = "0.6.0"
 tuple_utils = "0.3"
 rayon = { version = "1.0.0", optional = true }
 nonzero_signed = "1.0.1"
+uuid = { version = "0.7.4", optional = true, features = ["v4", "serde"] }
 
 serde = { version = "1.0", optional = true, features = ["serde_derive"] }
 
@@ -41,9 +42,12 @@ serde = { version = "1.0", optional = true, features = ["serde_derive"] }
 default = ["parallel"]
 parallel = ["rayon", "shred/parallel", "hibitset/parallel"]
 nightly = ["shred/nightly"]
+uuid_entity = ["uuid", "serde"]
+stdweb = ["uuid/stdweb"]
+wasm-bindgen = ["uuid/wasm-bindgen"]
 
 [package.metadata.docs.rs]
-features = ["parallel", "nightly"]
+features = ["parallel", "nightly", "uuid_entity"]
 
 [dev-dependencies]
 cgmath =  { version = "0.17" }

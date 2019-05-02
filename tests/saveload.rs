@@ -13,7 +13,7 @@ extern crate specs_derive;
 mod tests {
     use spocs::{
         error::NoError,
-        saveload::{ConvertSaveload, Marker, U64Marker},
+        saveload::{ConvertSaveload, Marker, U64Marker, UuidMarker},
         Builder, Entity, World, WorldExt,
     };
 
@@ -62,18 +62,23 @@ mod tests {
     fn type_check() {
         let mut world = World::new();
         let entity = world.create_entity().build();
+        type_check_internal::<U64Marker>(entity);
+        #[cfg(feature = "uuid_entity")]
+        type_check_internal::<UuidMarker>(entity);
+    }
 
-        black_box::<U64Marker, _>(OneFieldNamed { e: entity });
-        black_box::<U64Marker, _>(TwoField { a: 5, e: entity });
-        black_box::<U64Marker, _>(LevelTwo {
+    fn type_check_internal<M: Marker>(entity: Entity) {
+        black_box::<M, _>(OneFieldNamed { e: entity });
+        black_box::<M, _>(TwoField { a: 5, e: entity });
+        black_box::<M, _>(LevelTwo {
             owner: OneFieldNamed { e: entity },
         });
-        black_box::<U64Marker, _>(OneFieldTuple(entity));
-        black_box::<U64Marker, _>(TwoFieldTuple(entity, 5));
+        black_box::<M, _>(OneFieldTuple(entity));
+        black_box::<M, _>(TwoFieldTuple(entity, 5));
         // The derive will work for all variants
         // so no need to test anything but unit
-        black_box::<U64Marker, _>(AnEnum::Unit);
-        black_box::<U64Marker, _>(Generic(entity));
+        black_box::<M, _>(AnEnum::Unit);
+        black_box::<M, _>(Generic(entity));
     }
 
     fn black_box<M, T: ConvertSaveload<M>>(_item: T) {}
