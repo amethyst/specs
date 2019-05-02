@@ -1,6 +1,9 @@
-same_line_attributes = false
-reorder_imports = true
-reorder_import_names = true
-reorder_imports_in_group = true
-binop_separator = "Back"
-#imports_indent = "Block"
+hard_tabs = false
+merge_imports = true
+reorder_impl_items = true
+use_field_init_shorthand = true
+use_try_shorthand = true
+format_doc_comments = true
+wrap_comments = true
+edition = "2018"
+version = "Two"

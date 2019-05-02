@@ -1,15 +1,16 @@
 //! Provides a changeset that can be collected from an iterator.
 
 use hibitset::BitSet;
-use std::iter::FromIterator;
-use std::ops::AddAssign;
+use std::{iter::FromIterator, ops::AddAssign};
 
-use join::Join;
-use storage::{DenseVecStorage, UnprotectedStorage};
-use world::{Entity, Index};
+use crate::{
+    join::Join,
+    storage::{DenseVecStorage, UnprotectedStorage},
+    world::{Entity, Index},
+};
 
-/// Change set that can be collected from an iterator, and joined on for easy application to
-/// components.
+/// Change set that can be collected from an iterator, and joined on for easy
+/// application to components.
 ///
 /// ### Example
 ///
@@ -52,17 +53,19 @@ impl<T> ChangeSet<T> {
         Default::default()
     }
 
-    /// Add a value to the change set. If the entity already have a value in the change set, the
-    /// incoming value will be added to that.
+    /// Add a value to the change set. If the entity already have a value in the
+    /// change set, the incoming value will be added to that.
     pub fn add(&mut self, entity: Entity, value: T)
     where
         T: AddAssign,
     {
         if self.mask.contains(entity.id()) {
+            // SAFETY: we checked the mask, thus it's safe to call
             unsafe {
                 *self.inner.get_mut(entity.id()) += value;
             }
         } else {
+            // SAFETY: we checked the mask, thus it's safe to call
             unsafe {
                 self.inner.insert(entity.id(), value);
             }
@@ -73,6 +76,7 @@ impl<T> ChangeSet<T> {
     /// Clear the changeset
     pub fn clear(&mut self) {
         for id in &self.mask {
+            // SAFETY: we checked the mask, thus it's safe to call
             unsafe {
                 self.inner.remove(id);
             }
@@ -106,14 +110,18 @@ where
 }
 
 impl<'a, T> Join for &'a mut ChangeSet<T> {
+    type Mask = &'a BitSet;
     type Type = &'a mut T;
     type Value = &'a mut DenseVecStorage<T>;
-    type Mask = &'a BitSet;
 
+    // SAFETY: No unsafe code and no invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, &mut self.inner)
     }
 
+    // SAFETY: No unsafe code and no invariants to meet.
+    // `DistinctStorage` invariants are also met, but no `ParJoin` implementation
+    // exists yet.
     unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
         let value: *mut Self::Value = v as *mut Self::Value;
         (*value).get_mut(id)
@@ -121,28 +129,38 @@ impl<'a, T> Join for &'a mut ChangeSet<T> {
 }
 
 impl<'a, T> Join for &'a ChangeSet<T> {
+    type Mask = &'a BitSet;
     type Type = &'a T;
     type Value = &'a DenseVecStorage<T>;
-    type Mask = &'a BitSet;
 
+    // SAFETY: No unsafe code and no invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, &self.inner)
     }
 
+    // SAFETY: No unsafe code and no invariants to meet.
+    // `DistinctStorage` invariants are also met, but no `ParJoin` implementation
+    // exists yet.
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         value.get(id)
     }
 }
 
+/// A `Join` implementation for `ChangeSet` that simply removes all the entries
+/// on a call to `get`.
 impl<T> Join for ChangeSet<T> {
+    type Mask = BitSet;
     type Type = T;
     type Value = DenseVecStorage<T>;
-    type Mask = BitSet;
 
+    // SAFETY: No unsafe code and no invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (self.mask, self.inner)
     }
 
+    // SAFETY: No unsafe code and no invariants to meet.
+    // `DistinctStorage` invariants are also met, but no `ParJoin` implementation
+    // exists yet.
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         value.remove(id)
     }
@@ -151,9 +169,12 @@ impl<T> Join for ChangeSet<T> {
 #[cfg(test)]
 mod tests {
     use super::ChangeSet;
-    use join::Join;
-    use storage::DenseVecStorage;
-    use world::{Builder, Component, World};
+    use crate::{
+        join::Join,
+        storage::DenseVecStorage,
+        world::{Builder, Component, WorldExt},
+    };
+    use shred::World;
 
     pub struct Health(i32);
 

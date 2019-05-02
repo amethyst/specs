@@ -6,10 +6,10 @@
 
 use hibitset::{AtomicBitSet, BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr, BitSetXor};
 
-use join::Join;
+use crate::join::Join;
 #[cfg(feature = "parallel")]
-use join::ParJoin;
-use world::Index;
+use crate::join::ParJoin;
+use crate::world::Index;
 
 macro_rules! define_bit_join {
     ( impl < ( $( $lifetime:tt )* ) ( $( $arg:ident ),* ) > for $bitset:ty ) => {
@@ -19,9 +19,13 @@ macro_rules! define_bit_join {
             type Type = Index;
             type Value = ();
             type Mask = $bitset;
+
+            // SAFETY: This just moves a `BitSet`; invariants of `Join` are fulfilled, since `Self::Value` cannot be mutated.
             unsafe fn open(self) -> (Self::Mask, Self::Value) {
                 (self, ())
             }
+
+            // SAFETY: No unsafe code and no invariants to meet.
             unsafe fn get(_: &mut Self::Value, id: Index) -> Self::Type {
                 id
             }

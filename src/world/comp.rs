@@ -1,6 +1,6 @@
 use mopa::Any;
 
-use storage::UnprotectedStorage;
+use crate::storage::UnprotectedStorage;
 
 /// Abstract component type.
 /// Doesn't have to be Copy or even Clone.
@@ -13,9 +13,9 @@ use storage::UnprotectedStorage;
 /// Depending on how many entities have this component and how
 /// often it is accessed, you will want different storages.
 ///
-/// The most common ones are `VecStorage` (use if almost every entity has that component),
-/// `DenseVecStorage` (if you expect many entities to have the component) and
-/// `HashMapStorage` (for very rare components).
+/// The most common ones are `VecStorage` (use if almost every entity has that
+/// component), `DenseVecStorage` (if you expect many entities to have the
+/// component) and `HashMapStorage` (for very rare components).
 ///
 /// ## Examples
 ///
@@ -47,8 +47,7 @@ use storage::UnprotectedStorage;
 /// ```
 ///
 /// ```
-/// use specs::prelude::*;
-/// use specs::storage::HashMapStorage;
+/// use specs::{prelude::*, storage::HashMapStorage};
 ///
 /// pub struct Camera {
 ///     // In an ECS, the camera would not itself have a position;

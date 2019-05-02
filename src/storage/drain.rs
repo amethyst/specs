@@ -1,8 +1,10 @@
 use hibitset::BitSet;
 
-use join::Join;
-use storage::MaskedStorage;
-use world::{Component, Index};
+use crate::{
+    join::Join,
+    storage::MaskedStorage,
+    world::{Component, Index},
+};
 
 /// A draining storage wrapper which has a `Join` implementation
 /// that removes the components.
@@ -15,16 +17,18 @@ impl<'a, T> Join for Drain<'a, T>
 where
     T: Component,
 {
+    type Mask = BitSet;
     type Type = T;
     type Value = &'a mut MaskedStorage<T>;
-    type Mask = BitSet;
 
+    // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let mask = self.data.mask.clone();
 
         (mask, self.data)
     }
 
+    // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn get(value: &mut Self::Value, id: Index) -> T {
         value.remove(id).expect("Tried to access same index twice")
     }
@@ -34,9 +38,11 @@ where
 mod tests {
     #[test]
     fn basic_drain() {
-        use join::Join;
-        use storage::DenseVecStorage;
-        use world::{Builder, Component, World};
+        use crate::{
+            join::Join,
+            storage::DenseVecStorage,
+            world::{Builder, Component, World, WorldExt},
+        };
 
         #[derive(Debug, PartialEq)]
         struct Comp;

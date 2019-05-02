@@ -9,10 +9,11 @@ repository = "https://github.com/slide-rs/specs"
 homepage = "https://slide-rs.github.io/"
 readme = "README.md"
 keywords = ["gamedev", "ecs", "entity", "component"]
-categories = ["concurrency"]
+categories = ["concurrency", "game-engines"]
 license = "MIT/Apache-2.0"
 authors = ["slide-rs hackers"]
 exclude = ["bors.toml", ".travis.yml"]
+edition = "2018"
 
 # the `storage_cmp` and `storage_sparse` benches are called from `benches_main`
 autobenches = false
@@ -21,15 +22,15 @@ autobenches = false
 travis-ci = { repository = "slide-rs/specs" }
 
 [dependencies]
-crossbeam = "0.6.0"
+crossbeam = "0.7.1"
 derivative = "1"
 fnv = "1.0"
 hibitset = { version = "0.5.3", default-features = false }
 log = "0.4"
 mopa = "0.2"
-shred = { version = "0.7.0", default-features = false }
+shred = { version = "0.8.0", default-features = false }
 shrev = "1.0.0"
-shred-derive = "0.5.0"
+shred-derive = "0.6.0"
 tuple_utils = "0.3"
 rayon = { version = "1.0.0", optional = true }
 nonzero_signed = "1.0.1"
@@ -45,9 +46,9 @@ nightly = ["shred/nightly"]
 features = ["parallel", "nightly"]
 
 [dev-dependencies]
-cgmath =  { version = "0.16" }
+cgmath =  { version = "0.17" }
 criterion = "0.2"
-ron = "0.4"
+ron = "0.5"
 rand = "0.6.1"
 serde_json = "1.0"
 specs-derive = { path = "specs-derive", version = "0.4.0" }

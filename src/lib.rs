@@ -9,7 +9,8 @@
 //!
 //! Features:
 //!
-//! * depending on chosen features either 0 virtual function calls or one per system
+//! * depending on chosen features either 0 virtual function calls or one per
+//!   system
 //! * parallel iteration over components
 //! * parallel execution of systems
 //!
@@ -23,7 +24,7 @@
 //! `World` is where component storages, resources and entities are stored.
 //! See the docs of [`World`] for more.
 //!
-//! [`World`]: struct.World.html
+//! [`World`]: world/struct.World.html
 //!
 //! [`Component`]s can be easily implemented like this:
 //!
@@ -58,8 +59,9 @@
 //! You can choose different storages according to your needs.
 //!
 //! These storages can be [`join`]ed together, for example joining a `Velocity`
-//! and a `Position` storage means you'll only get entities which have both of them.
-//! Thanks to rayon, this is even possible in parallel! See [`ParJoin`] for more.
+//! and a `Position` storage means you'll only get entities which have both of
+//! them. Thanks to rayon, this is even possible in parallel! See [`ParJoin`]
+//! for more.
 //!
 //! [`join`]: trait.Join.html#method.join
 //! [`ParJoin`]: trait.ParJoin.html
@@ -160,7 +162,7 @@
 //!     let mut dispatcher = DispatcherBuilder::new().with(SysA, "sys_a", &[]).build();
 //!
 //!     // This dispatches all the systems in parallel (but blocking).
-//!     dispatcher.dispatch(&mut world.res);
+//!     dispatcher.dispatch(&mut world);
 //! }
 //! ```
 //!
@@ -181,7 +183,6 @@
 //! ```
 //!
 //! See the repository's examples directory for more examples.
-//!
 
 pub extern crate shred;
 
@@ -192,8 +193,8 @@ extern crate fnv;
 extern crate hibitset;
 #[macro_use]
 extern crate log;
-extern crate nonzero_signed;
 extern crate mopa;
+extern crate nonzero_signed;
 #[cfg(feature = "parallel")]
 extern crate rayon;
 extern crate shrev;
@@ -214,18 +215,24 @@ pub mod prelude;
 pub mod storage;
 pub mod world;
 
-pub use hibitset::BitSet;
-pub use join::Join;
+pub use crate::join::Join;
 #[cfg(feature = "parallel")]
-pub use join::ParJoin;
-pub use shred::{Accessor, Dispatcher, DispatcherBuilder, Read, ReadExpect, Resources, RunNow,
-                StaticAccessor, System, SystemData, Write, WriteExpect};
+pub use crate::join::ParJoin;
+pub use hibitset::BitSet;
+pub use shred::{
+    Accessor, Dispatcher, DispatcherBuilder, Read, ReadExpect, RunNow, StaticAccessor, System,
+    SystemData, World, Write, WriteExpect,
+};
 pub use shrev::ReaderId;
 
 #[cfg(feature = "parallel")]
 pub use shred::AsyncDispatcher;
 
-pub use changeset::ChangeSet;
-pub use storage::{DenseVecStorage, FlaggedStorage, HashMapStorage, NullStorage, ReadStorage, Storage, Tracked, VecStorage,
-                  WriteStorage};
-pub use world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate, World};
+pub use crate::{
+    changeset::ChangeSet,
+    storage::{
+        DenseVecStorage, FlaggedStorage, HashMapStorage, NullStorage, ReadStorage, Storage,
+        Tracked, VecStorage, WriteStorage,
+    },
+    world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate, WorldExt},
+};

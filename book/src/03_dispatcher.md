@@ -106,7 +106,7 @@ use specs::{Builder, Component, DispatcherBuilder, ReadStorage,
 #[derive(Debug)]
 struct Position {
     x: f32,
-    y: f32
+    y: f32,
 }
 
 impl Component for Position {

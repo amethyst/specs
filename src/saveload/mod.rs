@@ -10,8 +10,9 @@
 //! Reading those makes it very easy to serialize or deserialize
 //! components.
 //!
-//! `SerializeComponents` implements `Serialize` and `DeserializeComponents` implements
-//! `DeserializeOwned`, so serializing / deserializing should be very easy.
+//! `SerializeComponents` implements `Serialize` and `DeserializeComponents`
+//! implements `DeserializeOwned`, so serializing / deserializing should be very
+//! easy.
 //!
 //! ## Markers
 //!
@@ -23,10 +24,9 @@
 //! see the docs for the `Marker` trait.
 //!
 
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 
-use error::NoError;
-use world::Entity;
+use crate::{error::NoError, world::Entity};
 
 mod de;
 mod marker;
@@ -34,9 +34,11 @@ mod ser;
 #[cfg(test)]
 mod tests;
 
-pub use self::de::{DeserializeComponents};
-pub use self::marker::{MarkedBuilder, Marker, MarkerAllocator, U64Marker, U64MarkerAllocator};
-pub use self::ser::{SerializeComponents};
+pub use self::{
+    de::DeserializeComponents,
+    marker::{MarkedBuilder, Marker, MarkerAllocator, U64Marker, U64MarkerAllocator},
+    ser::SerializeComponents,
+};
 
 /// A struct used for deserializing entity data.
 #[derive(Serialize, Deserialize)]
@@ -47,7 +49,6 @@ pub struct EntityData<M, D> {
     pub components: D,
 }
 
-
 /// Converts a data type (usually a [`Component`]) into its serializable form
 /// and back to actual data from it's deserialized form.
 ///
@@ -55,15 +56,15 @@ pub struct EntityData<M, D> {
 /// [`Clone`], [`Serialize`] and [`DeserializeOwned`].
 ///
 /// Implementing this yourself is usually only needed if you
-/// have a component that points to another [`Entity`], or has a field which does,
-///  and you wish to [`Serialize`] it.
+/// have a component that points to another [`Entity`], or has a field which
+/// does,  and you wish to [`Serialize`] it.
 ///
 /// *Note*: if you're using `specs_derive`
 /// you can use `#[derive(Saveload)]` to automatically derive this.
 ///
 /// You must add the `derive` to any type that your component holds which does
-/// not auto-implement this traits, including the component itself (similar to how
-/// normal [`Serialize`] and [`Deserialize`] work).
+/// not auto-implement this traits, including the component itself (similar to
+/// how normal [`Serialize`] and [`Deserialize`] work).
 ///
 /// [`Component`]: ../trait.Component.html
 /// [`Entity`]: ../struct.Entity.html
@@ -76,10 +77,12 @@ pub struct EntityData<M, D> {
 /// ```rust
 /// # extern crate specs;
 /// # #[macro_use] extern crate serde;
-/// use serde::{Serialize, Deserialize};
-/// use specs::prelude::*;
-/// use specs::error::NoError;
-/// use specs::saveload::{Marker, ConvertSaveload};
+/// use serde::{Deserialize, Serialize};
+/// use specs::{
+///     error::NoError,
+///     prelude::*,
+///     saveload::{ConvertSaveload, Marker},
+/// };
 ///
 /// struct Target(Entity);
 ///
@@ -95,14 +98,15 @@ pub struct EntityData<M, D> {
 /// struct TargetData<M>(M);
 ///
 /// impl<M: Marker + Serialize> ConvertSaveload<M> for Target
-///     where for<'de> M: Deserialize<'de>,
+/// where
+///     for<'de> M: Deserialize<'de>,
 /// {
 ///     type Data = TargetData<M>;
 ///     type Error = NoError;
 ///
 ///     fn convert_into<F>(&self, mut ids: F) -> Result<Self::Data, Self::Error>
 ///     where
-///         F: FnMut(Entity) -> Option<M>
+///         F: FnMut(Entity) -> Option<M>,
 ///     {
 ///         let marker = ids(self.0).unwrap();
 ///         Ok(TargetData(marker))
@@ -110,15 +114,13 @@ pub struct EntityData<M, D> {
 ///
 ///     fn convert_from<F>(data: Self::Data, mut ids: F) -> Result<Self, Self::Error>
 ///     where
-///         F: FnMut(M) -> Option<Entity>
+///         F: FnMut(M) -> Option<Entity>,
 ///     {
 ///         let entity = ids(data.0).unwrap();
 ///         Ok(Target(entity))
 ///     }
 /// }
-///
 /// ```
-///
 pub trait ConvertSaveload<M>: Sized {
     /// (De)Serializable data representation for data type
     type Data: Serialize + DeserializeOwned;

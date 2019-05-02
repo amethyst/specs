@@ -7,6 +7,7 @@ documentation = "https://docs.rs/specs-derive"
 repository = "https://github.com/slide-rs/specs/tree/master/specs-derive"
 keywords = ["gamedev", "parallel", "specs", "ecs", "derive"]
 license = "MIT/Apache-2.0"
+edition = "2018"
 
 [dependencies]
 proc-macro2 = "0.4"

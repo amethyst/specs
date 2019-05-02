@@ -1,0 +1,27 @@
+stages:
+  - test
+  - deploy
+
+run kcov:
+  stage: test
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker --version
+    - ./scripts/kcov.sh
+  only:
+    refs:
+      - master
+
+deploy codecov.io:
+  stage: deploy
+  image: alpine
+  before_script:
+    - apk add --no-cache curl bash
+  script:
+    - ls
+    - curl -v -s https://codecov.io/bash | bash
+  only:
+    refs:
+      - master

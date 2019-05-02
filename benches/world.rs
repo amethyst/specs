@@ -8,8 +8,7 @@ extern crate specs;
 extern crate test;
 
 use criterion::{Bencher, Criterion};
-use specs::prelude::*;
-use specs::storage::HashMapStorage;
+use specs::{prelude::*, storage::HashMapStorage};
 
 #[derive(Clone, Debug)]
 struct CompInt(i32);
@@ -118,7 +117,8 @@ fn create_after_delete(b: &mut Bencher) {
             let mut w = World::new();
             let eids: Vec<_> = (0..1000).map(|_| w.create_entity().build()).collect();
 
-            (0..1000).choose_multiple(&mut rng, 100)
+            (0..1000)
+                .choose_multiple(&mut rng, 100)
                 .into_iter()
                 .map(|i| eids[i])
                 .for_each(|e| {

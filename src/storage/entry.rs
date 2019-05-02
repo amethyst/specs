@@ -1,7 +1,7 @@
 use hibitset::BitSetAll;
 
-use join::Join;
 use super::*;
+use crate::join::Join;
 
 impl<'e, T, D> Storage<'e, T, D>
 where
@@ -28,9 +28,9 @@ where
     /// # world.register::<Comp>();
     /// # let entity = world.create_entity().build();
     /// # let mut storage = world.write_storage::<Comp>();
-    ///  if let Ok(entry) = storage.entry(entity) {
-    ///      entry.or_insert(Comp { field: 55 });
-    ///  }
+    /// if let Ok(entry) = storage.entry(entity) {
+    ///     entry.or_insert(Comp { field: 55 });
+    /// }
     /// # }
     /// ```
     pub fn entry<'a>(&'a mut self, e: Entity) -> Result<StorageEntry<'a, 'e, T, D>, WrongGeneration>
@@ -40,7 +40,10 @@ where
         if self.entities.is_alive(e) {
             unsafe {
                 let entries = self.entries();
+                // SAFETY: This is safe since we're not swapping out the mask or the values.
                 let (_, mut value): (BitSetAll, _) = entries.open();
+                // SAFETY: We did check the mask, because the mask is `BitSetAll` and every
+                // index is part of it.
                 Ok(Entries::get(&mut value, e.id()))
             }
         } else {
@@ -64,9 +67,9 @@ where
     /// iterate over every single index of the bitset. If you want a join with
     /// all `Entries`s, add an `EntitiesRes` to the join as well to bound the
     /// join to all entities that are alive.
-    /// 
+    ///
     /// ## Example
-    /// 
+    ///
     /// ```rust
     /// # extern crate specs;
     /// # use specs::prelude::*;
@@ -102,7 +105,7 @@ where
     /// # for _ in 0..15 {
     /// #     world.create_entity().build();
     /// # }
-    /// # 
+    /// #
     /// # world.exec(|(mut counters, marker): (WriteStorage<Counter>, ReadStorage<AllowCounter>)| {
     /// for (mut counter, _) in (counters.entries(), &marker).join() {
     ///     let counter = counter.or_insert_with(Default::default);
@@ -120,7 +123,8 @@ where
     }
 }
 
-/// `Join`-able structure that yields all indices, returning `Entry` for all elements
+/// `Join`-able structure that yields all indices, returning `Entry` for all
+/// elements
 pub struct Entries<'a, 'b: 'a, T: 'a, D: 'a>(&'a mut Storage<'b, T, D>);
 
 impl<'a, 'b: 'a, T: 'a, D: 'a> Join for Entries<'a, 'b, T, D>
@@ -128,14 +132,17 @@ where
     T: Component,
     D: Deref<Target = MaskedStorage<T>>,
 {
+    type Mask = BitSetAll;
     type Type = StorageEntry<'a, 'b, T, D>;
     type Value = &'a mut Storage<'b, T, D>;
-    type Mask = BitSetAll;
 
+    // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (BitSetAll, self.0)
     }
 
+    // SAFETY: We are lengthening the lifetime of `value` to `'a`;
+    // TODO: how to prove this is safe?
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         // This is HACK. See implementation of Join for &'a mut Storage<'e, T, D> for
         // details why it is necessary.
@@ -172,6 +179,8 @@ where
 {
     /// Get a reference to the component associated with the entity.
     pub fn get(&self) -> &T {
+        // SAFETY: This is safe since `OccupiedEntry` is only constructed
+        // after checking the mask.
         unsafe { self.storage.data.inner.get(self.id) }
     }
 }
@@ -183,12 +192,16 @@ where
 {
     /// Get a mutable reference to the component associated with the entity.
     pub fn get_mut(&mut self) -> &mut T {
+        // SAFETY: This is safe since `OccupiedEntry` is only constructed
+        // after checking the mask.
         unsafe { self.storage.data.inner.get_mut(self.id) }
     }
 
     /// Converts the `OccupiedEntry` into a mutable reference bounded by
     /// the storage's lifetime.
     pub fn into_mut(self) -> &'a mut T {
+        // SAFETY: This is safe since `OccupiedEntry` is only constructed
+        // after checking the mask.
         unsafe { self.storage.data.inner.get_mut(self.id) }
     }
 
@@ -204,7 +217,8 @@ where
     }
 }
 
-/// An entry to a storage which does not have a component associated to the entity.
+/// An entry to a storage which does not have a component associated to the
+/// entity.
 pub struct VacantEntry<'a, 'b: 'a, T: 'a, D: 'a> {
     id: Index,
     storage: &'a mut Storage<'b, T, D>,
@@ -218,6 +232,7 @@ where
     /// Inserts a value into the storage.
     pub fn insert(self, component: T) -> &'a mut T {
         self.storage.data.mask.add(self.id);
+        // SAFETY: This is safe since we added `self.id` to the mask.
         unsafe {
             self.storage.data.inner.insert(self.id, component);
             self.storage.data.inner.get_mut(self.id)
@@ -225,8 +240,8 @@ where
     }
 }
 
-/// Entry to a storage for convenient filling of components or removal based on whether
-/// the entity has a component.
+/// Entry to a storage for convenient filling of components or removal based on
+/// whether the entity has a component.
 pub enum StorageEntry<'a, 'b: 'a, T: 'a, D: 'a> {
     /// Entry variant that is returned if the entity has a component.
     Occupied(OccupiedEntry<'a, 'b, T, D>),
@@ -245,8 +260,8 @@ where
     }
 
     /// Inserts a component using a lazily called function that is only called
-    /// when inserting the component. Ensures this entry has a value and if not, 
-    /// inserts one using the result of the passed closure. Returns a reference 
+    /// when inserting the component. Ensures this entry has a value and if not,
+    /// inserts one using the result of the passed closure. Returns a reference
     /// to the value afterwards.
     pub fn or_insert_with<F>(self, default: F) -> &'a mut T
     where

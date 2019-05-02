@@ -53,7 +53,7 @@ fn main() {
 
     // setup() must be called before creating any entity, it will register
     // all Components and Resources that Systems depend on
-    dispatcher.setup(&mut world.res);
+    dispatcher.setup(&mut world);
 
     // An entity may or may not contain some component.
 
@@ -65,5 +65,5 @@ fn main() {
     world.create_entity().with(Pos(2.0)).build();
 
     // This dispatches all the systems in parallel (but blocking).
-    dispatcher.dispatch(&world.res);
+    dispatcher.dispatch(&world);
 }

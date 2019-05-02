@@ -1,11 +1,15 @@
 //! Contains implementations for `#[derive(Saveload)]`
 //! which derives `ConvertSaveload`.
 
-// NOTE: All examples given in the documentation below are "cleaned up" into readable Rust,
-// so it doesn't give an entirely accurate view of what's actually generated.
+// NOTE: All examples given in the documentation below are "cleaned up" into
+// readable Rust, so it doesn't give an entirely accurate view of what's
+// actually generated.
 
-use syn::{DataEnum, DataStruct, DeriveInput, Field, Generics, Ident, Type, GenericParam, WhereClause, WherePredicate};
 use proc_macro2::{Span, TokenStream};
+use syn::{
+    DataEnum, DataStruct, DeriveInput, Field, GenericParam, Generics, Ident, Type, WhereClause,
+    WherePredicate,
+};
 
 /// Handy collection since tuples got unwieldy and
 /// unclear in purpose
@@ -24,25 +28,25 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> TokenStream {
     add_where_clauses(
         &mut ast.generics.where_clause,
         &ast.generics.params,
-        |ty| parse_quote!(#ty: ConvertSaveload<MA, Error = NoError> + ConvertSaveload<MA, Error = NoError>)
+        |ty| parse_quote!(#ty: ConvertSaveload<MA, Error = NoError> + ConvertSaveload<MA, Error = NoError>),
     );
     add_where_clauses(
         &mut ast.generics.where_clause,
         &ast.generics.params,
-        |ty| parse_quote!(<#ty as ConvertSaveload<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone)
+        |ty| parse_quote!(<#ty as ConvertSaveload<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone),
     );
     add_where_clauses(
         &mut ast.generics.where_clause,
         &ast.generics.params,
-        |ty| parse_quote!(<#ty as ConvertSaveload<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone)
+        |ty| parse_quote!(<#ty as ConvertSaveload<MA>>::Data: ::serde::Serialize + ::serde::de::DeserializeOwned + Clone),
     );
     add_where_clause(
         &mut ast.generics.where_clause,
-        parse_quote!(MA: ::serde::Serialize + ::serde::de::DeserializeOwned + Marker)
+        parse_quote!(MA: ::serde::Serialize + ::serde::de::DeserializeOwned + Marker),
     );
     add_where_clause(
         &mut ast.generics.where_clause,
-        parse_quote!(for <'deser> MA: ::serde::Deserialize<'deser>)
+        parse_quote!(for <'deser> MA: ::serde::Deserialize<'deser>),
     );
 
     let derive = match ast.data {
@@ -65,7 +69,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> TokenStream {
     let ser = derive.ser;
     let de = derive.de;
 
-    let tt = quote!{
+    let tt = quote! {
         #[derive(Serialize, Deserialize, Clone)]
         #[serde(bound = "MA: Marker")]
         pub #type_def
@@ -129,7 +133,9 @@ fn saveload_struct(
             &saveload_fields,
         )
     } else {
-        panic!("Every unit struct `Serialize`/`Deserialize` thus blanket impl already implements `ConvertSaveload` for them.");
+        panic!(
+            "Every unit struct `Serialize`/`Deserialize` thus blanket impl already implements `ConvertSaveload` for them."
+        );
     };
 
     SaveloadDerive {
@@ -140,10 +146,12 @@ fn saveload_struct(
     }
 }
 
-/// Automatically derives the two traits and proxy `Data` container for a struct with named fields (e.g. `struct Foo {e: Entity}`).
+/// Automatically derives the two traits and proxy `Data` container for a struct
+/// with named fields (e.g. `struct Foo {e: Entity}`).
 ///
-/// This generates a struct named `StructNameSaveloadData` such that all fields are their associated `Data` variants, as well as a bound on the required marker
-///  e.g.
+/// This generates a struct named `StructNameSaveloadData` such that all fields
+/// are their associated `Data` variants, as well as a bound on the required
+/// marker  e.g.
 ///
 /// ```nobuild
 /// struct FooSaveloadData<MA> where MA: Serialize+Marker, for<'de> MA: Deserialize<'de> {
@@ -151,7 +159,8 @@ fn saveload_struct(
 /// }
 /// ```
 ///
-/// The generation for the `into` and `from` functions just constructs each field by calling `into`/`from` for each field in the input struct
+/// The generation for the `into` and `from` functions just constructs each
+/// field by calling `into`/`from` for each field in the input struct
 /// and placing it into the output struct:
 ///
 /// ```nobuild
@@ -169,7 +178,7 @@ fn saveload_named_struct(
 ) -> (TokenStream, TokenStream, TokenStream) {
     let (_, ty_generics, where_clause) = generics.split_for_impl();
 
-    let struct_def = quote!{
+    let struct_def = quote! {
         struct #saveload_name #ty_generics #where_clause {
             #( #saveload_fields ),*
         }
@@ -195,10 +204,12 @@ fn saveload_named_struct(
     (struct_def, ser, de)
 }
 
-/// Automatically derives the two traits and proxy `Data` container for a struct with unnamed fields aka a tuple struct (e.g. `struct Foo(Entity);`).
+/// Automatically derives the two traits and proxy `Data` container for a struct
+/// with unnamed fields aka a tuple struct (e.g. `struct Foo(Entity);`).
 ///
-/// This generates a struct named `StructNameSaveloadData` such that all fields are their associated `Data` variants, as well as a bound on the required marker
-///  e.g.
+/// This generates a struct named `StructNameSaveloadData` such that all fields
+/// are their associated `Data` variants, as well as a bound on the required
+/// marker  e.g.
 ///
 /// ```nobuild
 /// struct FooSaveloadData<MA> (
@@ -206,7 +217,8 @@ fn saveload_named_struct(
 /// ) where MA: Serialize+Marker, for<'de> MA: Deserialize<'de>;
 /// ```
 ///
-/// The generation for the `into` and `from` functions just constructs each field by calling `into`/`from` for each field in the input struct
+/// The generation for the `into` and `from` functions just constructs each
+/// field by calling `into`/`from` for each field in the input struct
 /// and placing it into the output struct:
 ///
 /// ```nobuild
@@ -227,7 +239,7 @@ fn saveload_tuple_struct(
 
     let (_, ty_generics, where_clause) = generics.split_for_impl();
 
-    let struct_def = quote!{
+    let struct_def = quote! {
         struct #saveload_name #ty_generics (
             #( #saveload_fields ),*
         ) #where_clause;
@@ -238,7 +250,7 @@ fn saveload_tuple_struct(
         span: data.struct_token.span.clone(),
     });
     let tmp = field_ids.clone();
-    let ser = quote!{
+    let ser = quote! {
         Ok(#saveload_name (
             # ( ConvertSaveload::convert_into(&self.#field_ids, &mut ids)? ),*
         ))
@@ -254,13 +266,17 @@ fn saveload_tuple_struct(
     (struct_def, ser, de)
 }
 
-/// Automatically derives the two traits and proxy `Data` container for an Enum (e.g. `enum Foo{ Bar(Entity), Baz{ e: Entity }, Unit }`).
+/// Automatically derives the two traits and proxy `Data` container for an Enum
+/// (e.g. `enum Foo{ Bar(Entity), Baz{ e: Entity }, Unit }`).
 ///
-/// This will properly handle enum variants with no `Entity`, so long as at least one variant (or one of that variant's fields recursively) contain an
-/// `Entity` somewhere. If this isn't true, `Saveload` is auto-derived so long as the fields can be `Serialize` and `Deserialize` anyway.
+/// This will properly handle enum variants with no `Entity`, so long as at
+/// least one variant (or one of that variant's fields recursively) contain an
+/// `Entity` somewhere. If this isn't true, `Saveload` is auto-derived so long
+/// as the fields can be `Serialize` and `Deserialize` anyway.
 ///
-/// This generates a struct named `EnumNameSaveloadData` such that all fields are their associated `Data` variants, as well as a bound on the required marker
-///  e.g.
+/// This generates a struct named `EnumNameSaveloadData` such that all fields
+/// are their associated `Data` variants, as well as a bound on the required
+/// marker  e.g.
 ///
 /// ```nobuild
 /// enum FooSaveloadData<MA> where MA: Serialize+Marker, for<'de> MA: Deserialize<'de> {
@@ -270,7 +286,8 @@ fn saveload_tuple_struct(
 /// };
 /// ```
 ///
-/// The generation for the `into` and `from` functions just constructs each field of each variant by calling `into`/`from` for each field in the input
+/// The generation for the `into` and `from` functions just constructs each
+/// field of each variant by calling `into`/`from` for each field in the input
 /// and placing it into the output struct in a giant match of each possibility:
 ///
 /// ```nobuild
@@ -307,14 +324,14 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
     let variants = &saveload.variants;
 
     let (_, saveload_ty_generics, saveload_where_clause) = saveload_generics.split_for_impl();
-    let enum_def = quote!{
+    let enum_def = quote! {
         enum #saveload_name #saveload_ty_generics #saveload_where_clause {
             #( #variants ),*
         }
     };
 
-    let mut big_match_ser = quote!{};
-    let mut big_match_de = quote!{};
+    let mut big_match_ser = quote! {};
+    let mut big_match_de = quote! {};
 
     for variant in variants {
         let ident = &variant.ident;
@@ -326,7 +343,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
                 let names_2 = get_names();
                 let names_3 = get_names();
 
-                big_match_ser = quote!{
+                big_match_ser = quote! {
                     #big_match_ser
                     #name::#ident { #( ref #names ),* } => #saveload_name::#ident { #( #names_3: ConvertSaveload::convert_into(#names_2, ids)? ),* },
                 };
@@ -335,7 +352,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
                 let names_2 = get_names();
                 let names_3 = get_names();
 
-                big_match_de = quote!{
+                big_match_de = quote! {
                     #big_match_de
                     #saveload_name::#ident { #( #names ),* } => #name::#ident { #( #names_3: ConvertSaveload::convert_from(#names_2, &mut ids)? ),* },
                 };
@@ -351,7 +368,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
                 let field_ids_2 = field_ids.clone();
                 let tmp = field_ids.clone();
 
-                big_match_ser = quote!{
+                big_match_ser = quote! {
                     #big_match_ser
                     #name::#ident( #( ref #field_ids ),* ) => #saveload_name::#ident( #( ConvertSaveload::convert_into(#field_ids_2, &mut ids)? ),* ),
                 };
@@ -359,7 +376,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
                 let field_ids = tmp;
                 let field_ids_2 = field_ids.clone();
 
-                big_match_de = quote!{
+                big_match_de = quote! {
                     #big_match_de
                     #saveload_name::#ident( #( #field_ids ),* ) => #name::#ident( #( ConvertSaveload::convert_from(#field_ids_2, &mut ids)? ),* ),
                 };
@@ -378,13 +395,13 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
         }
     }
 
-    let ser = quote!{
+    let ser = quote! {
         Ok(match *self {
             #big_match_ser
         })
     };
 
-    let de = quote!{
+    let de = quote! {
         Ok(match data {
             #big_match_de
         })
@@ -400,13 +417,11 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
 /// Adds where clause for each type parameter
 fn add_where_clauses<'a, F, I>(where_clause: &mut Option<WhereClause>, generics: I, mut clause: F)
-    where F: FnMut(Ident) -> WherePredicate,
-          I: IntoIterator<Item = &'a GenericParam>,
+where
+    F: FnMut(Ident) -> WherePredicate,
+    I: IntoIterator<Item = &'a GenericParam>,
 {
-    use syn::GenericParam;
-    let preds = &mut where_clause
-        .get_or_insert(parse_quote!(where))
-        .predicates;
+    let preds = &mut where_clause.get_or_insert(parse_quote!(where)).predicates;
     for generic in generics {
         if let GenericParam::Type(ty_param) = generic {
             let ty_param = ty_param.ident.clone();
@@ -441,7 +456,9 @@ fn replace_entity_type(ty: &mut Type) {
 
         Type::TraitObject(_) => {}
         Type::ImplTrait(_) => {}
-        Type::Slice(_) => panic!("Slices are unsupported, use owned types like Vecs or Arrays instead"),
+        Type::Slice(_) => {
+            panic!("Slices are unsupported, use owned types like Vecs or Arrays instead")
+        }
         Type::Reference(_) => panic!("References are unsupported"),
         Type::Ptr(_) => panic!("Raw pointer types are unsupported"),
         Type::BareFn(_) => panic!("Function types are unsupported"),
