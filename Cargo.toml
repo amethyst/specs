@@ -88,5 +88,13 @@ name = "parallel"
 name = "world"
 harness = false
 
+[[bench]]
+name = "bench_big"
+path = "benches/big_or_small.rs"
+
+[[bench]]
+name = "bench_small"
+path = "benches/big_or_small.rs"
+
 [workspace]
 members = ["specs-derive"]
