@@ -44,11 +44,6 @@ impl UuidMarker {
     pub fn uuid(&self) -> &Uuid {
         &self.uuid
     }
-
-    /// Set a new uuid.
-    pub fn set_uuid(&mut self, uuid: Uuid) {
-        self.uuid = uuid;
-    }
 }
 
 /// Basic marker allocator for uuid.
