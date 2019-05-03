@@ -1,0 +1,272 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>FlaggedStorage and modification events - The Specs Book</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Introduction to ECS and the Specs API.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="01_intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="02_hello_world.html"><strong aria-hidden="true">2.</strong> Hello World</a></li><li><a href="03_dispatcher.html"><strong aria-hidden="true">3.</strong> Dispatcher</a></li><li><a href="04_resources.html"><strong aria-hidden="true">4.</strong> Resources</a></li><li><a href="05_storages.html"><strong aria-hidden="true">5.</strong> Storages</a></li><li><a href="06_system_data.html"><strong aria-hidden="true">6.</strong> System Data</a></li><li><a href="07_setup.html"><strong aria-hidden="true">7.</strong> Setup</a></li><li><a href="08_join.html"><strong aria-hidden="true">8.</strong> Joining components</a></li><li><a href="09_parallel_join.html"><strong aria-hidden="true">9.</strong> Parallel Join</a></li><li><a href="10_rendering.html"><strong aria-hidden="true">10.</strong> Rendering</a></li><li><a href="11_advanced_component.html"><strong aria-hidden="true">11.</strong> Advanced component strategies</a></li><li><a href="12_tracked.html" class="active"><strong aria-hidden="true">12.</strong> FlaggedStorage and modification events</a></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Specs Book</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#flaggedstorage-and-modification-events" id="flaggedstorage-and-modification-events"><h1><code>FlaggedStorage</code> and modification events</h1></a>
+<p>In most games you will have many entities, but from frame to frame there will
+usually be components that will only need to updated when something related is
+modified.</p>
+<p>To avoid a lot of unnecessary computation when updating components it
+would be nice if we could somehow check for only those entities that are updated
+and recalculate only those.</p>
+<p>We might also need to keep an external resource in sync with changes
+to components in Specs <code>World</code>, and we only want to propagate actual changes, not
+do a full sync every frame.</p>
+<p>This is where <code>FlaggedStorage</code> comes into play. By wrapping a component's
+actual storage in a <code>FlaggedStorage</code>, we can subscribe to modification events, and
+easily populate bitsets with only the entities that have actually changed.</p>
+<p>Let's look at some code:</p>
+<pre><code class="language-rust ignore">pub struct Data {
+    [..]
+}
+
+impl Component for Data {
+    type Storage = FlaggedStorage&lt;Self, DenseVecStorage&lt;Self&gt;&gt;;
+}
+
+#[derive(Default)]
+pub struct Sys {
+    pub dirty: BitSet,
+    pub reader_id: Option&lt;ReaderId&lt;ComponentEvent&gt;&gt;,
+}
+
+impl&lt;'a&gt; System&lt;'a&gt; for Sys {
+    type SystemData = (
+        ReadStorage&lt;'a, Data&gt;,
+        WriteStorage&lt;'a, SomeOtherData&gt;,
+    );
+
+    fn run(&amp;mut self, (data, mut some_other_data): Self::SystemData) {
+        self.dirty.clear();
+
+        let events = data.channel().read(self.reader_id.as_mut().unwrap());
+
+        // Note that we could use separate bitsets here, we only use one to
+        // simplify the example
+        for event in events {
+            match event {
+                ComponentEvent::Modified(id) | ComponentEvent::Inserted(id) =&gt; {
+                    self.dirty.add(*id);
+                }
+                 // We don't need to take this event into account since
+                 // removed components will be filtered out by the join;
+                 // if you want to, you can use `self.dirty.remove(*id);`
+                 // so the bit set only contains IDs that still exist
+                 ComponentEvent::Removed(_) =&gt; (),
+            }
+        }
+
+        for (d, other, _) in (&amp;data, &amp;mut some_other_data, &amp;self.dirty).join() {
+            // Mutate `other` based on the update data in `d`
+        }
+    }
+
+    fn setup(&amp;mut self, res: &amp;mut Resources) {
+        Self::SystemData::setup(res);
+        self.reader_id = Some(WriteStorage::&lt;Data&gt;::fetch(&amp;res).register_reader());
+    }
+}
+</code></pre>
+<p>There are three different event types that we can receive:</p>
+<ul>
+<li><code>ComponentEvent::Inserted</code> - will be sent when a component is added to the
+storage</li>
+<li><code>ComponentEvent::Modified</code> - will be sent when a component is fetched mutably
+from the storage</li>
+<li><code>ComponentEvent::Removed</code> - will be sent when a component is removed from the
+storage</li>
+</ul>
+<p>Note that because of how <code>ComponentEvent</code> works, if you iterate mutably over a
+component storage using <code>Join</code>, all entities that are fetched by the <code>Join</code> will
+be flagged as modified even if nothing was updated in them.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="11_advanced_component.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="11_advanced_component.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

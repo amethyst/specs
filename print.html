@@ -1,0 +1,1377 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>The Specs Book</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Introduction to ECS and the Specs API.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="01_intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="02_hello_world.html"><strong aria-hidden="true">2.</strong> Hello World</a></li><li><a href="03_dispatcher.html"><strong aria-hidden="true">3.</strong> Dispatcher</a></li><li><a href="04_resources.html"><strong aria-hidden="true">4.</strong> Resources</a></li><li><a href="05_storages.html"><strong aria-hidden="true">5.</strong> Storages</a></li><li><a href="06_system_data.html"><strong aria-hidden="true">6.</strong> System Data</a></li><li><a href="07_setup.html"><strong aria-hidden="true">7.</strong> Setup</a></li><li><a href="08_join.html"><strong aria-hidden="true">8.</strong> Joining components</a></li><li><a href="09_parallel_join.html"><strong aria-hidden="true">9.</strong> Parallel Join</a></li><li><a href="10_rendering.html"><strong aria-hidden="true">10.</strong> Rendering</a></li><li><a href="11_advanced_component.html"><strong aria-hidden="true">11.</strong> Advanced component strategies</a></li><li><a href="12_tracked.html"><strong aria-hidden="true">12.</strong> FlaggedStorage and modification events</a></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Specs Book</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#introduction" id="introduction"><h1>Introduction</h1></a>
+<p>Welcome to The Specs Book, an introduction to <a href="https://en.wikipedia.org/wiki/Entity%E2%80%93component%E2%80%93system">ECS</a> and the Specs API.
+This book is targeted at beginners; guiding you through all the difficulties of
+setting up, building, and structuring a game with an ECS.</p>
+<p>Specs is an ECS library that allows parallel system execution, with both low
+overhead and high flexibility, different storage types and a type-level
+system data model. It is mainly used for games and simulations, where it allows
+to structure code using composition over inheritance.</p>
+<p>Additional documentation is available on <code>docs.rs</code>:</p>
+<ul>
+<li><a href="https://docs.rs/specs">API documentation for Specs</a></li>
+</ul>
+<p>You don't yet know what an ECS is all about? The next section
+is for you! In case you already know what an ECS is, just skip it.</p>
+<a class="header" href="#whats-an-ecs" id="whats-an-ecs"><h2>What's an ECS?</h2></a>
+<p>The term <strong>ECS</strong> is a shorthand for Entity-component system. These are the three
+core concepts. Each <strong>entity</strong> is associated with some <strong>components</strong>. Those entities and
+components are processed by <strong>systems</strong>. This way, you have your data (components)
+completely separated from the behaviour (systems). An entity just logically
+groups components; so a <code>Velocity</code> component can be applied to the <code>Position</code> component
+of the same entity.</p>
+<p>ECS is sometimes seen as a counterpart to Object-Oriented Programming. I wouldn't
+say that's one hundred percent true, but let me give you some comparisons.</p>
+<p>In OOP, your player might look like this (I've used Java for the example):</p>
+<pre><code class="language-java">public class Player extends Character {
+    private final Transform transform;
+    private final Inventory inventory;
+}
+</code></pre>
+<p>There are several limitations here:</p>
+<ul>
+<li>There is either no multiple inheritance or it brings other problems with it,
+like <a href="https://en.wikipedia.org/wiki/Multiple_inheritance#The_diamond_problem">the diamond problem</a>; moreover, you have to think about &quot;<em>is</em> the player
+a collider or does it <em>have</em> a collider?&quot;</li>
+<li>You cannot easily extend the player with modding; all the attributes are hardcoded.</li>
+<li>Imagine you want to add a NPC, which looks like this:</li>
+</ul>
+<pre><code class="language-java">public class Npc extends Character {
+    private final Transform transform;
+    private final Inventory inventory;
+    private final boolean isFriendly;
+}
+</code></pre>
+<p>Now you have stuff duplicated; you would have to write mostly identical code for
+your player and the NPC, even though e.g. they both share a transform.</p>
+<p><img src="./images/entity-component.svg" alt="Entity-component relationship" width="20%" style="float:left;margin-right:15px" /></p>
+<p>This is where ECS comes into play: Components are <em>associated</em> with entities; you can just insert components, whenever you like.
+One entity may or may not have a certain component. You can see an <code>Entity</code> as an ID into component tables, as illustrated in the
+diagram below. We could theoretically store all the components together with the entity, but that would be very inefficient;
+you'll see how these tables work in <a href="./05_storages.html">chapter 5</a>.</p>
+<p>This is how an <code>Entity</code> is implemented; it's just</p>
+<pre><code class="language-rust ignore">struct Entity(u32, Generation);
+</code></pre>
+<p>where the first field is the id and the second one is the generation, used to check
+if the entity has been deleted.</p>
+<p>Here's another illustration of the relationship between components and entities. <code>Force</code>, <code>Mass</code> and <code>Velocity</code> are all components here.</p>
+<p><img src="./images/component-tables.svg" alt="Component tables" width="100%"  /></p>
+<p><code>Entity 1</code> has each of those components, <code>Entity 2</code> only a <code>Force</code>, etc.</p>
+<p>Now we're only missing the last character in ECS - the &quot;S&quot; for <code>System</code>. Whereas components and entities are purely data,
+systems contain all the logic of your application. A system typically iterates over all entities that fulfill specific constraints,
+like &quot;has both a force and a mass&quot;. Based on this data a system will execute code, e.g. produce a velocity out of the force and the mass.
+This is the additional advantage I wanted to point out with the <code>Player</code> / <code>Npc</code> example; in an ECS, you can simply add new attributes
+to entities and that's also how you define behaviour in Specs (this is called <a href="https://en.wikipedia.org/wiki/Data-driven_programming">data-driven</a> programming).</p>
+<p><img src="./images/system.svg" alt="System flow" width="100%"  /></p>
+<p>By simply adding a force to an entity that has a mass, you can make it move, because a <code>Velocity</code> will be produced for it.</p>
+<a class="header" href="#where-to-use-an-ecs" id="where-to-use-an-ecs"><h2>Where to use an ECS?</h2></a>
+<p>In case you were looking for a general-purpose library for doing things the data-oriented way, I have to disappoint you; there are none.
+ECS libraries are best-suited for creating games or simulations, but they do not magically make your code more data-oriented.</p>
+<hr />
+<p>Okay, now that you were given a rough overview, let's continue
+to <a href="./02_hello_world.html">Chapter 2</a> where we'll build our first actual application with Specs.</p>
+<a class="header" href="#hello-world" id="hello-world"><h1>Hello, <code>World</code>!</h1></a>
+<a class="header" href="#setting-up" id="setting-up"><h2>Setting up</h2></a>
+<p>First of all, thanks for trying out <code>specs</code>. Let's
+set it up first. Add the following line to your <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[dependencies]
+specs = &quot;0.14.0&quot;
+</code></pre>
+<p>And add this to your crate root (<code>main.rs</code> or <code>lib.rs</code>):</p>
+<pre><code class="language-rust ignore">extern crate specs;
+</code></pre>
+<a class="header" href="#components" id="components"><h2>Components</h2></a>
+<p>Let's start by creating some data:</p>
+<pre><code class="language-rust ignore">use specs::{Component, VecStorage};
+
+#[derive(Debug)]
+struct Position {
+    x: f32,
+    y: f32,
+}
+
+impl Component for Position {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+
+#[derive(Debug)]
+struct Velocity {
+    x: f32,
+    y: f32,
+}
+
+impl Component for Velocity {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+</code></pre>
+<p>These will be our two component types. Optionally, the <code>specs-derive</code> crate
+provides a convenient custom <code>#[derive]</code> you can use to define component types
+more succinctly.</p>
+<p>But first, you will need to add specs-derive to your crate</p>
+<pre><code class="language-toml">[dependencies]
+specs = &quot;0.14.0&quot;
+specs-derive = &quot;0.4.0&quot;
+</code></pre>
+<p>Now you can use this:</p>
+<pre><code class="language-rust ignore">extern crate specs;
+#[macro_use]
+extern crate specs_derive;
+
+use specs::{Component, VecStorage};
+
+#[derive(Component, Debug)]
+#[storage(VecStorage)]
+struct Position {
+    x: f32,
+    y: f32,
+}
+
+#[derive(Component, Debug)]
+#[storage(VecStorage)]
+struct Velocity {
+    x: f32,
+    y: f32,
+}
+</code></pre>
+<p>If the <code>#[storage(...)]</code> attribute is omitted, the given component will be
+stored in a <code>DenseVecStorage</code> by default. But for this example, we are
+explicitly asking for these components to be kept in a <code>VecStorage</code> instead (see
+the later <a href="./05_storages.html">storages chapter</a> for more details). But before we move on, we
+need to create a world in which to store all of our components.</p>
+<a class="header" href="#the-world" id="the-world"><h2>The <code>World</code></h2></a>
+<pre><code class="language-rust ignore">use specs::{World, Builder};
+
+let mut world = World::new();
+world.register::&lt;Position&gt;();
+world.register::&lt;Velocity&gt;();
+</code></pre>
+<p>This will create component storages for <code>Position</code>s and <code>Velocity</code>s.</p>
+<pre><code class="language-rust ignore">let ball = world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
+</code></pre>
+<p>Now you have an <code>Entity</code>, associated with a position.</p>
+<p>So far this is pretty boring. We just have some data,
+but we don't do anything with it. Let's change that!</p>
+<a class="header" href="#the-system" id="the-system"><h2>The system</h2></a>
+<pre><code class="language-rust ignore">use specs::System;
+
+struct HelloWorld;
+
+impl&lt;'a&gt; System&lt;'a&gt; for HelloWorld {
+    type SystemData = ();
+
+    fn run(&amp;mut self, data: Self::SystemData) {}
+}
+</code></pre>
+<p>This is what a system looks like. Though it doesn't do anything (yet).
+Let's talk about this dummy implementation first.
+The <code>SystemData</code> is an associated type
+which specifies which components we need in order to run
+the system.</p>
+<p>Let's see how we can read our <code>Position</code> components:</p>
+<pre><code class="language-rust ignore">use specs::{ReadStorage, System};
+
+struct HelloWorld;
+
+impl&lt;'a&gt; System&lt;'a&gt; for HelloWorld {
+    type SystemData = ReadStorage&lt;'a, Position&gt;;
+
+    fn run(&amp;mut self, position: Self::SystemData) {
+        use specs::Join;
+
+        for position in position.join() {
+            println!(&quot;Hello, {:?}&quot;, &amp;position);
+        }
+    }
+}
+</code></pre>
+<p>Note that all components that a system accesses must be registered with
+<code>world.register::&lt;Component&gt;()</code> before that system is run, or you will get a
+panic. This will usually be done automatically during <code>setup</code>, but we'll
+come back to that in a later <a href="./07_setup.html">chapter</a>.</p>
+<blockquote>
+<p>There are many other types you can use as system data. Please see the
+<a href="./06_system_data.html">System Data Chapter</a> for more information.</p>
+</blockquote>
+<a class="header" href="#running-the-system" id="running-the-system"><h2>Running the system</h2></a>
+<p>This just iterates through all the components and prints
+them. To execute the system, you can use <code>RunNow</code> like this:</p>
+<pre><code class="language-rust ignore">use specs::RunNow;
+
+let mut hello_world = HelloWorld;
+hello_world.run_now(&amp;world.res);
+world.maintain();
+</code></pre>
+<p>The <code>world.maintain()</code> is not completely necessary here. Calling maintain should be done in general, however.
+If entities are created or deleted while a system is running, calling <code>maintain</code>
+will record the changes in its internal data structure.</p>
+<a class="header" href="#full-example-code" id="full-example-code"><h2>Full example code</h2></a>
+<p>Here the complete example of this chapter:</p>
+<pre><code class="language-rust ignore">use specs::{Builder, Component, ReadStorage, System, VecStorage, World, RunNow};
+
+#[derive(Debug)]
+struct Position {
+    x: f32,
+    y: f32,
+}
+
+impl Component for Position {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+
+#[derive(Debug)]
+struct Velocity {
+    x: f32,
+    y: f32,
+}
+
+impl Component for Velocity {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+
+struct HelloWorld;
+
+impl&lt;'a&gt; System&lt;'a&gt; for HelloWorld {
+    type SystemData = ReadStorage&lt;'a, Position&gt;;
+
+    fn run(&amp;mut self, position: Self::SystemData) {
+        use specs::Join;
+
+        for position in position.join() {
+            println!(&quot;Hello, {:?}&quot;, &amp;position);
+        }
+    }
+}
+
+fn main() {
+    let mut world = World::new();
+    world.register::&lt;Position&gt;();
+    world.register::&lt;Velocity&gt;();
+
+    world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
+
+    let mut hello_world = HelloWorld;
+    hello_world.run_now(&amp;world.res);
+    world.maintain();
+}
+</code></pre>
+<hr />
+<p>This was a pretty basic example so far. A key feature we haven't seen is the
+<code>Dispatcher</code>, which allows us to configure systems to run in parallel (and it offers
+some other nice features, too).</p>
+<p>Let's see how that works in <a href="./03_dispatcher.html">Chapter 3: Dispatcher</a>.</p>
+<a class="header" href="#dispatcher" id="dispatcher"><h1>Dispatcher</h1></a>
+<a class="header" href="#when-to-use-a-dispatcher" id="when-to-use-a-dispatcher"><h2>When to use a <code>Dispatcher</code></h2></a>
+<p>The <code>Dispatcher</code> allows you to automatically parallelize
+system execution where possible, using the <a href="https://en.wikipedia.org/wiki/Fork%E2%80%93join_model">fork-join model</a> to split up the
+work and merge the result at the end. It requires a bit more planning
+and may have a little bit more overhead, but it's pretty convenient,
+especially when you're building a big game where you don't
+want to do this manually.</p>
+<a class="header" href="#building-a-dispatcher" id="building-a-dispatcher"><h2>Building a dispatcher</h2></a>
+<p>First of all, we have to build such a dispatcher.</p>
+<pre><code class="language-rust ignore">use specs::DispatcherBuilder;
+
+let mut dispatcher = DispatcherBuilder::new()
+    .with(HelloWorld, &quot;hello_world&quot;, &amp;[])
+    .build();
+</code></pre>
+<p>Let's see what this does. After creating the builder,
+we add a new</p>
+<ol>
+<li>system object (<code>HelloWorld</code>)</li>
+<li>with some name (<code>&quot;hello_world&quot;&quot;</code>)</li>
+<li>and no dependencies (<code>&amp;[]</code>).</li>
+</ol>
+<p>The name can be used to specify that system
+as a dependency of another one. But we don't have a second
+system yet.</p>
+<a class="header" href="#creating-another-system" id="creating-another-system"><h2>Creating another system</h2></a>
+<pre><code class="language-rust ignore">struct UpdatePos;
+
+impl&lt;'a&gt; System&lt;'a&gt; for UpdatePos {
+    type SystemData = (ReadStorage&lt;'a, Velocity&gt;,
+                       WriteStorage&lt;'a, Position&gt;);
+}
+</code></pre>
+<p>Let's talk about the system data first. What you see here is a <strong>tuple</strong>, which we are using as our <code>SystemData</code>.
+In fact, <code>SystemData</code> is implemented for all tuples with up to 26 other types implementing <code>SystemData</code> in it.</p>
+<blockquote>
+<p>Notice that <code>ReadStorage</code> and <code>WriteStorage</code> <em>are</em> implementors of <code>SystemData</code>
+themselves, that's why we could use the first one for our <code>HelloWorld</code> system
+without wrapping it in a tuple; for more information see
+<a href="./06_system_data.html">the Chapter about system data</a>.</p>
+</blockquote>
+<p>To complete the implementation block, here's the <code>run</code> method:</p>
+<pre><code class="language-rust ignore">    fn run(&amp;mut self, (vel, mut pos): Self::SystemData) {
+        use specs::Join;
+        for (vel, pos) in (&amp;vel, &amp;mut pos).join() {
+            pos.x += vel.x * 0.05;
+            pos.y += vel.y * 0.05;
+        }
+    }
+</code></pre>
+<p>Now the <code>.join()</code> method also makes sense: it joins the two component
+storages, so that you either get no new element or a new element with
+both components, meaning that entities with only a <code>Position</code>, only
+a <code>Velocity</code> or none of them will be skipped. The <code>0.05</code> fakes the
+so called <strong>delta time</strong> which is the time needed for one frame.
+We have to hardcode it right now, because it's not a component (it's the
+same for every entity). The solution to this are <code>Resource</code>s, see
+<a href="./04_resources.html">the next Chapter</a>.</p>
+<a class="header" href="#adding-a-system-with-a-dependency" id="adding-a-system-with-a-dependency"><h2>Adding a system with a dependency</h2></a>
+<p>Okay, we'll add two more systems <em>after</em> the <code>HelloWorld</code> system:</p>
+<pre><code class="language-rust ignore">    .with(UpdatePos, &quot;update_pos&quot;, &amp;[&quot;hello_world&quot;])
+    .with(HelloWorld, &quot;hello_updated&quot;, &amp;[&quot;update_pos&quot;])
+</code></pre>
+<p>The <code>UpdatePos</code> system now depends on the <code>HelloWorld</code> system and will only
+be executed after the dependency has finished. The final <code>HelloWorld</code> system prints the resulting updated positions.</p>
+<p>Now to execute all the systems, just do</p>
+<pre><code class="language-rust ignore">dispatcher.dispatch(&amp;mut world.res);
+</code></pre>
+<a class="header" href="#full-example-code-1" id="full-example-code-1"><h2>Full example code</h2></a>
+<p>Here the code for this chapter:</p>
+<pre><code class="language-rust ignore">use specs::{Builder, Component, DispatcherBuilder, ReadStorage,
+            System, VecStorage, World, WriteStorage};
+
+#[derive(Debug)]
+struct Position {
+    x: f32,
+    y: f32,
+}
+
+impl Component for Position {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+
+#[derive(Debug)]
+struct Velocity {
+    x: f32,
+    y: f32,
+}
+
+impl Component for Velocity {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+
+struct HelloWorld;
+
+impl&lt;'a&gt; System&lt;'a&gt; for HelloWorld {
+    type SystemData = ReadStorage&lt;'a, Position&gt;;
+
+    fn run(&amp;mut self, position: Self::SystemData) {
+        use specs::Join;
+
+        for position in position.join() {
+            println!(&quot;Hello, {:?}&quot;, &amp;position);
+        }
+    }
+}
+
+struct UpdatePos;
+
+impl&lt;'a&gt; System&lt;'a&gt; for UpdatePos {
+    type SystemData = (ReadStorage&lt;'a, Velocity&gt;,
+                       WriteStorage&lt;'a, Position&gt;);
+
+    fn run(&amp;mut self, (vel, mut pos): Self::SystemData) {
+        use specs::Join;
+        for (vel, pos) in (&amp;vel, &amp;mut pos).join() {
+            pos.x += vel.x * 0.05;
+            pos.y += vel.y * 0.05;
+        }
+    }
+}
+
+fn main() {
+    let mut world = World::new();
+    world.register::&lt;Position&gt;();
+    world.register::&lt;Velocity&gt;();
+
+    // Only the second entity will get a position update,
+    // because the first one does not have a velocity.
+    world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
+    world
+        .create_entity()
+        .with(Position { x: 2.0, y: 5.0 })
+        .with(Velocity { x: 0.1, y: 0.2 })
+        .build();
+
+    let mut dispatcher = DispatcherBuilder::new()
+        .with(HelloWorld, &quot;hello_world&quot;, &amp;[])
+        .with(UpdatePos, &quot;update_pos&quot;, &amp;[&quot;hello_world&quot;])
+        .with(HelloWorld, &quot;hello_updated&quot;, &amp;[&quot;update_pos&quot;])
+        .build();
+
+    dispatcher.dispatch(&amp;mut world.res);
+    world.maintain();
+}
+</code></pre>
+<hr />
+<p><a href="./04_resources.html">The next chapter</a> will be a really short chapter about <code>Resource</code>s,
+a way to share data between systems which only exist independent of
+entities (as opposed to 0..1 times per entity).</p>
+<a class="header" href="#resources" id="resources"><h1>Resources</h1></a>
+<p>This (short) chapter will explain the concept of resources, data
+which is shared between systems.</p>
+<p>First of all, when would you need resources? There's actually a great
+example in <a href="./03_dispatcher.html">chapter 3</a>, where we just faked the delta time when applying
+the velocity. Let's see how we can do this the right way.</p>
+<pre><code class="language-rust ignore">#[derive(Default)]
+struct DeltaTime(f32);
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> In practice you may want to use <code>std::time::Duration</code> instead,
+because you shouldn't use <code>f32</code>s for durations in an actual game, because
+they're not precise enough.</p>
+</blockquote>
+<p>Adding this resource to our world is pretty easy:</p>
+<pre><code class="language-rust ignore">world.add_resource(DeltaTime(0.05)); // Let's use some start value
+</code></pre>
+<p>To update the delta time, just use</p>
+<pre><code class="language-rust ignore">let mut delta = world.write_resource::&lt;DeltaTime&gt;();
+*delta = DeltaTime(0.04);
+</code></pre>
+<a class="header" href="#accessing-resources-from-a-system" id="accessing-resources-from-a-system"><h2>Accessing resources from a system</h2></a>
+<p>As you might have guessed, there's a type implementing system data
+specifically for resources. It's called <code>Read</code> (or <code>Write</code> for
+write access).</p>
+<p>So we can now rewrite our system:</p>
+<pre><code class="language-rust ignore">use specs::{Read, ReadStorage, System, WriteStorage};
+
+struct UpdatePos;
+
+impl&lt;'a&gt; System&lt;'a&gt; for UpdatePos {
+    type SystemData = (Read&lt;'a, DeltaTime&gt;,
+                       ReadStorage&lt;'a, Velocity&gt;,
+                       WriteStorage&lt;'a, Position&gt;);
+
+    fn run(&amp;mut self, data: Self::SystemData) {
+        let (delta, vel, mut pos) = data;
+
+        // `Read` implements `Deref`, so it
+        // coerces to `&amp;DeltaTime`.
+        let delta = delta.0;
+
+        for (vel, pos) in (&amp;vel, &amp;mut pos).join() {
+            pos.x += vel.x * delta;
+            pos.y += vel.y * delta;
+        }
+    }
+}
+</code></pre>
+<p>Note that all resources that a system accesses must be registered with
+<code>world.add_resource(resource)</code> before that system is run, or you will get a
+panic. If the resource has a <code>Default</code> implementation, this step is usually
+done during <code>setup</code>, but again we will come back to this in a later chapter.</p>
+<p>For more information on <code>SystemData</code>, see <a href="./06_system_data.html">the system data chapter</a>.</p>
+<a class="header" href="#default-for-resources" id="default-for-resources"><h2><code>Default</code> for resources</h2></a>
+<p>As we have learned in previous chapters, to fetch a <code>Resource</code> in our
+<code>SystemData</code>, we use <code>Read</code> or <code>Write</code>. However, there is one issue we
+have not mentioned yet, and that is the fact that <code>Read</code> and <code>Write</code> require
+<code>Default</code> to be implemented on the resource. This is because Specs will
+automatically try to add a <code>Default</code> version of a resource to the <code>World</code>
+during <code>setup</code> (we will come back to the <code>setup</code> stage in the next chapter).
+But how do we handle the case when we can't implement <code>Default</code> for our resource?</p>
+<p>There are actually three ways of doing this:</p>
+<ul>
+<li>Using a custom <code>SetupHandler</code> implementation, you can provide this in <code>SystemData</code>
+with <code>Read&lt;'a, Resource, TheSetupHandlerType&gt;</code>.</li>
+<li>By replacing <code>Read</code> and <code>Write</code> with <code>ReadExpect</code> and <code>WriteExpect</code>, which will
+cause the first dispatch of the <code>System</code> to panic unless the resource has been
+added manually to <code>World</code> first.</li>
+<li>By using <code>Option&lt;Read&lt;'a, Resource&gt;&gt;</code>, if the resource really is optional. Note
+that the order here is important, using <code>Read&lt;'a, Option&lt;Resource&gt;&gt;</code> will not
+result in the same behavior (it will try to fetch <code>Option&lt;Resource&gt;</code> from <code>World</code>,
+instead of doing an optional check if <code>Resource</code> exists).</li>
+</ul>
+<hr />
+<p>In <a href="05_storages.html">the next chapter</a>, you will learn about the different storages
+and when to use which one.</p>
+<a class="header" href="#storages" id="storages"><h1>Storages</h1></a>
+<p>Specs contains a bunch of different storages, all built and optimized for
+different use cases. But let's see some basics first.</p>
+<a class="header" href="#storage-basics" id="storage-basics"><h2>Storage basics</h2></a>
+<p>What you specify in a component <code>impl</code>-block is an <code>UnprotectedStorage</code>.
+Each <code>UnprotectedStorage</code> exposes an unsafe getter which does not
+perform any checks whether the requested index for the component is valid
+(the id of an entity is the index of its component). To allow checking them
+and speeding up iteration, we have something called hierarchical bitsets,
+provided by <a href="https://github.com/slide-rs/hibitset"><code>hibitset</code></a>.</p>
+<blockquote>
+<p><strong>Note:</strong> In case you don't know anything about bitsets,
+you can safely skip the following section about it. Just keep
+in mind that we have some mask which tracks for
+which entities a component exists.</p>
+</blockquote>
+<p>How does it speed up the iteration? A hierarchical bitset is essentially
+a multi-layer bitset, where each upper layer &quot;summarizes&quot; multiple bits
+of the underlying layers. That means as soon as one of the underlying
+bits is <code>1</code>, the upper one also becomes <code>1</code>, so that we can skip a whole
+range of indices if an upper bit is <code>0</code> in that section. In case it's <code>1</code>,
+we go down by one layer and perform the same steps again (it currently
+has 4 layers).</p>
+<a class="header" href="#storage-overview" id="storage-overview"><h2>Storage overview</h2></a>
+<p>Here a list of the storages with a short description and a link
+to the corresponding heading.</p>
+<table><thead><tr><th align="center">Storage Type         </th><th>Description               </th><th>Optimized for                 </th></tr></thead><tbody>
+<tr><td align="center"> <a href="#btreestorage"><code>BTreeStorage</code></a>    </td><td> Works with a <code>BTreeMap</code>  </td><td> no particular case           </td></tr>
+<tr><td align="center"> <a href="#densevecstorage"><code>DenseVecStorage</code></a> </td><td> Uses a redirection table </td><td> fairly often used components </td></tr>
+<tr><td align="center"> <a href="#hashmapstorage"><code>HashMapStorage</code></a>  </td><td> Uses a <code>HashMap</code>         </td><td> rare components              </td></tr>
+<tr><td align="center"> <a href="#nullstorage"><code>NullStorage</code></a>     </td><td> Can flag entities        </td><td> doesn't depend on rarity     </td></tr>
+<tr><td align="center"> <a href="#vecstorage"><code>VecStorage</code></a>      </td><td> Uses a sparse <code>Vec</code>      </td><td> commonly used components     </td></tr>
+</tbody></table>
+<a class="header" href="#btreestorage" id="btreestorage"><h2><code>BTreeStorage</code></h2></a>
+<p>It works using a <code>BTreeMap</code> and it's meant to be the default storage
+in case you're not sure which one to pick, because it fits all scenarios
+fairly well.</p>
+<a class="header" href="#densevecstorage" id="densevecstorage"><h2><code>DenseVecStorage</code></h2></a>
+<p>This storage uses two <code>Vec</code>s, one containing the actual data and the other
+one which provides a mapping from the entity id to the index for the data vec
+(it's a redirection table). This is useful when your component is bigger
+than a <code>usize</code> because it consumes less RAM.</p>
+<a class="header" href="#hashmapstorage" id="hashmapstorage"><h2><code>HashMapStorage</code></h2></a>
+<p>This should be used for components which are associated with very few entities,
+because it provides a lower insertion cost and is packed together more tightly.
+You should not use it for frequently used components, because the hashing cost would definitely
+be noticeable.</p>
+<a class="header" href="#nullstorage" id="nullstorage"><h2><code>NullStorage</code></h2></a>
+<p>As already described in the overview, the <code>NullStorage</code> does itself
+only contain a user-defined ZST (=Zero Sized Type; a struct with no data in it,
+like <code>struct Synced;</code>).
+Because it's wrapped in a so-called <code>MaskedStorage</code>, insertions and deletions
+modify the mask, so it can be used for flagging entities (like in this example
+for marking an entity as <code>Synced</code>, which could be used to only synchronize
+some of the entities over the network).</p>
+<a class="header" href="#vecstorage" id="vecstorage"><h2><code>VecStorage</code></h2></a>
+<p>This one has only one vector (as opposed to the <code>DenseVecStorage</code>). It
+just leaves uninitialized gaps where we don't have any component.
+Therefore it would be a waste of memory to use this storage for
+rare components, but it's best suited for commonly used components
+(like transform values).</p>
+<a class="header" href="#system-data" id="system-data"><h1>System Data</h1></a>
+<p>Every system can request data which it needs to run. This data can be specified
+using the <code>System::SystemData</code> type. Typical implementors of the <code>SystemData</code> trait
+are <code>ReadStorage</code>, <code>WriteStorage</code>, <code>Read</code>, <code>Write</code>, <code>ReadExpect</code>, <code>WriteExpect</code> and <code>Entities</code>.
+A tuple of types implementing <code>SystemData</code> automatically also implements <code>SystemData</code>.
+This means you can specify your <code>System::SystemData</code> as follows:</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+struct Sys;
+
+impl&lt;'a&gt; System&lt;'a&gt; for Sys {
+    type SystemData = (WriteStorage&lt;'a, Pos&gt;, ReadStorage&lt;'a, Vel&gt;);
+    
+    fn run(&amp;mut self, (pos, vel): Self::SystemData) {
+        /* ... */
+    }
+}
+#}</code></pre></pre>
+<p>It is very important that you don't request both a <code>ReadStorage</code> and a <code>WriteStorage</code>
+for the same component or a <code>Read</code> and a <code>Write</code> for the same resource.
+This is just like the borrowing rules of Rust, where you can't borrow something
+mutably and immutably at the same time. In Specs, we have to check this at
+runtime, thus you'll get a panic if you don't follow this rule.</p>
+<a class="header" href="#accessing-entities" id="accessing-entities"><h2>Accessing Entities</h2></a>
+<p>You want to create/delete entities from a system? There is
+good news for you. You can use <code>Entities</code> to do that.
+It implements <code>SystemData</code> so just put it in your <code>SystemData</code> tuple.</p>
+<blockquote>
+<p>Don't confuse <code>specs::Entities</code> with <code>specs::EntitiesRes</code>.
+While the latter one is the actual resource, the former one is a type
+definition for <code>Read&lt;Entities&gt;</code>.</p>
+</blockquote>
+<p>Please note that you may never write to these <code>Entities</code>, so only
+use <code>Read</code>. Even though it's immutable, you can atomically create
+and delete entities with it. Just use the <code>.create()</code> and <code>.delete()</code>
+methods, respectively. After dynamic entity deletion,
+a call to <code>World::maintain</code> is necessary in order to make the changes
+persistent and delete associated components.</p>
+<a class="header" href="#adding-and-removing-components" id="adding-and-removing-components"><h2>Adding and removing components</h2></a>
+<p>Adding or removing components can be done by modifying
+either the component storage directly with a <code>WriteStorage</code>
+or lazily using the <code>LazyUpdate</code> resource.</p>
+<pre><code class="language-rust ignore">use specs::{Component, Read, LazyUpdate, NullStorage, System, Entities, WriteStorage};
+
+struct Stone;
+impl Component for Stone {
+    type Storage = NullStorage&lt;Self&gt;;
+}
+
+struct StoneCreator;
+impl&lt;'a&gt; System&lt;'a&gt; for StoneCreator {
+    type SystemData = (
+        Entities&lt;'a&gt;,
+        WriteStorage&lt;'a, Stone&gt;,
+        Read&lt;'a, LazyUpdate&gt;,
+    );
+
+    fn run(&amp;mut self, (entities, mut stones, updater): Self::SystemData) {
+        let stone = entities.create();
+
+        // 1) Either we insert the component by writing to its storage
+        stones.insert(stone, Stone);
+
+        // 2) or we can lazily insert it with `LazyUpdate`
+        updater.insert(stone, Stone);
+    }
+}
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> After using <code>LazyUpdate</code> a call to <code>World::maintain</code>
+is necessary to actually execute the changes.</p>
+</blockquote>
+<a class="header" href="#setuphandler--default-for-resources" id="setuphandler--default-for-resources"><h2><code>SetupHandler</code> / <code>Default</code> for resources</h2></a>
+<p>Please refer to <a href="./04_resources.html">the resources chapter for automatic creation of resources</a>.</p>
+<a class="header" href="#specifying-systemdata" id="specifying-systemdata"><h2>Specifying <code>SystemData</code></h2></a>
+<p>As mentioned earlier, <code>SystemData</code> is implemented for tuples up to 26 elements. Should you ever need
+more, you could even nest these tuples. However, at some point it becomes hard to keep track of all the elements.
+That's why you can also create your own <code>SystemData</code> bundle using a struct:</p>
+<pre><code class="language-rust ignore">extern crate shred;
+#[macro_use]
+extern crate shred_derive;
+extern crate specs;
+
+use specs::prelude::*;
+
+#[derive(SystemData)]
+pub struct MySystemData&lt;'a&gt; {
+    positions: ReadStorage&lt;'a, Position&gt;,
+    velocities: ReadStorage&lt;'a, Velocity&gt;,
+    forces: ReadStorage&lt;'a, Force&gt;,
+
+    delta: Read&lt;'a, DeltaTime&gt;,
+    game_state: Write&lt;'a, GameState&gt;,
+}
+</code></pre>
+<a class="header" href="#the-setup-stage" id="the-setup-stage"><h1>The <code>setup</code> stage</h1></a>
+<p>So far for all our component storages and resources, we've been adding
+them to the <code>World</code> manually. In Specs, this is not required if you use
+<code>setup</code>. This is a manually invoked stage that goes through <code>SystemData</code>
+and calls <code>register</code>, <code>add_resource</code>, etc. for all (with some exceptions)
+components and resources found. The <code>setup</code> function can be found in
+the following locations:</p>
+<ul>
+<li><code>ReadStorage</code>, <code>WriteStorage</code>, <code>Read</code>, <code>Write</code></li>
+<li><code>SystemData</code></li>
+<li><code>System</code></li>
+<li><code>RunNow</code></li>
+<li><code>Dispatcher</code></li>
+<li><code>ParSeq</code></li>
+</ul>
+<p>During setup, all components encountered will be registered, and all
+resources that have a <code>Default</code> implementation or a custom <code>SetupHandler</code>
+will be added. Note that resources encountered in <code>ReadExpect</code> and <code>WriteExpect</code>
+will not be added to the <code>World</code> automatically.</p>
+<p>The recommended way to use <code>setup</code> is to run it on <code>Dispatcher</code> or <code>ParSeq</code>
+after the system graph is built, but before the first <code>dispatch</code>. This will go
+through all <code>System</code>s in the graph, and call <code>setup</code> on each.</p>
+<p>Let's say you began by registering Components and Resources first:</p>
+<pre><code class="language-rust ignore">
+struct Gravity;
+
+struct Velocity;
+
+impl Component for Position {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+
+struct SimulationSystem;
+
+impl&lt;'a&gt; System&lt;'a&gt; for SimulationSystem {
+    type SystemData = (Read&lt;'a, Gravity&gt;, WriteStorage&lt;'a, Velocity&gt;);
+
+    fn run(_, _) {}
+}
+
+fn main() {
+    let mut world = World::new();
+    world.add_resource(Gravity);
+    world.register::&lt;Velocity&gt;();
+
+    for _ in 0..5 {
+        world.create_entity().with(Velocity).build();
+    }
+
+    let mut dispatcher = DispatcherBuilder::new()
+        .with(SimulationSystem, &quot;simulation&quot;, &amp;[])
+        .build();
+
+    dispatcher.dispatch(&amp;mut world.res);
+    world.maintain();
+}
+
+</code></pre>
+<p>You could get rid of that phase by calling <code>setup()</code> and re-ordering your main function:</p>
+<pre><code class="language-rust ignore">fn main() {
+    let mut world = World::new();
+    let mut dispatcher = DispatcherBuilder::new()
+        .with(SimulationSystem, &quot;simulation&quot;, &amp;[])
+        .build();
+
+    dispatcher.setup(&amp;mut world.res);
+
+    for _ in 0..5 {
+        world.create_entity().with(Velocity).build();
+    }
+
+    dispatcher.dispatch(&amp;mut world.res);
+    world.maintain();
+}
+
+</code></pre>
+<a class="header" href="#custom-setup-functionality" id="custom-setup-functionality"><h2>Custom <code>setup</code> functionality</h2></a>
+<p>The good qualities of <code>setup</code> don't end here however. We can also use <code>setup</code>
+to create our non-<code>Default</code> resources, and also to initialize our <code>System</code>s!
+We do this by custom implementing the <code>setup</code> function in our <code>System</code>.</p>
+<p>Let's say we have a <code>System</code> that process events, using <code>shrev::EventChannel</code>:</p>
+<pre><code class="language-rust ignore">struct Sys {
+    reader: ReaderId&lt;Event&gt;,
+}
+
+impl&lt;'a&gt; System&lt;'a&gt; for Sys {
+    type SystemData = Read&lt;'a, EventChannel&lt;Event&gt;&gt;;
+
+    fn run(&amp;mut self, events: Self::SystemData) {
+        for event in events.read(&amp;mut self.reader) {
+            [..]
+        }
+    }
+}
+</code></pre>
+<p>This looks pretty OK, but there is a problem here if we want to use <code>setup</code>.
+The issue is that <code>Sys</code> needs a <code>ReaderId</code> on creation, but to get a <code>ReaderId</code>,
+we need <code>EventChannel&lt;Event&gt;</code> to be initialized. This means the user of <code>Sys</code> need
+to create the <code>EventChannel</code> themselves and add it manually to the <code>World</code>.
+We can do better!</p>
+<pre><code class="language-rust ignore">use specs::prelude::Resources;
+
+#[derive(Default)]
+struct Sys {
+    reader: Option&lt;ReaderId&lt;Event&gt;&gt;,
+}
+
+impl&lt;'a&gt; System&lt;'a&gt; for Sys {
+    type SystemData = Read&lt;'a, EventChannel&lt;Event&gt;&gt;;
+
+    fn run(&amp;mut self, events: Self::SystemData) {
+        for event in events.read(&amp;mut self.reader.as_mut().unwrap()) {
+            [..]
+        }
+    }
+
+    fn setup(&amp;mut self, res: &amp;mut Resources) {
+        use specs::prelude::SystemData;
+        Self::SystemData::setup(res);
+        self.reader = Some(res.fetch_mut::&lt;EventChannel&lt;Event&gt;&gt;().register_reader());
+    }
+}
+</code></pre>
+<p>This is much better; we can now use <code>setup</code> to fully initialize <code>Sys</code> without
+requiring our users to create and add resources manually to <code>World</code>!</p>
+<p><strong>If we override the <code>setup</code> function on a <code>System</code>, it is vitally important that we
+remember to add <code>Self::SystemData::setup(res);</code>, or setup will not be performed for
+the <code>System</code>s <code>SystemData</code>.</strong> This could cause panics during setup or during
+the first dispatch.</p>
+<a class="header" href="#setting-up-in-bulk" id="setting-up-in-bulk"><h2>Setting up in bulk</h2></a>
+<p>In the case of libraries making use of <code>specs</code>, it is sometimes helpful to provide
+a way to add many things at once.
+It's generally recommended to provide a standalone function to register multiple
+Components/Resources at once, while allowing the user to add individual systems
+by themselves.</p>
+<pre><code class="language-rust ignore">fn add_physics_engine(world: &amp;mut World, config: LibraryConfig) -&gt; Result&lt;(), LibraryError&gt; {
+    world.register::&lt;Velocity&gt;();
+    // etc
+}
+</code></pre>
+<a class="header" href="#joining-components" id="joining-components"><h1>Joining components</h1></a>
+<p>In the last chapter, we learned how to access resources using <code>SystemData</code>.
+To access our components with it, we can just request a <code>ReadStorage</code> and use
+<code>Storage::get</code> to retrieve the component associated to an entity. This works quite
+well if you want to access a single component, but what if you want to
+iterate over many components? Maybe some of them are required, others might
+be optional and maybe there is even a need to exclude some components?
+If we wanted to do that using only <code>Storage::get</code>, the code would become very ugly.
+So instead we worked out a way to conveniently specify that. This concept is
+known as &quot;joining&quot;.</p>
+<a class="header" href="#basic-joining" id="basic-joining"><h2>Basic joining</h2></a>
+<p>We've already seen some basic examples of joining in the last chapters, for
+example we saw how to join over two storages:</p>
+<pre><code class="language-rust ignore">for (pos, vel) in (&amp;mut pos_storage, &amp;vel_storage).join() {
+    *pos += *vel;
+}
+</code></pre>
+<p>This simply iterates over the position and velocity components of
+all entities that have both these components. That means all the
+specified components are <strong>required</strong>.</p>
+<p>Sometimes, we want not only get the components of entities,
+but also the entity value themselves. To do that, we can simply join over
+<code>&amp;EntitiesRes</code>.</p>
+<pre><code class="language-rust ignore">for (ent, pos, vel) in (&amp;*entities, &amp;mut pos_storage, &amp;vel_storage).join() {
+    println!(&quot;Processing entity: {:?}&quot;, ent);
+    *pos += *vel;
+}
+</code></pre>
+<a class="header" href="#optional-components" id="optional-components"><h2>Optional components</h2></a>
+<p>If we iterate over the <code>&amp;EntitiesRes</code> as shown above, we can simply
+use the returned <code>Entity</code> values to get components from storages as usual.</p>
+<pre><code class="language-rust ignore">for (ent, pos, vel) in (&amp;*entities, &amp;mut pos_storage, &amp;vel_storage).join() {
+    println!(&quot;Processing entity: {:?}&quot;, ent);
+    *pos += *vel;
+    
+    let mass: Option&lt;&amp;mut Mass&gt; = mass_storage.get_mut(ent);
+    if let Some(mass) = mass {
+        let x = *vel / 300_000_000.0;
+        let y = 1 - x * x;
+        let y = y.sqrt();
+        mass.current = mass.constant / y;
+    }
+}
+</code></pre>
+<p>In this example we iterate over all entities with a position and a velocity
+and perform the calculation for the new position as usual.
+However, in case the entity has a mass, we also calculate the current
+mass based on the velocity. Thus, mass is an <strong>optional</strong> component here.</p>
+<a class="header" href="#excluding-components" id="excluding-components"><h2>Excluding components</h2></a>
+<p>If you want to filter your selection by excluding all entities
+with a certain component type, you can use the not operator (<code>!</code>)
+on the respective component storage. Its return value is a unit (<code>()</code>).</p>
+<pre><code class="language-rust ignore">for (ent, pos, vel, ()) in (
+    &amp;*entities,
+    &amp;mut pos_storage,
+    &amp;vel_storage,
+    !&amp;frozen_storage,
+).join() {
+    println!(&quot;Processing entity: {:?}&quot;, ent);
+    *pos += *vel;
+}
+</code></pre>
+<p>This will simply iterate over all entities that</p>
+<ul>
+<li>have a position</li>
+<li>have a velocity</li>
+<li>do not have a <code>Frozen</code> component</li>
+</ul>
+<a class="header" href="#how-joining-works" id="how-joining-works"><h2>How joining works</h2></a>
+<p>You can call <code>join()</code> on everything that implements the <code>Join</code> trait.
+The method call always returns an iterator. <code>Join</code> is implemented for</p>
+<ul>
+<li><code>&amp;ReadStorage</code> / <code>&amp;WriteStorage</code> (gives back a reference to the components)</li>
+<li><code>&amp;mut WriteStorage</code> (gives back a mutable reference to the components)</li>
+<li><code>&amp;EntitiesRes</code> (returns <code>Entity</code> values)</li>
+<li>bitsets</li>
+</ul>
+<p>We think the last point here is pretty interesting, because
+it allows for even more flexibility, as you will see in the next
+section.</p>
+<a class="header" href="#joining-over-bitsets" id="joining-over-bitsets"><h2>Joining over bitsets</h2></a>
+<p>Specs is using <code>hibitset</code>, a library which provides layered bitsets
+(those were part of Specs once, but it was decided that a separate
+library could be useful for others).</p>
+<p>These bitsets are used with the component storages to determine
+which entities the storage provides a component value for. Also,
+<code>Entities</code> is using bitsets, too. You can even create your
+own bitsets and add or remove entity ids:</p>
+<pre><code class="language-rust ignore">use hibitset::{BitSet, BitSetLike};
+
+let mut bitset = BitSet::new();
+bitset.add(entity1.id());
+bitset.add(entity2.id());
+</code></pre>
+<p><code>BitSet</code>s can be combined using the standard binary operators,
+<code>&amp;</code>, <code>|</code> and <code>^</code>. Additionally, you can negate them using <code>!</code>.
+This allows you to combine and filter components in multiple ways.</p>
+<hr />
+<p>This chapter has been all about looping over components; but we can do more
+than sequential iteration! Let's look at some parallel code in the next
+chapter.</p>
+<a class="header" href="#parallel-join" id="parallel-join"><h1>Parallel Join</h1></a>
+<p>As mentioned in the chapter dedicated to how to <a href="./03_dispatcher.html">dispatch</a> systems,
+Specs automatically parallelizes system execution when there are non-conflicting
+system data requirements (Two <code>System</code>s conflict if their <code>SystemData</code> needs access
+to the same resource where at least one of them needs write access to it).</p>
+<a class="header" href="#basic-parallelization" id="basic-parallelization"><h2>Basic parallelization</h2></a>
+<p>What isn't automatically parallelized by Specs are
+the joins made within a single system:</p>
+<pre><code class="language-rust ignore">    fn run(&amp;mut self, (vel, mut pos): Self::SystemData) {
+        use specs::Join;
+        // This loop runs sequentially on a single thread.
+        for (vel, pos) in (&amp;vel, &amp;mut pos).join() {
+            pos.x += vel.x * 0.05;
+            pos.y += vel.y * 0.05;
+        }
+    }
+</code></pre>
+<p>This means that, if there are hundreds of thousands of entities and only a few
+systems that actually can be executed in parallel, then the full power
+of CPU cores cannot be fully utilized.</p>
+<p>To fix this potential inefficiency and to parallelize the joining, the <code>join</code>
+method call can be exchanged for <code>par_join</code>:</p>
+<pre><code class="language-rust ignore">fn run(&amp;mut self, (vel, mut pos): Self::SystemData) {
+    use rayon::prelude::*;
+    use specs::ParJoin;
+
+    // Parallel joining behaves similarly to normal joining
+    // with the difference that iteration can potentially be
+    // executed in parallel by a thread pool.
+    (&amp;vel, &amp;mut pos)
+        .par_join()
+        .for_each(|(vel, pos)| {
+            pos.x += vel.x * 0.05;
+            pos.y += vel.y * 0.05;
+        });
+}
+</code></pre>
+<blockquote>
+<p>There is always overhead in parallelization, so you should carefully profile to see if there are benefits in the
+switch. If you have only a few things to iterate over then sequential join is faster.</p>
+</blockquote>
+<p>The <code>par_join</code> method produces a type implementing rayon's <a href="https://docs.rs/rayon/1.0.0/rayon/iter/trait.ParallelIterator.html"><code>ParallelIterator</code></a>
+trait which provides lots of helper methods to manipulate the iteration,
+the same way the normal <code>Iterator</code> trait does.</p>
+<a class="header" href="#rendering" id="rendering"><h1>Rendering</h1></a>
+<p>Rendering is often a little bit tricky when you're dealing with a multi-threaded ECS.
+That's why we have something called &quot;thread-local systems&quot;.</p>
+<p>There are two things to keep in mind about thread-local systems:</p>
+<ol>
+<li>They're always executed at the end of dispatch.</li>
+<li>They cannot have dependencies; you just add them in the order you want them to run.</li>
+</ol>
+<p>Adding one is a simple line added to the builder code:</p>
+<pre><code class="language-rust ignore">DispatcherBuilder::new()
+    .with_thread_local(RenderSys);
+</code></pre>
+<a class="header" href="#amethyst" id="amethyst"><h2>Amethyst</h2></a>
+<p>As for Amethyst, it's very easy because Specs is already integrated. So there's no special effort
+required, just look at the current examples.</p>
+<a class="header" href="#piston" id="piston"><h2>Piston</h2></a>
+<p>Piston has an event loop which looks like this:</p>
+<pre><code class="language-rust ignore">while let Some(event) = window.poll_event() {
+    // Handle event
+}
+</code></pre>
+<p>Now, we'd like to do as much as possible in the ECS, so we feed in input as a
+<a href="./04_resources.html">resource</a>.
+This is what your code could look like:</p>
+<pre><code class="language-rust ignore">struct ResizeEvents(Vec&lt;(u32, u32)&gt;);
+
+world.add_resource(ResizeEvents(Vec::new()));
+
+while let Some(event) = window.poll_event() {
+    match event {
+        Input::Resize(x, y) =&gt; world.write_resource::&lt;ResizeEvents&gt;().0.push((x, y)),
+        // ...
+    }
+}
+</code></pre>
+<p>The actual dispatching should happen every time the <code>Input::Update</code> event occurs.</p>
+<hr />
+<blockquote>
+<p>If you want a section for your game engine added, feel free to submit a PR!</p>
+</blockquote>
+<a class="header" href="#advanced-strategies-for-components" id="advanced-strategies-for-components"><h1>Advanced strategies for components</h1></a>
+<p>So now that we have a fairly good grasp on the basics of Specs,
+it's time that we start experimenting with more advanced patterns!</p>
+<a class="header" href="#marker-components" id="marker-components"><h2>Marker components</h2></a>
+<p>Say we want to add a drag force to only some entities that have velocity, but
+let other entities move about freely without drag.</p>
+<p>The most common way is to use a marker component for this. A marker component
+is a component without any data that can be added to entities to &quot;mark&quot; them
+for processing, and can then be used to narrow down result sets using <code>Join</code>.</p>
+<p>Some code for the drag example to clarify:</p>
+<pre><code class="language-rust ignore">#[derive(Component)]
+#[storage(NullStorage)]
+pub struct Drag;
+
+#[derive(Component)]
+pub struct Position {
+    pub pos: [f32; 3],
+}
+
+#[derive(Component)]
+pub struct Velocity {
+    pub velocity: [f32; 3],
+}
+
+struct Sys {
+    drag: f32,
+}
+
+impl&lt;'a&gt; System&lt;'a&gt; for Sys {
+    type SystemData = (
+        ReadStorage&lt;'a, Drag&gt;,
+        ReadStorage&lt;'a, Velocity&gt;,
+        WriteStorage&lt;'a, Position&gt;,
+    );
+    
+    fn run(&amp;mut self, (drag, velocity, mut position): Self::SystemData) {
+        // Update positions with drag
+        for (pos, vel, _) in (&amp;mut position, &amp;velocity, &amp;drag).join() {
+            pos += vel - self.drag * vel * vel;
+        }
+        // Update positions without drag
+        for (pos, vel, _) in (&amp;mut position, &amp;velocity, !&amp;drag).join() {
+            pos += vel;
+        }
+    } 
+}
+</code></pre>
+<p>Using <code>NullStorage</code> is recommended for marker components, since they don't contain
+any data and as such will not consume any memory. This means we can represent them using
+only a bitset. Note that <code>NullStorage</code> will only work for components that are ZST (i.e. a
+struct without fields).</p>
+<a class="header" href="#modeling-entity-relationships-and-hierarchy" id="modeling-entity-relationships-and-hierarchy"><h2>Modeling entity relationships and hierarchy</h2></a>
+<p>A common use case where we need a relationship between entities is having a third person
+camera following the player around. We can model this using a targeting component
+referencing the player entity.</p>
+<p>A simple implementation might look something like this:</p>
+<pre><code class="language-rust ignore">
+#[derive(Component)]
+pub struct Target {
+    target: Entity,
+    offset: Vector3,
+}
+
+pub struct FollowTargetSys;
+
+impl&lt;'a&gt; System&lt;'a&gt; for FollowTargetSys {
+    type SystemData = (
+        Entities&lt;'a&gt;,
+        ReadStorage&lt;'a, Target&gt;,
+        WriteStorage&lt;'a, Transform&gt;,
+    );
+    
+    fn run(&amp;mut self, (entity, target, transform): Self::SystemData) {
+        for (entity, t) in (&amp;*entity, &amp;target).join() {
+            let new_transform = transform.get(t.target).cloned().unwrap() + t.offset;
+            *transform.get_mut(entity).unwrap() = new_transform;
+        }
+    }
+}
+</code></pre>
+<p>We could also model this as a resource (more about that in the next section), but it could
+be useful to be able to have multiple entities following targets, so modeling this with
+a component makes sense. This could in extension be used to model large scale hierarchical
+structure (scene graphs). For a generic implementation of such a hierarchical system, check
+out the crate <a href="https://github.com/rustgd/specs-hierarchy"><code>specs-hierarchy</code></a>.</p>
+<a class="header" href="#entity-targeting" id="entity-targeting"><h2>Entity targeting</h2></a>
+<p>Imagine we're building a team based FPS game, and we want to add a spectator mode, where the
+spectator can pick a player to follow. In this scenario each player will have a camera defined
+that is following them around, and what we want to do is to pick the camera that
+we should use to render the scene on the spectator screen.</p>
+<p>The easiest way to deal with this problem is to have a resource with a target entity, that
+we can use to fetch the actual camera entity.</p>
+<pre><code class="language-rust ignore">pub struct ActiveCamera(Entity);
+
+pub struct Render;
+
+impl&lt;'a&gt; System&lt;'a&gt; for Render {
+    type SystemData = (
+        Read&lt;'a, ActiveCamera&gt;,
+        ReadStorage&lt;'a, Camera&gt;,
+        ReadStorage&lt;'a, Transform&gt;,
+        ReadStorage&lt;'a, Mesh&gt;,
+    );
+    
+    fn run(&amp;mut self, (active_cam, camera, transform, mesh) : Self::SystemData) {
+        let camera = camera.get(active_cam.0).unwrap();
+        let view_matrix = transform.get(active_cam.0).unwrap().invert();
+        // Set projection and view matrix uniforms
+        for (mesh, transform) in (&amp;mesh, &amp;transform).join() {
+            // Set world transform matrix
+            // Render mesh
+        }
+    }
+}
+</code></pre>
+<p>By doing this, whenever the spectator chooses a new player to follow, we simply change
+what <code>Entity</code> is referenced in the <code>ActiveCamera</code> resource, and the scene will be
+rendered from that viewpoint instead.</p>
+<a class="header" href="#sorting-entities-based-on-component-value" id="sorting-entities-based-on-component-value"><h2>Sorting entities based on component value</h2></a>
+<p>In a lot of scenarios we encounter a need to sort entities based on either a component's
+value, or a combination of component values. There are a couple of ways to deal with this
+problem. The first and most straightforward is to just sort <code>Join</code> results.</p>
+<pre><code class="language-rust ignore">let data = (&amp;entities, &amp;comps).join().collect::&lt;Vec&lt;_&gt;&gt;();
+data.sort_by(|&amp;a, &amp;b| ...);
+for entity in data.iter().map(|d| d.0) {
+    // Here we get entities in sorted order
+}
+</code></pre>
+<p>There are a couple of limitations with this approach, the first being that we will always
+process all matched entities every frame (if this is called in a <code>System</code> somewhere). This
+can be fixed by using <code>FlaggedStorage</code> to maintain a sorted <code>Entity</code> list in the <code>System</code>.
+We will talk more about <code>FlaggedStorage</code> in the next <a href="./12_tracked.html">chapter</a>.</p>
+<p>The second limitation is that we do a <code>Vec</code> allocation every time, however this can be
+alleviated by having a <code>Vec</code> in the <code>System</code> struct that we reuse every frame. Since we
+are likely to keep a fairly steady amount of entities in most situations this could work well.</p>
+<a class="header" href="#flaggedstorage-and-modification-events" id="flaggedstorage-and-modification-events"><h1><code>FlaggedStorage</code> and modification events</h1></a>
+<p>In most games you will have many entities, but from frame to frame there will
+usually be components that will only need to updated when something related is
+modified.</p>
+<p>To avoid a lot of unnecessary computation when updating components it
+would be nice if we could somehow check for only those entities that are updated
+and recalculate only those.</p>
+<p>We might also need to keep an external resource in sync with changes
+to components in Specs <code>World</code>, and we only want to propagate actual changes, not
+do a full sync every frame.</p>
+<p>This is where <code>FlaggedStorage</code> comes into play. By wrapping a component's
+actual storage in a <code>FlaggedStorage</code>, we can subscribe to modification events, and
+easily populate bitsets with only the entities that have actually changed.</p>
+<p>Let's look at some code:</p>
+<pre><code class="language-rust ignore">pub struct Data {
+    [..]
+}
+
+impl Component for Data {
+    type Storage = FlaggedStorage&lt;Self, DenseVecStorage&lt;Self&gt;&gt;;
+}
+
+#[derive(Default)]
+pub struct Sys {
+    pub dirty: BitSet,
+    pub reader_id: Option&lt;ReaderId&lt;ComponentEvent&gt;&gt;,
+}
+
+impl&lt;'a&gt; System&lt;'a&gt; for Sys {
+    type SystemData = (
+        ReadStorage&lt;'a, Data&gt;,
+        WriteStorage&lt;'a, SomeOtherData&gt;,
+    );
+
+    fn run(&amp;mut self, (data, mut some_other_data): Self::SystemData) {
+        self.dirty.clear();
+
+        let events = data.channel().read(self.reader_id.as_mut().unwrap());
+
+        // Note that we could use separate bitsets here, we only use one to
+        // simplify the example
+        for event in events {
+            match event {
+                ComponentEvent::Modified(id) | ComponentEvent::Inserted(id) =&gt; {
+                    self.dirty.add(*id);
+                }
+                 // We don't need to take this event into account since
+                 // removed components will be filtered out by the join;
+                 // if you want to, you can use `self.dirty.remove(*id);`
+                 // so the bit set only contains IDs that still exist
+                 ComponentEvent::Removed(_) =&gt; (),
+            }
+        }
+
+        for (d, other, _) in (&amp;data, &amp;mut some_other_data, &amp;self.dirty).join() {
+            // Mutate `other` based on the update data in `d`
+        }
+    }
+
+    fn setup(&amp;mut self, res: &amp;mut Resources) {
+        Self::SystemData::setup(res);
+        self.reader_id = Some(WriteStorage::&lt;Data&gt;::fetch(&amp;res).register_reader());
+    }
+}
+</code></pre>
+<p>There are three different event types that we can receive:</p>
+<ul>
+<li><code>ComponentEvent::Inserted</code> - will be sent when a component is added to the
+storage</li>
+<li><code>ComponentEvent::Modified</code> - will be sent when a component is fetched mutably
+from the storage</li>
+<li><code>ComponentEvent::Removed</code> - will be sent when a component is removed from the
+storage</li>
+</ul>
+<p>Note that because of how <code>ComponentEvent</code> works, if you iterate mutably over a
+component storage using <code>Join</code>, all entities that are fetched by the <code>Join</code> will
+be flagged as modified even if nothing was updated in them.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+        
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+        
+        
+
+    </body>
+</html>

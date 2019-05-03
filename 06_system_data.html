@@ -1,0 +1,299 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>System Data - The Specs Book</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Introduction to ECS and the Specs API.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="01_intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="02_hello_world.html"><strong aria-hidden="true">2.</strong> Hello World</a></li><li><a href="03_dispatcher.html"><strong aria-hidden="true">3.</strong> Dispatcher</a></li><li><a href="04_resources.html"><strong aria-hidden="true">4.</strong> Resources</a></li><li><a href="05_storages.html"><strong aria-hidden="true">5.</strong> Storages</a></li><li><a href="06_system_data.html" class="active"><strong aria-hidden="true">6.</strong> System Data</a></li><li><a href="07_setup.html"><strong aria-hidden="true">7.</strong> Setup</a></li><li><a href="08_join.html"><strong aria-hidden="true">8.</strong> Joining components</a></li><li><a href="09_parallel_join.html"><strong aria-hidden="true">9.</strong> Parallel Join</a></li><li><a href="10_rendering.html"><strong aria-hidden="true">10.</strong> Rendering</a></li><li><a href="11_advanced_component.html"><strong aria-hidden="true">11.</strong> Advanced component strategies</a></li><li><a href="12_tracked.html"><strong aria-hidden="true">12.</strong> FlaggedStorage and modification events</a></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Specs Book</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#system-data" id="system-data"><h1>System Data</h1></a>
+<p>Every system can request data which it needs to run. This data can be specified
+using the <code>System::SystemData</code> type. Typical implementors of the <code>SystemData</code> trait
+are <code>ReadStorage</code>, <code>WriteStorage</code>, <code>Read</code>, <code>Write</code>, <code>ReadExpect</code>, <code>WriteExpect</code> and <code>Entities</code>.
+A tuple of types implementing <code>SystemData</code> automatically also implements <code>SystemData</code>.
+This means you can specify your <code>System::SystemData</code> as follows:</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+struct Sys;
+
+impl&lt;'a&gt; System&lt;'a&gt; for Sys {
+    type SystemData = (WriteStorage&lt;'a, Pos&gt;, ReadStorage&lt;'a, Vel&gt;);
+    
+    fn run(&amp;mut self, (pos, vel): Self::SystemData) {
+        /* ... */
+    }
+}
+#}</code></pre></pre>
+<p>It is very important that you don't request both a <code>ReadStorage</code> and a <code>WriteStorage</code>
+for the same component or a <code>Read</code> and a <code>Write</code> for the same resource.
+This is just like the borrowing rules of Rust, where you can't borrow something
+mutably and immutably at the same time. In Specs, we have to check this at
+runtime, thus you'll get a panic if you don't follow this rule.</p>
+<a class="header" href="#accessing-entities" id="accessing-entities"><h2>Accessing Entities</h2></a>
+<p>You want to create/delete entities from a system? There is
+good news for you. You can use <code>Entities</code> to do that.
+It implements <code>SystemData</code> so just put it in your <code>SystemData</code> tuple.</p>
+<blockquote>
+<p>Don't confuse <code>specs::Entities</code> with <code>specs::EntitiesRes</code>.
+While the latter one is the actual resource, the former one is a type
+definition for <code>Read&lt;Entities&gt;</code>.</p>
+</blockquote>
+<p>Please note that you may never write to these <code>Entities</code>, so only
+use <code>Read</code>. Even though it's immutable, you can atomically create
+and delete entities with it. Just use the <code>.create()</code> and <code>.delete()</code>
+methods, respectively. After dynamic entity deletion,
+a call to <code>World::maintain</code> is necessary in order to make the changes
+persistent and delete associated components.</p>
+<a class="header" href="#adding-and-removing-components" id="adding-and-removing-components"><h2>Adding and removing components</h2></a>
+<p>Adding or removing components can be done by modifying
+either the component storage directly with a <code>WriteStorage</code>
+or lazily using the <code>LazyUpdate</code> resource.</p>
+<pre><code class="language-rust ignore">use specs::{Component, Read, LazyUpdate, NullStorage, System, Entities, WriteStorage};
+
+struct Stone;
+impl Component for Stone {
+    type Storage = NullStorage&lt;Self&gt;;
+}
+
+struct StoneCreator;
+impl&lt;'a&gt; System&lt;'a&gt; for StoneCreator {
+    type SystemData = (
+        Entities&lt;'a&gt;,
+        WriteStorage&lt;'a, Stone&gt;,
+        Read&lt;'a, LazyUpdate&gt;,
+    );
+
+    fn run(&amp;mut self, (entities, mut stones, updater): Self::SystemData) {
+        let stone = entities.create();
+
+        // 1) Either we insert the component by writing to its storage
+        stones.insert(stone, Stone);
+
+        // 2) or we can lazily insert it with `LazyUpdate`
+        updater.insert(stone, Stone);
+    }
+}
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> After using <code>LazyUpdate</code> a call to <code>World::maintain</code>
+is necessary to actually execute the changes.</p>
+</blockquote>
+<a class="header" href="#setuphandler--default-for-resources" id="setuphandler--default-for-resources"><h2><code>SetupHandler</code> / <code>Default</code> for resources</h2></a>
+<p>Please refer to <a href="./04_resources.html">the resources chapter for automatic creation of resources</a>.</p>
+<a class="header" href="#specifying-systemdata" id="specifying-systemdata"><h2>Specifying <code>SystemData</code></h2></a>
+<p>As mentioned earlier, <code>SystemData</code> is implemented for tuples up to 26 elements. Should you ever need
+more, you could even nest these tuples. However, at some point it becomes hard to keep track of all the elements.
+That's why you can also create your own <code>SystemData</code> bundle using a struct:</p>
+<pre><code class="language-rust ignore">extern crate shred;
+#[macro_use]
+extern crate shred_derive;
+extern crate specs;
+
+use specs::prelude::*;
+
+#[derive(SystemData)]
+pub struct MySystemData&lt;'a&gt; {
+    positions: ReadStorage&lt;'a, Position&gt;,
+    velocities: ReadStorage&lt;'a, Velocity&gt;,
+    forces: ReadStorage&lt;'a, Force&gt;,
+
+    delta: Read&lt;'a, DeltaTime&gt;,
+    game_state: Write&lt;'a, GameState&gt;,
+}
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="05_storages.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="07_setup.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="05_storages.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="07_setup.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

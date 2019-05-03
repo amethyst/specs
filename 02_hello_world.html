@@ -1,0 +1,392 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Hello World - The Specs Book</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Introduction to ECS and the Specs API.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="01_intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="02_hello_world.html" class="active"><strong aria-hidden="true">2.</strong> Hello World</a></li><li><a href="03_dispatcher.html"><strong aria-hidden="true">3.</strong> Dispatcher</a></li><li><a href="04_resources.html"><strong aria-hidden="true">4.</strong> Resources</a></li><li><a href="05_storages.html"><strong aria-hidden="true">5.</strong> Storages</a></li><li><a href="06_system_data.html"><strong aria-hidden="true">6.</strong> System Data</a></li><li><a href="07_setup.html"><strong aria-hidden="true">7.</strong> Setup</a></li><li><a href="08_join.html"><strong aria-hidden="true">8.</strong> Joining components</a></li><li><a href="09_parallel_join.html"><strong aria-hidden="true">9.</strong> Parallel Join</a></li><li><a href="10_rendering.html"><strong aria-hidden="true">10.</strong> Rendering</a></li><li><a href="11_advanced_component.html"><strong aria-hidden="true">11.</strong> Advanced component strategies</a></li><li><a href="12_tracked.html"><strong aria-hidden="true">12.</strong> FlaggedStorage and modification events</a></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Specs Book</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#hello-world" id="hello-world"><h1>Hello, <code>World</code>!</h1></a>
+<a class="header" href="#setting-up" id="setting-up"><h2>Setting up</h2></a>
+<p>First of all, thanks for trying out <code>specs</code>. Let's
+set it up first. Add the following line to your <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[dependencies]
+specs = &quot;0.14.0&quot;
+</code></pre>
+<p>And add this to your crate root (<code>main.rs</code> or <code>lib.rs</code>):</p>
+<pre><code class="language-rust ignore">extern crate specs;
+</code></pre>
+<a class="header" href="#components" id="components"><h2>Components</h2></a>
+<p>Let's start by creating some data:</p>
+<pre><code class="language-rust ignore">use specs::{Component, VecStorage};
+
+#[derive(Debug)]
+struct Position {
+    x: f32,
+    y: f32,
+}
+
+impl Component for Position {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+
+#[derive(Debug)]
+struct Velocity {
+    x: f32,
+    y: f32,
+}
+
+impl Component for Velocity {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+</code></pre>
+<p>These will be our two component types. Optionally, the <code>specs-derive</code> crate
+provides a convenient custom <code>#[derive]</code> you can use to define component types
+more succinctly.</p>
+<p>But first, you will need to add specs-derive to your crate</p>
+<pre><code class="language-toml">[dependencies]
+specs = &quot;0.14.0&quot;
+specs-derive = &quot;0.4.0&quot;
+</code></pre>
+<p>Now you can use this:</p>
+<pre><code class="language-rust ignore">extern crate specs;
+#[macro_use]
+extern crate specs_derive;
+
+use specs::{Component, VecStorage};
+
+#[derive(Component, Debug)]
+#[storage(VecStorage)]
+struct Position {
+    x: f32,
+    y: f32,
+}
+
+#[derive(Component, Debug)]
+#[storage(VecStorage)]
+struct Velocity {
+    x: f32,
+    y: f32,
+}
+</code></pre>
+<p>If the <code>#[storage(...)]</code> attribute is omitted, the given component will be
+stored in a <code>DenseVecStorage</code> by default. But for this example, we are
+explicitly asking for these components to be kept in a <code>VecStorage</code> instead (see
+the later <a href="./05_storages.html">storages chapter</a> for more details). But before we move on, we
+need to create a world in which to store all of our components.</p>
+<a class="header" href="#the-world" id="the-world"><h2>The <code>World</code></h2></a>
+<pre><code class="language-rust ignore">use specs::{World, Builder};
+
+let mut world = World::new();
+world.register::&lt;Position&gt;();
+world.register::&lt;Velocity&gt;();
+</code></pre>
+<p>This will create component storages for <code>Position</code>s and <code>Velocity</code>s.</p>
+<pre><code class="language-rust ignore">let ball = world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
+</code></pre>
+<p>Now you have an <code>Entity</code>, associated with a position.</p>
+<p>So far this is pretty boring. We just have some data,
+but we don't do anything with it. Let's change that!</p>
+<a class="header" href="#the-system" id="the-system"><h2>The system</h2></a>
+<pre><code class="language-rust ignore">use specs::System;
+
+struct HelloWorld;
+
+impl&lt;'a&gt; System&lt;'a&gt; for HelloWorld {
+    type SystemData = ();
+
+    fn run(&amp;mut self, data: Self::SystemData) {}
+}
+</code></pre>
+<p>This is what a system looks like. Though it doesn't do anything (yet).
+Let's talk about this dummy implementation first.
+The <code>SystemData</code> is an associated type
+which specifies which components we need in order to run
+the system.</p>
+<p>Let's see how we can read our <code>Position</code> components:</p>
+<pre><code class="language-rust ignore">use specs::{ReadStorage, System};
+
+struct HelloWorld;
+
+impl&lt;'a&gt; System&lt;'a&gt; for HelloWorld {
+    type SystemData = ReadStorage&lt;'a, Position&gt;;
+
+    fn run(&amp;mut self, position: Self::SystemData) {
+        use specs::Join;
+
+        for position in position.join() {
+            println!(&quot;Hello, {:?}&quot;, &amp;position);
+        }
+    }
+}
+</code></pre>
+<p>Note that all components that a system accesses must be registered with
+<code>world.register::&lt;Component&gt;()</code> before that system is run, or you will get a
+panic. This will usually be done automatically during <code>setup</code>, but we'll
+come back to that in a later <a href="./07_setup.html">chapter</a>.</p>
+<blockquote>
+<p>There are many other types you can use as system data. Please see the
+<a href="./06_system_data.html">System Data Chapter</a> for more information.</p>
+</blockquote>
+<a class="header" href="#running-the-system" id="running-the-system"><h2>Running the system</h2></a>
+<p>This just iterates through all the components and prints
+them. To execute the system, you can use <code>RunNow</code> like this:</p>
+<pre><code class="language-rust ignore">use specs::RunNow;
+
+let mut hello_world = HelloWorld;
+hello_world.run_now(&amp;world.res);
+world.maintain();
+</code></pre>
+<p>The <code>world.maintain()</code> is not completely necessary here. Calling maintain should be done in general, however.
+If entities are created or deleted while a system is running, calling <code>maintain</code>
+will record the changes in its internal data structure.</p>
+<a class="header" href="#full-example-code" id="full-example-code"><h2>Full example code</h2></a>
+<p>Here the complete example of this chapter:</p>
+<pre><code class="language-rust ignore">use specs::{Builder, Component, ReadStorage, System, VecStorage, World, RunNow};
+
+#[derive(Debug)]
+struct Position {
+    x: f32,
+    y: f32,
+}
+
+impl Component for Position {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+
+#[derive(Debug)]
+struct Velocity {
+    x: f32,
+    y: f32,
+}
+
+impl Component for Velocity {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+
+struct HelloWorld;
+
+impl&lt;'a&gt; System&lt;'a&gt; for HelloWorld {
+    type SystemData = ReadStorage&lt;'a, Position&gt;;
+
+    fn run(&amp;mut self, position: Self::SystemData) {
+        use specs::Join;
+
+        for position in position.join() {
+            println!(&quot;Hello, {:?}&quot;, &amp;position);
+        }
+    }
+}
+
+fn main() {
+    let mut world = World::new();
+    world.register::&lt;Position&gt;();
+    world.register::&lt;Velocity&gt;();
+
+    world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
+
+    let mut hello_world = HelloWorld;
+    hello_world.run_now(&amp;world.res);
+    world.maintain();
+}
+</code></pre>
+<hr />
+<p>This was a pretty basic example so far. A key feature we haven't seen is the
+<code>Dispatcher</code>, which allows us to configure systems to run in parallel (and it offers
+some other nice features, too).</p>
+<p>Let's see how that works in <a href="./03_dispatcher.html">Chapter 3: Dispatcher</a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="01_intro.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="03_dispatcher.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="01_intro.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="03_dispatcher.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

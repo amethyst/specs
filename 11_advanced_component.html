@@ -1,0 +1,338 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Advanced component strategies - The Specs Book</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Introduction to ECS and the Specs API.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="01_intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="02_hello_world.html"><strong aria-hidden="true">2.</strong> Hello World</a></li><li><a href="03_dispatcher.html"><strong aria-hidden="true">3.</strong> Dispatcher</a></li><li><a href="04_resources.html"><strong aria-hidden="true">4.</strong> Resources</a></li><li><a href="05_storages.html"><strong aria-hidden="true">5.</strong> Storages</a></li><li><a href="06_system_data.html"><strong aria-hidden="true">6.</strong> System Data</a></li><li><a href="07_setup.html"><strong aria-hidden="true">7.</strong> Setup</a></li><li><a href="08_join.html"><strong aria-hidden="true">8.</strong> Joining components</a></li><li><a href="09_parallel_join.html"><strong aria-hidden="true">9.</strong> Parallel Join</a></li><li><a href="10_rendering.html"><strong aria-hidden="true">10.</strong> Rendering</a></li><li><a href="11_advanced_component.html" class="active"><strong aria-hidden="true">11.</strong> Advanced component strategies</a></li><li><a href="12_tracked.html"><strong aria-hidden="true">12.</strong> FlaggedStorage and modification events</a></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Specs Book</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#advanced-strategies-for-components" id="advanced-strategies-for-components"><h1>Advanced strategies for components</h1></a>
+<p>So now that we have a fairly good grasp on the basics of Specs,
+it's time that we start experimenting with more advanced patterns!</p>
+<a class="header" href="#marker-components" id="marker-components"><h2>Marker components</h2></a>
+<p>Say we want to add a drag force to only some entities that have velocity, but
+let other entities move about freely without drag.</p>
+<p>The most common way is to use a marker component for this. A marker component
+is a component without any data that can be added to entities to &quot;mark&quot; them
+for processing, and can then be used to narrow down result sets using <code>Join</code>.</p>
+<p>Some code for the drag example to clarify:</p>
+<pre><code class="language-rust ignore">#[derive(Component)]
+#[storage(NullStorage)]
+pub struct Drag;
+
+#[derive(Component)]
+pub struct Position {
+    pub pos: [f32; 3],
+}
+
+#[derive(Component)]
+pub struct Velocity {
+    pub velocity: [f32; 3],
+}
+
+struct Sys {
+    drag: f32,
+}
+
+impl&lt;'a&gt; System&lt;'a&gt; for Sys {
+    type SystemData = (
+        ReadStorage&lt;'a, Drag&gt;,
+        ReadStorage&lt;'a, Velocity&gt;,
+        WriteStorage&lt;'a, Position&gt;,
+    );
+    
+    fn run(&amp;mut self, (drag, velocity, mut position): Self::SystemData) {
+        // Update positions with drag
+        for (pos, vel, _) in (&amp;mut position, &amp;velocity, &amp;drag).join() {
+            pos += vel - self.drag * vel * vel;
+        }
+        // Update positions without drag
+        for (pos, vel, _) in (&amp;mut position, &amp;velocity, !&amp;drag).join() {
+            pos += vel;
+        }
+    } 
+}
+</code></pre>
+<p>Using <code>NullStorage</code> is recommended for marker components, since they don't contain
+any data and as such will not consume any memory. This means we can represent them using
+only a bitset. Note that <code>NullStorage</code> will only work for components that are ZST (i.e. a
+struct without fields).</p>
+<a class="header" href="#modeling-entity-relationships-and-hierarchy" id="modeling-entity-relationships-and-hierarchy"><h2>Modeling entity relationships and hierarchy</h2></a>
+<p>A common use case where we need a relationship between entities is having a third person
+camera following the player around. We can model this using a targeting component
+referencing the player entity.</p>
+<p>A simple implementation might look something like this:</p>
+<pre><code class="language-rust ignore">
+#[derive(Component)]
+pub struct Target {
+    target: Entity,
+    offset: Vector3,
+}
+
+pub struct FollowTargetSys;
+
+impl&lt;'a&gt; System&lt;'a&gt; for FollowTargetSys {
+    type SystemData = (
+        Entities&lt;'a&gt;,
+        ReadStorage&lt;'a, Target&gt;,
+        WriteStorage&lt;'a, Transform&gt;,
+    );
+    
+    fn run(&amp;mut self, (entity, target, transform): Self::SystemData) {
+        for (entity, t) in (&amp;*entity, &amp;target).join() {
+            let new_transform = transform.get(t.target).cloned().unwrap() + t.offset;
+            *transform.get_mut(entity).unwrap() = new_transform;
+        }
+    }
+}
+</code></pre>
+<p>We could also model this as a resource (more about that in the next section), but it could
+be useful to be able to have multiple entities following targets, so modeling this with
+a component makes sense. This could in extension be used to model large scale hierarchical
+structure (scene graphs). For a generic implementation of such a hierarchical system, check
+out the crate <a href="https://github.com/rustgd/specs-hierarchy"><code>specs-hierarchy</code></a>.</p>
+<a class="header" href="#entity-targeting" id="entity-targeting"><h2>Entity targeting</h2></a>
+<p>Imagine we're building a team based FPS game, and we want to add a spectator mode, where the
+spectator can pick a player to follow. In this scenario each player will have a camera defined
+that is following them around, and what we want to do is to pick the camera that
+we should use to render the scene on the spectator screen.</p>
+<p>The easiest way to deal with this problem is to have a resource with a target entity, that
+we can use to fetch the actual camera entity.</p>
+<pre><code class="language-rust ignore">pub struct ActiveCamera(Entity);
+
+pub struct Render;
+
+impl&lt;'a&gt; System&lt;'a&gt; for Render {
+    type SystemData = (
+        Read&lt;'a, ActiveCamera&gt;,
+        ReadStorage&lt;'a, Camera&gt;,
+        ReadStorage&lt;'a, Transform&gt;,
+        ReadStorage&lt;'a, Mesh&gt;,
+    );
+    
+    fn run(&amp;mut self, (active_cam, camera, transform, mesh) : Self::SystemData) {
+        let camera = camera.get(active_cam.0).unwrap();
+        let view_matrix = transform.get(active_cam.0).unwrap().invert();
+        // Set projection and view matrix uniforms
+        for (mesh, transform) in (&amp;mesh, &amp;transform).join() {
+            // Set world transform matrix
+            // Render mesh
+        }
+    }
+}
+</code></pre>
+<p>By doing this, whenever the spectator chooses a new player to follow, we simply change
+what <code>Entity</code> is referenced in the <code>ActiveCamera</code> resource, and the scene will be
+rendered from that viewpoint instead.</p>
+<a class="header" href="#sorting-entities-based-on-component-value" id="sorting-entities-based-on-component-value"><h2>Sorting entities based on component value</h2></a>
+<p>In a lot of scenarios we encounter a need to sort entities based on either a component's
+value, or a combination of component values. There are a couple of ways to deal with this
+problem. The first and most straightforward is to just sort <code>Join</code> results.</p>
+<pre><code class="language-rust ignore">let data = (&amp;entities, &amp;comps).join().collect::&lt;Vec&lt;_&gt;&gt;();
+data.sort_by(|&amp;a, &amp;b| ...);
+for entity in data.iter().map(|d| d.0) {
+    // Here we get entities in sorted order
+}
+</code></pre>
+<p>There are a couple of limitations with this approach, the first being that we will always
+process all matched entities every frame (if this is called in a <code>System</code> somewhere). This
+can be fixed by using <code>FlaggedStorage</code> to maintain a sorted <code>Entity</code> list in the <code>System</code>.
+We will talk more about <code>FlaggedStorage</code> in the next <a href="./12_tracked.html">chapter</a>.</p>
+<p>The second limitation is that we do a <code>Vec</code> allocation every time, however this can be
+alleviated by having a <code>Vec</code> in the <code>System</code> struct that we reuse every frame. Since we
+are likely to keep a fairly steady amount of entities in most situations this could work well.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="10_rendering.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="12_tracked.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="10_rendering.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="12_tracked.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Joining components - The Specs Book</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Introduction to ECS and the Specs API.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="01_intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="02_hello_world.html"><strong aria-hidden="true">2.</strong> Hello World</a></li><li><a href="03_dispatcher.html"><strong aria-hidden="true">3.</strong> Dispatcher</a></li><li><a href="04_resources.html"><strong aria-hidden="true">4.</strong> Resources</a></li><li><a href="05_storages.html"><strong aria-hidden="true">5.</strong> Storages</a></li><li><a href="06_system_data.html"><strong aria-hidden="true">6.</strong> System Data</a></li><li><a href="07_setup.html"><strong aria-hidden="true">7.</strong> Setup</a></li><li><a href="08_join.html" class="active"><strong aria-hidden="true">8.</strong> Joining components</a></li><li><a href="09_parallel_join.html"><strong aria-hidden="true">9.</strong> Parallel Join</a></li><li><a href="10_rendering.html"><strong aria-hidden="true">10.</strong> Rendering</a></li><li><a href="11_advanced_component.html"><strong aria-hidden="true">11.</strong> Advanced component strategies</a></li><li><a href="12_tracked.html"><strong aria-hidden="true">12.</strong> FlaggedStorage and modification events</a></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Specs Book</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#joining-components" id="joining-components"><h1>Joining components</h1></a>
+<p>In the last chapter, we learned how to access resources using <code>SystemData</code>.
+To access our components with it, we can just request a <code>ReadStorage</code> and use
+<code>Storage::get</code> to retrieve the component associated to an entity. This works quite
+well if you want to access a single component, but what if you want to
+iterate over many components? Maybe some of them are required, others might
+be optional and maybe there is even a need to exclude some components?
+If we wanted to do that using only <code>Storage::get</code>, the code would become very ugly.
+So instead we worked out a way to conveniently specify that. This concept is
+known as &quot;joining&quot;.</p>
+<a class="header" href="#basic-joining" id="basic-joining"><h2>Basic joining</h2></a>
+<p>We've already seen some basic examples of joining in the last chapters, for
+example we saw how to join over two storages:</p>
+<pre><code class="language-rust ignore">for (pos, vel) in (&amp;mut pos_storage, &amp;vel_storage).join() {
+    *pos += *vel;
+}
+</code></pre>
+<p>This simply iterates over the position and velocity components of
+all entities that have both these components. That means all the
+specified components are <strong>required</strong>.</p>
+<p>Sometimes, we want not only get the components of entities,
+but also the entity value themselves. To do that, we can simply join over
+<code>&amp;EntitiesRes</code>.</p>
+<pre><code class="language-rust ignore">for (ent, pos, vel) in (&amp;*entities, &amp;mut pos_storage, &amp;vel_storage).join() {
+    println!(&quot;Processing entity: {:?}&quot;, ent);
+    *pos += *vel;
+}
+</code></pre>
+<a class="header" href="#optional-components" id="optional-components"><h2>Optional components</h2></a>
+<p>If we iterate over the <code>&amp;EntitiesRes</code> as shown above, we can simply
+use the returned <code>Entity</code> values to get components from storages as usual.</p>
+<pre><code class="language-rust ignore">for (ent, pos, vel) in (&amp;*entities, &amp;mut pos_storage, &amp;vel_storage).join() {
+    println!(&quot;Processing entity: {:?}&quot;, ent);
+    *pos += *vel;
+    
+    let mass: Option&lt;&amp;mut Mass&gt; = mass_storage.get_mut(ent);
+    if let Some(mass) = mass {
+        let x = *vel / 300_000_000.0;
+        let y = 1 - x * x;
+        let y = y.sqrt();
+        mass.current = mass.constant / y;
+    }
+}
+</code></pre>
+<p>In this example we iterate over all entities with a position and a velocity
+and perform the calculation for the new position as usual.
+However, in case the entity has a mass, we also calculate the current
+mass based on the velocity. Thus, mass is an <strong>optional</strong> component here.</p>
+<a class="header" href="#excluding-components" id="excluding-components"><h2>Excluding components</h2></a>
+<p>If you want to filter your selection by excluding all entities
+with a certain component type, you can use the not operator (<code>!</code>)
+on the respective component storage. Its return value is a unit (<code>()</code>).</p>
+<pre><code class="language-rust ignore">for (ent, pos, vel, ()) in (
+    &amp;*entities,
+    &amp;mut pos_storage,
+    &amp;vel_storage,
+    !&amp;frozen_storage,
+).join() {
+    println!(&quot;Processing entity: {:?}&quot;, ent);
+    *pos += *vel;
+}
+</code></pre>
+<p>This will simply iterate over all entities that</p>
+<ul>
+<li>have a position</li>
+<li>have a velocity</li>
+<li>do not have a <code>Frozen</code> component</li>
+</ul>
+<a class="header" href="#how-joining-works" id="how-joining-works"><h2>How joining works</h2></a>
+<p>You can call <code>join()</code> on everything that implements the <code>Join</code> trait.
+The method call always returns an iterator. <code>Join</code> is implemented for</p>
+<ul>
+<li><code>&amp;ReadStorage</code> / <code>&amp;WriteStorage</code> (gives back a reference to the components)</li>
+<li><code>&amp;mut WriteStorage</code> (gives back a mutable reference to the components)</li>
+<li><code>&amp;EntitiesRes</code> (returns <code>Entity</code> values)</li>
+<li>bitsets</li>
+</ul>
+<p>We think the last point here is pretty interesting, because
+it allows for even more flexibility, as you will see in the next
+section.</p>
+<a class="header" href="#joining-over-bitsets" id="joining-over-bitsets"><h2>Joining over bitsets</h2></a>
+<p>Specs is using <code>hibitset</code>, a library which provides layered bitsets
+(those were part of Specs once, but it was decided that a separate
+library could be useful for others).</p>
+<p>These bitsets are used with the component storages to determine
+which entities the storage provides a component value for. Also,
+<code>Entities</code> is using bitsets, too. You can even create your
+own bitsets and add or remove entity ids:</p>
+<pre><code class="language-rust ignore">use hibitset::{BitSet, BitSetLike};
+
+let mut bitset = BitSet::new();
+bitset.add(entity1.id());
+bitset.add(entity2.id());
+</code></pre>
+<p><code>BitSet</code>s can be combined using the standard binary operators,
+<code>&amp;</code>, <code>|</code> and <code>^</code>. Additionally, you can negate them using <code>!</code>.
+This allows you to combine and filter components in multiple ways.</p>
+<hr />
+<p>This chapter has been all about looping over components; but we can do more
+than sequential iteration! Let's look at some parallel code in the next
+chapter.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="07_setup.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="09_parallel_join.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="07_setup.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="09_parallel_join.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Introduction - The Specs Book</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Introduction to ECS and the Specs API.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="01_intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="02_hello_world.html"><strong aria-hidden="true">2.</strong> Hello World</a></li><li><a href="03_dispatcher.html"><strong aria-hidden="true">3.</strong> Dispatcher</a></li><li><a href="04_resources.html"><strong aria-hidden="true">4.</strong> Resources</a></li><li><a href="05_storages.html"><strong aria-hidden="true">5.</strong> Storages</a></li><li><a href="06_system_data.html"><strong aria-hidden="true">6.</strong> System Data</a></li><li><a href="07_setup.html"><strong aria-hidden="true">7.</strong> Setup</a></li><li><a href="08_join.html"><strong aria-hidden="true">8.</strong> Joining components</a></li><li><a href="09_parallel_join.html"><strong aria-hidden="true">9.</strong> Parallel Join</a></li><li><a href="10_rendering.html"><strong aria-hidden="true">10.</strong> Rendering</a></li><li><a href="11_advanced_component.html"><strong aria-hidden="true">11.</strong> Advanced component strategies</a></li><li><a href="12_tracked.html"><strong aria-hidden="true">12.</strong> FlaggedStorage and modification events</a></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Specs Book</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#introduction" id="introduction"><h1>Introduction</h1></a>
+<p>Welcome to The Specs Book, an introduction to <a href="https://en.wikipedia.org/wiki/Entity%E2%80%93component%E2%80%93system">ECS</a> and the Specs API.
+This book is targeted at beginners; guiding you through all the difficulties of
+setting up, building, and structuring a game with an ECS.</p>
+<p>Specs is an ECS library that allows parallel system execution, with both low
+overhead and high flexibility, different storage types and a type-level
+system data model. It is mainly used for games and simulations, where it allows
+to structure code using composition over inheritance.</p>
+<p>Additional documentation is available on <code>docs.rs</code>:</p>
+<ul>
+<li><a href="https://docs.rs/specs">API documentation for Specs</a></li>
+</ul>
+<p>You don't yet know what an ECS is all about? The next section
+is for you! In case you already know what an ECS is, just skip it.</p>
+<a class="header" href="#whats-an-ecs" id="whats-an-ecs"><h2>What's an ECS?</h2></a>
+<p>The term <strong>ECS</strong> is a shorthand for Entity-component system. These are the three
+core concepts. Each <strong>entity</strong> is associated with some <strong>components</strong>. Those entities and
+components are processed by <strong>systems</strong>. This way, you have your data (components)
+completely separated from the behaviour (systems). An entity just logically
+groups components; so a <code>Velocity</code> component can be applied to the <code>Position</code> component
+of the same entity.</p>
+<p>ECS is sometimes seen as a counterpart to Object-Oriented Programming. I wouldn't
+say that's one hundred percent true, but let me give you some comparisons.</p>
+<p>In OOP, your player might look like this (I've used Java for the example):</p>
+<pre><code class="language-java">public class Player extends Character {
+    private final Transform transform;
+    private final Inventory inventory;
+}
+</code></pre>
+<p>There are several limitations here:</p>
+<ul>
+<li>There is either no multiple inheritance or it brings other problems with it,
+like <a href="https://en.wikipedia.org/wiki/Multiple_inheritance#The_diamond_problem">the diamond problem</a>; moreover, you have to think about &quot;<em>is</em> the player
+a collider or does it <em>have</em> a collider?&quot;</li>
+<li>You cannot easily extend the player with modding; all the attributes are hardcoded.</li>
+<li>Imagine you want to add a NPC, which looks like this:</li>
+</ul>
+<pre><code class="language-java">public class Npc extends Character {
+    private final Transform transform;
+    private final Inventory inventory;
+    private final boolean isFriendly;
+}
+</code></pre>
+<p>Now you have stuff duplicated; you would have to write mostly identical code for
+your player and the NPC, even though e.g. they both share a transform.</p>
+<p><img src="./images/entity-component.svg" alt="Entity-component relationship" width="20%" style="float:left;margin-right:15px" /></p>
+<p>This is where ECS comes into play: Components are <em>associated</em> with entities; you can just insert components, whenever you like.
+One entity may or may not have a certain component. You can see an <code>Entity</code> as an ID into component tables, as illustrated in the
+diagram below. We could theoretically store all the components together with the entity, but that would be very inefficient;
+you'll see how these tables work in <a href="./05_storages.html">chapter 5</a>.</p>
+<p>This is how an <code>Entity</code> is implemented; it's just</p>
+<pre><code class="language-rust ignore">struct Entity(u32, Generation);
+</code></pre>
+<p>where the first field is the id and the second one is the generation, used to check
+if the entity has been deleted.</p>
+<p>Here's another illustration of the relationship between components and entities. <code>Force</code>, <code>Mass</code> and <code>Velocity</code> are all components here.</p>
+<p><img src="./images/component-tables.svg" alt="Component tables" width="100%"  /></p>
+<p><code>Entity 1</code> has each of those components, <code>Entity 2</code> only a <code>Force</code>, etc.</p>
+<p>Now we're only missing the last character in ECS - the &quot;S&quot; for <code>System</code>. Whereas components and entities are purely data,
+systems contain all the logic of your application. A system typically iterates over all entities that fulfill specific constraints,
+like &quot;has both a force and a mass&quot;. Based on this data a system will execute code, e.g. produce a velocity out of the force and the mass.
+This is the additional advantage I wanted to point out with the <code>Player</code> / <code>Npc</code> example; in an ECS, you can simply add new attributes
+to entities and that's also how you define behaviour in Specs (this is called <a href="https://en.wikipedia.org/wiki/Data-driven_programming">data-driven</a> programming).</p>
+<p><img src="./images/system.svg" alt="System flow" width="100%"  /></p>
+<p>By simply adding a force to an entity that has a mass, you can make it move, because a <code>Velocity</code> will be produced for it.</p>
+<a class="header" href="#where-to-use-an-ecs" id="where-to-use-an-ecs"><h2>Where to use an ECS?</h2></a>
+<p>In case you were looking for a general-purpose library for doing things the data-oriented way, I have to disappoint you; there are none.
+ECS libraries are best-suited for creating games or simulations, but they do not magically make your code more data-oriented.</p>
+<hr />
+<p>Okay, now that you were given a rough overview, let's continue
+to <a href="./02_hello_world.html">Chapter 2</a> where we'll build our first actual application with Specs.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

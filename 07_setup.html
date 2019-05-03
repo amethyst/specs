@@ -1,0 +1,343 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Setup - The Specs Book</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Introduction to ECS and the Specs API.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="01_intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="02_hello_world.html"><strong aria-hidden="true">2.</strong> Hello World</a></li><li><a href="03_dispatcher.html"><strong aria-hidden="true">3.</strong> Dispatcher</a></li><li><a href="04_resources.html"><strong aria-hidden="true">4.</strong> Resources</a></li><li><a href="05_storages.html"><strong aria-hidden="true">5.</strong> Storages</a></li><li><a href="06_system_data.html"><strong aria-hidden="true">6.</strong> System Data</a></li><li><a href="07_setup.html" class="active"><strong aria-hidden="true">7.</strong> Setup</a></li><li><a href="08_join.html"><strong aria-hidden="true">8.</strong> Joining components</a></li><li><a href="09_parallel_join.html"><strong aria-hidden="true">9.</strong> Parallel Join</a></li><li><a href="10_rendering.html"><strong aria-hidden="true">10.</strong> Rendering</a></li><li><a href="11_advanced_component.html"><strong aria-hidden="true">11.</strong> Advanced component strategies</a></li><li><a href="12_tracked.html"><strong aria-hidden="true">12.</strong> FlaggedStorage and modification events</a></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Specs Book</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#the-setup-stage" id="the-setup-stage"><h1>The <code>setup</code> stage</h1></a>
+<p>So far for all our component storages and resources, we've been adding
+them to the <code>World</code> manually. In Specs, this is not required if you use
+<code>setup</code>. This is a manually invoked stage that goes through <code>SystemData</code>
+and calls <code>register</code>, <code>add_resource</code>, etc. for all (with some exceptions)
+components and resources found. The <code>setup</code> function can be found in
+the following locations:</p>
+<ul>
+<li><code>ReadStorage</code>, <code>WriteStorage</code>, <code>Read</code>, <code>Write</code></li>
+<li><code>SystemData</code></li>
+<li><code>System</code></li>
+<li><code>RunNow</code></li>
+<li><code>Dispatcher</code></li>
+<li><code>ParSeq</code></li>
+</ul>
+<p>During setup, all components encountered will be registered, and all
+resources that have a <code>Default</code> implementation or a custom <code>SetupHandler</code>
+will be added. Note that resources encountered in <code>ReadExpect</code> and <code>WriteExpect</code>
+will not be added to the <code>World</code> automatically.</p>
+<p>The recommended way to use <code>setup</code> is to run it on <code>Dispatcher</code> or <code>ParSeq</code>
+after the system graph is built, but before the first <code>dispatch</code>. This will go
+through all <code>System</code>s in the graph, and call <code>setup</code> on each.</p>
+<p>Let's say you began by registering Components and Resources first:</p>
+<pre><code class="language-rust ignore">
+struct Gravity;
+
+struct Velocity;
+
+impl Component for Position {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+
+struct SimulationSystem;
+
+impl&lt;'a&gt; System&lt;'a&gt; for SimulationSystem {
+    type SystemData = (Read&lt;'a, Gravity&gt;, WriteStorage&lt;'a, Velocity&gt;);
+
+    fn run(_, _) {}
+}
+
+fn main() {
+    let mut world = World::new();
+    world.add_resource(Gravity);
+    world.register::&lt;Velocity&gt;();
+
+    for _ in 0..5 {
+        world.create_entity().with(Velocity).build();
+    }
+
+    let mut dispatcher = DispatcherBuilder::new()
+        .with(SimulationSystem, &quot;simulation&quot;, &amp;[])
+        .build();
+
+    dispatcher.dispatch(&amp;mut world.res);
+    world.maintain();
+}
+
+</code></pre>
+<p>You could get rid of that phase by calling <code>setup()</code> and re-ordering your main function:</p>
+<pre><code class="language-rust ignore">fn main() {
+    let mut world = World::new();
+    let mut dispatcher = DispatcherBuilder::new()
+        .with(SimulationSystem, &quot;simulation&quot;, &amp;[])
+        .build();
+
+    dispatcher.setup(&amp;mut world.res);
+
+    for _ in 0..5 {
+        world.create_entity().with(Velocity).build();
+    }
+
+    dispatcher.dispatch(&amp;mut world.res);
+    world.maintain();
+}
+
+</code></pre>
+<a class="header" href="#custom-setup-functionality" id="custom-setup-functionality"><h2>Custom <code>setup</code> functionality</h2></a>
+<p>The good qualities of <code>setup</code> don't end here however. We can also use <code>setup</code>
+to create our non-<code>Default</code> resources, and also to initialize our <code>System</code>s!
+We do this by custom implementing the <code>setup</code> function in our <code>System</code>.</p>
+<p>Let's say we have a <code>System</code> that process events, using <code>shrev::EventChannel</code>:</p>
+<pre><code class="language-rust ignore">struct Sys {
+    reader: ReaderId&lt;Event&gt;,
+}
+
+impl&lt;'a&gt; System&lt;'a&gt; for Sys {
+    type SystemData = Read&lt;'a, EventChannel&lt;Event&gt;&gt;;
+
+    fn run(&amp;mut self, events: Self::SystemData) {
+        for event in events.read(&amp;mut self.reader) {
+            [..]
+        }
+    }
+}
+</code></pre>
+<p>This looks pretty OK, but there is a problem here if we want to use <code>setup</code>.
+The issue is that <code>Sys</code> needs a <code>ReaderId</code> on creation, but to get a <code>ReaderId</code>,
+we need <code>EventChannel&lt;Event&gt;</code> to be initialized. This means the user of <code>Sys</code> need
+to create the <code>EventChannel</code> themselves and add it manually to the <code>World</code>.
+We can do better!</p>
+<pre><code class="language-rust ignore">use specs::prelude::Resources;
+
+#[derive(Default)]
+struct Sys {
+    reader: Option&lt;ReaderId&lt;Event&gt;&gt;,
+}
+
+impl&lt;'a&gt; System&lt;'a&gt; for Sys {
+    type SystemData = Read&lt;'a, EventChannel&lt;Event&gt;&gt;;
+
+    fn run(&amp;mut self, events: Self::SystemData) {
+        for event in events.read(&amp;mut self.reader.as_mut().unwrap()) {
+            [..]
+        }
+    }
+
+    fn setup(&amp;mut self, res: &amp;mut Resources) {
+        use specs::prelude::SystemData;
+        Self::SystemData::setup(res);
+        self.reader = Some(res.fetch_mut::&lt;EventChannel&lt;Event&gt;&gt;().register_reader());
+    }
+}
+</code></pre>
+<p>This is much better; we can now use <code>setup</code> to fully initialize <code>Sys</code> without
+requiring our users to create and add resources manually to <code>World</code>!</p>
+<p><strong>If we override the <code>setup</code> function on a <code>System</code>, it is vitally important that we
+remember to add <code>Self::SystemData::setup(res);</code>, or setup will not be performed for
+the <code>System</code>s <code>SystemData</code>.</strong> This could cause panics during setup or during
+the first dispatch.</p>
+<a class="header" href="#setting-up-in-bulk" id="setting-up-in-bulk"><h2>Setting up in bulk</h2></a>
+<p>In the case of libraries making use of <code>specs</code>, it is sometimes helpful to provide
+a way to add many things at once.
+It's generally recommended to provide a standalone function to register multiple
+Components/Resources at once, while allowing the user to add individual systems
+by themselves.</p>
+<pre><code class="language-rust ignore">fn add_physics_engine(world: &amp;mut World, config: LibraryConfig) -&gt; Result&lt;(), LibraryError&gt; {
+    world.register::&lt;Velocity&gt;();
+    // etc
+}
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="06_system_data.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="08_join.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="06_system_data.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="08_join.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

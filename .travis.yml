@@ -1,0 +1,62 @@
+language: rust
+
+rust:
+- nightly
+- 1.34.0
+- stable
+
+cache:
+  cargo: true
+
+branches:
+  only:
+    - staging
+    - trying
+    - master
+
+before_script:
+- export PATH="$PATH:$HOME/.cargo/bin"
+
+script:
+- if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
+    cargo build --all-features --verbose;
+    cargo test --all-features --verbose --no-run;
+    cargo bench --verbose --no-run --all-features;
+  elif [ "$TRAVIS_RUST_VERSION" == "1.34.0" ]; then
+    cargo check --tests --no-default-features;
+    cargo check --tests --no-default-features --features "parallel";
+    cargo check --tests --no-default-features --features "serde";
+    cargo check --tests --no-default-features --features "serde,parallel";
+  else
+    cargo build --verbose --no-default-features;
+    cargo test --verbose --no-default-features;
+    cargo test --verbose --features "parallel,serde";
+  fi
+- cargo build --manifest-path ./specs-derive/Cargo.toml --verbose
+- cargo test --manifest-path ./specs-derive/Cargo.toml --verbose
+
+after_success: |
+  [ $TRAVIS_BRANCH = master ] &&
+  [ $TRAVIS_PULL_REQUEST = false ] &&
+  [ $TRAVIS_RUST_VERSION = stable ] &&
+  which mdbook || cargo install mdbook &&
+  cd book &&
+  mdbook build &&
+  cd .. &&
+  mkdir ../ghp &&
+  cp -r book/book/* ../ghp/ &&
+  echo "Checking out gh-pages" &&
+  git checkout --orphan gh-pages &&
+  rm -rf ./* &&
+  cp -r ../ghp/* ./ &&
+  git add -A &&
+  git commit --quiet -m "Update page" &&
+  git push -f https://${GH_TOKEN}@github.com/slide-rs/specs.git gh-pages
+
+notifications:
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/cdff2f522a8c4588a82a
+    on_success: always
+    on_failure: always
+    on_start: never

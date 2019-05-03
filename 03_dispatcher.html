@@ -1,0 +1,354 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Dispatcher - The Specs Book</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Introduction to ECS and the Specs API.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="01_intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="02_hello_world.html"><strong aria-hidden="true">2.</strong> Hello World</a></li><li><a href="03_dispatcher.html" class="active"><strong aria-hidden="true">3.</strong> Dispatcher</a></li><li><a href="04_resources.html"><strong aria-hidden="true">4.</strong> Resources</a></li><li><a href="05_storages.html"><strong aria-hidden="true">5.</strong> Storages</a></li><li><a href="06_system_data.html"><strong aria-hidden="true">6.</strong> System Data</a></li><li><a href="07_setup.html"><strong aria-hidden="true">7.</strong> Setup</a></li><li><a href="08_join.html"><strong aria-hidden="true">8.</strong> Joining components</a></li><li><a href="09_parallel_join.html"><strong aria-hidden="true">9.</strong> Parallel Join</a></li><li><a href="10_rendering.html"><strong aria-hidden="true">10.</strong> Rendering</a></li><li><a href="11_advanced_component.html"><strong aria-hidden="true">11.</strong> Advanced component strategies</a></li><li><a href="12_tracked.html"><strong aria-hidden="true">12.</strong> FlaggedStorage and modification events</a></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Specs Book</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#dispatcher" id="dispatcher"><h1>Dispatcher</h1></a>
+<a class="header" href="#when-to-use-a-dispatcher" id="when-to-use-a-dispatcher"><h2>When to use a <code>Dispatcher</code></h2></a>
+<p>The <code>Dispatcher</code> allows you to automatically parallelize
+system execution where possible, using the <a href="https://en.wikipedia.org/wiki/Fork%E2%80%93join_model">fork-join model</a> to split up the
+work and merge the result at the end. It requires a bit more planning
+and may have a little bit more overhead, but it's pretty convenient,
+especially when you're building a big game where you don't
+want to do this manually.</p>
+<a class="header" href="#building-a-dispatcher" id="building-a-dispatcher"><h2>Building a dispatcher</h2></a>
+<p>First of all, we have to build such a dispatcher.</p>
+<pre><code class="language-rust ignore">use specs::DispatcherBuilder;
+
+let mut dispatcher = DispatcherBuilder::new()
+    .with(HelloWorld, &quot;hello_world&quot;, &amp;[])
+    .build();
+</code></pre>
+<p>Let's see what this does. After creating the builder,
+we add a new</p>
+<ol>
+<li>system object (<code>HelloWorld</code>)</li>
+<li>with some name (<code>&quot;hello_world&quot;&quot;</code>)</li>
+<li>and no dependencies (<code>&amp;[]</code>).</li>
+</ol>
+<p>The name can be used to specify that system
+as a dependency of another one. But we don't have a second
+system yet.</p>
+<a class="header" href="#creating-another-system" id="creating-another-system"><h2>Creating another system</h2></a>
+<pre><code class="language-rust ignore">struct UpdatePos;
+
+impl&lt;'a&gt; System&lt;'a&gt; for UpdatePos {
+    type SystemData = (ReadStorage&lt;'a, Velocity&gt;,
+                       WriteStorage&lt;'a, Position&gt;);
+}
+</code></pre>
+<p>Let's talk about the system data first. What you see here is a <strong>tuple</strong>, which we are using as our <code>SystemData</code>.
+In fact, <code>SystemData</code> is implemented for all tuples with up to 26 other types implementing <code>SystemData</code> in it.</p>
+<blockquote>
+<p>Notice that <code>ReadStorage</code> and <code>WriteStorage</code> <em>are</em> implementors of <code>SystemData</code>
+themselves, that's why we could use the first one for our <code>HelloWorld</code> system
+without wrapping it in a tuple; for more information see
+<a href="./06_system_data.html">the Chapter about system data</a>.</p>
+</blockquote>
+<p>To complete the implementation block, here's the <code>run</code> method:</p>
+<pre><code class="language-rust ignore">    fn run(&amp;mut self, (vel, mut pos): Self::SystemData) {
+        use specs::Join;
+        for (vel, pos) in (&amp;vel, &amp;mut pos).join() {
+            pos.x += vel.x * 0.05;
+            pos.y += vel.y * 0.05;
+        }
+    }
+</code></pre>
+<p>Now the <code>.join()</code> method also makes sense: it joins the two component
+storages, so that you either get no new element or a new element with
+both components, meaning that entities with only a <code>Position</code>, only
+a <code>Velocity</code> or none of them will be skipped. The <code>0.05</code> fakes the
+so called <strong>delta time</strong> which is the time needed for one frame.
+We have to hardcode it right now, because it's not a component (it's the
+same for every entity). The solution to this are <code>Resource</code>s, see
+<a href="./04_resources.html">the next Chapter</a>.</p>
+<a class="header" href="#adding-a-system-with-a-dependency" id="adding-a-system-with-a-dependency"><h2>Adding a system with a dependency</h2></a>
+<p>Okay, we'll add two more systems <em>after</em> the <code>HelloWorld</code> system:</p>
+<pre><code class="language-rust ignore">    .with(UpdatePos, &quot;update_pos&quot;, &amp;[&quot;hello_world&quot;])
+    .with(HelloWorld, &quot;hello_updated&quot;, &amp;[&quot;update_pos&quot;])
+</code></pre>
+<p>The <code>UpdatePos</code> system now depends on the <code>HelloWorld</code> system and will only
+be executed after the dependency has finished. The final <code>HelloWorld</code> system prints the resulting updated positions.</p>
+<p>Now to execute all the systems, just do</p>
+<pre><code class="language-rust ignore">dispatcher.dispatch(&amp;mut world.res);
+</code></pre>
+<a class="header" href="#full-example-code" id="full-example-code"><h2>Full example code</h2></a>
+<p>Here the code for this chapter:</p>
+<pre><code class="language-rust ignore">use specs::{Builder, Component, DispatcherBuilder, ReadStorage,
+            System, VecStorage, World, WriteStorage};
+
+#[derive(Debug)]
+struct Position {
+    x: f32,
+    y: f32,
+}
+
+impl Component for Position {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+
+#[derive(Debug)]
+struct Velocity {
+    x: f32,
+    y: f32,
+}
+
+impl Component for Velocity {
+    type Storage = VecStorage&lt;Self&gt;;
+}
+
+struct HelloWorld;
+
+impl&lt;'a&gt; System&lt;'a&gt; for HelloWorld {
+    type SystemData = ReadStorage&lt;'a, Position&gt;;
+
+    fn run(&amp;mut self, position: Self::SystemData) {
+        use specs::Join;
+
+        for position in position.join() {
+            println!(&quot;Hello, {:?}&quot;, &amp;position);
+        }
+    }
+}
+
+struct UpdatePos;
+
+impl&lt;'a&gt; System&lt;'a&gt; for UpdatePos {
+    type SystemData = (ReadStorage&lt;'a, Velocity&gt;,
+                       WriteStorage&lt;'a, Position&gt;);
+
+    fn run(&amp;mut self, (vel, mut pos): Self::SystemData) {
+        use specs::Join;
+        for (vel, pos) in (&amp;vel, &amp;mut pos).join() {
+            pos.x += vel.x * 0.05;
+            pos.y += vel.y * 0.05;
+        }
+    }
+}
+
+fn main() {
+    let mut world = World::new();
+    world.register::&lt;Position&gt;();
+    world.register::&lt;Velocity&gt;();
+
+    // Only the second entity will get a position update,
+    // because the first one does not have a velocity.
+    world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
+    world
+        .create_entity()
+        .with(Position { x: 2.0, y: 5.0 })
+        .with(Velocity { x: 0.1, y: 0.2 })
+        .build();
+
+    let mut dispatcher = DispatcherBuilder::new()
+        .with(HelloWorld, &quot;hello_world&quot;, &amp;[])
+        .with(UpdatePos, &quot;update_pos&quot;, &amp;[&quot;hello_world&quot;])
+        .with(HelloWorld, &quot;hello_updated&quot;, &amp;[&quot;update_pos&quot;])
+        .build();
+
+    dispatcher.dispatch(&amp;mut world.res);
+    world.maintain();
+}
+</code></pre>
+<hr />
+<p><a href="./04_resources.html">The next chapter</a> will be a really short chapter about <code>Resource</code>s,
+a way to share data between systems which only exist independent of
+entities (as opposed to 0..1 times per entity).</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="02_hello_world.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="04_resources.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="02_hello_world.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="04_resources.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
