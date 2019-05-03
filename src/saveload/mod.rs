@@ -37,7 +37,7 @@ mod tests;
 mod uuid;
 
 #[cfg(feature = "uuid_entity")]
-pub use self::uuid::{UuidMarker, UuidMarkerAllocator);
+pub use self::uuid::{UuidMarker, UuidMarkerAllocator};
 pub use self::{
     de::DeserializeComponents,
     marker::{MarkedBuilder, Marker, MarkerAllocator, U64Marker, U64MarkerAllocator},

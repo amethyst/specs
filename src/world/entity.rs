@@ -5,7 +5,6 @@ use std::{
 };
 
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
-use nonzero_signed::NonZeroI32;
 use shred::Read;
 
 #[cfg(feature = "parallel")]
