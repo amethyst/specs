@@ -1,5 +1,6 @@
 use std::{
     fmt,
+    num::NonZeroI32,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
