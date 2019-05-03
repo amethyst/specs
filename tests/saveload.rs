@@ -13,9 +13,11 @@ extern crate specs_derive;
 mod tests {
     use spocs::{
         error::NoError,
-        saveload::{ConvertSaveload, Marker, U64Marker, UuidMarker},
+        saveload::{ConvertSaveload, Marker, U64Marker},
         Builder, Entity, World, WorldExt,
     };
+    #[cfg(feature = "uuid_entity")]
+    use saveload::UuidMarker;
 
     #[derive(ConvertSaveload)]
     struct OneFieldNamed {
