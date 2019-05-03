@@ -27,7 +27,6 @@ script:
     cargo check --tests --no-default-features --features "parallel";
     cargo check --tests --no-default-features --features "serde";
     cargo check --tests --no-default-features --features "serde,parallel";
-    cargo check --tests --no-default-features --features "uuid_entity";
   else
     cargo build --verbose --no-default-features;
     cargo test --verbose --no-default-features;
