@@ -17,7 +17,7 @@ mod tests {
         Builder, Entity, World, WorldExt,
     };
     #[cfg(feature = "uuid_entity")]
-    use saveload::UuidMarker;
+    use spocs::saveload::UuidMarker;
 
     #[derive(ConvertSaveload)]
     struct OneFieldNamed {
