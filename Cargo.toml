@@ -54,9 +54,6 @@ serde_json = "1.0"
 specs-derive = { path = "specs-derive", version = "0.4.0" }
 
 [[example]]
-name = "async"
-
-[[example]]
 name = "basic"
 
 [[example]]
@@ -88,6 +85,9 @@ name = "parallel"
 [[bench]]
 name = "world"
 harness = false
+
+[[bench]]
+name = "big_or_small"
 
 [workspace]
 members = ["specs-derive"]
