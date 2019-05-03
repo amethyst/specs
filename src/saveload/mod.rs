@@ -33,7 +33,11 @@ mod marker;
 mod ser;
 #[cfg(test)]
 mod tests;
+#[cfg(feature = "uuid_entity")]
+mod uuid;
 
+#[cfg(feature = "uuid_entity")]
+pub use self::uuid::{UuidMarker, UuidMarkerAllocator};
 pub use self::{
     de::DeserializeComponents,
     marker::{MarkedBuilder, Marker, MarkerAllocator, U64Marker, U64MarkerAllocator},

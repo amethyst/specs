@@ -1,5 +1,7 @@
 extern crate ron;
 
+use std::hash::Hash;
+
 use super::*;
 use crate::{
     error::{Error, NoError},
@@ -28,27 +30,39 @@ mod marker_test {
     /// deserialization.
     #[test]
     fn bumps_index_after_reload() {
+        bumps_index_after_reload_internal::<U64Marker>(U64MarkerAllocator::new());
+        #[cfg(feature = "uuid_entity")]
+        bumps_index_after_reload_internal::<UuidMarker>(UuidMarkerAllocator::new());
+    }
+
+    fn bumps_index_after_reload_internal<M>(allocator: M::Allocator)
+    where
+        M: Marker + Component + Clone,
+        <M as Component>::Storage: Default,
+        <M as Marker>::Identifier: Clone + Hash + Eq,
+        <M as Marker>::Allocator: Default + Clone,
+    {
         let mut world = World::new();
 
-        world.add_resource(U64MarkerAllocator::new());
+        world.add_resource(allocator.clone());
         world.register::<A>();
         world.register::<B>();
-        world.register::<U64Marker>();
+        world.register::<M>();
 
         world
             .create_entity()
             .with(A(32))
             .with(B(true))
-            .marked::<U64Marker>()
+            .marked::<M>()
             .build();
         world
             .create_entity()
             .with(A(64))
             .with(B(false))
-            .marked::<U64Marker>()
+            .marked::<M>()
             .build();
 
-        // Serialze all entities
+        // Serialize all entities
         let mut ser = ron::ser::Serializer::new(Some(Default::default()), true);
 
         world.exec(
@@ -56,10 +70,10 @@ mod marker_test {
                 Entities,
                 ReadStorage<A>,
                 ReadStorage<B>,
-                ReadStorage<U64Marker>,
-                Read<U64MarkerAllocator>,
+                ReadStorage<M>,
+                Read<M::Allocator>,
             )| {
-                SerializeComponents::<NoError, U64Marker>::serialize(
+                SerializeComponents::<NoError, M>::serialize(
                     &(&comp_a, &comp_b),
                     &ents,
                     &markers,
@@ -73,21 +87,21 @@ mod marker_test {
 
         let mut de = ron::de::Deserializer::from_str(&serial).unwrap();
 
-        // Throw the old world away and deserialzie into a new world
+        // Throw the old world away and deserialize into a new world
         let mut world = World::new();
 
-        world.add_resource(U64MarkerAllocator::new());
+        world.add_resource(allocator);
         world.register::<A>();
         world.register::<B>();
-        world.register::<U64Marker>();
+        world.register::<M>();
 
         world.exec(
             |(ents, comp_a, comp_b, mut markers, mut alloc): (
                 Entities,
                 WriteStorage<A>,
                 WriteStorage<B>,
-                WriteStorage<U64Marker>,
-                Write<U64MarkerAllocator>,
+                WriteStorage<M>,
+                Write<M::Allocator>,
             )| {
                 DeserializeComponents::<Error, _>::deserialize(
                     &mut (comp_a, comp_b),
@@ -101,19 +115,19 @@ mod marker_test {
         );
 
         // Two marked entities should be deserialized
-        assert_marked_entity_count(&mut world, 2);
+        assert_marked_entity_count::<M>(&mut world, 2);
 
         // Queue lazy creation of 2 more entities
         world.exec(|(ents, lazy): (Entities, Read<LazyUpdate>)| {
             lazy.create_entity(&ents)
                 .with(A(128))
                 .with(B(false))
-                .marked::<U64Marker>()
+                .marked::<M>()
                 .build();
             lazy.create_entity(&ents)
                 .with(A(256))
                 .with(B(true))
-                .marked::<U64Marker>()
+                .marked::<M>()
                 .build();
         });
 
@@ -122,30 +136,30 @@ mod marker_test {
             .create_entity()
             .with(A(512))
             .with(B(false))
-            .marked::<U64Marker>()
+            .marked::<M>()
             .build();
         world
             .create_entity()
             .with(A(1024))
             .with(B(true))
-            .marked::<U64Marker>()
+            .marked::<M>()
             .build();
 
         // Check that markers of deserialized entities and newly created entities are
         // unique
-        assert_marked_entity_count(&mut world, 4);
-        assert_markers_are_unique(&mut world);
+        assert_marked_entity_count::<M>(&mut world, 4);
+        assert_markers_are_unique::<M>(&mut world);
 
         // Check that markers of lazily created entities are unique
         world.maintain();
-        assert_marked_entity_count(&mut world, 6);
-        assert_markers_are_unique(&mut world);
+        assert_marked_entity_count::<M>(&mut world, 6);
+        assert_markers_are_unique::<M>(&mut world);
     }
 
     /// Assert that the number of entities marked with `U64Marker` is equal to
     /// `count`
-    fn assert_marked_entity_count(world: &mut World, count: usize) {
-        world.exec(|(ents, markers): (Entities, ReadStorage<U64Marker>)| {
+    fn assert_marked_entity_count<M: Marker>(world: &mut World, count: usize) {
+        world.exec(|(ents, markers): (Entities, ReadStorage<M>)| {
             let marked_entity_count = (&ents, &markers).join().count();
 
             assert_eq!(marked_entity_count, count);
@@ -153,8 +167,11 @@ mod marker_test {
     }
 
     /// Ensure there are no duplicate marker .ids() in the world
-    fn assert_markers_are_unique(world: &mut World) {
-        world.exec(|(ents, markers): (Entities, ReadStorage<U64Marker>)| {
+    fn assert_markers_are_unique<M: Marker>(world: &mut World)
+    where
+        <M as Marker>::Identifier: Clone + Eq + Hash,
+    {
+        world.exec(|(ents, markers): (Entities, ReadStorage<M>)| {
             use std::collections::HashSet;
 
             let marker_ids: Vec<_> = (&ents, &markers)

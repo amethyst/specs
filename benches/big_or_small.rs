@@ -39,10 +39,7 @@ impl Component for Big {
 struct SmallSystem;
 
 impl<'a> System<'a> for SmallSystem {
-    type SystemData = (
-        ReadStorage<'a, Small>,
-        WriteStorage<'a, Small2>,
-    );
+    type SystemData = (ReadStorage<'a, Small>, WriteStorage<'a, Small2>);
 
     fn run(&mut self, (small, mut small2): Self::SystemData) {
         for (s, mut s2) in (&small, &mut small2).join() {
@@ -54,9 +51,7 @@ impl<'a> System<'a> for SmallSystem {
 struct BigSystem;
 
 impl<'a> System<'a> for BigSystem {
-    type SystemData = (
-        WriteStorage<'a, Big>,
-    );
+    type SystemData = (WriteStorage<'a, Big>,);
 
     fn run(&mut self, (mut big,): Self::SystemData) {
         for (mut b,) in (&mut big,).join() {
@@ -72,8 +67,14 @@ fn bench_big(b: &mut Bencher) {
     world.register::<Big>();
 
     for _ in 0..100000 {
-        world.create_entity()
-            .with(Big(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0)))
+        world
+            .create_entity()
+            .with(Big(
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(0.0, 0.0, 0.0),
+            ))
             .build();
     }
 
@@ -95,7 +96,8 @@ fn bench_small(b: &mut Bencher) {
     world.register::<Small2>();
 
     for _ in 0..100000 {
-        world.create_entity()
+        world
+            .create_entity()
             .with(Small(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0)))
             .with(Small2(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0)))
             .build();
