@@ -25,9 +25,10 @@ cd "${WORKING_DIR}"/docs/website
 "${BIN_DIR}"/zola build --base-url "${BASE_URL}" -o "${WORKING_DIR}/public"
 
 # Build reference + tutorials
+mkdir "${WORKING_DIR}/public/docs/"
 build_book() {
 	cd "${WORKING_DIR}"/docs/$1
-	"${BIN_DIR}"/mdbook build -d "${WORKING_DIR}/public/$1"
+	"${BIN_DIR}"/mdbook build -d "${WORKING_DIR}/public/docs/$1"
 }
 
 echo "Building books..."
