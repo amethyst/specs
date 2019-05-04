@@ -48,6 +48,22 @@ addons:
       - libiberty-dev
 
 after_success: |
+  [ $TRAVIS_BRANCH = master ] &&
+  [ $TRAVIS_PULL_REQUEST = false ] &&
+  [ $TRAVIS_RUST_VERSION = stable ] &&
+  which mdbook || cargo install mdbook &&
+  cd book &&
+  mdbook build &&
+  cd .. &&
+  mkdir ../ghp &&
+  cp -r book/book/* ../ghp/ &&
+  echo "Checking out gh-pages" &&
+  git checkout --orphan gh-pages &&
+  rm -rf ./* &&
+  cp -r ../ghp/* ./ &&
+  git add -A &&
+  git commit --quiet -m "Update page" &&
+  git push -f https://${GH_TOKEN}@github.com/slide-rs/specs.git gh-pages
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&
   cd kcov-master &&
@@ -67,22 +83,6 @@ after_success: |
   echo "Uploaded code coverage"
 
 
-#  [ $TRAVIS_BRANCH = master ] &&
-#  [ $TRAVIS_PULL_REQUEST = false ] &&
-#  [ $TRAVIS_RUST_VERSION = stable ] &&
-#  which mdbook || cargo install mdbook &&
-#  cd book &&
-#  mdbook build &&
-#  cd .. &&
-#  mkdir ../ghp &&
-#  cp -r book/book/* ../ghp/ &&
-#  echo "Checking out gh-pages" &&
-#  git checkout --orphan gh-pages &&
-#  rm -rf ./* &&
-#  cp -r ../ghp/* ./ &&
-#  git add -A &&
-#  git commit --quiet -m "Update page" &&
-#  git push -f https://${GH_TOKEN}@github.com/slide-rs/specs.git gh-pages
 
 notifications:
   webhooks:
