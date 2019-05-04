@@ -1,0 +1,24 @@
+name = "even"
+description = "A robust, elegant dark theme"
+license = "MIT"
+homepage = "https://github.com/getzola/even"
+min_version = "0.6.0"
+demo = "https://zola-even.netlify.com"
+
+[extra]
+even_menu = [
+    {url = "$BASE_URL", name = "Home"},
+    {url = "$BASE_URL/categories", name = "Categories"},
+    {url = "$BASE_URL/tags", name = "Tags"},
+    {url = "$BASE_URL/about", name = "About"},
+]
+even_title = "Even"
+
+[author]
+name = "Vincent Prouillet"
+homepage = "https://www.vincentprouillet.com"
+
+[original]
+author =  "olOwOlo"
+homepage = "https://blog.olowolo.com/example-site/"
+repo = "https://github.com/olOwOlo/hugo-theme-even"

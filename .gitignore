@@ -12,3 +12,7 @@ Cargo.lock
 # IDEs / Editor
 *.iml
 .idea
+
+# Website content
+/bin
+/public

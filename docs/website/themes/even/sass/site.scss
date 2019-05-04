@@ -1,0 +1,38 @@
+@import "normalize";
+
+$theme-color-map: (
+  'Default': #c05b4d #f8f5ec,
+  'Mint Green': #16982B #f5f5f5,
+  'Cobalt Blue': #0047AB #f0f2f5,
+  'Hot Pink': #FF69B4 #f8f5f5,
+  'Dark Violet': #9932CC #f5f4fa
+);
+
+// TODO: allow to change that
+$main-colour: #c05b4d;
+$secondary-colour: #f8f5ec;
+$body-width: 800px;
+$mobile-navbar-height: 50px !default;
+$code-colour: #c7254e;
+$code-font-family: Consolas, Monaco, Menlo, Consolas, monospace !default;
+
+@mixin min-screen($min-width: $body-width) {
+   @media screen and (min-width: $min-width) {
+     @content;
+   }
+}
+
+@mixin max-screen($max-width: $body-width) {
+   @media screen and (max-width: $max-width) {
+     @content;
+   }
+}
+
+@import "animations";
+
+@import "base";
+@import "header";
+@import "main";
+@import "mobile";
+@import "slideout";
+@import "toc";

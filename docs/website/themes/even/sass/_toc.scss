@@ -1,0 +1,58 @@
+$post-toc-margin-left: $body-width - 15px !default;
+$toc-max-sreen-width: 2 * 200px + $post-toc-margin-left !default;
+
+.post-toc {
+  position: absolute;
+  width: 200px;
+  margin-left: $post-toc-margin-left;
+  padding: 10px;
+  border-radius: 5px;
+  background: hsla(45,46%,95%,.6);
+  box-shadow: 1px 1px 2px rgba(0,0,0,0.125);
+  word-wrap: break-word;
+  box-sizing: border-box;
+  position: fixed;
+  top: 20px;
+
+  .post-toc-title {
+    margin: 0 10px;
+    font-size: 20px;
+    font-weight: 400;
+    text-transform: uppercase;
+  }
+
+  .post-toc-content {
+    font-size: 15px;
+
+    &.always-active ul {
+      display: block;
+    }
+
+    >nav>ul {
+      margin: 10px 0;
+    }
+
+    ul {
+      padding-left: 20px;
+      list-style: square;
+
+      ul {
+        padding-left: 15px;
+        display: none;
+      }
+
+      .has-active > ul {
+        display: block;
+      }
+    }
+
+    .toc-link.active {
+      color: $main-colour;
+    }
+  }
+}
+@include max-screen($toc-max-sreen-width) {
+  .post-toc {
+    display: none;
+  }
+}

@@ -1,0 +1,63 @@
+html {
+  font-size: 18px;
+  box-sizing: border-box;
+}
+
+body {
+  line-height: 1.5;
+  color: #34495e;
+  background: #fefefe;
+  border-top: 3px solid $main-colour;
+}
+
+.container {
+  width: $body-width;
+  margin: 0 auto;
+  padding-bottom: 4rem;
+}
+
+@include max-screen() {
+  body {
+    border-top: 0;
+  }
+
+  .container {
+    width: 100%;
+    box-shadow: -1px -5px 5px #cacaca;
+  }
+}
+
+a {
+  color: $main-colour;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+pre {
+  display: block;
+  padding: 1rem;
+}
+
+pre, code {
+  font-size: 90%;
+  overflow: auto;
+  font-family: $code-font-family;
+  margin-bottom: 0;
+}
+
+pre > code {
+  display: block;
+  border: none;
+  font-style: normal;
+  font-size: 1rem;
+}
+
+iframe {
+  border: 0;
+}

@@ -1,0 +1,121 @@
+{% import "post_macros.html" as post_macros %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title>{% block title %}{{ config.title }}{% endblock title %}</title>
+
+      {% if config.generate_rss %}
+        <link rel="alternate" type="application/rss+xml" title="RSS" href="{{ get_url(path="rss.xml") }}">
+      {% endif %}
+
+      {% block js %}
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/slideout/1.0.1/slideout.min.js"></script>
+          {% if config.extra.katex_enable %}
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css" integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
+
+          <script defer src="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.js" integrity="sha384-K3vbOmF2BtaVai+Qk37uypf7VrgBubhQreNQe9aGsz9lB63dIFiQVlJbr92dw2Lx" crossorigin="anonymous"></script>
+          <script defer src="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/contrib/mathtex-script-type.min.js" integrity="sha384-zWYbd0NBwgTsgIdFKVprSfTh1mbMPe5Hz1X3yY4Sd1h/K1cQoUe36OGwAGz/PcDy" crossorigin="anonymous"></script>
+              {% if config.extra.katex_auto_render %}
+          <script defer src="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/contrib/auto-render.min.js" integrity="sha384-kmZOZB5ObwgQnS/DuDg6TScgOiWWBiVt0plIRkZCmE6rDZGrEOQeHM5PcHi+nyqe" crossorigin="anonymous"
+                  onload="renderMathInElement(document.body);"></script>
+              {% endif %}
+          {% endif %}
+      {% endblock js %}
+
+      {% block css %}
+          <link rel="stylesheet" href="{{ get_url(path="site.css", trailing_slash=false) }}">
+          {% if config.extra.katex_enable %}
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css" integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
+          {% endif %}
+      {% endblock css %}
+
+      {% block extra_head %}
+      {% endblock extra_head %}
+    </head>
+
+    <body>
+        <div class="container">
+
+            <div id="mobile-navbar" class="mobile-navbar">
+              <div class="mobile-header-logo">
+                <a href="/" class="logo">{{ config.extra.even_title }}</a>
+              </div>
+              <div class="mobile-navbar-icon icon-out">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+
+            <nav id="mobile-menu" class="mobile-menu slideout-menu slideout-menu-left">
+              <ul class="mobile-menu-list">
+                {% for item in config.extra.even_menu %}
+                    <li class="mobile-menu-item">
+                        <a href="{{ item.url | replace(from="$BASE_URL", to=config.base_url) }}">
+                            {{ item.name }}
+                        </a>
+                    </li>
+                {% endfor %}
+              </ul>
+            </nav>
+
+            <header id="header">
+                <div class="logo"><a href="{{ config.base_url }}">{{ config.extra.even_title }}</a></div>
+                <nav class="menu">
+                    <ul>
+                        {% for item in config.extra.even_menu %}
+                            <li>
+                                <a href="{{ item.url | replace(from="$BASE_URL", to=config.base_url) }}">
+                                    {{ item.name }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </nav>
+            </header>
+
+            <main>
+                <div class="content" id="mobile-panel">
+                    {% block content %}
+                        <div class="posts">
+                            {% for page in paginator.pages %}
+                                <article class="post">
+                                    {{ post_macros::title(page=page) }}
+                                    <div class="post__summary">
+                                        {{ page.summary | safe }}
+                                    </div>
+                                    <div class="read-more">
+                                        <a href="{{ page.permalink }}">Read more...</a>
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                        <nav class="pagination">
+                            {% if paginator.previous %}
+                                <a class="previous" href="{{ paginator.previous }}">‹ Previous</a>
+                            {% endif %}
+                            {% if paginator.next %}
+                                <a class="next" href="{{ paginator.next }}">Next ›</a>
+                            {% endif %}
+                        </nav>
+                    {% endblock content %}
+                </div>
+            </main>
+
+            {% block footer %}
+            {% endblock footer %}
+        </div>
+
+      {% block js_body %}
+          <script type="text/javascript" src="{{ get_url(path="even.js", trailing_slash=false) }}" ></script>
+      {% endblock js_body %}
+    </body>
+
+</html>
