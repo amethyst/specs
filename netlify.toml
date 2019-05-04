@@ -1,0 +1,8 @@
+[build]
+publish = "public"
+command = "./scripts/build-netlify.sh"
+
+[build.environment]
+
+[context.deploy-preview]
+command = "./scripts/build-netlify.sh"
