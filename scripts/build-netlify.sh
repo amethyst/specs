@@ -20,7 +20,6 @@ BIN_DIR=$(pwd)
 # Build website
 echo "Building website..."
 
-BASE_URL=${DEPLOY_PRIME_URL:-"https://slide-rs.github.io/"}
 cd "${WORKING_DIR}"/docs/website
 "${BIN_DIR}"/zola build --base-url "${BASE_URL}" -o "${WORKING_DIR}/public"
 
