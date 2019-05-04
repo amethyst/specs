@@ -27,7 +27,7 @@ cd "${WORKING_DIR}"/docs/website
 # Build reference + tutorials
 build_book() {
 	cd "${WORKING_DIR}"/docs/$1
-	"${BIN_DIR}"/mdbook build -d "${WORKING_DIR}/public/$1"
+	"${BIN_DIR}"/mdbook build -d "${WORKING_DIR}/public/docs/$1"
 }
 
 echo "Building books..."

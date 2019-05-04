@@ -10,7 +10,7 @@ template = "about.html"
 
 ## Tutorials
 
-* [API docs for master](tutorials/)
+* [Tutorials for master](tutorials/)
 
 ## Reference
 
