@@ -2,7 +2,7 @@
 
 `saveload` is a module that provides mechanisms to serialize and deserialize a `World`, it makes use of the popular [`serde`] library and requires the feature flag `serde` to be enabled for `specs` in your `Cargo.toml` file.
 
-At a high level, it works by defining aidentifier `Component`, the `Marker`, as well as a `Resource`, the `MarkerAllocator`. Marked entities will be the only ones subject to serialization and deserialization.
+At a high level, it works by defining an identifier `Component`, the `Marker`, as well as a `Resource`, the `MarkerAllocator`. Marked entities will be the only ones subject to serialization and deserialization.
 
 `saveloc` also defines `SerializeComponents` and `DeserializeComponents`, these do the heavy lifting of exporting and importing, as such, they take a bunch of `SystemData` as parameters.
 
