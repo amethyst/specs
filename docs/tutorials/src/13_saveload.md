@@ -4,7 +4,7 @@
 
 At a high level, it works by defining an identifier `Component`, the `Marker`, as well as a `Resource`, the `MarkerAllocator`. Marked entities will be the only ones subject to serialization and deserialization.
 
-`saveloc` also defines `SerializeComponents` and `DeserializeComponents`, these do the heavy lifting of exporting and importing, as such, they take a bunch of `SystemData` as parameters.
+`saveload` also defines `SerializeComponents` and `DeserializeComponents`, these do the heavy lifting of exporting and importing, as such, they take a bunch of `SystemData` as parameters.
 
 Let's go over everything, point by point:
 
@@ -102,10 +102,11 @@ used in `System`s.
 Each `Component` that you will read from and write to must implement
 `ConvertSaveload`, it's a benign trait and is implemented for all `Component`s
 that are `Clone + serde::Serialize + serde::DeserializeOwned`, however you may
-need to implement it (or derive it using `specs_derive`). In which case, you
+need to implement it (or derive it using [`specs-derive`]). In which case, you
 may introduce more bounds to the first generic parameter and will need to
 replace `NoError` with a custom type, this custom type must implement
 `From<ConvertSaveload::Error>` for all `Component`s, basically.
 
-[`serde`]: https://docs.rs/serde
 [`newtype`]: https://doc.rust-lang.org/1.0.0/style/features/types/newtype.html
+[`serde`]: https://docs.rs/serde
+[`specs-derive`]: https://docs.rs/specs-derive
