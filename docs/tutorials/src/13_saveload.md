@@ -110,8 +110,7 @@ the two heavy lifters. They're traits as well, however, that's just an
 implementation detail, they are used like functions. They're implemented over
 tuples of up to 16 `ReadStorage`/`WriteStorage`.
 
-Since the call sites are very busy, I'll do my best to make it understandable,
-here goes serializing:
+Here is an example showing how to serialize:
 
 ```rust,ignore
 specs::saveload::SerializeComponents
@@ -124,7 +123,7 @@ specs::saveload::SerializeComponents
     )   // returns Result<Serializer::Ok, Serializer::Error>
 ```
 
-and deserializing:
+and now, how to deserialize:
 
 ```rust,ignore
 specs::saveload::DeserializeComponents
