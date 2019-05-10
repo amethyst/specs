@@ -88,13 +88,18 @@ creation, it is implemented for `EntityBuilder` and `LazyBuilder`. Marking an
 entity that is already present is straightforward:
 
 ```rust,ignore
-fn mark_entity<M: Marker>(
+fn mark_entity(
     entity: Entity,
-    allocator: &mut MarkerAllocator<M>,
-    mut storage: WriteStorage<M>,
+    mut allocator: Write<U64MarkerAllocator>,
+    mut storage: WriteStorage<U64Marker>,
 ) {
-    let marker = allocator.allocate(entity, None);
-    let _ = storage.insert(entity, marker);
+    use MarkerAllocator; // for MarkerAllocator::mark
+
+    match allocator.mark(entity, &mut storage) {
+        None => println!("entity was dead before it could be marked"),
+        Some((_, false)) => println!("entity was already marked"),
+        Some((_, true)) => println!("entity successfully marked"),
+    }
 }
 ```
 
