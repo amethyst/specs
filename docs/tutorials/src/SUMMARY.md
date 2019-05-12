@@ -12,5 +12,7 @@
 - [Rendering](10_rendering.md)
 - [Advanced component strategies](11_advanced_component.md)
 - [FlaggedStorage and modification events](12_tracked.md)
+- [Saveload](13_saveload.md)
+- [Troubleshooting](14_troubleshooting.md)
 <!-- - [Building a game with Specs]() -->
 
