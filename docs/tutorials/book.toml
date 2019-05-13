@@ -1,0 +1,5 @@
+[book]
+title = "The Specs Book"
+multilingual = false
+author = "Thomas Schaller"
+description = "Introduction to ECS and Specs tutorials."

@@ -1,0 +1,244 @@
+main {
+  clear: both;
+
+  .content {
+    padding: 0 20px;
+  }
+
+  .posts {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e6e6e6;
+  }
+
+  .read-more a {
+    font-size: 1.1rem;
+    color: $main-colour;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .about,
+  .post {
+    padding: 1.5rem 0;
+
+    h2, h3, h4, h5, h6 {
+      font-weight: 400;
+    }
+
+    code {
+      padding: 3px 5px;
+      border-radius: 4px;
+      color: $code-colour;
+      background: $secondary-colour;
+    }
+
+    p > a {
+      color: $main-colour;
+      word-break: break-all;
+
+      &:hover {
+        border-bottom: 1px solid $main-colour;
+      }
+    }
+
+    blockquote {
+      margin: 2em 0;
+      padding: 10px 20px;
+      position: relative;
+      color: rgba(#34495e, 0.8);
+      background-color: rgba(192, 91, 77, .05);
+      border-left: 3px solid rgba(192, 91, 77, .3);
+      box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+
+      p {
+        margin: 0;
+      }
+    }
+
+    table {
+      width: 100%;
+      max-width: 100%;
+      margin: 10px 0;
+      border-spacing: 0;
+      box-shadow: 2px 2px 3px rgba(0, 0, 0, .125);
+
+      thead {
+        background: $secondary-colour;
+      }
+
+      th, td {
+        padding: 5px 15px;
+        border: 1px double darken($secondary-colour, 3%);
+      }
+
+      tr:hover {
+        background-color: $secondary-colour;
+      }
+    }
+
+    &__title {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 400;
+
+      @include underline-from-center;
+    }
+
+    &__category {
+      display: inline;
+
+      a {
+        color: inherit;
+
+        &:before {
+          content: "\B7";
+          padding-right: 2px;
+        }
+
+        &:hover {
+          color: $main-colour;
+        }
+      }
+    }
+
+    &__meta {
+      font-size: 14px;
+      color: #8a8a8a;
+    }
+
+    &__summary {
+      margin-bottom: 1rem;
+    }
+  }
+
+  .post-footer {
+    margin-top: 20px;
+    border-top: 1px solid #e6e6e6;
+
+    &:after {
+        clear: both;
+        height: 0;
+        width: 100%;
+        content: '';
+        display: block;
+    }
+  }
+
+  .post-tags {
+    padding: 15px 0;
+
+    a {
+      margin-right: 5px;
+      color: $main-colour;
+      word-break: break-all;
+    }
+  }
+
+  .post-nav {
+    margin: 1rem 0;
+  }
+
+  .post + .post {
+    border-top: 1px solid #e6e6e6;
+  }
+
+  .pagination {
+    margin: 2rem 0;
+    clear: both;
+  }
+}
+
+.next, .previous {
+  font-weight: 600;
+  font-size: 20px;
+  transition: transform 0.3s ease-out;
+
+  &:hover {
+    color: $main-colour;
+  }
+}
+
+.next {
+  float: right;
+  &:hover {
+    transform: translateX(4px);
+  }
+}
+
+.previous {
+  float: left;
+  &:hover {
+    transform: translateX(-4px);
+  }
+}
+
+.taxonomies {
+  margin: 2em 0 3em;
+  text-align: center;
+
+  &__title {
+    display: inline-block;
+    font-size: 18px;
+    color: $main-colour;
+    border-bottom: 2px solid $main-colour;
+  }
+
+  &__items {
+    margin: 10px 0;
+
+    a {
+      margin: 5px 10px;
+      word-wrap: break-word;
+      position: relative;
+
+      &:hover {
+        color: $main-colour;
+      }
+
+      .count {
+        position: relative;
+        top: -8px;
+        right: -2px;
+        color: $main-colour;
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+.taxonomy {
+  margin: 2em 0;
+
+  &__item {
+    padding: 3px 20px;
+    border-left: 1px solid #cacaca;
+    transition: 0.2s ease-out;
+
+    &:hover {
+      border-left: 3px solid $main-colour;
+      transform: translateX(4px);
+    }
+
+    &__time {
+      margin-right: 10px;
+      color: #8a8a8a;
+    }
+
+    &__title a {
+      color: $main-colour;
+    }
+  }
+}
+
+.about {
+  p > a {
+    color: $main-colour;
+    word-break: break-all;
+
+    &:hover {
+      border-bottom: 1px solid $main-colour;
+    }
+  }
+}

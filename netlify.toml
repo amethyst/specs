@@ -1,0 +1,8 @@
+[build]
+publish = "public"
+command = "BASE_URL=\"https://specs.netlify.com\" ./scripts/build-netlify.sh"
+
+[build.environment]
+
+[context.deploy-preview]
+command = "BASE_URL=${DEPLOY_PRIME_URL} ./scripts/build-netlify.sh"

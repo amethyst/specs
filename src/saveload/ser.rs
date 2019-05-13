@@ -63,7 +63,7 @@ where
     /// in `ids` argument marks unmarked `Entity` (the marker of which was
     /// requested) and it will get serialized recursively.
     /// For serializing without such recursion see `serialize` function.
-    fn serialize_recursive<MS, S>(
+    fn serialize_recursive<S>(
         &self,
         entities: &EntitiesRes,
         markers: &mut WriteStorage<M>,
