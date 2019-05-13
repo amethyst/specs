@@ -30,10 +30,44 @@ script:
   else
     cargo build --verbose --no-default-features;
     cargo test --verbose --no-default-features;
-    cargo test --verbose --features "parallel,serde";
+    cargo test --verbose --features "parallel,serde,uuid_entity";
   fi
 - cargo build --manifest-path ./specs-derive/Cargo.toml --verbose
 - cargo test --manifest-path ./specs-derive/Cargo.toml --verbose
+
+
+addons:
+  apt:
+    packages:
+      - binutils-dev
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - cmake
+      - gcc
+      - libiberty-dev
+
+after_success: |
+  [ $TRAVIS_BRANCH = master ] &&
+  [ $TRAVIS_PULL_REQUEST = false ] &&
+  [ $TRAVIS_RUST_VERSION = stable ] &&
+  wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
+  tar xzf master.tar.gz &&
+  cd kcov-master &&
+  mkdir build &&
+  cd build &&
+  cmake .. &&
+  make &&
+  make install DESTDIR=../../kcov-build &&
+  cd ../.. &&
+  rm -rf kcov-master &&
+  for file in target/debug/specs-*; do 
+    [ -x "${file}" ] || continue;
+    mkdir -p "target/cov/$(basename $file)";
+    ./kcov-build/usr/local/bin/kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file";
+  done &&
+  bash <(curl -s https://codecov.io/bash) &&
+  echo "Uploaded code coverage"
 
 # after_success: |
 #   [ $TRAVIS_BRANCH = master ] &&
