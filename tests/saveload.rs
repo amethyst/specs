@@ -60,7 +60,6 @@ mod tests {
 
     impl EntityLike for Entity {}
 
-    #[derive(Clone, Debug, Hash, PartialEq, Eq)]
     struct NetworkSync;
 
     #[test]

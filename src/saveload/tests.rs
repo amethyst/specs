@@ -25,7 +25,6 @@ mod marker_test {
         type Storage = VecStorage<Self>;
     }
 
-    #[derive(Clone, Debug, Hash, PartialEq, Eq)]
     struct NetworkSync;
 
     /// Ensure that the marker correctly allocates IDs for entities that come

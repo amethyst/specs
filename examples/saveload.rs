@@ -99,7 +99,6 @@ impl From<NoError> for Combined {
     }
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 struct NetworkSync;
 
 fn main() {

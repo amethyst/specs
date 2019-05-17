@@ -26,7 +26,6 @@ pub trait MarkedBuilder {
     ///     saveload::{MarkedBuilder, SimpleMarker, SimpleMarkerAllocator},
     /// };
     ///
-    /// #[derive(Clone, Debug, Hash, PartialEq, Eq)]
     /// struct NetworkSync;
     ///
     /// fn mark_entity<M: Builder + MarkedBuilder>(markable: M) -> Entity {
@@ -70,7 +69,6 @@ impl<'a> MarkedBuilder for LazyBuilder<'a> {
     ///     saveload::{MarkedBuilder, SimpleMarker, SimpleMarkerAllocator},
     /// };
     ///
-    /// #[derive(Clone, Debug, Hash, PartialEq, Eq)]
     /// struct NetworkSync;
     ///
     /// let mut world = World::new();
@@ -116,7 +114,6 @@ impl<'a> EntityResBuilder<'a> {
     ///     saveload::{SimpleMarker, SimpleMarkerAllocator},
     /// };
     ///
-    /// #[derive(Clone, Debug, Hash, PartialEq, Eq)]
     /// struct NetworkSync;
     ///
     /// let mut world = World::new();
@@ -367,16 +364,20 @@ pub trait MarkerAllocator<M: Marker>: Resource {
 }
 
 /// Basic marker implementation usable for saving and loading, uses `u64` as identifier
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Derivative, Serialize, Deserialize)]
+#[derivative(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct SimpleMarker<T: ?Sized>(u64, PhantomData<T>);
 
-impl<T: ?Sized + Send + Sync + 'static> Component for SimpleMarker<T> {
+impl<T> Component for SimpleMarker<T>
+where
+    T: 'static + ?Sized + Send + Sync,
+{
     type Storage = DenseVecStorage<Self>;
 }
 
 impl<T> Marker for SimpleMarker<T>
 where
-    T: 'static + ?Sized + Clone + Debug + Eq + Hash + Send + Sync,
+    T: 'static + ?Sized + Send + Sync,
 {
     type Allocator = SimpleMarkerAllocator<T>;
     type Identifier = u64;
@@ -387,7 +388,8 @@ where
 }
 
 /// Basic marker allocator, uses `u64` as identifier
-#[derive(Clone, Debug)]
+#[derive(Derivative)]
+#[derivative(Clone, Debug)]
 pub struct SimpleMarkerAllocator<T: ?Sized> {
     index: u64,
     mapping: HashMap<u64, Entity>,
@@ -414,7 +416,7 @@ impl<T> SimpleMarkerAllocator<T> {
 
 impl<T> MarkerAllocator<SimpleMarker<T>> for SimpleMarkerAllocator<T>
 where
-    T: 'static + ?Sized + Clone + Debug + Eq + Hash + Send + Sync,
+    T: 'static + ?Sized + Send + Sync,
 {
     fn allocate(&mut self, entity: Entity, id: Option<u64>) -> SimpleMarker<T> {
         let marker = if let Some(id) = id {
