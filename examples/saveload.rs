@@ -9,7 +9,7 @@ use specs::{
     error::NoError,
     prelude::*,
     saveload::{
-        DeserializeComponents, MarkedBuilder, SerializeComponents, U64Marker, U64MarkerAllocator,
+        DeserializeComponents, MarkedBuilder, SerializeComponents, SimpleMarker, SimpleMarkerAllocator,
     },
 };
 
@@ -22,7 +22,7 @@ use specs::{
 const ENTITIES: &str = "
 [
     (
-        marker: (0),
+        marker: (0, PhantomData),
         components: (
             Some((
                 x: 10,
@@ -32,7 +32,7 @@ const ENTITIES: &str = "
         ),
     ),
     (
-        marker: (1),
+        marker: (1, PhantomData),
         components: (
             Some(Pos(
                 x: 5,
@@ -99,6 +99,9 @@ impl From<NoError> for Combined {
     }
 }
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+struct NetworkSync;
+
 fn main() {
     let mut world = World::new();
 
@@ -106,13 +109,13 @@ fn main() {
     // registered manually. This is typically not required.
     world.register::<Pos>();
     world.register::<Mass>();
-    world.register::<U64Marker>();
+    world.register::<SimpleMarker<NetworkSync>>();
 
     // Adds a predefined marker allocator to the world, as a resource.
     // This predifined marker uses a `HashMap<u64, Entity>` to keep track of all
     // entities that should be (de)serializable, as well as which ids are
     // already in use.
-    world.add_resource(U64MarkerAllocator::new());
+    world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
 
     world
         .create_entity()
@@ -125,14 +128,14 @@ fn main() {
         // Since the `Marker` is passed as a generic type parameter, it is possible to use several different `MarkerAllocators`,
         // e.g. to keep track of different types of entities, with different ids.
         // **Careful when deserializing, it is not always clear for every fileforamt whether a number is supposed to be i.e. a `u32` or `u64`!**
-        .marked::<U64Marker>()
+        .marked::<SimpleMarker<NetworkSync>>()
         .build();
 
     world
         .create_entity()
         .with(Pos { x: 7.0, y: 2.0 })
         .with(Mass(4.5))
-        .marked::<U64Marker>()
+        .marked::<SimpleMarker<NetworkSync>>()
         .build();
 
     // Here we create a system that lets us access the entities to serialize.
@@ -145,7 +148,7 @@ fn main() {
             Entities<'a>,
             ReadStorage<'a, Pos>,
             ReadStorage<'a, Mass>,
-            ReadStorage<'a, U64Marker>,
+            ReadStorage<'a, SimpleMarker<NetworkSync>>,
         );
 
         fn run(&mut self, (ents, pos, mass, markers): Self::SystemData) {
@@ -159,7 +162,7 @@ fn main() {
             // * An unbound type -> `NoError` (However, the serialize function expects it to
             //   be bound by the `Display`-trait)
             // * A type implementing the `Marker`-trait ->
-            //   [U64Marker](struct.U64Marker.html) (a convenient, predefined marker)
+            //   [SimpleMarker](struct.SimpleMarker.html) (a convenient, predefined marker)
             //
             // The first parameter resembles the `.join()` syntax from other specs-systems,
             // every component that should be serialized has to be put inside a tuple.
@@ -169,7 +172,7 @@ fn main() {
             //
             // Lastly, we provide a mutable reference to the serializer of choice, which has
             // to have the `serde::ser::Serializer`-trait implemented.
-            SerializeComponents::<NoError, U64Marker>::serialize(
+            SerializeComponents::<NoError, SimpleMarker<NetworkSync>>::serialize(
                 &(&pos, &mass),
                 &ents,
                 &markers,
@@ -200,10 +203,10 @@ fn main() {
         // ids into, so that we can later serialize again.
         type SystemData = (
             Entities<'a>,
-            Write<'a, U64MarkerAllocator>,
+            Write<'a, SimpleMarkerAllocator<NetworkSync>>,
             WriteStorage<'a, Pos>,
             WriteStorage<'a, Mass>,
-            WriteStorage<'a, U64Marker>,
+            WriteStorage<'a, SimpleMarker<NetworkSync>>,
         );
 
         fn run(&mut self, (ent, mut alloc, pos, mass, mut markers): Self::SystemData) {
@@ -220,7 +223,7 @@ fn main() {
                 // Again, we need to pass in a type implementing the `Display`-trait,
                 // as well as a type implementing the `Marker`-trait.
                 // However, from the function parameter `&mut markers`, which refers to the
-                // `U64Marker`-storage, the necessary type of marker can be
+                // `SimpleMarker`-storage, the necessary type of marker can be
                 // inferred, hence the `, _>´.
                 DeserializeComponents::<Combined, _>::deserialize(
                     &mut (pos, mass),

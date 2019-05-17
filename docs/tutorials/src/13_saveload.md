@@ -15,12 +15,34 @@ Let's go over everything, point by point:
 
 ## `Marker` and `MarkerAllocator`
 
-`Marker` and `MarkerAllocator<M: Marker>` are actually traits, a simple
-implementation is available with `U64Marker` and `U64MarkerAllocator`. While
-these work well, you may want to use multiple `Marker` types (one for
-persistent storage, another for network synchronization, ...), in which case,
-you could simply implement the traits over multiple [`newtype`]s or implement
-the trait once over a generic type. Let's see what it would look like in code:
+`Marker` and `MarkerAllocator<M: Marker>` are actually traits, simple
+implementations are available with `SimpleMarker<T: ?Sized>` and
+`SimpleMarkerAllocator<T: ?Sized>`, which you may use multiple times with
+[Zero Sized Types].
+
+```rust,ignore
+struct NetworkSync;
+struct FilePersistent;
+
+fn main() {
+    let mut world = World::new();
+
+    world.register::<SimpleMarker<NetworkSync>>();
+    world.add_resource(SimpleMarkerAllocator::<NetworkSync>::default());
+
+    world.register::<SimpleMarker<FilePersistent>>();
+    world.add_resource(SimpleMarkerAllocator::<FilePersistent>::default());
+
+    world
+        .create_entity()
+        .marked::<SimpleMarker<NetworkSync>>()
+        .marked::<SimpleMarker<FilePersistent>>()
+        .build();
+}
+
+```
+
+You may also roll your own implementations like so:
 
 ```rust,ignore
 use specs::{prelude::*, saveload::{MarkedBuilder, Marker, MarkerAllocator}};
@@ -90,8 +112,8 @@ entity that is already present is straightforward:
 ```rust,ignore
 fn mark_entity(
     entity: Entity,
-    mut allocator: Write<U64MarkerAllocator>,
-    mut storage: WriteStorage<U64Marker>,
+    mut allocator: Write<SimpleMarkerAllocator<A>>,
+    mut storage: WriteStorage<SimpleMarker<A>>,
 ) {
     use MarkerAllocator; // for MarkerAllocator::mark
 
@@ -114,11 +136,11 @@ Here is an example showing how to serialize:
 
 ```rust,ignore
 specs::saveload::SerializeComponents
-    ::<NoError, U64Marker>
+    ::<NoError, SimpleMarker<A>>
     ::serialize(
         &(position_storage, mass_storage),      // tuple of ReadStorage<'a, _>
         &entities,                              // Entities<'a>
-        &marker_storage,                        // ReadStorage<'a, U64Marker>
+        &marker_storage,                        // ReadStorage<'a, SimpleMarker<A>>
         &mut serializer,                        // serde::Serializer
     )   // returns Result<Serializer::Ok, Serializer::Error>
 ```
@@ -127,12 +149,12 @@ and now, how to deserialize:
 
 ```rust,ignore
 specs::saveload::DeserializeComponents
-    ::<NoError, U64Marker>
+    ::<NoError, SimpleMarker<A>>
     ::deserialize(
         &mut (position_storage, mass_storage),  // tuple of WriteStorage<'a, _>
         &entities,                              // Entities<'a>
-        &mut marker_storage,                    // WriteStorage<'a U64Marker>
-        &mut marker_allocator,                  // Write<'a, U64MarkerAllocator>
+        &mut marker_storage,                    // WriteStorage<'a SimpleMarker<A>>
+        &mut marker_allocator,                  // Write<'a, SimpleMarkerAllocator<A>>
         &mut deserializer,                      // serde::Deserializer
     )   // returns Result<(), Deserializer::Error>
 ```
@@ -150,8 +172,8 @@ let (
     mut mass_storage,
 ) = world.system_data::<(
     Entities,
-    WriteStorage<U64Marker>,
-    Write<U64MarkerAllocator>,
+    WriteStorage<SimpleMarker<A>>,
+    Write<SimpleMarkerAllocator<A>>,
     WriteStorage<Position>,
     WriteStorage<Mass>,
 )>();
@@ -166,6 +188,7 @@ replace `NoError` with a custom type, this custom type must implement
 `From<<TheComponent as ConvertSaveload>::Error>` for all `Component`s,
 basically.
 
+[Zero Sized Types]: https://doc.rust-lang.org/nomicon/exotic-sizes.html#zero-sized-types-zsts
 [`newtype`]: https://doc.rust-lang.org/1.0.0/style/features/types/newtype.html
 [`serde`]: https://docs.rs/serde
 [`specs-derive`]: https://docs.rs/specs-derive

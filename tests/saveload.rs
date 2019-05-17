@@ -13,7 +13,7 @@ extern crate specs_derive;
 mod tests {
     use spocs::{
         error::NoError,
-        saveload::{ConvertSaveload, Marker, U64Marker},
+        saveload::{ConvertSaveload, Marker, SimpleMarker},
         Builder, Entity, World, WorldExt,
     };
     #[cfg(feature = "uuid_entity")]
@@ -60,11 +60,14 @@ mod tests {
 
     impl EntityLike for Entity {}
 
+    #[derive(Clone, Debug, Hash, PartialEq, Eq)]
+    struct NetworkSync;
+
     #[test]
     fn type_check() {
         let mut world = World::new();
         let entity = world.create_entity().build();
-        type_check_internal::<U64Marker>(entity);
+        type_check_internal::<SimpleMarker<NetworkSync>>(entity);
         #[cfg(feature = "uuid_entity")]
         type_check_internal::<UuidMarker>(entity);
     }
