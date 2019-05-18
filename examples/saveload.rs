@@ -22,7 +22,7 @@ use specs::{
 const ENTITIES: &str = "
 [
     (
-        marker: (0, PhantomData),
+        marker: (0),
         components: (
             Some((
                 x: 10,
@@ -32,7 +32,7 @@ const ENTITIES: &str = "
         ),
     ),
     (
-        marker: (1, PhantomData),
+        marker: (1),
         components: (
             Some(Pos(
                 x: 5,
