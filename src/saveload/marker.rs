@@ -1,6 +1,6 @@
 //! Provides `Marker` and `MarkerAllocator` traits
 
-use std::{collections::HashMap, fmt::Debug, hash::Hash};
+use std::{collections::HashMap, fmt::Debug, hash::Hash, marker::PhantomData};
 
 use crate::{
     join::Join,
@@ -23,19 +23,21 @@ pub trait MarkedBuilder {
     /// ```
     /// use specs::{
     ///     prelude::*,
-    ///     saveload::{MarkedBuilder, U64Marker, U64MarkerAllocator},
+    ///     saveload::{MarkedBuilder, SimpleMarker, SimpleMarkerAllocator},
     /// };
+    ///
+    /// struct NetworkSync;
     ///
     /// fn mark_entity<M: Builder + MarkedBuilder>(markable: M) -> Entity {
     ///     markable
     ///    /* .with(Component1) */
-    ///     .marked::<U64Marker>()
+    ///     .marked::<SimpleMarker<NetworkSync>>()
     ///     .build()
     /// }
     ///
     /// let mut world = World::new();
-    /// world.register::<U64Marker>();
-    /// world.add_resource(U64MarkerAllocator::new());
+    /// world.register::<SimpleMarker<NetworkSync>>();
+    /// world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
     ///
     /// mark_entity(world.create_entity());
     /// ```
@@ -64,19 +66,21 @@ impl<'a> MarkedBuilder for LazyBuilder<'a> {
     /// ```rust
     /// use specs::{
     ///     prelude::*,
-    ///     saveload::{MarkedBuilder, U64Marker, U64MarkerAllocator},
+    ///     saveload::{MarkedBuilder, SimpleMarker, SimpleMarkerAllocator},
     /// };
-    /// let mut world = World::new();
     ///
-    /// world.register::<U64Marker>();
-    /// world.add_resource(U64MarkerAllocator::new());
+    /// struct NetworkSync;
+    ///
+    /// let mut world = World::new();
+    /// world.register::<SimpleMarker<NetworkSync>>();
+    /// world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
     ///
     /// # let lazy = world.read_resource::<LazyUpdate>();
     /// # let entities = world.entities();
     /// let my_entity = lazy
     ///     .create_entity(&entities)
     ///     /* .with(Component1) */
-    ///     .marked::<U64Marker>()
+    ///     .marked::<SimpleMarker<NetworkSync>>()
     ///     .build();
     /// ```
     ///
@@ -107,15 +111,17 @@ impl<'a> EntityResBuilder<'a> {
     /// ```
     /// use specs::{
     ///     prelude::*,
-    ///     saveload::{U64Marker, U64MarkerAllocator},
+    ///     saveload::{SimpleMarker, SimpleMarkerAllocator},
     /// };
     ///
-    /// let mut world = World::new();
-    /// world.register::<U64Marker>();
-    /// world.add_resource(U64MarkerAllocator::new());
+    /// struct NetworkSync;
     ///
-    /// let mut storage = world.write_storage::<U64Marker>();
-    /// let mut alloc = world.write_resource::<U64MarkerAllocator>();
+    /// let mut world = World::new();
+    /// world.register::<SimpleMarker<NetworkSync>>();
+    /// world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
+    ///
+    /// let mut storage = world.write_storage::<SimpleMarker<NetworkSync>>();
+    /// let mut alloc = world.write_resource::<SimpleMarkerAllocator<NetworkSync>>();
     ///
     /// let entities = world.entities();
     /// entities
@@ -357,16 +363,24 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     fn maintain(&mut self, _entities: &EntitiesRes, _storage: &ReadStorage<M>);
 }
 
-/// Basic marker implementation usable for saving and loading
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct U64Marker(u64);
+/// Basic marker implementation usable for saving and loading, uses `u64` as identifier
+#[derive(Derivative, Serialize, Deserialize)]
+#[derivative(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct SimpleMarker<T: ?Sized>(u64, #[serde(skip)] PhantomData<T>);
 
-impl Component for U64Marker {
+impl<T> Component for SimpleMarker<T>
+where
+    T: 'static + ?Sized + Send + Sync,
+{
     type Storage = DenseVecStorage<Self>;
 }
 
-impl Marker for U64Marker {
-    type Allocator = U64MarkerAllocator;
+impl<T> Marker for SimpleMarker<T>
+where
+    T: 'static + ?Sized + Send + Sync,
+{
+    type Allocator = SimpleMarkerAllocator<T>;
     type Identifier = u64;
 
     fn id(&self) -> u64 {
@@ -374,40 +388,46 @@ impl Marker for U64Marker {
     }
 }
 
-/// Basic marker allocator
-#[derive(Clone, Debug)]
-pub struct U64MarkerAllocator {
+/// Basic marker allocator, uses `u64` as identifier
+#[derive(Derivative)]
+#[derivative(Clone, Debug)]
+pub struct SimpleMarkerAllocator<T: ?Sized> {
     index: u64,
     mapping: HashMap<u64, Entity>,
+    _phantom_data: PhantomData<T>,
 }
 
-impl Default for U64MarkerAllocator {
+impl<T> Default for SimpleMarkerAllocator<T> {
     fn default() -> Self {
-        U64MarkerAllocator::new()
+        SimpleMarkerAllocator::new()
     }
 }
 
-impl U64MarkerAllocator {
-    /// Create new `U64MarkerAllocator` which will yield `U64Marker`s starting
+impl<T> SimpleMarkerAllocator<T> {
+    /// Create new `SimpleMarkerAllocator` which will yield `SimpleMarker`s starting
     /// with `0`
     pub fn new() -> Self {
-        U64MarkerAllocator {
+        SimpleMarkerAllocator {
             index: 0,
             mapping: HashMap::new(),
+            _phantom_data: PhantomData,
         }
     }
 }
 
-impl MarkerAllocator<U64Marker> for U64MarkerAllocator {
-    fn allocate(&mut self, entity: Entity, id: Option<u64>) -> U64Marker {
+impl<T> MarkerAllocator<SimpleMarker<T>> for SimpleMarkerAllocator<T>
+where
+    T: 'static + ?Sized + Send + Sync,
+{
+    fn allocate(&mut self, entity: Entity, id: Option<u64>) -> SimpleMarker<T> {
         let marker = if let Some(id) = id {
             if id >= self.index {
                 self.index = id + 1;
             }
-            U64Marker(id)
+            SimpleMarker(id, PhantomData)
         } else {
             self.index += 1;
-            U64Marker(self.index - 1)
+            SimpleMarker(self.index - 1, PhantomData)
         };
         self.mapping.insert(marker.id(), entity);
 
@@ -418,7 +438,7 @@ impl MarkerAllocator<U64Marker> for U64MarkerAllocator {
         self.mapping.get(&id).cloned()
     }
 
-    fn maintain(&mut self, entities: &EntitiesRes, storage: &ReadStorage<U64Marker>) {
+    fn maintain(&mut self, entities: &EntitiesRes, storage: &ReadStorage<SimpleMarker<T>>) {
         // FIXME: may be too slow
         self.mapping = (entities, storage)
             .join()

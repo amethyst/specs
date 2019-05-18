@@ -40,7 +40,7 @@ mod uuid;
 pub use self::uuid::{UuidMarker, UuidMarkerAllocator};
 pub use self::{
     de::DeserializeComponents,
-    marker::{MarkedBuilder, Marker, MarkerAllocator, U64Marker, U64MarkerAllocator},
+    marker::{MarkedBuilder, Marker, MarkerAllocator, SimpleMarker, SimpleMarkerAllocator},
     ser::SerializeComponents,
 };
 
