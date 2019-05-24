@@ -1,0 +1,22 @@
+name = "hyde"
+description = "A classic blog theme"
+license = "MIT"
+homepage = "https://github.com/getzola/hyde"
+min_version = "0.5.0"
+demo = "https://zola-hyde.netlify.com"
+
+[extra]
+hyde_sticky = true
+hyde_reverse = false
+hyde_theme = ""
+hyde_links = [
+]
+
+[author]
+name = "Vincent Prouillet"
+homepage = "https://www.vincentprouillet.com"
+
+[original]
+author =  "mdo"
+homepage = "http://markdotto.com/"
+repo = "https://www.github.com/mdo/hyde"
