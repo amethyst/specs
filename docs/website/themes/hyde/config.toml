@@ -1,0 +1,12 @@
+base_url = "https://zola-hyde.netlify.com"
+compile_sass = true
+title = "Hyde theme"
+description = "A clean blogging theme"
+
+[extra]
+hyde_sticky = true
+hyde_reverse = false
+hyde_theme = ""
+hyde_links = [
+    {url = "https://google.com", name = "About"},
+]

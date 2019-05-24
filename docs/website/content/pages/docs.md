@@ -1,7 +1,7 @@
 +++
 title = "Documentation"
 path = "docs"
-template = "about.html"
+template = "page-nodate.html"
 +++
 
 ## API documentation

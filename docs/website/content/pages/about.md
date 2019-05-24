@@ -1,7 +1,7 @@
 +++
 title = "About"
 path = "about"
-template = "about.html"
+template = "page-nodate.html"
 +++
 
 This site is about Specs.
