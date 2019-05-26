@@ -9,7 +9,8 @@ use specs::{
     error::NoError,
     prelude::*,
     saveload::{
-        DeserializeComponents, MarkedBuilder, SerializeComponents, SimpleMarker, SimpleMarkerAllocator,
+        DeserializeComponents, MarkedBuilder, SerializeComponents, SimpleMarker,
+        SimpleMarkerAllocator,
     },
 };
 

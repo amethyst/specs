@@ -363,7 +363,8 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     fn maintain(&mut self, _entities: &EntitiesRes, _storage: &ReadStorage<M>);
 }
 
-/// Basic marker implementation usable for saving and loading, uses `u64` as identifier
+/// Basic marker implementation usable for saving and loading, uses `u64` as
+/// identifier
 #[derive(Derivative, Serialize, Deserialize)]
 #[derivative(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[repr(transparent)]
@@ -404,8 +405,8 @@ impl<T> Default for SimpleMarkerAllocator<T> {
 }
 
 impl<T> SimpleMarkerAllocator<T> {
-    /// Create new `SimpleMarkerAllocator` which will yield `SimpleMarker`s starting
-    /// with `0`
+    /// Create new `SimpleMarkerAllocator` which will yield `SimpleMarker`s
+    /// starting with `0`
     pub fn new() -> Self {
         SimpleMarkerAllocator {
             index: 0,
