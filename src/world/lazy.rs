@@ -26,7 +26,7 @@ pub struct LazyBuilder<'a> {
 }
 
 impl<'a> Builder for LazyBuilder<'a> {
-    /// Inserts a component using [`LazyUpdate`].
+    /// Inserts a component using [LazyUpdate].
     ///
     /// If a component was already associated with the entity, it will
     /// overwrite the previous component.
