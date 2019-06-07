@@ -49,3 +49,4 @@ define_bit_join!(impl<('a)(A, B)> for &'a BitSetAnd<A, B>);
 define_bit_join!(impl<()(A, B)> for BitSetOr<A, B>);
 define_bit_join!(impl<('a)(A, B)> for &'a BitSetOr<A, B>);
 define_bit_join!(impl<()(A, B)> for BitSetXor<A, B>);
+define_bit_join!(impl<('a)()> for &'a dyn BitSetLike);
