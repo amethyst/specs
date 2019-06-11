@@ -45,7 +45,7 @@ mod track;
 
 /// An inverted storage type, only useful to iterate entities
 /// that do not have a particular component type.
-pub struct AntiStorage<'a>(&'a BitSet);
+pub struct AntiStorage<'a>(pub &'a BitSet);
 
 impl<'a> Join for AntiStorage<'a> {
     type Mask = BitSetNot<&'a BitSet>;
