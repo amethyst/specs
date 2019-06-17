@@ -94,9 +94,11 @@ need to create a world in which to store all of our components.
 ```rust,ignore
 use specs::{World, WorldExt, Builder};
 
-let mut world = World::new();
-world.register::<Position>();
-world.register::<Velocity>();
+fn the_world(){
+    let mut world = World::new();
+    world.register::<Position>();
+    world.register::<Velocity>();
+}
 ```
 
 This will create component storages for `Position`s and `Velocity`s.
