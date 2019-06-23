@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use fnv::FnvHashMap;
+use hashbrown::HashMap;
 use hibitset::BitSetLike;
 
 use crate::{
@@ -42,10 +42,12 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
 
 unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 
-/// HashMap-based storage. Best suited for rare components.
+/// `HashMap`-based storage. Best suited for rare components.
+///
+/// This uses the [hashbrown::HashMap] internally.
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
-pub struct HashMapStorage<T>(FnvHashMap<Index, T>);
+pub struct HashMapStorage<T>(HashMap<Index, T>);
 
 impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     unsafe fn clean<B>(&mut self, _has: B)

@@ -189,7 +189,7 @@ pub extern crate shred;
 extern crate crossbeam;
 #[macro_use]
 extern crate derivative;
-extern crate fnv;
+extern crate hashbrown;
 extern crate hibitset;
 #[macro_use]
 extern crate log;
