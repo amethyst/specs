@@ -217,9 +217,6 @@ pub mod prelude;
 pub mod storage;
 pub mod world;
 
-pub use crate::join::Join;
-#[cfg(feature = "parallel")]
-pub use crate::join::ParJoin;
 pub use hibitset::BitSet;
 pub use shred::{
     Accessor, Dispatcher, DispatcherBuilder, Read, ReadExpect, RunNow, StaticAccessor, System,
@@ -230,8 +227,11 @@ pub use shrev::ReaderId;
 #[cfg(feature = "parallel")]
 pub use shred::AsyncDispatcher;
 
+#[cfg(feature = "parallel")]
+pub use crate::join::ParJoin;
 pub use crate::{
     changeset::ChangeSet,
+    join::Join,
     storage::{
         DenseVecStorage, FlaggedStorage, HashMapStorage, NullStorage, ReadStorage, Storage,
         Tracked, VecStorage, WriteStorage,

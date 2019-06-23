@@ -11,7 +11,8 @@ use crate::{
 };
 use shred::{Fetch, FetchMut, MetaTable, Read, Resource, SystemData, World};
 
-/// This trait provides some extension methods to make working with shred's [World] easier.
+/// This trait provides some extension methods to make working with shred's
+/// [World] easier.
 ///
 /// Many methods take `&self` which works because everything
 /// is stored with **interior mutability**. In case you violate
@@ -21,8 +22,8 @@ use shred::{Fetch, FetchMut, MetaTable, Read, Resource, SystemData, World};
 /// ## Difference between resources and components
 ///
 /// While components exist per [Entity], resources are like globals in the
-/// `World`. Components are stored in component storages ([MaskedStorage]), which are resources
-/// themselves.
+/// `World`. Components are stored in component storages ([MaskedStorage]),
+/// which are resources themselves.
 ///
 /// Everything that is `Any + Send + Sync` can be a resource.
 ///
