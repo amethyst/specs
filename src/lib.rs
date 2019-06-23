@@ -185,6 +185,8 @@
 //! See the repository's examples directory for more examples.
 
 pub extern crate hibitset;
+#[cfg(feature = "parallel")]
+pub extern crate rayon;
 pub extern crate shred;
 pub extern crate shrev;
 
@@ -196,8 +198,6 @@ extern crate hashbrown;
 extern crate log;
 extern crate mopa;
 extern crate nonzero_signed;
-#[cfg(feature = "parallel")]
-extern crate rayon;
 extern crate tuple_utils;
 #[cfg(feature = "uuid_entity")]
 pub extern crate uuid;
@@ -226,6 +226,9 @@ pub use shrev::ReaderId;
 
 #[cfg(feature = "parallel")]
 pub use shred::AsyncDispatcher;
+
+#[cfg(feature = "specs-derive")]
+pub use specs_derive::{Component, ConvertSaveload};
 
 #[cfg(feature = "parallel")]
 pub use crate::join::ParJoin;
