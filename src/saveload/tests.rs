@@ -46,7 +46,7 @@ mod marker_test {
     {
         let mut world = World::new();
 
-        world.add_resource(allocator.clone());
+        world.insert(allocator.clone());
         world.register::<A>();
         world.register::<B>();
         world.register::<M>();
@@ -92,7 +92,7 @@ mod marker_test {
         // Throw the old world away and deserialize into a new world
         let mut world = World::new();
 
-        world.add_resource(allocator);
+        world.insert(allocator);
         world.register::<A>();
         world.register::<B>();
         world.register::<M>();

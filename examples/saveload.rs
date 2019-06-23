@@ -115,7 +115,7 @@ fn main() {
     // This predifined marker uses a `HashMap<u64, Entity>` to keep track of all
     // entities that should be (de)serializable, as well as which ids are
     // already in use.
-    world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
+    world.insert(SimpleMarkerAllocator::<NetworkSync>::new());
 
     world
         .create_entity()

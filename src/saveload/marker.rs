@@ -37,7 +37,7 @@ pub trait MarkedBuilder {
     ///
     /// let mut world = World::new();
     /// world.register::<SimpleMarker<NetworkSync>>();
-    /// world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
+    /// world.insert(SimpleMarkerAllocator::<NetworkSync>::new());
     ///
     /// mark_entity(world.create_entity());
     /// ```
@@ -73,7 +73,7 @@ impl<'a> MarkedBuilder for LazyBuilder<'a> {
     ///
     /// let mut world = World::new();
     /// world.register::<SimpleMarker<NetworkSync>>();
-    /// world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
+    /// world.insert(SimpleMarkerAllocator::<NetworkSync>::new());
     ///
     /// # let lazy = world.read_resource::<LazyUpdate>();
     /// # let entities = world.entities();
@@ -118,7 +118,7 @@ impl<'a> EntityResBuilder<'a> {
     ///
     /// let mut world = World::new();
     /// world.register::<SimpleMarker<NetworkSync>>();
-    /// world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
+    /// world.insert(SimpleMarkerAllocator::<NetworkSync>::new());
     ///
     /// let mut storage = world.write_storage::<SimpleMarker<NetworkSync>>();
     /// let mut alloc = world.write_resource::<SimpleMarkerAllocator<NetworkSync>>();
@@ -220,7 +220,7 @@ impl<'a> EntityResBuilder<'a> {
 ///     let mut world = World::new();
 ///     world.register::<NetMarker>();
 ///
-///     world.add_resource(NetNode {
+///     world.insert(NetNode {
 ///         range: 0..100,
 ///         mapping: HashMap::new(),
 ///     });
