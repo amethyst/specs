@@ -2,18 +2,24 @@
 
 ## Setting up
 
-First of all, thanks for trying out `specs`. Let's
-set it up first. Add the following line to your `Cargo.toml`:
+First of all, thanks for trying out `specs`.
+Before setting up the project, please make sure you're using the latest Rust version:
+
+```bash
+rustup update
+```
+
+Okay, now let's set up the project!
+
+```bash
+cargo new --bin my_game
+``` 
+ 
+Add the following line to your `Cargo.toml`:
 
 ```toml
 [dependencies]
 specs = "0.14.0"
-```
-
-And add this to your crate root (`main.rs` or `lib.rs`):
-
-```rust,ignore
-extern crate specs;
 ```
 
 ## Components
@@ -48,21 +54,16 @@ These will be our two component types. Optionally, the `specs-derive` crate
 provides a convenient custom `#[derive]` you can use to define component types
 more succinctly. 
 
-But first, you will need to add specs-derive to your crate
+But first, you will need to enable the `specs-derive` feature:
 
 ```toml
 [dependencies]
-specs = "0.14.0"
-specs-derive = "0.4.0"
+specs = { version = "0.15.0", features = ["specs-derive"] }
 ```
 
-Now you can use this:
+Now you can do this:
 
 ```rust,ignore
-extern crate specs;
-#[macro_use]
-extern crate specs_derive;
-
 use specs::{Component, VecStorage};
 
 #[derive(Component, Debug)]
@@ -91,7 +92,7 @@ need to create a world in which to store all of our components.
 ## The `World`
 
 ```rust,ignore
-use specs::{World, Builder};
+use specs::{World, WorldExt, Builder};
 
 let mut world = World::new();
 world.register::<Position>();
@@ -105,6 +106,10 @@ let ball = world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
 ```
 
 Now you have an `Entity`, associated with a position.
+
+> **Note:** `World` is a struct coming from `shred`, an important dependency of Specs.
+> Whenever you call functions specific to Specs, you will need to import the `WorldExt`
+> trait.
 
 So far this is pretty boring. We just have some data,
 but we don't do anything with it. Let's change that!
@@ -169,7 +174,7 @@ them. To execute the system, you can use `RunNow` like this:
 use specs::RunNow;
 
 let mut hello_world = HelloWorld;
-hello_world.run_now(&world.res);
+hello_world.run_now(&world);
 world.maintain();
 ```
 
@@ -182,7 +187,7 @@ will record the changes in its internal data structure.
 Here the complete example of this chapter:
 
 ```rust,ignore
-use specs::{Builder, Component, ReadStorage, System, VecStorage, World, RunNow};
+use specs::{Builder, Component, ReadStorage, System, VecStorage, World, WorldExt, RunNow};
 
 #[derive(Debug)]
 struct Position {
@@ -226,7 +231,7 @@ fn main() {
     world.create_entity().with(Position { x: 4.0, y: 7.0 }).build();
 
     let mut hello_world = HelloWorld;
-    hello_world.run_now(&world.res);
+    hello_world.run_now(&world);
     world.maintain();
 }
 ```

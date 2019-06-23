@@ -21,12 +21,14 @@ struct DeltaTime(f32);
 Adding this resource to our world is pretty easy:
 
 ```rust,ignore
-world.add_resource(DeltaTime(0.05)); // Let's use some start value
+world.insert(DeltaTime(0.05)); // Let's use some start value
 ```
 
 To update the delta time, just use
 
 ```rust,ignore
+use specs::WorldExt;
+
 let mut delta = world.write_resource::<DeltaTime>();
 *delta = DeltaTime(0.04);
 ```
