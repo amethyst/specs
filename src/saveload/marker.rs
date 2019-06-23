@@ -2,16 +2,13 @@
 
 use std::{collections::HashMap, fmt::Debug, hash::Hash, marker::PhantomData};
 
-use crate::{
-    join::Join,
-    storage::{DenseVecStorage, ReadStorage, WriteStorage},
-    world::{
-        Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder, WorldExt,
-    },
-};
-use shred::Resource;
+use derivative::Derivative;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use serde::{de::DeserializeOwned, ser::Serialize};
+use crate::{
+    prelude::*,
+    world::{EntitiesRes, EntityResBuilder, LazyBuilder},
+};
 
 /// A common trait for `EntityBuilder` and `LazyBuilder` with a marker function,
 /// allowing either to be used.

@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 
+use derivative::Derivative;
 use hashbrown::HashMap;
 use hibitset::BitSetLike;
 

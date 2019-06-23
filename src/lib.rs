@@ -189,22 +189,8 @@ pub extern crate hibitset;
 pub extern crate rayon;
 pub extern crate shred;
 pub extern crate shrev;
-
-extern crate crossbeam;
-#[macro_use]
-extern crate derivative;
-extern crate hashbrown;
-#[macro_use]
-extern crate log;
-extern crate mopa;
-extern crate nonzero_signed;
-extern crate tuple_utils;
 #[cfg(feature = "uuid_entity")]
 pub extern crate uuid;
-
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde;
 
 #[cfg(feature = "serde")]
 pub mod saveload;

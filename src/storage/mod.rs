@@ -19,6 +19,7 @@ use std::{
     ops::{Deref, DerefMut, Not},
 };
 
+use derivative::Derivative;
 use hibitset::{BitSet, BitSetLike, BitSetNot};
 use shred::{CastFrom, Fetch};
 
