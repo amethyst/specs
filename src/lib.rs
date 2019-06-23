@@ -186,6 +186,7 @@
 
 pub extern crate hibitset;
 pub extern crate shred;
+pub extern crate shrev;
 
 extern crate crossbeam;
 #[macro_use]
@@ -197,7 +198,6 @@ extern crate mopa;
 extern crate nonzero_signed;
 #[cfg(feature = "parallel")]
 extern crate rayon;
-extern crate shrev;
 extern crate tuple_utils;
 #[cfg(feature = "uuid_entity")]
 pub extern crate uuid;

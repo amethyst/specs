@@ -121,6 +121,7 @@ Please look into [the examples directory](examples) for more.
 | hibitset | [![hibitset](https://img.shields.io/crates/v/hibitset.svg)](https://crates.rs/crates/hibitset) |
 | rayon    | [![rayon](https://img.shields.io/crates/v/rayon.svg)](https://crates.rs/crates/rayon)          |
 | shred    | [![shred](https://img.shields.io/crates/v/shred.svg)](https://crates.rs/crates/shred)          |
+| shrev    | [![shrev](https://img.shields.io/crates/v/shrev.svg)](https://crates.rs/crates/shrev)          |
 
 ## Contribution
 
