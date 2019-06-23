@@ -184,13 +184,13 @@
 //!
 //! See the repository's examples directory for more examples.
 
+pub extern crate hibitset;
 pub extern crate shred;
 
 extern crate crossbeam;
 #[macro_use]
 extern crate derivative;
 extern crate hashbrown;
-extern crate hibitset;
 #[macro_use]
 extern crate log;
 extern crate mopa;
