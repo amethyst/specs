@@ -36,17 +36,22 @@ for (ent, pos, vel) in (&*entities, &mut pos_storage, &vel_storage).join() {
 }
 ```
 
+The returned entity value can also be used to get a component from a storage as usual.
+
 ## Optional components
 
-If we iterate over the `&EntitiesRes` as shown above, we can simply
-use the returned `Entity` values to get components from storages as usual.
-
+Even though `Entities` allows to `get()` components that may or may not be there, using 
+`maybe()` is a more concise way to do that.
+`maybe()` wraps the `Storage` in a `MaybeJoin` struct which, rather than returning
+a component directly, returns `None` if the component is missing and `Some(T)` 
+if it's there.
+   
 ```rust,ignore
-for (ent, pos, vel) in (&*entities, &mut pos_storage, &vel_storage).join() {
+for (pos, vel, mass) in 
+    (&mut pos_storage, &vel_storage, (&mut mass_storage).maybe()).join() {
     println!("Processing entity: {:?}", ent);
     *pos += *vel;
     
-    let mass: Option<&mut Mass> = mass_storage.get_mut(ent);
     if let Some(mass) = mass {
         let x = *vel / 300_000_000.0;
         let y = 1 - x * x;
@@ -55,11 +60,14 @@ for (ent, pos, vel) in (&*entities, &mut pos_storage, &vel_storage).join() {
     }
 }
 ```
+In this example we iterate over all entities with a position and a velocity and 
+perform the calculation for the new position as usual. However, in case the entity
+has a mass, we also calculate the current mass based on the velocity. 
+Thus, mass is an **optional** component here.
 
-In this example we iterate over all entities with a position and a velocity
-and perform the calculation for the new position as usual.
-However, in case the entity has a mass, we also calculate the current
-mass based on the velocity. Thus, mass is an **optional** component here.
+WARNING: Do not have a join of only `MaybeJoin`s. Otherwise the join will iterate 
+over every single index of the bitset. If you want a join with all `MaybeJoin`s, 
+add an EntitiesRes to the join as well to bound the join to all entities that are alive.
 
 ## Excluding components
 
