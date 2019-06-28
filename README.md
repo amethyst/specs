@@ -105,10 +105,10 @@ fn main() {
     let mut dispatcher = DispatcherBuilder::new().with(SysA, "sys_a", &[]).build();
     // This will call the `setup` function of every system.
     // In this example this has no effect since we already registered our components.
-    dispatcher.setup(&mut world.res);
+    dispatcher.setup(&mut world);
 
     // This dispatches all the systems in parallel (but blocking).
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
 }
 ```
 
