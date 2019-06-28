@@ -144,7 +144,7 @@ pub trait WorldExt {
     ///
     /// If the resource already exists it will be overwritten.
     ///
-    /// **DEPREACTED:** Use [World::insert] instead.
+    /// **DEPRECATED:** Use [World::insert] instead.
     ///
     /// ## Examples
     ///
