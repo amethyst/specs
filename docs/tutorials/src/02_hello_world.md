@@ -13,13 +13,13 @@ Okay, now let's set up the project!
 
 ```bash
 cargo new --bin my_game
-``` 
- 
+```
+
 Add the following line to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-specs = "0.14.0"
+specs = "0.15.0"
 ```
 
 ## Components
@@ -52,7 +52,7 @@ impl Component for Velocity {
 
 These will be our two component types. Optionally, the `specs-derive` crate
 provides a convenient custom `#[derive]` you can use to define component types
-more succinctly. 
+more succinctly.
 
 But first, you will need to enable the `specs-derive` feature:
 
