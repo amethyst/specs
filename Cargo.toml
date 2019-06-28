@@ -22,7 +22,7 @@ autobenches = false
 travis-ci = { repository = "slide-rs/specs" }
 
 [dependencies]
-crossbeam = "0.7.1"
+crossbeam-queue = "0.1"
 derivative = "1"
 hashbrown = "0.5.0"
 hibitset = { version = "0.6.0", default-features = false }

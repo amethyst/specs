@@ -1,4 +1,4 @@
-use crossbeam::queue::SegQueue;
+use crossbeam_queue::SegQueue;
 use derivative::Derivative;
 
 use crate::{prelude::*, world::EntitiesRes};
