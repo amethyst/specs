@@ -157,7 +157,7 @@ pub trait WorldExt {
     /// world.insert(timer);
     /// world.insert(server_con);
     /// ```
-    #[deprecated(since = "0.15", note = "use `World::insert` instead")]
+    #[deprecated(since = "0.15.0", note = "use `World::insert` instead")]
     fn add_resource<T: Resource>(&mut self, res: T);
 
     /// Fetches a component storage for reading.

@@ -21,11 +21,11 @@ impl Component for UuidMarker {
 }
 
 impl Marker for UuidMarker {
-    type Allocator = UuidMarkerAllocator;
     type Identifier = Uuid;
+    type Allocator = UuidMarkerAllocator;
 
     fn id(&self) -> Uuid {
-        self.uuid().clone()
+        self.uuid()
     }
 }
 
@@ -42,8 +42,8 @@ impl UuidMarker {
     }
 
     /// Get the current uuid.
-    pub fn uuid(&self) -> &Uuid {
-        &self.uuid
+    pub fn uuid(&self) -> Uuid {
+        self.uuid
     }
 }
 
@@ -75,7 +75,7 @@ impl MarkerAllocator<UuidMarker> for UuidMarkerAllocator {
         } else {
             UuidMarker::new_random()
         };
-        self.mapping.insert(marker.uuid().clone(), entity);
+        self.mapping.insert(marker.uuid(), entity);
 
         marker
     }
@@ -88,7 +88,7 @@ impl MarkerAllocator<UuidMarker> for UuidMarkerAllocator {
         // FIXME: may be too slow
         self.mapping = (entities, storage)
             .join()
-            .map(|(e, m)| (m.uuid().clone(), e))
+            .map(|(e, m)| (m.uuid(), e))
             .collect();
     }
 }
