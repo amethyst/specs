@@ -38,7 +38,7 @@ build_book reference
 build_book tutorials
 
 # Build API docs
-FEATURES="parallel saveload shred-derive specs-derive nightly uuid_entity"
+FEATURES="parallel serde shred-derive specs-derive nightly uuid_entity"
 
 echo "Building Rust API docs..."
 cd "${WORKING_DIR}"

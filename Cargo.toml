@@ -49,7 +49,7 @@ wasm-bindgen = ["uuid/wasm-bindgen"]
 shred-derive = ["shred/shred-derive"]
 
 [package.metadata.docs.rs]
-features = ["parallel", "saveload", "shred-derive", "specs-derive", "nightly", "uuid_entity"]
+features = ["parallel", "serde", "shred-derive", "specs-derive", "nightly", "uuid_entity"]
 
 [dev-dependencies]
 cgmath =  { version = "0.17" }
