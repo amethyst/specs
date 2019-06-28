@@ -127,7 +127,7 @@ where
     fn setup(res: &mut World) {
         res.entry::<MaskedStorage<T>>()
             .or_insert_with(|| MaskedStorage::new(<T::Storage as TryDefault>::unwrap_default()));
-        res.fetch_mut::<MetaTable<AnyStorage>>()
+        res.fetch_mut::<MetaTable<dyn AnyStorage>>()
             .register(&*res.fetch::<MaskedStorage<T>>());
     }
 
@@ -218,7 +218,7 @@ where
     fn setup(res: &mut World) {
         res.entry::<MaskedStorage<T>>()
             .or_insert_with(|| MaskedStorage::new(<T::Storage as TryDefault>::unwrap_default()));
-        res.fetch_mut::<MetaTable<AnyStorage>>()
+        res.fetch_mut::<MetaTable<dyn AnyStorage>>()
             .register(&*res.fetch::<MaskedStorage<T>>());
     }
 

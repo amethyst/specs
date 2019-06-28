@@ -295,7 +295,7 @@ impl WorldExt for World {
     fn new() -> Self {
         let mut world = World::default();
         world.insert(EntitiesRes::default());
-        world.insert(MetaTable::<AnyStorage>::default());
+        world.insert(MetaTable::<dyn AnyStorage>::default());
         world.insert(LazyUpdate::default());
 
         world
@@ -315,9 +315,9 @@ impl WorldExt for World {
     {
         self.entry()
             .or_insert_with(move || MaskedStorage::<T>::new(storage()));
-        self.entry::<MetaTable<AnyStorage>>()
+        self.entry::<MetaTable<dyn AnyStorage>>()
             .or_insert_with(Default::default);
-        self.fetch_mut::<MetaTable<AnyStorage>>()
+        self.fetch_mut::<MetaTable<dyn AnyStorage>>()
             .register(&*self.fetch::<MaskedStorage<T>>());
     }
 
@@ -408,9 +408,9 @@ impl WorldExt for World {
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {
-        self.entry::<MetaTable<AnyStorage>>()
+        self.entry::<MetaTable<dyn AnyStorage>>()
             .or_insert_with(Default::default);
-        for storage in self.fetch_mut::<MetaTable<AnyStorage>>().iter_mut(&self) {
+        for storage in self.fetch_mut::<MetaTable<dyn AnyStorage>>().iter_mut(&self) {
             storage.drop(delete);
         }
     }

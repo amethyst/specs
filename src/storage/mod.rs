@@ -77,7 +77,7 @@ pub trait AnyStorage {
     fn drop(&mut self, entities: &[Entity]);
 }
 
-unsafe impl<T> CastFrom<T> for AnyStorage
+unsafe impl<T> CastFrom<T> for dyn AnyStorage
 where
     T: AnyStorage + 'static,
 {

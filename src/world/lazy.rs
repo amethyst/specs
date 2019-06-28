@@ -84,7 +84,7 @@ where
 #[derivative(Default)]
 pub struct LazyUpdate {
     #[derivative(Default(value = "Some(Default::default())"))]
-    queue: Option<Queue<Box<LazyUpdateInternal>>>,
+    queue: Option<Queue<Box<dyn LazyUpdateInternal>>>,
 }
 
 impl LazyUpdate {
