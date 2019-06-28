@@ -47,6 +47,7 @@
 //! # extern crate specs;
 //! # extern crate specs_derive;
 //! # #[cfg(not(feature = "specs-derive"))] use specs_derive::Component;
+//! # #[cfg(not(feature = "specs-derive"))] use specs::prelude::*;
 //!
 //! # #[cfg(feature = "specs-derive")]
 //! use specs::{prelude::*, Component};
