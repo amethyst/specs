@@ -28,10 +28,10 @@ fn main() {
     let mut world = World::new();
 
     world.register::<SimpleMarker<NetworkSync>>();
-    world.add_resource(SimpleMarkerAllocator::<NetworkSync>::default());
+    world.insert(SimpleMarkerAllocator::<NetworkSync>::default());
 
     world.register::<SimpleMarker<FilePersistent>>();
-    world.add_resource(SimpleMarkerAllocator::<FilePersistent>::default());
+    world.insert(SimpleMarkerAllocator::<FilePersistent>::default());
 
     world
         .create_entity()
@@ -96,7 +96,7 @@ fn main() {
     let mut world = World::new();
 
     world.register::<MyMarker>();
-    world.add_resource(MyMarkerAllocator::default());
+    world.insert(MyMarkerAllocator::default());
 
     world
         .create_entity()

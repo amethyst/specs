@@ -3,7 +3,7 @@
 So far for all our component storages and resources, we've been adding
 them to the `World` manually. In Specs, this is not required if you use
 `setup`. This is a manually invoked stage that goes through `SystemData`
-and calls `register`, `add_resource`, etc. for all (with some exceptions)
+and calls `register`, `insert`, etc. for all (with some exceptions)
 components and resources found. The `setup` function can be found in
 the following locations:
 
@@ -46,7 +46,7 @@ impl<'a> System<'a> for SimulationSystem {
 
 fn main() {
     let mut world = World::new();
-    world.add_resource(Gravity);
+    world.insert(Gravity);
     world.register::<Velocity>();
 
     for _ in 0..5 {

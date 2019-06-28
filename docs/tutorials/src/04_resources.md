@@ -67,7 +67,7 @@ impl<'a> System<'a> for UpdatePos {
 ```
 
 Note that all resources that a system accesses must be registered with
-`world.add_resource(resource)` before that system is run, or you will get a
+`world.insert(resource)` before that system is run, or you will get a
 panic. If the resource has a `Default` implementation, this step is usually 
 done during `setup`, but again we will come back to this in a later chapter.
 
