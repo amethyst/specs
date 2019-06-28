@@ -1,13 +1,17 @@
-use std::marker::PhantomData;
+use std::{
+    collections::VecDeque,
+    marker::PhantomData
+};
 
 use hibitset::BitSetLike;
 
 use crate::{
-    storage::{ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage},
+    storage::{ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage, DistinctStorage},
     world::{Component, Index},
 };
 
 use shrev::EventChannel;
+use crossbeam::queue::SegQueue;
 
 /// Wrapper storage that tracks modifications, insertions, and removals of
 /// components through an `EventChannel`.
@@ -135,17 +139,21 @@ use shrev::EventChannel;
 /// ```
 pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
     channel: EventChannel<ComponentEvent>,
+    queue: SegQueue<ComponentEvent>,
     storage: T,
     phantom: PhantomData<C>,
 }
 
+
+
 impl<C, T> Default for FlaggedStorage<C, T>
-where
-    T: TryDefault,
+    where
+        T: TryDefault,
 {
     fn default() -> Self {
         FlaggedStorage {
             channel: EventChannel::<ComponentEvent>::default(),
+            queue: SegQueue::default(),
             storage: T::unwrap_default(),
             phantom: PhantomData,
         }
@@ -154,8 +162,8 @@ where
 
 impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
     unsafe fn clean<B>(&mut self, has: B)
-    where
-        B: BitSetLike,
+        where
+            B: BitSetLike,
     {
         self.storage.clean(has);
     }
@@ -166,18 +174,24 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         // calling `.iter()` on an unconstrained mutable storage will flag everything
-        self.channel.single_write(ComponentEvent::Modified(id));
+        self.queue.push(ComponentEvent::Modified(id));
         self.storage.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
-        self.channel.single_write(ComponentEvent::Inserted(id));
+        self.queue.push(ComponentEvent::Inserted(id));
         self.storage.insert(id, comp);
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
-        self.channel.single_write(ComponentEvent::Removed(id));
+        self.queue.push(ComponentEvent::Removed(id));
         self.storage.remove(id)
+    }
+
+    unsafe fn maintain(&mut self) {
+        while let Ok(event) = self.queue.pop() {
+            self.channel.single_write(event);
+        }
     }
 }
 
@@ -190,3 +204,5 @@ impl<C, T> Tracked for FlaggedStorage<C, T> {
         &mut self.channel
     }
 }
+
+unsafe impl<C, T> DistinctStorage for FlaggedStorage<C, T> {}

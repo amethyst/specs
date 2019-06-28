@@ -1,3 +1,6 @@
+* `FlaggedStorage` is now parallel join compatible. Added `AnyStorage::maintain`, `MaskedStorage::mantain` and
+`FlaggedStorage::maintain`. ([#PR])
+
 # 0.14.2
 
 * Add `Join`-able entries API to `Storage` ([#518])

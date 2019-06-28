@@ -707,6 +707,9 @@ impl WorldExt for World {
     /// and deleted entities into the persistent generations vector.
     /// Also removes all the abandoned components.
     ///
+    /// Also calls 'maintain' on all storages for possible end-of-iteration maintainable tasks such
+    /// as parallel iteration eventing.
+    ///
     /// Additionally, `LazyUpdate` will be merged.
     fn maintain(&mut self) {
         let deleted = self.entities_mut().alloc.merge();
@@ -718,6 +721,13 @@ impl WorldExt for World {
         let mut lazy = self.write_resource::<LazyUpdate>().take();
         lazy.maintain(&mut *self);
         self.write_resource::<LazyUpdate>().restore(lazy);
+
+        // Maintain storages
+        self.entry::<MetaTable<AnyStorage>>()
+            .or_insert_with(Default::default);
+        for storage in self.fetch_mut::<MetaTable<AnyStorage>>().iter_mut(&self) {
+            storage.maintain();
+        }
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {

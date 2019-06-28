@@ -874,4 +874,120 @@ mod test {
 
         assert_eq!(sum, 135);
     }
+
+    #[test]
+    fn par_flagged() {
+        use crate::join::ParJoin;
+        use rayon::iter::ParallelIterator;
+
+        use crate::join::Join;
+
+        let mut w = World::new();
+        w.register::<FlaggedCvec>();
+
+        let mut inserted = BitSet::new();
+        let mut modified = BitSet::new();
+        let mut removed = BitSet::new();
+        let mut reader_id;
+
+        {
+            let mut s1: Storage<FlaggedCvec, _> = w.write_storage();
+
+
+            reader_id = s1.register_reader();
+
+            for i in 0..15 {
+                let entity = w.entities().create();
+                if let Err(err) = s1.insert(entity, i.into()) {
+                    panic!("Failed to insert component into entity! {:?}", err);
+                }
+            }
+        }
+
+        w.maintain();
+
+        {
+            let mut s1: Storage<FlaggedCvec, _> = w.write_storage();
+            inserted.clear();
+            modified.clear();
+            removed.clear();
+
+            let events = s1.channel().read(&mut reader_id);
+            for event in events {
+                match event {
+                    ComponentEvent::Modified(id) => modified.add(*id),
+                    ComponentEvent::Inserted(id) => inserted.add(*id),
+                    ComponentEvent::Removed(id) => removed.add(*id),
+                };
+            }
+
+            for (entity, _) in (&w.entities(), &s1).join() {
+                assert!(inserted.contains(entity.id()));
+                assert!(!modified.contains(entity.id()));
+                assert!(!removed.contains(entity.id()));
+            }
+
+            for (_, mut comp) in (&w.entities(), &mut s1).join() {
+                comp.0 += 1;
+            }
+        }
+
+        w.maintain();
+
+        {
+            let mut s1: Storage<FlaggedCvec, _> = w.write_storage();
+
+            inserted.clear();
+            modified.clear();
+            removed.clear();
+
+
+            let events = s1.channel().read(&mut reader_id);
+            for event in events {
+                match event {
+                    ComponentEvent::Modified(id) => modified.add(*id),
+                    ComponentEvent::Inserted(id) => inserted.add(*id),
+                    ComponentEvent::Removed(id) => removed.add(*id),
+                };
+            }
+        }
+
+        {
+            let mut s1: Storage<FlaggedCvec, _> = w.write_storage();
+
+            for (entity, _) in (&w.entities(), &s1).join() {
+                assert!(!inserted.contains(entity.id()));
+                assert!(modified.contains(entity.id()));
+                assert!(!removed.contains(entity.id()));
+            }
+
+            for (entity, _) in (&w.entities(), s1.mask().clone()).join() {
+                s1.remove(entity);
+            }
+        }
+
+        w.maintain();
+
+        {
+            let mut s1: Storage<FlaggedCvec, _> = w.write_storage();
+            inserted.clear();
+            modified.clear();
+            removed.clear();
+
+            let events = s1.channel().read(&mut reader_id);
+            for event in events {
+                match event {
+                    ComponentEvent::Modified(id) => modified.add(*id),
+                    ComponentEvent::Inserted(id) => inserted.add(*id),
+                    ComponentEvent::Removed(id) => removed.add(*id),
+                };
+            }
+
+            for (entity, _) in (&w.entities(), &s1).join() {
+                assert!(!inserted.contains(entity.id()));
+                assert!(!modified.contains(entity.id()));
+                assert!(removed.contains(entity.id()));
+            }
+        }
+    }
 }

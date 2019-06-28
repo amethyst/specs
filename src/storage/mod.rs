@@ -74,6 +74,12 @@ unsafe impl<'a> ParJoin for AntiStorage<'a> {}
 pub trait AnyStorage {
     /// Drop components of given entities.
     fn drop(&mut self, entities: &[Entity]);
+
+    /// Provided to allow storages to perform thread-safe, end-of-iteration internal maintenance
+    /// as required. For example, FlaggedStorage utilizes this to allow eventing to be parallel safe
+    /// by maintaining modification events until the end of a given iteration (between calls of
+    /// maintain).
+    fn maintain(&mut self);
 }
 
 unsafe impl<T> CastFrom<T> for AnyStorage
@@ -97,6 +103,10 @@ where
         for entity in entities {
             MaskedStorage::drop(self, entity.id());
         }
+    }
+
+    fn maintain(&mut self) {
+        MaskedStorage::maintain(self);
     }
 }
 
@@ -176,6 +186,13 @@ impl<T: Component> MaskedStorage<T> {
             unsafe {
                 self.inner.drop(id);
             }
+        }
+    }
+
+    /// Maintain the inner storage of this `MaskedStorage`
+    pub fn maintain(&mut self) {
+        unsafe {
+            self.inner.maintain();
         }
     }
 }
@@ -515,6 +532,8 @@ pub trait UnprotectedStorage<T>: TryDefault {
     unsafe fn drop(&mut self, id: Index) {
         self.remove(id);
     }
+
+    unsafe fn maintain(&mut self) {}
 }
 
 #[cfg(test)]
