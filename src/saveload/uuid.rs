@@ -21,8 +21,8 @@ impl Component for UuidMarker {
 }
 
 impl Marker for UuidMarker {
-    type Identifier = Uuid;
     type Allocator = UuidMarkerAllocator;
+    type Identifier = Uuid;
 
     fn id(&self) -> Uuid {
         self.uuid()

@@ -59,8 +59,7 @@ impl<'a> Join for AntiStorage<'a> {
     }
 
     // SAFETY: No invariants to meet and no unsafe code.
-    unsafe fn get(_: &mut (), _: Index) {
-    }
+    unsafe fn get(_: &mut (), _: Index) {}
 }
 
 // SAFETY: Since `get` does not do any memory access, this is safe to implement.

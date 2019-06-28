@@ -40,8 +40,8 @@
 //! }
 //! ```
 //!
-//! Or alternatively, if you enable the `specs-derive` feature, you can use a custom `#[derive]`
-//! macro:
+//! Or alternatively, if you enable the `specs-derive` feature, you can use a
+//! custom `#[derive]` macro:
 //!
 //! ```rust
 //! # extern crate specs;
@@ -49,8 +49,7 @@
 //! # #[cfg(not(feature = "specs-derive"))] use specs_derive::Component;
 //!
 //! # #[cfg(feature = "specs-derive")]
-//! use specs::Component;
-//! use specs::prelude::*;
+//! use specs::{prelude::*, Component};
 //!
 //! #[derive(Component)]
 //! #[storage(VecStorage)] // default is `DenseVecStorage`
