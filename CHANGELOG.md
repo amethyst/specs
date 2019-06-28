@@ -1,5 +1,7 @@
 * `FlaggedStorage` is now parallel join compatible. Added `AnyStorage::maintain`, `MaskedStorage::mantain` and
-`FlaggedStorage::maintain`. ([#PR])
+`FlaggedStorage::maintain`. ([#609])
+
+[#609]: https://github.com/slide-rs/specs/pull/609
 
 # 0.14.2
 
