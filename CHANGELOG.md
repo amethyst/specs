@@ -1,18 +1,20 @@
 # 0.15.0
 
 * Moved `World` to `shred`, added `WorldExt` trait for Specs functionality ([#550])
+* Add `UuidMarker` for UUID <-> `Entity` mappings ([#584])
 * Implement `Join` on `BitSetLike` trait object ([#599])
 * Expose inner field of `AntiStorage` ([#603])
-* Remove `fnv` in favour of `hashbrown` ([#605])
-* Reexport `hibitset`, `rayon`, `shred` and `shrev` ([#605])
-* Reexport `shred_derive::SystemData` when `shred-derive` feature is enabled ([#605])
+* Remove `fnv` in favour of `hashbrown` ([#606])
+* Reexport `hibitset`, `rayon`, `shred` and `shrev` ([#606])
+* Reexport `shred_derive::SystemData` when `shred-derive` feature is enabled ([#606])
 * Reexport `specs_derive::{Component, ConvertSaveload}` when `specs-derive` feature is enabled 
-([#605])
+([#606])
 
 [#550]: https://github.com/slide-rs/specs/pull/550
+[#584]: https://github.com/slide-rs/specs/pull/584
 [#599]: https://github.com/slide-rs/specs/pull/599
 [#603]: https://github.com/slide-rs/specs/pull/603
-[#605]: https://github.com/slide-rs/specs/pull/605
+[#606]: https://github.com/slide-rs/specs/pull/606
 
 # 0.14.2
 
