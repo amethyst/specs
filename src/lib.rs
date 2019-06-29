@@ -40,18 +40,20 @@
 //! }
 //! ```
 //!
-//! Or alternatively, if you import the `specs-derive` crate, you can use a
+//! Or alternatively, if you enable the `specs-derive` feature, you can use a
 //! custom `#[derive]` macro:
 //!
 //! ```rust
 //! # extern crate specs;
-//! #[macro_use]
-//! extern crate specs_derive;
+//! # extern crate specs_derive;
+//! # #[cfg(not(feature = "specs-derive"))] use specs_derive::Component;
+//! # #[cfg(not(feature = "specs-derive"))] use specs::prelude::*;
 //!
-//! use specs::prelude::*;
+//! # #[cfg(feature = "specs-derive")]
+//! use specs::{prelude::*, Component};
 //!
 //! #[derive(Component)]
-//! #[storage(VecStorage)]
+//! #[storage(VecStorage)] // default is `DenseVecStorage`
 //! struct MyComp;
 //! # fn main() {}
 //! ```
@@ -184,27 +186,13 @@
 //!
 //! See the repository's examples directory for more examples.
 
-pub extern crate shred;
-
-extern crate crossbeam;
-#[macro_use]
-extern crate derivative;
-extern crate fnv;
-extern crate hibitset;
-#[macro_use]
-extern crate log;
-extern crate mopa;
-extern crate nonzero_signed;
+pub extern crate hibitset;
 #[cfg(feature = "parallel")]
-extern crate rayon;
-extern crate shrev;
-extern crate tuple_utils;
+pub extern crate rayon;
+pub extern crate shred;
+pub extern crate shrev;
 #[cfg(feature = "uuid_entity")]
 pub extern crate uuid;
-
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde;
 
 #[cfg(feature = "serde")]
 pub mod saveload;
@@ -217,9 +205,6 @@ pub mod prelude;
 pub mod storage;
 pub mod world;
 
-pub use crate::join::Join;
-#[cfg(feature = "parallel")]
-pub use crate::join::ParJoin;
 pub use hibitset::BitSet;
 pub use shred::{
     Accessor, Dispatcher, DispatcherBuilder, Read, ReadExpect, RunNow, StaticAccessor, System,
@@ -230,8 +215,14 @@ pub use shrev::ReaderId;
 #[cfg(feature = "parallel")]
 pub use shred::AsyncDispatcher;
 
+#[cfg(feature = "specs-derive")]
+pub use specs_derive::{Component, ConvertSaveload};
+
+#[cfg(feature = "parallel")]
+pub use crate::join::ParJoin;
 pub use crate::{
     changeset::ChangeSet,
+    join::Join,
     storage::{
         DenseVecStorage, FlaggedStorage, HashMapStorage, NullStorage, ReadStorage, Storage,
         Tracked, VecStorage, WriteStorage,

@@ -21,12 +21,14 @@ struct DeltaTime(f32);
 Adding this resource to our world is pretty easy:
 
 ```rust,ignore
-world.add_resource(DeltaTime(0.05)); // Let's use some start value
+world.insert(DeltaTime(0.05)); // Let's use some start value
 ```
 
 To update the delta time, just use
 
 ```rust,ignore
+use specs::WorldExt;
+
 let mut delta = world.write_resource::<DeltaTime>();
 *delta = DeltaTime(0.04);
 ```
@@ -65,7 +67,7 @@ impl<'a> System<'a> for UpdatePos {
 ```
 
 Note that all resources that a system accesses must be registered with
-`world.add_resource(resource)` before that system is run, or you will get a
+`world.insert(resource)` before that system is run, or you will get a
 panic. If the resource has a `Default` implementation, this step is usually 
 done during `setup`, but again we will come back to this in a later chapter.
 

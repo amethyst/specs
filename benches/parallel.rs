@@ -294,7 +294,7 @@ fn bench_parallel(b: &mut Bencher) {
     w.register::<SpawnRequests>();
     w.register::<Collision>();
 
-    w.add_resource(DeltaTime(0.02));
+    w.insert(DeltaTime(0.02));
 
     for x in -50i32..50i32 {
         for y in -50i32..50i32 {

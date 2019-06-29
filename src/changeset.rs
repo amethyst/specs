@@ -1,13 +1,10 @@
 //! Provides a changeset that can be collected from an iterator.
 
-use hibitset::BitSet;
 use std::{iter::FromIterator, ops::AddAssign};
 
-use crate::{
-    join::Join,
-    storage::{DenseVecStorage, UnprotectedStorage},
-    world::{Entity, Index},
-};
+use derivative::Derivative;
+
+use crate::{prelude::*, storage::UnprotectedStorage, world::Index};
 
 /// Change set that can be collected from an iterator, and joined on for easy
 /// application to components.

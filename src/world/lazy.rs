@@ -1,9 +1,7 @@
-use crate::{
-    storage::WriteStorage,
-    world::{Builder, Component, EntitiesRes, Entity},
-};
-use crossbeam::queue::SegQueue;
-use shred::{SystemData, World};
+use crossbeam_queue::SegQueue;
+use derivative::Derivative;
+
+use crate::{prelude::*, world::EntitiesRes};
 
 struct Queue<T>(SegQueue<T>);
 
@@ -26,7 +24,7 @@ pub struct LazyBuilder<'a> {
 }
 
 impl<'a> Builder for LazyBuilder<'a> {
-    /// Inserts a component using [`LazyUpdate`].
+    /// Inserts a component using [LazyUpdate].
     ///
     /// If a component was already associated with the entity, it will
     /// overwrite the previous component.
@@ -38,7 +36,7 @@ impl<'a> Builder for LazyBuilder<'a> {
         self.lazy.exec(move |world| {
             let mut storage: WriteStorage<C> = SystemData::fetch(world);
             if storage.insert(entity, component).is_err() {
-                warn!(
+                log::warn!(
                     "Lazy insert of component failed because {:?} was dead.",
                     entity
                 );
@@ -86,7 +84,7 @@ where
 #[derivative(Default)]
 pub struct LazyUpdate {
     #[derivative(Default(value = "Some(Default::default())"))]
-    queue: Option<Queue<Box<LazyUpdateInternal>>>,
+    queue: Option<Queue<Box<dyn LazyUpdateInternal>>>,
 }
 
 impl LazyUpdate {
@@ -147,7 +145,7 @@ impl LazyUpdate {
         self.exec(move |world| {
             let mut storage: WriteStorage<C> = SystemData::fetch(world);
             if storage.insert(e, c).is_err() {
-                warn!("Lazy insert of component failed because {:?} was dead.", e);
+                log::warn!("Lazy insert of component failed because {:?} was dead.", e);
             }
         });
     }
@@ -187,7 +185,7 @@ impl LazyUpdate {
             let mut storage: WriteStorage<C> = SystemData::fetch(world);
             for (e, c) in iter {
                 if storage.insert(e, c).is_err() {
-                    warn!("Lazy insert of component failed because {:?} was dead.", e);
+                    log::warn!("Lazy insert of component failed because {:?} was dead.", e);
                 }
             }
         });

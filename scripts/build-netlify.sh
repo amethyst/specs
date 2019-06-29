@@ -38,9 +38,11 @@ build_book reference
 build_book tutorials
 
 # Build API docs
+FEATURES="parallel serde shred-derive specs-derive nightly uuid_entity"
+
 echo "Building Rust API docs..."
 cd "${WORKING_DIR}"
-cargo doc --all --features "serde"
+cargo doc --all --features "${FEATURES}" || cargo doc --all --features "${FEATURES}" --no-deps
 cp -R target/doc "${WORKING_DIR}/public/docs/api"
 
 echo "Done!"

@@ -253,7 +253,7 @@ fn stillborn_entities() {
     // Construct a bunch of entities
 
     let mut world = create_world();
-    world.add_resource(Rand { values: Vec::new() });
+    world.insert(Rand { values: Vec::new() });
 
     for _ in 0..100 {
         world.create_entity().with(CompInt(rng.geni())).build();

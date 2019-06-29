@@ -54,14 +54,14 @@ Number 1 is served by [`shred`](https://github.com/slide-rs/shred); it provides 
 
 * `System`; this is the central interface for defining logic
 * `Dispatcher` and `DispatcherBuilder` - these are responsible for building a plan for how to run systems
-  (in parallel & sequentially) 
+  (in parallel & sequentially)
 
 Additionally, `shred` also provides the central piece for number 2:
 
-* `Resources`; everything that a `System` can access is stored inside
+* `World`; everything that a `System` can access is stored inside.
 
-Specs itself defines component storages (which are also stored inside the `Resources`).
-For those, [`hibitset`](https://github.com/slide-rs/hibitset/) is used to
+Specs itself defines component storages (which are also stored inside the `World`).
+For those, [`hibitset`](https://github.com/slide-rs/hibitset/) is used to:
 
 * store the indices (= entity ids) with an existing component
 * allow efficient joining over sparse component storages

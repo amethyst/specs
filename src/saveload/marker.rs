@@ -2,16 +2,13 @@
 
 use std::{collections::HashMap, fmt::Debug, hash::Hash, marker::PhantomData};
 
-use crate::{
-    join::Join,
-    storage::{DenseVecStorage, ReadStorage, WriteStorage},
-    world::{
-        Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder, WorldExt,
-    },
-};
-use shred::Resource;
+use derivative::Derivative;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use serde::{de::DeserializeOwned, ser::Serialize};
+use crate::{
+    prelude::*,
+    world::{EntitiesRes, EntityResBuilder, LazyBuilder},
+};
 
 /// A common trait for `EntityBuilder` and `LazyBuilder` with a marker function,
 /// allowing either to be used.
@@ -37,7 +34,7 @@ pub trait MarkedBuilder {
     ///
     /// let mut world = World::new();
     /// world.register::<SimpleMarker<NetworkSync>>();
-    /// world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
+    /// world.insert(SimpleMarkerAllocator::<NetworkSync>::new());
     ///
     /// mark_entity(world.create_entity());
     /// ```
@@ -73,7 +70,7 @@ impl<'a> MarkedBuilder for LazyBuilder<'a> {
     ///
     /// let mut world = World::new();
     /// world.register::<SimpleMarker<NetworkSync>>();
-    /// world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
+    /// world.insert(SimpleMarkerAllocator::<NetworkSync>::new());
     ///
     /// # let lazy = world.read_resource::<LazyUpdate>();
     /// # let entities = world.entities();
@@ -118,7 +115,7 @@ impl<'a> EntityResBuilder<'a> {
     ///
     /// let mut world = World::new();
     /// world.register::<SimpleMarker<NetworkSync>>();
-    /// world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
+    /// world.insert(SimpleMarkerAllocator::<NetworkSync>::new());
     ///
     /// let mut storage = world.write_storage::<SimpleMarker<NetworkSync>>();
     /// let mut alloc = world.write_resource::<SimpleMarkerAllocator<NetworkSync>>();
@@ -220,7 +217,7 @@ impl<'a> EntityResBuilder<'a> {
 ///     let mut world = World::new();
 ///     world.register::<NetMarker>();
 ///
-///     world.add_resource(NetNode {
+///     world.insert(NetNode {
 ///         range: 0..100,
 ///         mapping: HashMap::new(),
 ///     });
@@ -363,7 +360,8 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     fn maintain(&mut self, _entities: &EntitiesRes, _storage: &ReadStorage<M>);
 }
 
-/// Basic marker implementation usable for saving and loading, uses `u64` as identifier
+/// Basic marker implementation usable for saving and loading, uses `u64` as
+/// identifier
 #[derive(Derivative, Serialize, Deserialize)]
 #[derivative(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[repr(transparent)]
@@ -404,8 +402,8 @@ impl<T> Default for SimpleMarkerAllocator<T> {
 }
 
 impl<T> SimpleMarkerAllocator<T> {
-    /// Create new `SimpleMarkerAllocator` which will yield `SimpleMarker`s starting
-    /// with `0`
+    /// Create new `SimpleMarkerAllocator` which will yield `SimpleMarker`s
+    /// starting with `0`
     pub fn new() -> Self {
         SimpleMarkerAllocator {
             index: 0,

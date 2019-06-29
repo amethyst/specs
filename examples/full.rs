@@ -1,11 +1,8 @@
 extern crate rayon;
-extern crate shred;
-#[macro_use]
-extern crate shred_derive;
 extern crate specs;
 
-use shred::ResourceId;
-use specs::{prelude::*, storage::HashMapStorage, WorldExt};
+use specs::{prelude::*, storage::HashMapStorage};
+
 // -- Components --
 // A component exists for 0..n
 // entities.
@@ -174,7 +171,7 @@ impl<'a> System<'a> for JoinParallel {
     );
 
     fn run(&mut self, (comp_bool, comp_int, mut comp_float): Self::SystemData) {
-        use rayon::prelude::*;
+        use specs::rayon::prelude::*;
         (&comp_bool, &comp_int, &mut comp_float)
             .par_join()
             // only iterate over entities with a `CompBool(true)`

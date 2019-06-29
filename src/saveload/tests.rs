@@ -46,7 +46,7 @@ mod marker_test {
     {
         let mut world = World::new();
 
-        world.add_resource(allocator.clone());
+        world.insert(allocator.clone());
         world.register::<A>();
         world.register::<B>();
         world.register::<M>();
@@ -92,7 +92,7 @@ mod marker_test {
         // Throw the old world away and deserialize into a new world
         let mut world = World::new();
 
-        world.add_resource(allocator);
+        world.insert(allocator);
         world.register::<A>();
         world.register::<B>();
         world.register::<M>();
@@ -158,8 +158,8 @@ mod marker_test {
         assert_markers_are_unique::<M>(&mut world);
     }
 
-    /// Assert that the number of entities marked with `SimpleMarker` is equal to
-    /// `count`
+    /// Assert that the number of entities marked with `SimpleMarker` is equal
+    /// to `count`
     fn assert_marked_entity_count<M: Marker>(world: &mut World, count: usize) {
         world.exec(|(ents, markers): (Entities, ReadStorage<M>)| {
             let marked_entity_count = (&ents, &markers).join().count();

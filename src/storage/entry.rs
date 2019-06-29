@@ -51,7 +51,7 @@ where
                 .entities
                 .alloc
                 .generation(e.id())
-                .unwrap_or(Generation::one());
+                .unwrap_or_else(Generation::one);
             Err(WrongGeneration {
                 action: "attempting to get an entry to a storage",
                 actual_gen: gen,

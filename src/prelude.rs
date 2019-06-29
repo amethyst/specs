@@ -7,8 +7,8 @@ pub use crate::join::Join;
 pub use crate::join::ParJoin;
 pub use hibitset::BitSet;
 pub use shred::{
-    Accessor, Dispatcher, DispatcherBuilder, Read, ReadExpect, RunNow, StaticAccessor, System,
-    SystemData, World, Write, WriteExpect,
+    Accessor, Dispatcher, DispatcherBuilder, Read, ReadExpect, Resource, ResourceId, RunNow,
+    StaticAccessor, System, SystemData, World, Write, WriteExpect,
 };
 pub use shrev::ReaderId;
 

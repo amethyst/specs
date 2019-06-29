@@ -17,7 +17,7 @@ pub trait Tracked {
     fn channel_mut(&mut self) -> &mut EventChannel<ComponentEvent>;
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 /// Component storage events received from a `FlaggedStorage` or any storage
 /// that implements `Tracked`.
 pub enum ComponentEvent {

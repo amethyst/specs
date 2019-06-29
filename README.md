@@ -105,10 +105,10 @@ fn main() {
     let mut dispatcher = DispatcherBuilder::new().with(SysA, "sys_a", &[]).build();
     // This will call the `setup` function of every system.
     // In this example this has no effect since we already registered our components.
-    dispatcher.setup(&mut world.res);
+    dispatcher.setup(&mut world);
 
     // This dispatches all the systems in parallel (but blocking).
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
 }
 ```
 
@@ -121,6 +121,7 @@ Please look into [the examples directory](examples) for more.
 | hibitset | [![hibitset](https://img.shields.io/crates/v/hibitset.svg)](https://crates.rs/crates/hibitset) |
 | rayon    | [![rayon](https://img.shields.io/crates/v/rayon.svg)](https://crates.rs/crates/rayon)          |
 | shred    | [![shred](https://img.shields.io/crates/v/shred.svg)](https://crates.rs/crates/shred)          |
+| shrev    | [![shrev](https://img.shields.io/crates/v/shrev.svg)](https://crates.rs/crates/shrev)          |
 
 ## Contribution
 
