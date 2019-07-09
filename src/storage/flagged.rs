@@ -125,17 +125,46 @@ use shrev::EventChannel;
 ///     //
 ///     // Otherwise you won't receive any of the modifications until
 ///     // you start tracking them.
-///     let mut comps = world.write_storage::<Comp>();
-///     let comp_system = CompSystem {
-///         reader_id: comps.register_reader(),
-///         modified: BitSet::new(),
-///         inserted: BitSet::new(),
+///     let mut comp_system = {
+///         let mut comps = world.write_storage::<Comp>();
+///         CompSystem {
+///             reader_id: comps.register_reader(),
+///             modified: BitSet::new(),
+///             inserted: BitSet::new(),
+///         }
 ///     };
+///
+///     world.create_entity().with(Comp(19u32)).build();
+///
+///     {
+///         let mut comps = world.write_storage::<Comp>();
+///         let events = comps.channel().read(&mut comp_system.reader_id);
+///         assert_eq!(events.len(), 1);
+///     }
+///
+///     world.write_storage::<Comp>().set_event_emission(false);
+///     world.create_entity().with(Comp(19u32)).build();
+///
+///     {
+///         let mut comps = world.write_storage::<Comp>();
+///         let events = comps.channel().read(&mut comp_system.reader_id);
+///         assert_eq!(events.len(), 0);
+///     }
+///
+///     world.write_storage::<Comp>().set_event_emission(true);
+///     world.create_entity().with(Comp(19u32)).build();
+///
+///     {
+///         let mut comps = world.write_storage::<Comp>();
+///         let events = comps.channel().read(&mut comp_system.reader_id);
+///         assert_eq!(events.len(), 1);
+///     }
 /// }
 /// ```
 pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
     channel: EventChannel<ComponentEvent>,
     storage: T,
+    event_emission: bool,
     phantom: PhantomData<C>,
 }
 
@@ -147,6 +176,7 @@ where
         FlaggedStorage {
             channel: EventChannel::<ComponentEvent>::default(),
             storage: T::unwrap_default(),
+            event_emission: true,
             phantom: PhantomData,
         }
     }
@@ -166,17 +196,23 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         // calling `.iter()` on an unconstrained mutable storage will flag everything
-        self.channel.single_write(ComponentEvent::Modified(id));
+        if self.event_emission {
+            self.channel.single_write(ComponentEvent::Modified(id));
+        }
         self.storage.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
-        self.channel.single_write(ComponentEvent::Inserted(id));
+        if self.event_emission {
+            self.channel.single_write(ComponentEvent::Inserted(id));
+        }
         self.storage.insert(id, comp);
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
-        self.channel.single_write(ComponentEvent::Removed(id));
+        if self.event_emission {
+            self.channel.single_write(ComponentEvent::Removed(id));
+        }
         self.storage.remove(id)
     }
 }
@@ -188,5 +224,13 @@ impl<C, T> Tracked for FlaggedStorage<C, T> {
 
     fn channel_mut(&mut self) -> &mut EventChannel<ComponentEvent> {
         &mut self.channel
+    }
+
+    fn set_event_emission(&mut self, emit: bool) {
+        self.event_emission = emit;
+    }
+
+    fn event_emission(&self) -> bool {
+        self.event_emission
     }
 }
