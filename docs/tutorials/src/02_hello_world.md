@@ -175,9 +175,11 @@ them. To execute the system, you can use `RunNow` like this:
 ```rust,ignore
 use specs::RunNow;
 
-let mut hello_world = HelloWorld;
-hello_world.run_now(&world);
-world.maintain();
+fn run_the_system() {
+    let mut hello_world = HelloWorld;
+    hello_world.run_now(&world);
+    world.maintain();
+}
 ```
 
 The `world.maintain()` is not completely necessary here. Calling maintain should be done in general, however.
