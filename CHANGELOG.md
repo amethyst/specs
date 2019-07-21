@@ -1,5 +1,6 @@
 # 0.15.0
 
+* Removed `common` and `RudyStorage` ([#542])
 * Moved `World` to `shred`, added `WorldExt` trait for Specs functionality ([#550])
 * Add `UuidMarker` for UUID <-> `Entity` mappings ([#584])
 * Implement `Join` on `BitSetLike` trait object ([#599])
@@ -10,6 +11,7 @@
 * Reexport `specs_derive::{Component, ConvertSaveload}` when `specs-derive` feature is enabled 
 ([#606])
 
+[#542]: https://github.com/slide-rs/specs/pull/542
 [#550]: https://github.com/slide-rs/specs/pull/550
 [#584]: https://github.com/slide-rs/specs/pull/584
 [#599]: https://github.com/slide-rs/specs/pull/599
