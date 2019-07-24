@@ -52,7 +52,7 @@ shred-derive = ["shred/shred-derive"]
 features = ["parallel", "serde", "shred-derive", "specs-derive", "nightly", "uuid_entity"]
 
 [dev-dependencies]
-cgmath =  { version = "0.17" }
+nalgebra = "0.18"
 criterion = "0.2"
 ron = "0.5"
 rand = "0.7"
