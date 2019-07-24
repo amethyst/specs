@@ -1,3 +1,10 @@
+# Unreleased
+
+* Benchmark uses `nalgebra` instead of `cgmath`. ([#619]).
+* Bumped `shrev` from `1.0` to `1.1`. ([#619]).
+
+[#619]: https://github.com/slide-rs/specs/pull/619
+
 # 0.15.0
 
 * Removed `common` and `RudyStorage` ([#542])
