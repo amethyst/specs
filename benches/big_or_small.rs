@@ -1,12 +1,12 @@
 #![feature(test)]
 
-extern crate cgmath;
+extern crate nalgebra;
 extern crate rand;
 extern crate shred;
 extern crate specs;
 extern crate test;
 
-use cgmath::Vector3;
+use nalgebra::Vector3;
 use specs::prelude::*;
 use test::Bencher;
 
@@ -42,7 +42,7 @@ impl<'a> System<'a> for SmallSystem {
     type SystemData = (ReadStorage<'a, Small>, WriteStorage<'a, Small2>);
 
     fn run(&mut self, (small, mut small2): Self::SystemData) {
-        for (s, mut s2) in (&small, &mut small2).join() {
+        for (s, s2) in (&small, &mut small2).join() {
             s2.0.y += s.0.x;
         }
     }
@@ -54,7 +54,7 @@ impl<'a> System<'a> for BigSystem {
     type SystemData = (WriteStorage<'a, Big>,);
 
     fn run(&mut self, (mut big,): Self::SystemData) {
-        for (mut b,) in (&mut big,).join() {
+        for (b,) in (&mut big,).join() {
             b.0.y += b.0.x;
         }
     }

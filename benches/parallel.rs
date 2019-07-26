@@ -1,12 +1,12 @@
 #![feature(test)]
 
-extern crate cgmath;
+extern crate nalgebra;
 extern crate rand;
 extern crate shred;
 extern crate specs;
 extern crate test;
 
-use cgmath::Vector2;
+use nalgebra::Vector2;
 use rand::thread_rng;
 use shred::RunningTime;
 use specs::{
@@ -147,8 +147,6 @@ impl<'a> System<'a> for Integrate {
     );
 
     fn run(&mut self, (mut pos, mut vel, mut force, inv_mass, delta): Self::SystemData) {
-        use cgmath::Zero;
-
         let delta: f32 = delta.0;
 
         for (pos, vel, force, inv_mass) in (&mut pos, &mut vel, &mut force, &inv_mass).join() {
@@ -158,7 +156,7 @@ impl<'a> System<'a> for Integrate {
             vel.0 += force.0 * inv_mass.0;
             vel.0 *= damping;
 
-            force.0 = Vec2::zero();
+            force.0 = Vec2::zeros();
         }
     }
 }
@@ -194,7 +192,6 @@ impl<'a> System<'a> for Spawn {
             mut requests,
         ): Self::SystemData,
     ) {
-        use cgmath::Zero;
         use rand::Rng;
 
         let mut rng = thread_rng();
@@ -233,7 +230,7 @@ impl<'a> System<'a> for Spawn {
 
             pos.insert(entity, Pos(spawn_pos)).unwrap();
             vel.insert(entity, Vel(Vec2::new(gen(), gen()))).unwrap();
-            force.insert(entity, Force(Vec2::zero())).unwrap();
+            force.insert(entity, Force(Vec2::zeros())).unwrap();
             color.insert(entity, spawn_color).unwrap();
         }
     }
