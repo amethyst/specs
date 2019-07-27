@@ -49,6 +49,8 @@ impl<'a> Builder for LazyBuilder<'a> {
     /// Finishes the building and returns the built entity.
     /// Please note that no component is associated to this
     /// entity until you call [`World::maintain`].
+    /// 
+    /// [`World::maintain`]: trait.WorldExt.html#tymethod.maintain
     fn build(self) -> Entity {
         self.entity
     }
