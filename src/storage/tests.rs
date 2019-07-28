@@ -771,6 +771,9 @@ mod test {
         let e5 = w.create_entity().build();
         let e6 = w.create_entity().with(Cvec(10)).build();
 
+        let e7 = w.create_entity().build();
+        let e8 = w.create_entity().with(Cvec(10)).build();
+
         let mut s1 = w.write_storage::<Cvec>();
 
         // Basic entry usage.
@@ -833,10 +836,19 @@ mod test {
 
             toggle(e5);
             toggle(e6);
+
+            assert_eq!(s1.get(e5), Some(&Cvec(15)));
+            assert_eq!(s1.get(e6), None);
         }
 
-        assert_eq!(s1.get(e5), Some(&Cvec(15)));
-        assert_eq!(s1.get(e6), None);
+        // Check that `StorageEntry::replace` works as expected
+        {
+            assert_eq!(s1.entry(e7).unwrap().replace(Cvec(1337)), None);
+            assert_eq!(s1.entry(e8).unwrap().replace(Cvec(11)), Some(Cvec(10)));
+            assert_eq!(s1.entry(e7).unwrap().replace(Cvec(9001)), Some(Cvec(1337)));
+            assert_eq!(s1.get(e7), Some(&Cvec(9001)));
+            assert_eq!(s1.get(e8), Some(&Cvec(11)));
+        }
     }
 
     #[test]
