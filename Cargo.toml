@@ -30,7 +30,6 @@ log = "0.4"
 shred = { version = "0.9.1", default-features = false }
 shrev = "1.1.1"
 tuple_utils = "0.3"
-nonzero_signed = "1.0.1"
 
 rayon = { version = "1.1.0", optional = true }
 serde = { version = "1.0", optional = true, features = ["serde_derive"] }
