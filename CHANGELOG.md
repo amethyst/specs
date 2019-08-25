@@ -2,8 +2,10 @@
 
 * Benchmark uses `nalgebra` instead of `cgmath`. ([#619]).
 * Bumped `shrev` from `1.0` to `1.1`. ([#619]).
+* Added a `mopa` feature and made the `mopa` dependency optional. ([#630])
 
 [#619]: https://github.com/slide-rs/specs/pull/619
+[#630]: https://github.com/slide-rs/specs/pull/630
 
 # 0.15.0
 

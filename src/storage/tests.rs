@@ -1,4 +1,7 @@
+#[cfg(feature="mopa")]
 use mopa::Any;
+#[cfg(not(feature="mopa"))]
+use std::any::Any;
 
 use super::*;
 use crate::world::{Component, Entity, Generation, Index, WorldExt};

@@ -1,4 +1,7 @@
+#[cfg(feature="mopa")]
 use mopa::Any;
+#[cfg(not(feature="mopa"))]
+use std::any::Any;
 
 use crate::storage::UnprotectedStorage;
 
