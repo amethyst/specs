@@ -1,4 +1,4 @@
-use mopa::Any;
+use std::any::Any;
 
 use crate::storage::UnprotectedStorage;
 
