@@ -45,11 +45,12 @@ nightly = ["shred/nightly"]
 uuid_entity = ["uuid", "serde"]
 stdweb = ["uuid/stdweb"]
 wasm-bindgen = ["uuid/wasm-bindgen"]
+storage-event-control = []
 
 shred-derive = ["shred/shred-derive"]
 
 [package.metadata.docs.rs]
-features = ["parallel", "serde", "shred-derive", "specs-derive", "nightly", "uuid_entity"]
+features = ["parallel", "serde", "shred-derive", "specs-derive", "nightly", "uuid_entity", "storage-event-control"]
 
 [dev-dependencies]
 cgmath =  { version = "0.17" }

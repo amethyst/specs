@@ -19,9 +19,11 @@ pub trait Tracked {
     /// Controls the events signal emission.
     /// When this is set to false the events modified/inserted/removed are
     /// not emitted.
+    #[cfg(feature = "storage-event-control")]
     fn set_event_emission(&mut self, emit: bool);
 
     /// Returns the actual state of the event emission.
+    #[cfg(feature = "storage-event-control")]
     fn event_emission(&self) -> bool;
 }
 
@@ -52,6 +54,7 @@ where
     }
 
     /// Returns the actual state of the event emission.
+    #[cfg(feature = "storage-event-control")]
     pub fn event_emission(&self) -> bool {
         unsafe { self.open() }.1.event_emission()
     }
@@ -84,6 +87,7 @@ where
     /// Controls the events signal emission.
     /// When this is set to false the events modified/inserted/removed are
     /// not emitted.
+    #[cfg(feature = "storage-event-control")]
     pub fn set_event_emission(&mut self, emit: bool) {
         unsafe { self.open() }.1.set_event_emission(emit);
     }

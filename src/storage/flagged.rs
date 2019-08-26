@@ -142,28 +142,32 @@ use shrev::EventChannel;
 ///         assert_eq!(events.len(), 1);
 ///     }
 ///
-///     world.write_storage::<Comp>().set_event_emission(false);
-///     world.create_entity().with(Comp(19u32)).build();
-///
+///     #[cfg(feature = "storage-event-control")]
 ///     {
-///         let mut comps = world.write_storage::<Comp>();
-///         let events = comps.channel().read(&mut comp_system.reader_id);
-///         assert_eq!(events.len(), 0);
-///     }
+///         world.write_storage::<Comp>().set_event_emission(false);
+///         world.create_entity().with(Comp(19u32)).build();
 ///
-///     world.write_storage::<Comp>().set_event_emission(true);
-///     world.create_entity().with(Comp(19u32)).build();
+///         {
+///             let mut comps = world.write_storage::<Comp>();
+///             let events = comps.channel().read(&mut comp_system.reader_id);
+///             assert_eq!(events.len(), 0);
+///         }
 ///
-///     {
-///         let mut comps = world.write_storage::<Comp>();
-///         let events = comps.channel().read(&mut comp_system.reader_id);
-///         assert_eq!(events.len(), 1);
+///         world.write_storage::<Comp>().set_event_emission(true);
+///         world.create_entity().with(Comp(19u32)).build();
+///
+///         {
+///             let mut comps = world.write_storage::<Comp>();
+///             let events = comps.channel().read(&mut comp_system.reader_id);
+///             assert_eq!(events.len(), 1);
+///         }
 ///     }
 /// }
 /// ```
 pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
     channel: EventChannel<ComponentEvent>,
     storage: T,
+    #[cfg(feature = "storage-event-control")]
     event_emission: bool,
     phantom: PhantomData<C>,
 }
@@ -176,6 +180,7 @@ where
         FlaggedStorage {
             channel: EventChannel::<ComponentEvent>::default(),
             storage: T::unwrap_default(),
+            #[cfg(feature = "storage-event-control")]
             event_emission: true,
             phantom: PhantomData,
         }
@@ -196,23 +201,38 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         // calling `.iter()` on an unconstrained mutable storage will flag everything
-        if self.event_emission {
-            self.channel.single_write(ComponentEvent::Modified(id));
+        #[cfg(feature = "storage-event-control")]
+        {
+            if self.event_emission {
+                self.channel.single_write(ComponentEvent::Modified(id));
+            }
         }
+        #[cfg(not(feature = "storage-event-control"))]
+        self.channel.single_write(ComponentEvent::Modified(id));
         self.storage.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
-        if self.event_emission {
-            self.channel.single_write(ComponentEvent::Inserted(id));
+        #[cfg(feature = "storage-event-control")]
+        {
+            if self.event_emission {
+                self.channel.single_write(ComponentEvent::Inserted(id));
+            }
         }
+        #[cfg(not(feature = "storage-event-control"))]
+        self.channel.single_write(ComponentEvent::Inserted(id));
         self.storage.insert(id, comp);
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
-        if self.event_emission {
-            self.channel.single_write(ComponentEvent::Removed(id));
+        #[cfg(feature = "storage-event-control")]
+        {
+            if self.event_emission {
+                self.channel.single_write(ComponentEvent::Removed(id));
+            }
         }
+        #[cfg(not(feature = "storage-event-control"))]
+        self.channel.single_write(ComponentEvent::Removed(id));
         self.storage.remove(id)
     }
 }
@@ -226,10 +246,12 @@ impl<C, T> Tracked for FlaggedStorage<C, T> {
         &mut self.channel
     }
 
+    #[cfg(feature = "storage-event-control")]
     fn set_event_emission(&mut self, emit: bool) {
         self.event_emission = emit;
     }
 
+    #[cfg(feature = "storage-event-control")]
     fn event_emission(&self) -> bool {
         self.event_emission
     }
