@@ -1,4 +1,4 @@
-use mopa::Any;
+use std::any::Any;
 
 use super::*;
 use crate::world::{Component, Entity, Generation, Index, WorldExt};
