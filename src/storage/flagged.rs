@@ -172,6 +172,18 @@ pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
     phantom: PhantomData<C>,
 }
 
+impl<C, T> FlaggedStorage<C, T> {
+    #[cfg(feature = "storage-event-control")]
+    fn emit_event(&self) -> bool {
+        self.event_emission
+    }
+
+    #[cfg(not(feature = "storage-event-control"))]
+    fn emit_event(&self) -> bool {
+        true
+    }
+}
+
 impl<C, T> Default for FlaggedStorage<C, T>
 where
     T: TryDefault,
@@ -200,39 +212,23 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
     }
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
-        // calling `.iter()` on an unconstrained mutable storage will flag everything
-        #[cfg(feature = "storage-event-control")]
-        {
-            if self.event_emission {
-                self.channel.single_write(ComponentEvent::Modified(id));
-            }
+        if self.emit_event() {
+            self.channel.single_write(ComponentEvent::Modified(id));
         }
-        #[cfg(not(feature = "storage-event-control"))]
-        self.channel.single_write(ComponentEvent::Modified(id));
         self.storage.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
-        #[cfg(feature = "storage-event-control")]
-        {
-            if self.event_emission {
-                self.channel.single_write(ComponentEvent::Inserted(id));
-            }
+        if self.emit_event() {
+            self.channel.single_write(ComponentEvent::Inserted(id));
         }
-        #[cfg(not(feature = "storage-event-control"))]
-        self.channel.single_write(ComponentEvent::Inserted(id));
         self.storage.insert(id, comp);
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
-        #[cfg(feature = "storage-event-control")]
-        {
-            if self.event_emission {
-                self.channel.single_write(ComponentEvent::Removed(id));
-            }
+        if self.emit_event() {
+            self.channel.single_write(ComponentEvent::Removed(id));
         }
-        #[cfg(not(feature = "storage-event-control"))]
-        self.channel.single_write(ComponentEvent::Removed(id));
         self.storage.remove(id)
     }
 }
