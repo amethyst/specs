@@ -9,9 +9,11 @@ pub use self::{
         ImmutableParallelRestriction, MutableParallelRestriction, RestrictedStorage,
         SequentialRestriction,
     },
-    storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage},
+    storages::{BTreeStorage, DenseVecStorage, DefaultVecStorage, HashMapStorage, NullStorage, VecStorage},
     track::{ComponentEvent, Tracked},
 };
+
+use self::storages::SliceAccess;
 
 use std::{
     self,
@@ -256,6 +258,36 @@ where
     /// by the component type without actually getting the component.
     pub fn mask(&self) -> &BitSet {
         &self.data.mask
+    }
+}
+
+impl<'e, T, D> Storage<'e, T, D>
+    where
+        T: Component,
+        D: Deref<Target = MaskedStorage<T>>,
+        T::Storage: SliceAccess<T>
+{
+    /// Returns the component data as a slice.
+    ///
+    /// The indices of this slice may not correspond to anything in particular.
+    /// Check the underlying storage documentation for details.
+    pub fn as_slice(&self) -> &[<T::Storage as SliceAccess<T>>::Element] {
+        self.data.inner.as_slice()
+    }
+}
+
+impl<'e, T, D> Storage<'e, T, D>
+    where
+        T: Component,
+        D: DerefMut<Target = MaskedStorage<T>>,
+        T::Storage: SliceAccess<T>
+{
+    /// Returns the component data as a slice.
+    ///
+    /// The indices of this slice may not correspond to anything in particular.
+    /// Check the underlying storage documentation for details.
+    pub fn as_mut_slice(&mut self) -> &mut [<T::Storage as SliceAccess<T>>::Element] {
+        self.data.inner.as_mut_slice()
     }
 }
 
