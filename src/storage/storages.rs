@@ -1,6 +1,7 @@
 //! Different types of storages you can use for your components.
 
 use std::collections::BTreeMap;
+use std::mem::MaybeUninit;
 
 use derivative::Derivative;
 use hashbrown::HashMap;
@@ -219,35 +220,53 @@ unsafe impl<T> DistinctStorage for NullStorage<T> {}
 
 /// Vector storage. Uses a simple `Vec`. Supposed to have maximum
 /// performance for the components mostly present in entities.
+///
+/// `as_slice()` and `as_mut_slice()` indices correspond to
+/// entity IDs. These can be compared to other `VecStorage`s, to
+/// other `DefaultVecStorage`s, and to `Entity::id()`s for live
+/// entities.
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
-pub struct VecStorage<T>(Vec<T>);
+pub struct VecStorage<T>(Vec<MaybeUninit<T>>);
+
+impl<T> SliceAccess<T> for VecStorage<T> {
+    type Element = MaybeUninit<T>;
+
+    #[inline]
+    fn as_slice(&self) -> &[Self::Element] {
+        self.0.as_slice()
+    }
+
+    #[inline]
+    fn as_mut_slice(&mut self) -> &mut [Self::Element] {
+        self.0.as_mut_slice()
+    }
+}
 
 impl<T> UnprotectedStorage<T> for VecStorage<T> {
     unsafe fn clean<B>(&mut self, has: B)
-    where
-        B: BitSetLike,
+        where
+            B: BitSetLike,
     {
         use std::ptr;
         for (i, v) in self.0.iter_mut().enumerate() {
             if has.contains(i as u32) {
-                ptr::drop_in_place(v);
+                // drop in place
+                ptr::drop_in_place(&mut *v.as_mut_ptr());
             }
         }
         self.0.set_len(0);
     }
 
     unsafe fn get(&self, id: Index) -> &T {
-        self.0.get_unchecked(id as usize)
+        &*self.0.get_unchecked(id as usize).as_ptr()
     }
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
-        self.0.get_unchecked_mut(id as usize)
+        &mut *self.0.get_unchecked_mut(id as usize).as_mut_ptr()
     }
 
     unsafe fn insert(&mut self, id: Index, v: T) {
-        use std::ptr;
-
         let id = id as usize;
         if self.0.len() <= id {
             let delta = id + 1 - self.0.len();
@@ -256,12 +275,11 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         }
         // Write the value without reading or dropping
         // the (currently uninitialized) memory.
-        ptr::write(self.0.get_unchecked_mut(id), v);
+        *self.0.get_unchecked_mut(id as usize) = MaybeUninit::new(v);
     }
 
     unsafe fn remove(&mut self, id: Index) -> T {
         use std::ptr;
-
         ptr::read(self.get(id))
     }
 }
@@ -274,8 +292,8 @@ unsafe impl<T> DistinctStorage for VecStorage<T> {}
 /// Requires the component to implement `Default`.
 ///
 /// `as_slice()` and `as_mut_slice()` indices correspond to entity IDs.
-/// These can be compared to other `DefaultVecStorage`s, and to
-/// `Entity::id()`s for live entities.
+/// These can be compared to other `DefaultVecStorage`s, to other
+/// `VecStorage`s, and to `Entity::id()`s for live entities.
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct DefaultVecStorage<T>(Vec<T>);

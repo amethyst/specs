@@ -3,6 +3,7 @@ use std::any::Any;
 use super::*;
 use crate::world::{Component, Entity, Generation, Index, WorldExt};
 use shred::World;
+use std::mem::MaybeUninit;
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
@@ -448,6 +449,27 @@ mod test {
         }
     }
 
+    fn test_maybeuninit_slice<T: Component + From<u32> + Debug + Eq>()
+        where
+            T::Storage: Default + SliceAccess<T, Element=MaybeUninit<T>>,
+    {
+        let mut w = World::new();
+        let mut s: Storage<T, _> = create(&mut w);
+
+        for i in 0..1_000 {
+            if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
+        }
+
+        let slice = s.as_slice();
+        assert_eq!(slice.len(), 1_000);
+        for (i, v) in slice.iter().enumerate() {
+            let v = unsafe { &*v.as_ptr() };
+            assert_eq!(v, &(i as u32 + 2718).into());
+        }
+    }
+
     #[test]
     fn vec_test_add() {
         test_add::<Cvec>();
@@ -479,6 +501,10 @@ mod test {
     #[test]
     fn vec_test_anti() {
         test_anti::<Cvec>();
+    }
+    #[test]
+    fn vec_test_maybeuninit_slice() {
+        test_maybeuninit_slice::<Cvec>();
     }
 
     #[test]

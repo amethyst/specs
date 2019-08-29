@@ -53,6 +53,7 @@ Certain storages provide access to component slices:
 |Storage Type            | Slice type          | Density | Indices       |
 |:----------------------:|---------------------|---------|---------------|
 | [`DenseVecStorage`]    | `&[T]`              | Dense   | Arbitrary     |
+| [`VecStorage`]         | `&[MaybeUninit<T>]` | Sparse  | Entity `id()` |
 | [`DefaultVecStorage`]  | `&[T]`              | Sparse  | Entity `id()` |
 
 This is intended as an advanced technique. Component slices provide
@@ -102,6 +103,13 @@ Therefore it would be a waste of memory to use this storage for
 rare components, but it's best suited for commonly used components
 (like transform values).
 
+`VecStorage<T>` provides `as_slice()` and `as_mut_slice()` accessors which
+return `&[MaybeUninit<T>]`. Consult the `Storage::mask()` to determine
+which indices are populated. Slice indices cannot be converted to `Entity`
+values because they lack a generation counter, but they do correspond to
+`Entity::id()`s, so indices can be used to collate between multiple
+`VecStorage`s.
+
 ## `DefaultVecStorage`
 
 This storage works exactly like `VecStorage`, but instead of leaving gaps
@@ -113,4 +121,5 @@ writes than `VecStorage`.
 which return `&[T]`. `Storage::mask()` can be used to determine which
 indices are in active use, but all indices are fully initialized, so the
 `mask()` is not necessary for safety. `DefaultVecStorage` indices all
-correspond with each other and with `Entity::id()`s.
+correspond with each other, with `VecStorage` indices, and with
+`Entity::id()`s.
