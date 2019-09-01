@@ -75,11 +75,11 @@ impl<'a> System<'a> for Sys {
 
 There are three different event types that we can receive:
 
-* `ComponentEvent::Inserted` - will be sent when a component is added to the
+- `ComponentEvent::Inserted` - will be sent when a component is added to the
   storage
-* `ComponentEvent::Modified` - will be sent when a component is fetched mutably
+- `ComponentEvent::Modified` - will be sent when a component is fetched mutably
   from the storage
-* `ComponentEvent::Removed` - will be sent when a component is removed from the
+- `ComponentEvent::Removed` - will be sent when a component is removed from the
   storage
 
 ## Gotcha: Iterating `FlaggedStorage` Mutably
@@ -102,9 +102,9 @@ for comp in (&mut comps).join() {
 
 Instead, you will want to either:
 
-* Restrict the components mutably iterated over, for example by joining with a
+- Restrict the components mutably iterated over, for example by joining with a
   `BitSet` or another component storage.
-* Iterating over the components use a `RestrictedStorage` and only fetch the
+- Iterating over the components use a `RestrictedStorage` and only fetch the
   component as mutable if/when needed.
 
 ## `RestrictedStorage`
@@ -114,10 +114,11 @@ component to be marked as modified, you can use a `RestrictedStorage` and only
 fetch the component as mutable if/when needed.
 
 ```rust,ignore
-for (entity, mut comps) in (&entities, &mut comps.restrict_mut()).join() {
-    // Check whether this component should be modified.
-    if condition {
-         let mut comp = comps.get_mut_unchecked();
+for (entity, mut comp) in (&entities, &mut comps.restrict_mut()).join() {
+    // Check whether this component should be modified, without fetching it as
+    // mutable.
+    if comp.get_unchecked().condition < 5 {
+         let mut comp = comp.get_mut_unchecked();
          // ...
     }
 }
