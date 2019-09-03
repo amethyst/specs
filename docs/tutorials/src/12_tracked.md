@@ -83,3 +83,12 @@ There are three different event types that we can receive:
 Note that because of how `ComponentEvent` works, if you iterate mutably over a
 component storage using `Join`, all entities that are fetched by the `Join` will
 be flagged as modified even if nothing was updated in them.
+
+## Start and Stop event emission
+
+Sometimes you may want to perform some operations on the storage, but you don't want
+that these operations produce any event.
+
+You can use the function `storage.set_event_emission(false)` to suppress the event writing for
+of any action. When you want to re activate them you can simply call
+`storage.set_event_emission(true)`.

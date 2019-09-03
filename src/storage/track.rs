@@ -15,6 +15,16 @@ pub trait Tracked {
     fn channel(&self) -> &EventChannel<ComponentEvent>;
     /// Mutable event channel tracking modified/inserted/removed components.
     fn channel_mut(&mut self) -> &mut EventChannel<ComponentEvent>;
+
+    /// Controls the events signal emission.
+    /// When this is set to false the events modified/inserted/removed are
+    /// not emitted.
+    #[cfg(feature = "storage-event-control")]
+    fn set_event_emission(&mut self, emit: bool);
+
+    /// Returns the actual state of the event emission.
+    #[cfg(feature = "storage-event-control")]
+    fn event_emission(&self) -> bool;
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -42,6 +52,12 @@ where
     pub fn channel(&self) -> &EventChannel<ComponentEvent> {
         unsafe { self.open() }.1.channel()
     }
+
+    /// Returns the actual state of the event emission.
+    #[cfg(feature = "storage-event-control")]
+    pub fn event_emission(&self) -> bool {
+        unsafe { self.open() }.1.event_emission()
+    }
 }
 
 impl<'e, T, D> Storage<'e, T, D>
@@ -66,5 +82,13 @@ where
     /// Flags an index with a `ComponentEvent`.
     pub fn flag(&mut self, event: ComponentEvent) {
         self.channel_mut().single_write(event);
+    }
+
+    /// Controls the events signal emission.
+    /// When this is set to false the events modified/inserted/removed are
+    /// not emitted.
+    #[cfg(feature = "storage-event-control")]
+    pub fn set_event_emission(&mut self, emit: bool) {
+        unsafe { self.open() }.1.set_event_emission(emit);
     }
 }
