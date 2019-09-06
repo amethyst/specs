@@ -124,6 +124,17 @@ for (entity, mut comp) in (&entities, &mut comps.restrict_mut()).join() {
 }
 ```
 
+## Start and Stop event emission
+
+Sometimes you may want to perform some operations on the storage, but you don't
+want that these operations produce any event.
+
+You can use the function `storage.set_event_emission(false)` to suppress the
+event writing for of any action. When you want to re activate them you can
+simply call `storage.set_event_emission(true)`.
+
+---
+
 _See
 [FlaggedStorage Doc](https://docs.rs/specs/latest/specs/struct.FlaggedStorage.html)
 for more into._
