@@ -207,8 +207,9 @@ pub mod world;
 
 pub use hibitset::BitSet;
 pub use shred::{
-    Accessor, Dispatcher, DispatcherBuilder, Read, ReadExpect, RunNow, StaticAccessor, System,
-    SystemData, World, Write, WriteExpect,
+    Accessor, AccessorCow, BatchAccessor, BatchController, BatchUncheckedWorld,
+    DefaultBatchControllerSystem, Dispatcher, DispatcherBuilder, Read, ReadExpect, RunNow,
+    RunningTime, StaticAccessor, System, SystemData, World, Write, WriteExpect,
 };
 pub use shrev::ReaderId;
 
