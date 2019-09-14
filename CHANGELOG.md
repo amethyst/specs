@@ -1,9 +1,14 @@
-# Unreleased
+# 0.15.1
 
 * Benchmark uses `nalgebra` instead of `cgmath`. ([#619]).
 * Bumped `shrev` from `1.0` to `1.1`. ([#619]).
+* Update hashbrown to 0.6.0, criterion to 0.3 ([#627], [#632])
+* Remove `mopa` in favour of `std::any::Any` ([#631])
 
 [#619]: https://github.com/slide-rs/specs/pull/619
+[#627]: https://github.com/slide-rs/specs/pull/627
+[#631]: https://github.com/slide-rs/specs/pull/631
+[#632]: https://github.com/slide-rs/specs/pull/632
 
 # 0.15.0
 
