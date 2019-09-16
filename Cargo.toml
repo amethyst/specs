@@ -27,7 +27,7 @@ derivative = "1"
 hashbrown = "0.6.0"
 hibitset = { version = "0.6.1", default-features = false }
 log = "0.4"
-shred = { version = "0.9.3", default-features = false }
+shred = { version = "0.9.2", default-features = false }
 shrev = "1.1.1"
 tuple_utils = "0.3"
 
