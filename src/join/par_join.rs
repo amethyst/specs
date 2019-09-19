@@ -27,8 +27,8 @@ pub unsafe trait ParJoin: Join {
         Self: Sized,
     {
         if <Self as Join>::is_unconstrained() {
-            println!(
-                "WARNING: `ParJoin` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length."
+            log::warn!(
+                "`ParJoin` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length."
             );
         }
 
