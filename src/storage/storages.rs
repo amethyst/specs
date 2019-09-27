@@ -107,7 +107,7 @@ unsafe impl<T> DistinctStorage for HashMapStorage<T> {}
 pub struct DenseVecStorage<T> {
     data: Vec<T>,
     entity_id: Vec<Index>,
-    data_id: Vec<Index>,
+    data_id: Vec<MaybeUninit<Index>>,
 }
 
 impl<T> SliceAccess<T> for DenseVecStorage<T> {
@@ -141,12 +141,12 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
     }
 
     unsafe fn get(&self, id: Index) -> &T {
-        let did = *self.data_id.get_unchecked(id as usize);
+        let did = self.data_id.get_unchecked(id as usize).assume_init();
         self.data.get_unchecked(did as usize)
     }
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
-        let did = *self.data_id.get_unchecked(id as usize);
+        let did = self.data_id.get_unchecked(id as usize).assume_init();
         self.data.get_unchecked_mut(did as usize)
     }
 
@@ -157,15 +157,15 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
             self.data_id.reserve(delta);
             self.data_id.set_len(id + 1);
         }
-        *self.data_id.get_unchecked_mut(id) = self.data.len() as Index;
+        self.data_id.get_unchecked_mut(id).as_mut_ptr().write(self.data.len() as Index);
         self.entity_id.push(id as Index);
         self.data.push(v);
     }
 
     unsafe fn remove(&mut self, id: Index) -> T {
-        let did = *self.data_id.get_unchecked(id as usize);
+        let did = self.data_id.get_unchecked(id as usize).assume_init();
         let last = *self.entity_id.last().unwrap();
-        *self.data_id.get_unchecked_mut(last as usize) = did;
+        self.data_id.get_unchecked_mut(last as usize).as_mut_ptr().write(did);
         self.entity_id.swap_remove(did as usize);
         self.data.swap_remove(did as usize)
     }
