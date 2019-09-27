@@ -2,7 +2,7 @@ language: rust
 
 rust:
 - nightly
-- 1.34.0
+- 1.36.0
 - stable
 
 cache:
@@ -22,7 +22,7 @@ script:
     cargo build --all-features --verbose;
     cargo test --all-features --verbose --no-run;
     cargo bench --verbose --no-run --all-features;
-  elif [ "$TRAVIS_RUST_VERSION" == "1.34.0" ]; then
+  elif [ "$TRAVIS_RUST_VERSION" == "1.36.0" ]; then
     cargo check --tests --no-default-features;
     cargo check --tests --no-default-features --features "parallel";
     cargo check --tests --no-default-features --features "serde";
