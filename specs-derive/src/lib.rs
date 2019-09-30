@@ -62,7 +62,7 @@ fn impl_component(ast: &DeriveInput) -> proc_macro2::TokenStream {
         .iter()
         .find(|attr| attr.path.segments[0].ident == "storage")
         .map(|attr| {
-            syn::parse2::<StorageAttribute>(attr.tts.clone())
+            syn::parse2::<StorageAttribute>(attr.tokens.clone())
                 .unwrap()
                 .storage
         })
