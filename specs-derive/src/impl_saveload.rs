@@ -321,7 +321,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
         }
     }
 
-    let variants = &saveload.variants;
+    let variants = saveload.variants.iter();
 
     let (_, saveload_ty_generics, saveload_where_clause) = saveload_generics.split_for_impl();
     let enum_def = quote! {
@@ -333,7 +333,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
     let mut big_match_ser = quote! {};
     let mut big_match_de = quote! {};
 
-    for variant in variants {
+    for variant in saveload.variants.iter() {
         let ident = &variant.ident;
 
         match &variant.fields {
@@ -467,5 +467,6 @@ fn replace_entity_type(ty: &mut Type) {
         Type::Infer(_) => unreachable!(),
         Type::Macro(_) => unreachable!(),
         Type::Verbatim(_) => unimplemented!(),
+        _ => unimplemented!(),
     }
 }
