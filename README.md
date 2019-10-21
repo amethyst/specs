@@ -4,8 +4,8 @@
 
 [![Build Status][bi]][bl] [![Crates.io][ci]][cl] [![Gitter][gi]][gl] ![MIT/Apache][li] [![Docs.rs][di]][dl] [![Code coverage][coi]][cov] ![LoC][lo]
 
-[bi]: https://travis-ci.org/slide-rs/specs.svg?branch=master
-[bl]: https://travis-ci.org/slide-rs/specs
+[bi]: https://travis-ci.org/amethyst/specs.svg?branch=master
+[bl]: https://travis-ci.org/amethyst/specs
 
 [ci]: https://img.shields.io/crates/v/specs.svg
 [cl]: https://crates.io/crates/specs/
