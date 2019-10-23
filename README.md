@@ -39,7 +39,7 @@ Minimum Rust version: 1.36
 
 ## [Link to the book][book]
 
-[book]: https://slide-rs.github.io/specs/
+[book]: https://specs.amethyst.rs/docs/tutorials/
 
 ## Example
 
