@@ -40,11 +40,12 @@ The returned entity value can also be used to get a component from a storage as 
 
 ## Optional components
 
-Even though `Entities` allows to `get()` components that may or may not be there, using 
-`maybe()` is a more concise way to do that.
-`maybe()` wraps the `Storage` in a `MaybeJoin` struct which, rather than returning
-a component directly, returns `None` if the component is missing and `Some(T)` 
-if it's there.
+The previous example will iterate over all entities that have all the components 
+we need, but what if we want to iterate over an entity whether it has a component 
+or not?
+To do that, we can wrap the `Storage` with `maybe()`: it wraps the `Storage` in a 
+`MaybeJoin` struct which, rather than returning a component directly, returns 
+`None` if the component is missing and `Some(T)` if it's there.
    
 ```rust,ignore
 for (pos, vel, mass) in 
@@ -68,6 +69,26 @@ Thus, mass is an **optional** component here.
 WARNING: Do not have a join of only `MaybeJoin`s. Otherwise the join will iterate 
 over every single index of the bitset. If you want a join with all `MaybeJoin`s, 
 add an EntitiesRes to the join as well to bound the join to all entities that are alive.
+
+### Manually fetching components with `Storage::get()`
+
+Even though `join()`ing over `maybe()` should be preferred because it can optimize how entities are
+iterated, it's always possible to fetch a component manually using `Storage::get()`
+or `Storage::get_mut()`.
+For example, say that you want to damage a target entity every tick, but only if
+it has an `Health`: 
+
+```rust,ignore
+for (target, damage) in (&target_storage, &damage_storage).join() {
+  
+    let target_health: Option<&mut Health> = health_storage.get_mut(target.ent);
+    if let Some(target_health) = target_health {
+      target_health.current -= damage.value;      
+    }
+}
+```
+Even though this is a somewhat contrived example, this is a common pattern 
+when entities interact.
 
 ## Excluding components
 
