@@ -96,7 +96,7 @@ struct SysSpawn {
 
 impl SysSpawn {
     fn new() -> Self {
-        SysSpawn { counter: 0 }
+        Self { counter: 0 }
     }
 }
 

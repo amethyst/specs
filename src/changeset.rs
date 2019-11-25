@@ -87,7 +87,7 @@ where
     T: AddAssign,
 {
     fn from_iter<I: IntoIterator<Item = (Entity, T)>>(iter: I) -> Self {
-        let mut changeset = ChangeSet::new();
+        let mut changeset = Self::new();
         for (entity, d) in iter {
             changeset.add(entity, d);
         }

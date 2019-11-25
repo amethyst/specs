@@ -113,7 +113,7 @@ macro_rules! tests {
 
             impl Default for CompInt {
                 fn default() -> Self {
-                    CompInt(0)
+                    Self(0)
                 }
             }
 
