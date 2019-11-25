@@ -119,7 +119,7 @@ macro_rules! tests {
 
             impl Default for CompBool {
                 fn default() -> Self {
-                    CompBool(true)
+                    Self(true)
                 }
             }
 

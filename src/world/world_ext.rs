@@ -293,7 +293,7 @@ pub trait WorldExt {
 
 impl WorldExt for World {
     fn new() -> Self {
-        let mut world = World::default();
+        let mut world = Self::default();
         world.insert(EntitiesRes::default());
         world.insert(MetaTable::<dyn AnyStorage>::default());
         world.insert(LazyUpdate::default());
