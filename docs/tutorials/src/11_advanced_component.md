@@ -1,6 +1,6 @@
 # Advanced strategies for components
 
-So now that we have a fairly good grasp on the basics of Specs, 
+So now that we have a fairly good grasp on the basics of Specs,
 it's time that we start experimenting with more advanced patterns!
 
 ## Marker components
@@ -39,7 +39,7 @@ impl<'a> System<'a> for Sys {
         ReadStorage<'a, Velocity>,
         WriteStorage<'a, Position>,
     );
-    
+
     fn run(&mut self, (drag, velocity, mut position): Self::SystemData) {
         // Update positions with drag
         for (pos, vel, _) in (&mut position, &velocity, &drag).join() {
@@ -49,14 +49,14 @@ impl<'a> System<'a> for Sys {
         for (pos, vel, _) in (&mut position, &velocity, !&drag).join() {
             pos += vel;
         }
-    } 
+    }
 }
 ```
 
 Using `NullStorage` is recommended for marker components, since they don't contain
-any data and as such will not consume any memory. This means we can represent them using 
-only a bitset. Note that `NullStorage` will only work for components that are ZST (i.e. a 
-struct without fields). 
+any data and as such will not consume any memory. This means we can represent them using
+only a bitset. Note that `NullStorage` will only work for components that are ZST (i.e. a
+struct without fields).
 
 ## Modeling entity relationships and hierarchy
 
@@ -82,7 +82,7 @@ impl<'a> System<'a> for FollowTargetSys {
         ReadStorage<'a, Target>,
         WriteStorage<'a, Transform>,
     );
-    
+
     fn run(&mut self, (entity, target, transform): Self::SystemData) {
         for (entity, t) in (&*entity, &target).join() {
             let new_transform = transform.get(t.target).cloned().unwrap() + t.offset;
@@ -92,7 +92,7 @@ impl<'a> System<'a> for FollowTargetSys {
 }
 ```
 
-We could also model this as a resource (more about that in the next section), but it could 
+We could also model this as a resource (more about that in the next section), but it could
 be useful to be able to have multiple entities following targets, so modeling this with
 a component makes sense. This could in extension be used to model large scale hierarchical
 structure (scene graphs). For a generic implementation of such a hierarchical system, check
@@ -103,7 +103,7 @@ out the crate [`specs-hierarchy`][sh].
 ## Entity targeting
 
 Imagine we're building a team based FPS game, and we want to add a spectator mode, where the
-spectator can pick a player to follow. In this scenario each player will have a camera defined 
+spectator can pick a player to follow. In this scenario each player will have a camera defined
 that is following them around, and what we want to do is to pick the camera that
 we should use to render the scene on the spectator screen.
 
@@ -122,7 +122,7 @@ impl<'a> System<'a> for Render {
         ReadStorage<'a, Transform>,
         ReadStorage<'a, Mesh>,
     );
-    
+
     fn run(&mut self, (active_cam, camera, transform, mesh) : Self::SystemData) {
         let camera = camera.get(active_cam.0).unwrap();
         let view_matrix = transform.get(active_cam.0).unwrap().invert();
@@ -155,11 +155,11 @@ for entity in data.iter().map(|d| d.0) {
 
 There are a couple of limitations with this approach, the first being that we will always
 process all matched entities every frame (if this is called in a `System` somewhere). This
-can be fixed by using `FlaggedStorage` to maintain a sorted `Entity` list in the `System`. 
+can be fixed by using `FlaggedStorage` to maintain a sorted `Entity` list in the `System`.
 We will talk more about `FlaggedStorage` in the next [chapter][fs].
 
-The second limitation is that we do a `Vec` allocation every time, however this can be 
-alleviated by having a `Vec` in the `System` struct that we reuse every frame. Since we 
+The second limitation is that we do a `Vec` allocation every time, however this can be
+alleviated by having a `Vec` in the `System` struct that we reuse every frame. Since we
 are likely to keep a fairly steady amount of entities in most situations this could work well.
 
 [fs]: ./12_tracked.html

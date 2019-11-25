@@ -20,7 +20,7 @@
 * Remove `fnv` in favour of `hashbrown` ([#606])
 * Reexport `hibitset`, `rayon`, `shred` and `shrev` ([#606])
 * Reexport `shred_derive::SystemData` when `shred-derive` feature is enabled ([#606])
-* Reexport `specs_derive::{Component, ConvertSaveload}` when `specs-derive` feature is enabled 
+* Reexport `specs_derive::{Component, ConvertSaveload}` when `specs-derive` feature is enabled
 ([#606])
 
 [#542]: https://github.com/slide-rs/specs/pull/542

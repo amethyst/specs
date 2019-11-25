@@ -11,7 +11,7 @@ struct Sys;
 
 impl<'a> System<'a> for Sys {
     type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
-    
+
     fn run(&mut self, (pos, vel): Self::SystemData) {
         /* ... */
     }
