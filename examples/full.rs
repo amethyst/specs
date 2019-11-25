@@ -127,7 +127,7 @@ struct SysStoreMax(Option<Entity>);
 
 impl SysStoreMax {
     fn new() -> Self {
-        SysStoreMax(None)
+        Self(None)
     }
 }
 
