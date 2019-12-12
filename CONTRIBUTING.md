@@ -6,7 +6,7 @@ First of all, thank you for your interest in contributing.
 
 If you experience any bugs or have feature requests, please [file an issue].
 
-[file an issue]: https://github.com/slide-rs/specs/issues/new
+[file an issue]: https://github.com/amethyst/specs/issues/new/choose
 
 ## Getting started
 
@@ -14,7 +14,7 @@ If you want to contribute code, please read the following sections.
 
 There are couple of recommended step before you start working on a ticket:
 
-1. If you haven't already, please read [the Specs book](https://slide-rs.github.io/specs/)
+1. If you haven't already, please read [the Specs book](https://specs.amethyst.rs/docs/tutorials/)
 2. Please make sure you read our [Code of Conduct](CODE_OF_CONDUCT.md)
 3. Refer to the [architecture section](#architecture) below to gain some overview
 4. Please continue with the next section (Creating Pull Requests)
@@ -29,7 +29,7 @@ create one in advance, except your PR provides
 * more tests or
 * more benchmarks.
 
-[tick]: https://github.com/slide-rs/specs/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc
+[tick]: https://github.com/amethyst/specs/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc
 
 Please leave a comment on the respective issue that you're working on it, so we don't end up
 with two PRs for the same ticket. While working on a branch, you can refer to the [basic guides]
@@ -50,7 +50,7 @@ Specs can be divided into two big parts:
 1. execution of code
 2. managing data
 
-Number 1 is served by [`shred`](https://github.com/slide-rs/shred); it provides the following pieces:
+Number 1 is served by [`shred`](https://github.com/amethyst/shred); it provides the following pieces:
 
 * `System`; this is the central interface for defining logic
 * `Dispatcher` and `DispatcherBuilder` - these are responsible for building a plan for how to run systems
@@ -61,7 +61,7 @@ Additionally, `shred` also provides the central piece for number 2:
 * `World`; everything that a `System` can access is stored inside.
 
 Specs itself defines component storages (which are also stored inside the `World`).
-For those, [`hibitset`](https://github.com/slide-rs/hibitset/) is used to:
+For those, [`hibitset`](https://github.com/amethyst/hibitset/) is used to:
 
 * store the indices (= entity ids) with an existing component
 * allow efficient joining over sparse component storages
@@ -80,10 +80,10 @@ This project has some basic guidelines for working with git commits:
 The following sections assume you have cloned the repository as follows:
 
 ```sh
-git clone https://github.com/slide-rs/specs
+git clone https://github.com/amethyst/specs
 ```
 
-(if you're using SSH, you need to use `git@github.com:slide-rs/specs`)
+(if you're using SSH, you need to use `git@github.com:amethyst/specs`)
 
 Git by default sets the remote branch you cloned from to `origin`. That's what
 is usually used for the fork, so let's change that:
