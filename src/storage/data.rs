@@ -118,17 +118,18 @@ use crate::{
 /// Note that you can also use `LazyUpdate` , which does insertions on
 /// `World::maintain`. This allows more concurrency and is designed
 /// to be used for entity initialization.
-pub type ReadStorage<'a, T> = Storage<'a, T, Fetch<'a, MaskedStorage<T>>>;
+#[allow(type_alias_bounds)]
+pub type ReadStorage<'a, T: Component> = Storage<'a, T, Fetch<'a, MaskedStorage<T, T::Storage>>>;
 
 impl<'a, T> SystemData<'a> for ReadStorage<'a, T>
 where
     T: Component,
 {
     fn setup(res: &mut World) {
-        res.entry::<MaskedStorage<T>>()
+        res.entry::<MaskedStorage<T, T::Storage>>()
             .or_insert_with(|| MaskedStorage::new(<T::Storage as TryDefault>::unwrap_default()));
         res.fetch_mut::<MetaTable<dyn AnyStorage>>()
-            .register(&*res.fetch::<MaskedStorage<T>>());
+            .register(&*res.fetch::<MaskedStorage<T, T::Storage>>());
     }
 
     fn fetch(res: &'a World) -> Self {
@@ -138,7 +139,7 @@ where
     fn reads() -> Vec<ResourceId> {
         vec![
             ResourceId::new::<EntitiesRes>(),
-            ResourceId::new::<MaskedStorage<T>>(),
+            ResourceId::new::<MaskedStorage<T, T::Storage>>(),
         ]
     }
 
@@ -209,17 +210,18 @@ where
 ///
 /// There's also an Entry-API similar to the one provided by
 /// `std::collections::HashMap`.
-pub type WriteStorage<'a, T> = Storage<'a, T, FetchMut<'a, MaskedStorage<T>>>;
+#[allow(type_alias_bounds)]
+pub type WriteStorage<'a, T: Component> = Storage<'a, T, FetchMut<'a, MaskedStorage<T, T::Storage>>>;
 
 impl<'a, T> SystemData<'a> for WriteStorage<'a, T>
 where
     T: Component,
 {
     fn setup(res: &mut World) {
-        res.entry::<MaskedStorage<T>>()
+        res.entry::<MaskedStorage<T, T::Storage>>()
             .or_insert_with(|| MaskedStorage::new(<T::Storage as TryDefault>::unwrap_default()));
         res.fetch_mut::<MetaTable<dyn AnyStorage>>()
-            .register(&*res.fetch::<MaskedStorage<T>>());
+            .register(&*res.fetch::<MaskedStorage<T, T::Storage>>());
     }
 
     fn fetch(res: &'a World) -> Self {
@@ -231,7 +233,7 @@ where
     }
 
     fn writes() -> Vec<ResourceId> {
-        vec![ResourceId::new::<MaskedStorage<T>>()]
+        vec![ResourceId::new::<MaskedStorage<T, T::Storage>>()]
     }
 }
 
