@@ -157,6 +157,11 @@ impl<S: UnprotectedStorage> MaskedStorage<S> {
         self.mask.clear();
     }
 
+    /// Check if the given id refers to a valid element in the storage.
+    pub fn contains(&self, id: Index) -> bool {
+        self.mask.contains(id)
+    }
+
     /// Get an element by a given index.
     pub fn get(&self, id: Index) -> Option<&S::Item> {
         if self.mask.contains(id) {
