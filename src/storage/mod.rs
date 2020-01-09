@@ -157,6 +157,26 @@ impl<S: UnprotectedStorage> MaskedStorage<S> {
         self.mask.clear();
     }
 
+    /// Get an element by a given index.
+    pub fn get(&self, id: Index) -> Option<&S::Item> {
+        if self.mask.contains(id) {
+            // SAFETY: We checked the mask (`contains` returned `true`)
+            Some(unsafe { self.inner.get(id) })
+        } else {
+            None
+        }
+    }
+
+    /// Get an element mutably by a given index.
+    pub fn get_mut(&mut self, id: Index) -> Option<&mut S::Item> {
+        if self.mask.contains(id) {
+            // SAFETY: We checked the mask (`contains` returned `true`)
+            Some(unsafe { self.inner.get_mut(id) })
+        } else {
+            None
+        }
+    }
+
     /// Remove an element by a given index.
     pub fn remove(&mut self, id: Index) -> Option<S::Item> {
         if self.mask.remove(id) {
