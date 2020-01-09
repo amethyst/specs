@@ -199,7 +199,9 @@ where
     }
 }
 
-impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
+impl<C: Component, T: UnprotectedStorage<Item = C>> UnprotectedStorage for FlaggedStorage<C, T> {
+    type Item = C;
+
     unsafe fn clean<B>(&mut self, has: B)
     where
         B: BitSetLike,

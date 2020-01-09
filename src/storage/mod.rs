@@ -478,7 +478,9 @@ where
 }
 
 /// Used by the framework to quickly join components.
-pub trait UnprotectedStorage<T>: TryDefault {
+pub trait UnprotectedStorage: TryDefault {
+    /// The item that is stored.
+    type Item;
     /// Clean the storage given a bitset with bits set for valid indices.
     /// Allows us to safely drop the storage.
     ///
@@ -501,7 +503,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
-    unsafe fn get(&self, id: Index) -> &T;
+    unsafe fn get(&self, id: Index) -> &Self::Item;
 
     /// Tries mutating the data associated with an `Index`.
     /// This is unsafe because the external set used
@@ -514,7 +516,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T;
+    unsafe fn get_mut(&mut self, id: Index) -> &mut Self::Item;
 
     /// Inserts new data for a given `Index`.
     ///
@@ -525,7 +527,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` missing from the
     /// mask is sufficient to call `insert`.
-    unsafe fn insert(&mut self, id: Index, value: T);
+    unsafe fn insert(&mut self, id: Index, value: Self::Item);
 
     /// Removes the data associated with an `Index`.
     ///
@@ -533,7 +535,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// May only be called if an element with `id` was `insert`ed and not yet
     /// removed / dropped.
-    unsafe fn remove(&mut self, id: Index) -> T;
+    unsafe fn remove(&mut self, id: Index) -> Self::Item;
 
     /// Drops the data associated with an `Index`.
     /// This is simply more efficient than `remove` and can be used if the data

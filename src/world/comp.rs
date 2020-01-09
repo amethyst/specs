@@ -62,5 +62,5 @@ use crate::storage::UnprotectedStorage;
 /// ```
 pub trait Component: Any + Sized {
     /// Associated storage type for this component.
-    type Storage: UnprotectedStorage<Self> + Any + Send + Sync;
+    type Storage: UnprotectedStorage<Item = Self> + Any + Send + Sync;
 }
