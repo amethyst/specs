@@ -261,10 +261,10 @@ mod tests {
 
         let mut d = DispatcherBuilder::new().with(Sys, "sys", &[]).build();
 
-        assert!(!w.has_value::<MaskedStorage<Foo>>());
+        assert!(!w.has_value::<MaskedStorage<<Foo as Component>::Storage>>());
 
         d.setup(&mut w);
 
-        assert!(w.has_value::<MaskedStorage<Foo>>());
+        assert!(w.has_value::<MaskedStorage<<Foo as Component>::Storage>>());
     }
 }
