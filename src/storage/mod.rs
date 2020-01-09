@@ -90,7 +90,7 @@ where
     }
 }
 
-impl<T, S: UnprotectedStorage<Item = T>> AnyStorage for MaskedStorage<T, S> {
+impl<S: UnprotectedStorage> AnyStorage for MaskedStorage<S> {
     fn drop(&mut self, entities: &[Entity]) {
         for entity in entities {
             MaskedStorage::drop(self, entity.id());
@@ -129,15 +129,15 @@ pub type InsertResult<T> = Result<Option<T>, Error>;
 /// about which elements are stored, and which are not.
 #[derive(Derivative)]
 #[derivative(Default(bound = "S: Default"))]
-pub struct MaskedStorage<T, S: UnprotectedStorage<Item = T>> {
+pub struct MaskedStorage<S: UnprotectedStorage> {
     mask: BitSet,
     inner: S,
 }
 
-impl<T, S: UnprotectedStorage<Item = T>> MaskedStorage<T, S> {
+impl<S: UnprotectedStorage> MaskedStorage<S> {
     /// Creates a new `MaskedStorage`. This is called when you register
     /// a new component type within the world.
-    pub fn new(inner: S) -> MaskedStorage<T, S> {
+    pub fn new(inner: S) -> MaskedStorage<S> {
         MaskedStorage {
             mask: BitSet::new(),
             inner,
@@ -158,7 +158,7 @@ impl<T, S: UnprotectedStorage<Item = T>> MaskedStorage<T, S> {
     }
 
     /// Remove an element by a given index.
-    pub fn remove(&mut self, id: Index) -> Option<T> {
+    pub fn remove(&mut self, id: Index) -> Option<S::Item> {
         if self.mask.remove(id) {
             // SAFETY: We checked the mask (`remove` returned `true`)
             Some(unsafe { self.inner.remove(id) })
@@ -178,7 +178,7 @@ impl<T, S: UnprotectedStorage<Item = T>> MaskedStorage<T, S> {
     }
 }
 
-impl<T, S: UnprotectedStorage<Item = T>> Drop for MaskedStorage<T, S> {
+impl<S: UnprotectedStorage> Drop for MaskedStorage<S> {
     fn drop(&mut self) {
         self.clear();
     }
@@ -208,7 +208,7 @@ impl<'e, T, D> Storage<'e, T, D> {
 impl<'e, T, D> Storage<'e, T, D>
 where
     T: Component,
-    D: Deref<Target = MaskedStorage<T, T::Storage>>,
+    D: Deref<Target = MaskedStorage<T::Storage>>,
 {
     /// Gets the wrapped storage.
     pub fn unprotected_storage(&self) -> &T::Storage {
@@ -261,7 +261,7 @@ where
 impl<'e, T, D> Storage<'e, T, D>
     where
         T: Component,
-        D: Deref<Target = MaskedStorage<T, T::Storage>>,
+        D: Deref<Target = MaskedStorage<T::Storage>>,
         T::Storage: SliceAccess<T>
 {
     /// Returns the component data as a slice.
@@ -276,7 +276,7 @@ impl<'e, T, D> Storage<'e, T, D>
 impl<'e, T, D> Storage<'e, T, D>
     where
         T: Component,
-        D: DerefMut<Target = MaskedStorage<T, T::Storage>>,
+        D: DerefMut<Target = MaskedStorage<T::Storage>>,
         T::Storage: SliceAccess<T>
 {
     /// Returns the component data as a slice.
@@ -291,7 +291,7 @@ impl<'e, T, D> Storage<'e, T, D>
 impl<'e, T, D> Storage<'e, T, D>
 where
     T: Component,
-    D: DerefMut<Target = MaskedStorage<T, T::Storage>>,
+    D: DerefMut<Target = MaskedStorage<T::Storage>>,
 {
     /// Gets mutable access to the wrapped storage.
     ///
@@ -375,7 +375,7 @@ unsafe impl<'a, T: Component, D> DistinctStorage for Storage<'a, T, D> where
 impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
 where
     T: Component,
-    D: Deref<Target = MaskedStorage<T, T::Storage>>,
+    D: Deref<Target = MaskedStorage<T::Storage>>,
 {
     type Mask = &'a BitSet;
     type Type = &'a T;
@@ -396,7 +396,7 @@ where
 impl<'a, 'e, T, D> Not for &'a Storage<'e, T, D>
 where
     T: Component,
-    D: Deref<Target = MaskedStorage<T, T::Storage>>,
+    D: Deref<Target = MaskedStorage<T::Storage>>,
 {
     type Output = AntiStorage<'a>;
 
@@ -411,7 +411,7 @@ where
 unsafe impl<'a, 'e, T, D> ParJoin for &'a Storage<'e, T, D>
 where
     T: Component,
-    D: Deref<Target = MaskedStorage<T, T::Storage>>,
+    D: Deref<Target = MaskedStorage<T::Storage>>,
     T::Storage: Sync,
 {
 }
@@ -419,7 +419,7 @@ where
 impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
 where
     T: Component,
-    D: DerefMut<Target = MaskedStorage<T, T::Storage>>,
+    D: DerefMut<Target = MaskedStorage<T::Storage>>,
 {
     type Mask = &'a BitSet;
     type Type = &'a mut T;
@@ -445,7 +445,7 @@ where
 unsafe impl<'a, 'e, T, D> ParJoin for &'a mut Storage<'e, T, D>
 where
     T: Component,
-    D: DerefMut<Target = MaskedStorage<T, T::Storage>>,
+    D: DerefMut<Target = MaskedStorage<T::Storage>>,
     T::Storage: Sync + DistinctStorage,
 {
 }
