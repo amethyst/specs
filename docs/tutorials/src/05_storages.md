@@ -73,7 +73,7 @@ one which provides a mapping from the entity id to the index for the data vec
 (it's a redirection table). This is useful when your component is bigger
 than a `usize` because it consumes less RAM.
 
-`DefaultVecStorage<T>` provides `as_slice()` and `as_mut_slice()` accessors
+`DenseVecStorage<T>` provides `as_slice()` and `as_mut_slice()` accessors
 which return `&[T]`. The indices in this slice do not correspond to entity
 IDs, nor do they correspond to indices in any other storage, nor do they
 correspond to indices in this storage at a different point in time.

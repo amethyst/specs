@@ -110,7 +110,7 @@ where
     /// for (mut counter, _) in (counters.entries(), &marker).join() {
     ///     let counter = counter.or_insert_with(Default::default);
     ///     counter.increase();
-    ///         
+    ///
     ///     if counter.reached_limit() {
     ///         counter.reset();
     ///         // Do something

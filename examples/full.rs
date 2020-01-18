@@ -96,7 +96,7 @@ struct SysSpawn {
 
 impl SysSpawn {
     fn new() -> Self {
-        SysSpawn { counter: 0 }
+        Self { counter: 0 }
     }
 }
 
@@ -127,7 +127,7 @@ struct SysStoreMax(Option<Entity>);
 
 impl SysStoreMax {
     fn new() -> Self {
-        SysStoreMax(None)
+        Self(None)
     }
 }
 

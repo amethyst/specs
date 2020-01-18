@@ -6,8 +6,8 @@ use crate::{prelude::*, world::EntitiesRes};
 struct Queue<T>(SegQueue<T>);
 
 impl<T> Default for Queue<T> {
-    fn default() -> Queue<T> {
-        Queue(SegQueue::new())
+    fn default() -> Self {
+        Self(SegQueue::new())
     }
 }
 
@@ -300,7 +300,7 @@ impl LazyUpdate {
 
     /// Allows to temporarily take the inner queue.
     pub(super) fn take(&mut self) -> Self {
-        LazyUpdate {
+        Self {
             queue: self.queue.take(),
         }
     }

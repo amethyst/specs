@@ -397,7 +397,7 @@ pub struct SimpleMarkerAllocator<T: ?Sized> {
 
 impl<T> Default for SimpleMarkerAllocator<T> {
     fn default() -> Self {
-        SimpleMarkerAllocator::new()
+        Self::new()
     }
 }
 
@@ -405,7 +405,7 @@ impl<T> SimpleMarkerAllocator<T> {
     /// Create new `SimpleMarkerAllocator` which will yield `SimpleMarker`s
     /// starting with `0`
     pub fn new() -> Self {
-        SimpleMarkerAllocator {
+        Self {
             index: 0,
             mapping: HashMap::new(),
             _phantom_data: PhantomData,

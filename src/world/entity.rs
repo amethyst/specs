@@ -225,8 +225,8 @@ pub struct Entity(Index, Generation);
 impl Entity {
     /// Creates a new entity (externally from ECS).
     #[cfg(test)]
-    pub fn new(index: Index, gen: Generation) -> Entity {
-        Entity(index, gen)
+    pub fn new(index: Index, gen: Generation) -> Self {
+        Self(index, gen)
     }
 
     /// Returns the index of the `Entity`.

@@ -45,7 +45,7 @@ use the returned `Entity` values to get components from storages as usual.
 for (ent, pos, vel) in (&*entities, &mut pos_storage, &vel_storage).join() {
     println!("Processing entity: {:?}", ent);
     *pos += *vel;
-    
+
     let mass: Option<&mut Mass> = mass_storage.get_mut(ent);
     if let Some(mass) = mass {
         let x = *vel / 300_000_000.0;

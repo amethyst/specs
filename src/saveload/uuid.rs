@@ -62,7 +62,7 @@ impl Default for UuidMarkerAllocator {
 impl UuidMarkerAllocator {
     /// Create new `UuidMarkerAllocator` which will yield `UuidMarker`s.
     pub fn new() -> Self {
-        UuidMarkerAllocator {
+        Self {
             mapping: HashMap::new(),
         }
     }
