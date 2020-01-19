@@ -1,6 +1,10 @@
 //! Provides `Marker` and `MarkerAllocator` traits
 
-use std::{collections::HashMap, fmt::Debug, hash::Hash, marker::PhantomData};
+use std::{collections::HashMap,
+    fmt::{self, Debug},
+    hash::{Hash, Hasher},
+    marker::PhantomData
+};
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
@@ -361,9 +365,37 @@ pub trait MarkerAllocator<M: Marker>: Resource {
 
 /// Basic marker implementation usable for saving and loading, uses `u64` as
 /// identifier
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize)]
 #[repr(transparent)]
 pub struct SimpleMarker<T: ?Sized>(u64, #[serde(skip)] PhantomData<T>);
+
+impl<T: ?Sized> Clone for SimpleMarker<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T: ?Sized> Copy for SimpleMarker<T> {}
+
+impl<T: ?Sized> PartialEq for SimpleMarker<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<T: ?Sized> Eq for SimpleMarker<T> {}
+
+impl<T: ?Sized> Hash for SimpleMarker<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+impl<T: ?Sized> Debug for SimpleMarker<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "SimpleMarker({:?}, PhantomData)", self.0)
+    }
+}
 
 impl<T> Component for SimpleMarker<T>
 where
