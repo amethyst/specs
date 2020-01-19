@@ -2,7 +2,6 @@
 
 use std::{collections::HashMap, fmt::Debug, hash::Hash, marker::PhantomData};
 
-use derivative::Derivative;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
@@ -362,8 +361,7 @@ pub trait MarkerAllocator<M: Marker>: Resource {
 
 /// Basic marker implementation usable for saving and loading, uses `u64` as
 /// identifier
-#[derive(Derivative, Serialize, Deserialize)]
-#[derivative(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Derivative, Serialize, Deserialize, Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct SimpleMarker<T: ?Sized>(u64, #[serde(skip)] PhantomData<T>);
 
@@ -387,8 +385,7 @@ where
 }
 
 /// Basic marker allocator, uses `u64` as identifier
-#[derive(Derivative)]
-#[derivative(Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct SimpleMarkerAllocator<T: ?Sized> {
     index: u64,
     mapping: HashMap<u64, Entity>,

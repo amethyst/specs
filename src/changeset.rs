@@ -2,8 +2,6 @@
 
 use std::{iter::FromIterator, ops::AddAssign};
 
-use derivative::Derivative;
-
 use crate::{prelude::*, storage::UnprotectedStorage, world::Index};
 
 /// Change set that can be collected from an iterator, and joined on for easy
@@ -37,11 +35,18 @@ use crate::{prelude::*, storage::UnprotectedStorage, world::Index};
 /// }
 /// # }
 /// ```
-#[derive(Derivative)]
-#[derivative(Default(bound = ""))]
 pub struct ChangeSet<T> {
     mask: BitSet,
     inner: DenseVecStorage<T>,
+}
+
+impl<T> Default for ChangeSet<T> {
+    fn default() -> Self {
+        Self {
+            mask: Default::default(),
+            inner: Default::default(),
+        }
+    }
 }
 
 impl<T> ChangeSet<T> {

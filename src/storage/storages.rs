@@ -3,7 +3,6 @@
 use std::collections::BTreeMap;
 use std::mem::MaybeUninit;
 
-use derivative::Derivative;
 use hashbrown::HashMap;
 use hibitset::BitSetLike;
 
@@ -25,9 +24,13 @@ pub trait SliceAccess<T> {
 }
 
 /// BTreeMap-based storage.
-#[derive(Derivative)]
-#[derivative(Default(bound = ""))]
 pub struct BTreeStorage<T>(BTreeMap<Index, T>);
+
+impl<T> Default for BTreeStorage<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
 
 impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
     unsafe fn clean<B>(&mut self, _has: B)
@@ -59,9 +62,13 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 /// `HashMap`-based storage. Best suited for rare components.
 ///
 /// This uses the [hashbrown::HashMap] internally.
-#[derive(Derivative)]
-#[derivative(Default(bound = ""))]
 pub struct HashMapStorage<T>(HashMap<Index, T>);
+
+impl<T> Default for HashMapStorage<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
 
 impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     unsafe fn clean<B>(&mut self, _has: B)
@@ -102,12 +109,20 @@ unsafe impl<T> DistinctStorage for HashMapStorage<T> {}
 /// cannot be compared with indices from any other storage, and
 /// a particular entity's position within this slice may change
 /// over time.
-#[derive(Derivative)]
-#[derivative(Default(bound = ""))]
 pub struct DenseVecStorage<T> {
     data: Vec<T>,
     entity_id: Vec<Index>,
     data_id: Vec<MaybeUninit<Index>>,
+}
+
+impl<T> Default for DenseVecStorage<T> {
+    fn default() -> Self {
+        Self {
+            data: Default::default(),
+            entity_id: Default::default(),
+            data_id: Default::default(),
+        }
+    }
 }
 
 impl<T> SliceAccess<T> for DenseVecStorage<T> {
@@ -225,9 +240,13 @@ unsafe impl<T> DistinctStorage for NullStorage<T> {}
 /// entity IDs. These can be compared to other `VecStorage`s, to
 /// other `DefaultVecStorage`s, and to `Entity::id()`s for live
 /// entities.
-#[derive(Derivative)]
-#[derivative(Default(bound = ""))]
 pub struct VecStorage<T>(Vec<MaybeUninit<T>>);
+
+impl<T> Default for VecStorage<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
 
 impl<T> SliceAccess<T> for VecStorage<T> {
     type Element = MaybeUninit<T>;
@@ -294,8 +313,7 @@ unsafe impl<T> DistinctStorage for VecStorage<T> {}
 /// `as_slice()` and `as_mut_slice()` indices correspond to entity IDs.
 /// These can be compared to other `DefaultVecStorage`s, to other
 /// `VecStorage`s, and to `Entity::id()`s for live entities.
-#[derive(Derivative)]
-#[derivative(Default(bound = ""))]
+#[derive(Default)]
 pub struct DefaultVecStorage<T>(Vec<T>);
 
 impl<T> UnprotectedStorage<T> for DefaultVecStorage<T> where T: Default {

@@ -21,7 +21,6 @@ use std::{
     ops::{Deref, DerefMut, Not},
 };
 
-use derivative::Derivative;
 use hibitset::{BitSet, BitSetLike, BitSetNot};
 use shred::{CastFrom, Fetch};
 
@@ -130,11 +129,21 @@ pub type InsertResult<T> = Result<Option<T>, Error>;
 
 /// The `UnprotectedStorage` together with the `BitSet` that knows
 /// about which elements are stored, and which are not.
-#[derive(Derivative)]
-#[derivative(Default(bound = "T::Storage: Default"))]
 pub struct MaskedStorage<T: Component> {
     mask: BitSet,
     inner: T::Storage,
+}
+
+impl<T: Component> Default for MaskedStorage<T>
+where
+    T::Storage: Default,
+{
+    fn default() -> Self {
+        Self {
+            mask: Default::default(),
+            inner: Default::default(),
+        }
+    }
 }
 
 impl<T: Component> MaskedStorage<T> {
