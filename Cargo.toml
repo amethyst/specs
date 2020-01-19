@@ -27,7 +27,7 @@ derivative = "1"
 hashbrown = "0.6.0"
 hibitset = { version = "0.6.1", default-features = false }
 log = "0.4"
-shred = { version = "0.9.3", default-features = false }
+shred = { version = "0.10.0", default-features = false }
 shrev = "1.1.1"
 tuple_utils = "0.3"
 
@@ -39,7 +39,7 @@ uuid = { version = "0.7.4", optional = true, features = ["v4", "serde"] }
 [features]
 default = ["parallel"]
 parallel = ["rayon", "shred/parallel", "hibitset/parallel"]
-nightly = ["shred/nightly"]
+nightly = []
 uuid_entity = ["uuid", "serde"]
 stdweb = ["uuid/stdweb"]
 wasm-bindgen = ["uuid/wasm-bindgen"]
