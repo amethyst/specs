@@ -361,7 +361,7 @@ pub trait MarkerAllocator<M: Marker>: Resource {
 
 /// Basic marker implementation usable for saving and loading, uses `u64` as
 /// identifier
-#[derive(Derivative, Serialize, Deserialize, Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct SimpleMarker<T: ?Sized>(u64, #[serde(skip)] PhantomData<T>);
 
