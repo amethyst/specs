@@ -90,10 +90,7 @@ where
     }
 }
 
-impl<T> AnyStorage for MaskedStorage<T>
-where
-    T: Component,
-{
+impl<S: UnprotectedStorage> AnyStorage for MaskedStorage<S> {
     fn drop(&mut self, entities: &[Entity]) {
         for entity in entities {
             MaskedStorage::drop(self, entity.id());
@@ -131,23 +128,23 @@ pub type InsertResult<T> = Result<Option<T>, Error>;
 /// The `UnprotectedStorage` together with the `BitSet` that knows
 /// about which elements are stored, and which are not.
 #[derive(Derivative)]
-#[derivative(Default(bound = "T::Storage: Default"))]
-pub struct MaskedStorage<T: Component> {
+#[derivative(Default(bound = "S: Default"))]
+pub struct MaskedStorage<S: UnprotectedStorage> {
     mask: BitSet,
-    inner: T::Storage,
+    inner: S,
 }
 
-impl<T: Component> MaskedStorage<T> {
+impl<S: UnprotectedStorage> MaskedStorage<S> {
     /// Creates a new `MaskedStorage`. This is called when you register
     /// a new component type within the world.
-    pub fn new(inner: T::Storage) -> MaskedStorage<T> {
+    pub fn new(inner: S) -> MaskedStorage<S> {
         MaskedStorage {
             mask: BitSet::new(),
             inner,
         }
     }
 
-    fn open_mut(&mut self) -> (&BitSet, &mut T::Storage) {
+    fn open_mut(&mut self) -> (&BitSet, &mut S) {
         (&self.mask, &mut self.inner)
     }
 
@@ -160,8 +157,33 @@ impl<T: Component> MaskedStorage<T> {
         self.mask.clear();
     }
 
+    /// Check if the given id refers to a valid element in the storage.
+    pub fn contains(&self, id: Index) -> bool {
+        self.mask.contains(id)
+    }
+
+    /// Get an element by a given index.
+    pub fn get(&self, id: Index) -> Option<&S::Item> {
+        if self.mask.contains(id) {
+            // SAFETY: We checked the mask (`contains` returned `true`)
+            Some(unsafe { self.inner.get(id) })
+        } else {
+            None
+        }
+    }
+
+    /// Get an element mutably by a given index.
+    pub fn get_mut(&mut self, id: Index) -> Option<&mut S::Item> {
+        if self.mask.contains(id) {
+            // SAFETY: We checked the mask (`contains` returned `true`)
+            Some(unsafe { self.inner.get_mut(id) })
+        } else {
+            None
+        }
+    }
+
     /// Remove an element by a given index.
-    pub fn remove(&mut self, id: Index) -> Option<T> {
+    pub fn remove(&mut self, id: Index) -> Option<S::Item> {
         if self.mask.remove(id) {
             // SAFETY: We checked the mask (`remove` returned `true`)
             Some(unsafe { self.inner.remove(id) })
@@ -181,7 +203,7 @@ impl<T: Component> MaskedStorage<T> {
     }
 }
 
-impl<T: Component> Drop for MaskedStorage<T> {
+impl<S: UnprotectedStorage> Drop for MaskedStorage<S> {
     fn drop(&mut self) {
         self.clear();
     }
@@ -211,7 +233,7 @@ impl<'e, T, D> Storage<'e, T, D> {
 impl<'e, T, D> Storage<'e, T, D>
 where
     T: Component,
-    D: Deref<Target = MaskedStorage<T>>,
+    D: Deref<Target = MaskedStorage<T::Storage>>,
 {
     /// Gets the wrapped storage.
     pub fn unprotected_storage(&self) -> &T::Storage {
@@ -264,7 +286,7 @@ where
 impl<'e, T, D> Storage<'e, T, D>
     where
         T: Component,
-        D: Deref<Target = MaskedStorage<T>>,
+        D: Deref<Target = MaskedStorage<T::Storage>>,
         T::Storage: SliceAccess<T>
 {
     /// Returns the component data as a slice.
@@ -279,7 +301,7 @@ impl<'e, T, D> Storage<'e, T, D>
 impl<'e, T, D> Storage<'e, T, D>
     where
         T: Component,
-        D: DerefMut<Target = MaskedStorage<T>>,
+        D: DerefMut<Target = MaskedStorage<T::Storage>>,
         T::Storage: SliceAccess<T>
 {
     /// Returns the component data as a slice.
@@ -294,7 +316,7 @@ impl<'e, T, D> Storage<'e, T, D>
 impl<'e, T, D> Storage<'e, T, D>
 where
     T: Component,
-    D: DerefMut<Target = MaskedStorage<T>>,
+    D: DerefMut<Target = MaskedStorage<T::Storage>>,
 {
     /// Gets mutable access to the wrapped storage.
     ///
@@ -378,7 +400,7 @@ unsafe impl<'a, T: Component, D> DistinctStorage for Storage<'a, T, D> where
 impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
 where
     T: Component,
-    D: Deref<Target = MaskedStorage<T>>,
+    D: Deref<Target = MaskedStorage<T::Storage>>,
 {
     type Mask = &'a BitSet;
     type Type = &'a T;
@@ -399,7 +421,7 @@ where
 impl<'a, 'e, T, D> Not for &'a Storage<'e, T, D>
 where
     T: Component,
-    D: Deref<Target = MaskedStorage<T>>,
+    D: Deref<Target = MaskedStorage<T::Storage>>,
 {
     type Output = AntiStorage<'a>;
 
@@ -414,7 +436,7 @@ where
 unsafe impl<'a, 'e, T, D> ParJoin for &'a Storage<'e, T, D>
 where
     T: Component,
-    D: Deref<Target = MaskedStorage<T>>,
+    D: Deref<Target = MaskedStorage<T::Storage>>,
     T::Storage: Sync,
 {
 }
@@ -422,7 +444,7 @@ where
 impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
 where
     T: Component,
-    D: DerefMut<Target = MaskedStorage<T>>,
+    D: DerefMut<Target = MaskedStorage<T::Storage>>,
 {
     type Mask = &'a BitSet;
     type Type = &'a mut T;
@@ -448,7 +470,7 @@ where
 unsafe impl<'a, 'e, T, D> ParJoin for &'a mut Storage<'e, T, D>
 where
     T: Component,
-    D: DerefMut<Target = MaskedStorage<T>>,
+    D: DerefMut<Target = MaskedStorage<T::Storage>>,
     T::Storage: Sync + DistinctStorage,
 {
 }
@@ -478,7 +500,9 @@ where
 }
 
 /// Used by the framework to quickly join components.
-pub trait UnprotectedStorage<T>: TryDefault {
+pub trait UnprotectedStorage: TryDefault {
+    /// The item that is stored.
+    type Item;
     /// Clean the storage given a bitset with bits set for valid indices.
     /// Allows us to safely drop the storage.
     ///
@@ -501,7 +525,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
-    unsafe fn get(&self, id: Index) -> &T;
+    unsafe fn get(&self, id: Index) -> &Self::Item;
 
     /// Tries mutating the data associated with an `Index`.
     /// This is unsafe because the external set used
@@ -514,7 +538,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T;
+    unsafe fn get_mut(&mut self, id: Index) -> &mut Self::Item;
 
     /// Inserts new data for a given `Index`.
     ///
@@ -525,7 +549,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` missing from the
     /// mask is sufficient to call `insert`.
-    unsafe fn insert(&mut self, id: Index, value: T);
+    unsafe fn insert(&mut self, id: Index, value: Self::Item);
 
     /// Removes the data associated with an `Index`.
     ///
@@ -533,7 +557,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// May only be called if an element with `id` was `insert`ed and not yet
     /// removed / dropped.
-    unsafe fn remove(&mut self, id: Index) -> T;
+    unsafe fn remove(&mut self, id: Index) -> Self::Item;
 
     /// Drops the data associated with an `Index`.
     /// This is simply more efficient than `remove` and can be used if the data

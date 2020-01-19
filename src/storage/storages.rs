@@ -29,7 +29,9 @@ pub trait SliceAccess<T> {
 #[derivative(Default(bound = ""))]
 pub struct BTreeStorage<T>(BTreeMap<Index, T>);
 
-impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
+impl<T> UnprotectedStorage for BTreeStorage<T> {
+    type Item = T;
+
     unsafe fn clean<B>(&mut self, _has: B)
     where
         B: BitSetLike,
@@ -63,7 +65,9 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 #[derivative(Default(bound = ""))]
 pub struct HashMapStorage<T>(HashMap<Index, T>);
 
-impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
+impl<T> UnprotectedStorage for HashMapStorage<T> {
+    type Item = T;
+
     unsafe fn clean<B>(&mut self, _has: B)
     where
         B: BitSetLike,
@@ -132,7 +136,9 @@ impl<T> SliceAccess<T> for DenseVecStorage<T> {
     }
 }
 
-impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
+impl<T> UnprotectedStorage for DenseVecStorage<T> {
+    type Item = T;
+
     unsafe fn clean<B>(&mut self, _has: B)
     where
         B: BitSetLike,
@@ -177,10 +183,12 @@ unsafe impl<T> DistinctStorage for DenseVecStorage<T> {}
 /// doesn't contain any data and instead works as a simple flag.
 pub struct NullStorage<T>(T);
 
-impl<T> UnprotectedStorage<T> for NullStorage<T>
+impl<T> UnprotectedStorage for NullStorage<T>
 where
     T: Default,
 {
+    type Item = T;
+
     unsafe fn clean<B>(&mut self, _has: B)
     where
         B: BitSetLike,
@@ -243,7 +251,9 @@ impl<T> SliceAccess<T> for VecStorage<T> {
     }
 }
 
-impl<T> UnprotectedStorage<T> for VecStorage<T> {
+impl<T> UnprotectedStorage for VecStorage<T> {
+    type Item = T;
+
     unsafe fn clean<B>(&mut self, has: B)
         where
             B: BitSetLike,
@@ -298,7 +308,9 @@ unsafe impl<T> DistinctStorage for VecStorage<T> {}
 #[derivative(Default(bound = ""))]
 pub struct DefaultVecStorage<T>(Vec<T>);
 
-impl<T> UnprotectedStorage<T> for DefaultVecStorage<T> where T: Default {
+impl<T> UnprotectedStorage for DefaultVecStorage<T> where T: Default {
+    type Item = T;
+
     unsafe fn clean<B>(&mut self, _has: B)
         where
             B: BitSetLike,

@@ -314,11 +314,11 @@ impl WorldExt for World {
         T: Component,
     {
         self.entry()
-            .or_insert_with(move || MaskedStorage::<T>::new(storage()));
+            .or_insert_with(move || MaskedStorage::<T::Storage>::new(storage()));
         self.entry::<MetaTable<dyn AnyStorage>>()
             .or_insert_with(Default::default);
         self.fetch_mut::<MetaTable<dyn AnyStorage>>()
-            .register(&*self.fetch::<MaskedStorage<T>>());
+            .register(&*self.fetch::<MaskedStorage<T::Storage>>());
     }
 
     fn add_resource<T: Resource>(&mut self, res: T) {

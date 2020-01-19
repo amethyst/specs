@@ -6,7 +6,7 @@ use crate::join::Join;
 impl<'e, T, D> Storage<'e, T, D>
 where
     T: Component,
-    D: DerefMut<Target = MaskedStorage<T>>,
+    D: DerefMut<Target = MaskedStorage<T::Storage>>,
 {
     /// Returns an entry to the component associated to the entity.
     ///
@@ -130,7 +130,7 @@ pub struct Entries<'a, 'b: 'a, T: 'a, D: 'a>(&'a mut Storage<'b, T, D>);
 impl<'a, 'b: 'a, T: 'a, D: 'a> Join for Entries<'a, 'b, T, D>
 where
     T: Component,
-    D: Deref<Target = MaskedStorage<T>>,
+    D: Deref<Target = MaskedStorage<T::Storage>>,
 {
     type Mask = BitSetAll;
     type Type = StorageEntry<'a, 'b, T, D>;
@@ -175,7 +175,7 @@ pub struct OccupiedEntry<'a, 'b: 'a, T: 'a, D: 'a> {
 impl<'a, 'b, T, D> OccupiedEntry<'a, 'b, T, D>
 where
     T: Component,
-    D: Deref<Target = MaskedStorage<T>>,
+    D: Deref<Target = MaskedStorage<T::Storage>>,
 {
     /// Get a reference to the component associated with the entity.
     pub fn get(&self) -> &T {
@@ -188,7 +188,7 @@ where
 impl<'a, 'b, T, D> OccupiedEntry<'a, 'b, T, D>
 where
     T: Component,
-    D: DerefMut<Target = MaskedStorage<T>>,
+    D: DerefMut<Target = MaskedStorage<T::Storage>>,
 {
     /// Get a mutable reference to the component associated with the entity.
     pub fn get_mut(&mut self) -> &mut T {
@@ -227,7 +227,7 @@ pub struct VacantEntry<'a, 'b: 'a, T: 'a, D: 'a> {
 impl<'a, 'b, T, D> VacantEntry<'a, 'b, T, D>
 where
     T: Component,
-    D: DerefMut<Target = MaskedStorage<T>>,
+    D: DerefMut<Target = MaskedStorage<T::Storage>>,
 {
     /// Inserts a value into the storage.
     pub fn insert(self, component: T) -> &'a mut T {
@@ -252,7 +252,7 @@ pub enum StorageEntry<'a, 'b: 'a, T: 'a, D: 'a> {
 impl<'a, 'b, T, D> StorageEntry<'a, 'b, T, D>
 where
     T: Component,
-    D: DerefMut<Target = MaskedStorage<T>>,
+    D: DerefMut<Target = MaskedStorage<T::Storage>>,
 {
     /// Inserts a component if the entity does not have it already.
     pub fn or_insert(self, component: T) -> &'a mut T {

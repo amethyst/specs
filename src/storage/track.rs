@@ -46,7 +46,7 @@ impl<'e, T, D> Storage<'e, T, D>
 where
     T: Component,
     T::Storage: Tracked,
-    D: Deref<Target = MaskedStorage<T>>,
+    D: Deref<Target = MaskedStorage<T::Storage>>,
 {
     /// Returns the event channel tracking modified components.
     pub fn channel(&self) -> &EventChannel<ComponentEvent> {
@@ -64,7 +64,7 @@ impl<'e, T, D> Storage<'e, T, D>
 where
     T: Component,
     T::Storage: Tracked,
-    D: DerefMut<Target = MaskedStorage<T>>,
+    D: DerefMut<Target = MaskedStorage<T::Storage>>,
 {
     /// Returns the event channel for insertions/removals/modifications of this
     /// storage's components.

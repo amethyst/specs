@@ -10,7 +10,7 @@ use crate::{
 /// that removes the components.
 pub struct Drain<'a, T: Component> {
     /// The masked storage
-    pub data: &'a mut MaskedStorage<T>,
+    pub data: &'a mut MaskedStorage<T::Storage>,
 }
 
 impl<'a, T> Join for Drain<'a, T>
@@ -19,7 +19,7 @@ where
 {
     type Mask = BitSet;
     type Type = T;
-    type Value = &'a mut MaskedStorage<T>;
+    type Value = &'a mut MaskedStorage<T::Storage>;
 
     // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {

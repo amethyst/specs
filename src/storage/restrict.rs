@@ -161,7 +161,7 @@ where
 impl<'st, T, D> Storage<'st, T, D>
 where
     T: Component,
-    D: Deref<Target = MaskedStorage<T>>,
+    D: Deref<Target = MaskedStorage<T::Storage>>,
 {
     /// Builds an immutable `RestrictedStorage` out of a `Storage`. Allows
     /// deferred unchecked access to the entity's component.
@@ -184,7 +184,7 @@ where
 impl<'st, T, D> Storage<'st, T, D>
 where
     T: Component,
-    D: DerefMut<Target = MaskedStorage<T>>,
+    D: DerefMut<Target = MaskedStorage<T::Storage>>,
 {
     /// Builds a mutable `RestrictedStorage` out of a `Storage`. Allows
     /// restricted access to the inner components without allowing
