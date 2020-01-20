@@ -39,7 +39,6 @@ uuid = { version = "0.7.4", optional = true, features = ["v4", "serde"] }
 [features]
 default = ["parallel"]
 parallel = ["rayon", "shred/parallel", "hibitset/parallel"]
-nightly = []
 uuid_entity = ["uuid", "serde"]
 stdweb = ["uuid/stdweb"]
 wasm-bindgen = ["uuid/wasm-bindgen"]
@@ -48,7 +47,7 @@ storage-event-control = []
 shred-derive = ["shred/shred-derive"]
 
 [package.metadata.docs.rs]
-features = ["parallel", "serde", "shred-derive", "specs-derive", "nightly", "uuid_entity", "storage-event-control"]
+features = ["parallel", "serde", "shred-derive", "specs-derive", "uuid_entity", "storage-event-control"]
 
 [dev-dependencies]
 nalgebra = "0.19"
