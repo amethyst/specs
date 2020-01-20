@@ -392,8 +392,11 @@ impl<T: ?Sized> Hash for SimpleMarker<T> {
 }
 
 impl<T: ?Sized> Debug for SimpleMarker<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "SimpleMarker({:?}, PhantomData)", self.0)
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_tuple("SimpleMarker")
+            .field(&self.0)
+            .field(&self.1)
+            .finish()
     }
 }
 
@@ -417,20 +420,39 @@ where
 }
 
 /// Basic marker allocator, uses `u64` as identifier
-#[derive(Clone, Debug)]
 pub struct SimpleMarkerAllocator<T: ?Sized> {
     index: u64,
     mapping: HashMap<u64, Entity>,
     _phantom_data: PhantomData<T>,
 }
 
-impl<T> Default for SimpleMarkerAllocator<T> {
+impl<T: ?Sized> Debug for SimpleMarkerAllocator<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("SimpleMarkerAllocator")
+           .field("index", &self.index)
+           .field("mapping", &self.mapping)
+           .field("_phantom_data", &self._phantom_data)
+           .finish()
+    }
+}
+
+impl<T: ?Sized> Clone for SimpleMarkerAllocator<T> {
+    fn clone(&self) -> Self {
+        Self {
+            index: self.index,
+            mapping: self.mapping.clone(),
+            _phantom_data: PhantomData,
+        }
+    }
+}
+
+impl<T: ?Sized> Default for SimpleMarkerAllocator<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T> SimpleMarkerAllocator<T> {
+impl<T: ?Sized> SimpleMarkerAllocator<T> {
     /// Create new `SimpleMarkerAllocator` which will yield `SimpleMarker`s
     /// starting with `0`
     pub fn new() -> Self {

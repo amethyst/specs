@@ -313,8 +313,13 @@ unsafe impl<T> DistinctStorage for VecStorage<T> {}
 /// `as_slice()` and `as_mut_slice()` indices correspond to entity IDs.
 /// These can be compared to other `DefaultVecStorage`s, to other
 /// `VecStorage`s, and to `Entity::id()`s for live entities.
-#[derive(Default)]
 pub struct DefaultVecStorage<T>(Vec<T>);
+
+impl<T> Default for DefaultVecStorage<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
 
 impl<T> UnprotectedStorage<T> for DefaultVecStorage<T> where T: Default {
     unsafe fn clean<B>(&mut self, _has: B)
