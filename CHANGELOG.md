@@ -1,3 +1,10 @@
+# 0.16.0
+
+* Components and resources no longer need to be `Send + Sync` if parallel feature is disabled ([#673])
+* Remove the `nightly` feature ([#673])
+
+[#672]: https://github.com/slide-rs/specs/pull/672
+
 # 0.15.1
 
 * Benchmark uses `nalgebra` instead of `cgmath`. ([#619]).
