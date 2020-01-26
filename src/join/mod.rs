@@ -311,8 +311,8 @@ impl<J: Join> JoinIter<J> {
     /// Create a new join iterator.
     pub fn new(j: J) -> Self {
         if <J as Join>::is_unconstrained() {
-            println!(
-                "WARNING: `Join` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length."
+            log::warn!(
+                "`Join` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length."
             );
         }
 
