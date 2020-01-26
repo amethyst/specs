@@ -18,10 +18,3 @@ There are a few main reasons for this occurring:
   will only add what is found inside the used `System`s.
   If you use other components/resources, you need to manually register/add these
   to `World`.
-
-If all the reasons above have been rejected and the panic still occurs, you
-can find out what exact resource is missing by adding a direct dependency on
-[`shred`][shred], and running the project with the nightly toolchain and enabling
-the `nightly` feature on `shred`.
-
-[shred]: https://crates.io/crates/shred
