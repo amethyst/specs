@@ -1,5 +1,4 @@
 use crossbeam_queue::SegQueue;
-use derivative::Derivative;
 
 use crate::{prelude::*, world::EntitiesRes};
 
@@ -80,11 +79,16 @@ where
 /// Please note that the provided methods take `&self`
 /// so there's no need to get `LazyUpdate` mutably.
 /// This resource is added to the world by default.
-#[derive(Derivative)]
-#[derivative(Default)]
 pub struct LazyUpdate {
-    #[derivative(Default(value = "Some(Default::default())"))]
     queue: Option<Queue<Box<dyn LazyUpdateInternal>>>,
+}
+
+impl Default for LazyUpdate {
+    fn default() -> Self {
+        Self {
+            queue: Some(Default::default())
+        }
+    }
 }
 
 impl LazyUpdate {
