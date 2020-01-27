@@ -377,6 +377,12 @@ where
     }
 }
 
+impl<'a, T, D: Clone> Clone for Storage<'a, T, D> {
+    fn clone(&self) -> Self {
+        Storage::new(self.entities.clone(), self.data.clone())
+    }
+}
+
 // SAFETY: This is safe, since `T::Storage` is `DistinctStorage` and `Join::get`
 // only accesses the storage and nothing else.
 unsafe impl<'a, T: Component, D> DistinctStorage for Storage<'a, T, D> where
