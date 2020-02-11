@@ -1,9 +1,16 @@
 # 0.16.0
 
-* Components and resources no longer need to be `Send + Sync` if parallel feature is disabled ([#673])
-* Remove the `nightly` feature ([#673])
+* Update `syn`, `quote` and `proc-macro2` to `1.0`. ([#648])
+* Implement `ParJoin` for `MaybeJoin` if the inner type is `ParJoin`. ([#655])
+* Remove `"nightly"` feature -- improved panic messages are available on stable. ([#671])
+* Bump `shred` to `0.10.1`. ([#671], [#674])
+* Components and resources no longer need to be `Send + Sync` if parallel feature is disabled ([#673], [#674])
 
-[#672]: https://github.com/slide-rs/specs/pull/672
+[#648]: https://github.com/amethyst/specs/pull/648
+[#655]: https://github.com/amethyst/specs/pull/655
+[#671]: https://github.com/slide-rs/specs/pull/671
+[#673]: https://github.com/slide-rs/specs/issues/673
+[#674]: https://github.com/slide-rs/specs/pull/674
 
 # 0.15.1
 
