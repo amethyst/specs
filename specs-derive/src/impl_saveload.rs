@@ -60,8 +60,9 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> TokenStream {
     let mut impl_generics = ast.generics.clone();
     impl_generics.params.push(parse_quote!(MA));
     let (impl_generics, saveload_ty_generics, where_clause) = impl_generics.split_for_impl();
-    let (_, ty_generics, _) = ast.generics.split_for_impl(); // We don't want the type generics we just made
-                                                             // because they have MA which our normal type doesn't have
+    // We don't want the type generics we just made because they have MA which our
+    // normal type doesn't have
+    let (_, ty_generics, _) = ast.generics.split_for_impl();
 
     let type_def = derive.type_def;
     let saveload_name = derive.saveload_name;

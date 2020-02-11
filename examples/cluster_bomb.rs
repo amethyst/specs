@@ -1,9 +1,6 @@
-extern crate rand;
-extern crate rayon;
-extern crate specs;
-
 use rand::prelude::*;
 
+#[cfg(feature = "parallel")]
 use rayon::iter::ParallelIterator;
 
 use specs::{prelude::*, storage::HashMapStorage, WorldExt};
@@ -57,30 +54,41 @@ impl<'a> System<'a> for ClusterBombSystem {
         use rand::distributions::Uniform;
 
         let durability_range = Uniform::new(10, 20);
-        // Join components in potentially parallel way using rayon.
-        (&entities, &mut bombs, &positions)
-            .par_join()
-            .for_each(|(entity, bomb, position)| {
-                let mut rng = rand::thread_rng();
+        let update_position = |(entity, bomb, position): (Entity, &mut ClusterBomb, &Pos)| {
+            let mut rng = rand::thread_rng();
 
-                if bomb.fuse == 0 {
-                    let _ = entities.delete(entity);
-                    for _ in 0..9 {
-                        let shrapnel = entities.create();
-                        updater.insert(
-                            shrapnel,
-                            Shrapnel {
-                                durability: durability_range.sample(&mut rng),
-                            },
-                        );
-                        updater.insert(shrapnel, position.clone());
-                        let angle: f32 = rng.gen::<f32>() * TAU;
-                        updater.insert(shrapnel, Vel(angle.sin(), angle.cos()));
-                    }
-                } else {
-                    bomb.fuse -= 1;
+            if bomb.fuse == 0 {
+                let _ = entities.delete(entity);
+                for _ in 0..9 {
+                    let shrapnel = entities.create();
+                    updater.insert(
+                        shrapnel,
+                        Shrapnel {
+                            durability: durability_range.sample(&mut rng),
+                        },
+                    );
+                    updater.insert(shrapnel, position.clone());
+                    let angle: f32 = rng.gen::<f32>() * TAU;
+                    updater.insert(shrapnel, Vel(angle.sin(), angle.cos()));
                 }
-            });
+            } else {
+                bomb.fuse -= 1;
+            }
+        };
+
+        // Join components in potentially parallel way using rayon.
+        #[cfg(not(feature = "parallel"))]
+        {
+            (&entities, &mut bombs, &positions)
+                .join()
+                .for_each(update_position);
+        }
+        #[cfg(feature = "parallel")]
+        {
+            (&entities, &mut bombs, &positions)
+                .par_join()
+                .for_each(update_position);
+        }
     }
 }
 
@@ -89,6 +97,12 @@ impl<'a> System<'a> for PhysicsSystem {
     type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
 
     fn run(&mut self, (mut pos, vel): Self::SystemData) {
+        #[cfg(not(feature = "parallel"))]
+        (&mut pos, &vel).join().for_each(|(pos, vel)| {
+            pos.0 += vel.0;
+            pos.1 += vel.1;
+        });
+        #[cfg(feature = "parallel")]
         (&mut pos, &vel).par_join().for_each(|(pos, vel)| {
             pos.0 += vel.0;
             pos.1 += vel.1;
@@ -101,6 +115,18 @@ impl<'a> System<'a> for ShrapnelSystem {
     type SystemData = (Entities<'a>, WriteStorage<'a, Shrapnel>);
 
     fn run(&mut self, (entities, mut shrapnels): Self::SystemData) {
+        #[cfg(not(feature = "parallel"))]
+        (&entities, &mut shrapnels)
+            .join()
+            .for_each(|(entity, shrapnel)| {
+                if shrapnel.durability == 0 {
+                    let _ = entities.delete(entity);
+                } else {
+                    shrapnel.durability -= 1;
+                }
+            });
+
+        #[cfg(feature = "parallel")]
         (&entities, &mut shrapnels)
             .par_join()
             .for_each(|(entity, shrapnel)| {

@@ -1,6 +1,3 @@
-extern crate rayon;
-extern crate specs;
-
 use specs::{
     prelude::*,
     storage::HashMapStorage,
@@ -336,6 +333,7 @@ fn join_two_components() {
 }
 
 #[test]
+#[cfg(feature = "parallel")]
 fn par_join_two_components() {
     use std::sync::{
         atomic::{AtomicBool, Ordering},
@@ -398,6 +396,7 @@ fn par_join_two_components() {
 }
 
 #[test]
+#[cfg(feature = "parallel")]
 fn par_join_with_maybe() {
     use std::sync::{
         atomic::{AtomicBool, Ordering},
@@ -431,18 +430,21 @@ fn par_join_with_maybe() {
         fn run(&mut self, (int, boolean): Self::SystemData) {
             use rayon::iter::ParallelIterator;
             let Iter(first, second, third, error) = *self;
-            (&int, boolean.maybe()).par_join().for_each(|(int, boolean)| {
-                let boolean = boolean.map(|c| c.0);
-                if !first.load(Ordering::SeqCst) && int.0 == 1 && boolean == Some(false) {
-                    first.store(true, Ordering::SeqCst);
-                } else if !second.load(Ordering::SeqCst) && int.0 == 2 && boolean == Some(true) {
-                    second.store(true, Ordering::SeqCst);
-                } else if !third.load(Ordering::SeqCst) && int.0 == 3 && boolean == None {
-                    third.store(true, Ordering::SeqCst);
-                } else {
-                    *error.lock().unwrap() = Some((int.0, boolean));
-                }
-            });
+            (&int, boolean.maybe())
+                .par_join()
+                .for_each(|(int, boolean)| {
+                    let boolean = boolean.map(|c| c.0);
+                    if !first.load(Ordering::SeqCst) && int.0 == 1 && boolean == Some(false) {
+                        first.store(true, Ordering::SeqCst);
+                    } else if !second.load(Ordering::SeqCst) && int.0 == 2 && boolean == Some(true)
+                    {
+                        second.store(true, Ordering::SeqCst);
+                    } else if !third.load(Ordering::SeqCst) && int.0 == 3 && boolean == None {
+                        third.store(true, Ordering::SeqCst);
+                    } else {
+                        *error.lock().unwrap() = Some((int.0, boolean));
+                    }
+                });
         }
     }
     let mut dispatcher = DispatcherBuilder::new()
@@ -469,6 +471,7 @@ fn par_join_with_maybe() {
 }
 
 #[test]
+#[cfg(feature = "parallel")]
 fn par_join_many_entities_and_systems() {
     use rayon::iter::ParallelIterator;
     use std::sync::Mutex;

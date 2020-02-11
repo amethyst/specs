@@ -1,9 +1,10 @@
 //! Provides `Marker` and `MarkerAllocator` traits
 
-use std::{collections::HashMap,
+use std::{
+    collections::HashMap,
     fmt::{self, Debug},
     hash::{Hash, Hasher},
-    marker::PhantomData
+    marker::PhantomData,
 };
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -429,10 +430,10 @@ pub struct SimpleMarkerAllocator<T: ?Sized> {
 impl<T: ?Sized> Debug for SimpleMarkerAllocator<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("SimpleMarkerAllocator")
-           .field("index", &self.index)
-           .field("mapping", &self.mapping)
-           .field("_phantom_data", &self._phantom_data)
-           .finish()
+            .field("index", &self.index)
+            .field("mapping", &self.mapping)
+            .field("_phantom_data", &self._phantom_data)
+            .finish()
     }
 }
 

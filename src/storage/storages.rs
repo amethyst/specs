@@ -1,7 +1,6 @@
 //! Different types of storages you can use for your components.
 
-use std::collections::BTreeMap;
-use std::mem::MaybeUninit;
+use std::{collections::BTreeMap, mem::MaybeUninit};
 
 use hashbrown::HashMap;
 use hibitset::BitSetLike;
@@ -130,8 +129,8 @@ impl<T> SliceAccess<T> for DenseVecStorage<T> {
 
     /// Returns a slice of all the components in this storage.
     ///
-    /// Indices inside the slice do not correspond to anything in particular, and
-    /// especially do not correspond with entity IDs.
+    /// Indices inside the slice do not correspond to anything in particular,
+    /// and especially do not correspond with entity IDs.
     #[inline]
     fn as_slice(&self) -> &[Self::Element] {
         self.data.as_slice()
@@ -139,8 +138,8 @@ impl<T> SliceAccess<T> for DenseVecStorage<T> {
 
     /// Returns a mutable slice of all the components in this storage.
     ///
-    /// Indices inside the slice do not correspond to anything in particular, and
-    /// especially do not correspond with entity IDs.
+    /// Indices inside the slice do not correspond to anything in particular,
+    /// and especially do not correspond with entity IDs.
     #[inline]
     fn as_mut_slice(&mut self) -> &mut [Self::Element] {
         self.data.as_mut_slice()
@@ -172,7 +171,10 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
             self.data_id.reserve(delta);
             self.data_id.set_len(id + 1);
         }
-        self.data_id.get_unchecked_mut(id).as_mut_ptr().write(self.data.len() as Index);
+        self.data_id
+            .get_unchecked_mut(id)
+            .as_mut_ptr()
+            .write(self.data.len() as Index);
         self.entity_id.push(id as Index);
         self.data.push(v);
     }
@@ -180,7 +182,10 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
     unsafe fn remove(&mut self, id: Index) -> T {
         let did = self.data_id.get_unchecked(id as usize).assume_init();
         let last = *self.entity_id.last().unwrap();
-        self.data_id.get_unchecked_mut(last as usize).as_mut_ptr().write(did);
+        self.data_id
+            .get_unchecked_mut(last as usize)
+            .as_mut_ptr()
+            .write(did);
         self.entity_id.swap_remove(did as usize);
         self.data.swap_remove(did as usize)
     }
@@ -264,8 +269,8 @@ impl<T> SliceAccess<T> for VecStorage<T> {
 
 impl<T> UnprotectedStorage<T> for VecStorage<T> {
     unsafe fn clean<B>(&mut self, has: B)
-        where
-            B: BitSetLike,
+    where
+        B: BitSetLike,
     {
         use std::ptr;
         for (i, v) in self.0.iter_mut().enumerate() {
@@ -321,10 +326,13 @@ impl<T> Default for DefaultVecStorage<T> {
     }
 }
 
-impl<T> UnprotectedStorage<T> for DefaultVecStorage<T> where T: Default {
+impl<T> UnprotectedStorage<T> for DefaultVecStorage<T>
+where
+    T: Default,
+{
     unsafe fn clean<B>(&mut self, _has: B)
-        where
-            B: BitSetLike,
+    where
+        B: BitSetLike,
     {
         self.0.clear();
     }

@@ -67,12 +67,8 @@ use crate::{
 /// # struct Vel; impl Component for Vel { type Storage = VecStorage<Self>; }
 /// #
 /// # let mut world = World::new(); world.register::<Pos>(); world.register::<Vel>();
-/// let entity1 = world.create_entity()
-///     .with(Pos)
-///     .build();
-/// let entity2 = world.create_entity()
-///     .with(Vel)
-///     .build();
+/// let entity1 = world.create_entity().with(Pos).build();
+/// let entity2 = world.create_entity().with(Vel).build();
 ///
 /// # let pos_storage = world.read_storage::<Pos>();
 /// # let vel_storage = world.read_storage::<Vel>();
@@ -172,9 +168,7 @@ where
 /// # struct Pos(f32); impl Component for Pos { type Storage = VecStorage<Self>; }
 /// #
 /// # let mut world = World::new(); world.register::<Pos>();
-/// let entity = world.create_entity()
-///     .with(Pos(2.0))
-///     .build();
+/// let entity = world.create_entity().with(Pos(2.0)).build();
 /// # let mut pos_storage = world.write_storage::<Pos>();
 ///
 /// assert_eq!(pos_storage.get_mut(entity), Some(&mut Pos(2.0)));
@@ -197,9 +191,7 @@ where
 /// # struct Pos(f32); impl Component for Pos { type Storage = VecStorage<Self>; }
 /// #
 /// # let mut world = World::new(); world.register::<Pos>();
-/// let entity = world.create_entity()
-///     .with(Pos(0.1))
-///     .build();
+/// let entity = world.create_entity().with(Pos(0.1)).build();
 /// # let mut pos_storage = world.write_storage::<Pos>();
 ///
 /// if let Ok(Some(p)) = pos_storage.insert(entity, Pos(4.0)) {
