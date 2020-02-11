@@ -229,7 +229,9 @@ mod test {
     #[derive(PartialEq, Eq, Debug, Default)]
     struct CdefaultVec(u32);
     impl From<u32> for CdefaultVec {
-        fn from(v: u32) -> CdefaultVec { CdefaultVec(v) }
+        fn from(v: u32) -> CdefaultVec {
+            CdefaultVec(v)
+        }
     }
     impl AsMut<u32> for CdefaultVec {
         fn as_mut(&mut self) -> &mut u32 {
@@ -430,8 +432,8 @@ mod test {
     }
 
     fn test_slice_access<T: Component + From<u32> + Debug + Eq>()
-        where
-            T::Storage: Default + SliceAccess<T, Element=T>,
+    where
+        T::Storage: Default + SliceAccess<T, Element = T>,
     {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
@@ -450,8 +452,8 @@ mod test {
     }
 
     fn test_maybeuninit_slice<T: Component + From<u32> + Debug + Eq>()
-        where
-            T::Storage: Default + SliceAccess<T, Element=MaybeUninit<T>>,
+    where
+        T::Storage: Default + SliceAccess<T, Element = MaybeUninit<T>>,
     {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
@@ -569,25 +571,33 @@ mod test {
         let mut s: Storage<CdefaultVec, _> = create(&mut w);
 
         // insert 1 and 3 at 1 and 3
-        s.insert(Entity::new(1, Generation::new(1)), 1.into()).unwrap();
-        s.insert(Entity::new(3, Generation::new(1)), 3.into()).unwrap();
+        s.insert(Entity::new(1, Generation::new(1)), 1.into())
+            .unwrap();
+        s.insert(Entity::new(3, Generation::new(1)), 3.into())
+            .unwrap();
 
         // should contain default values at other locations
-        assert_eq!(s.as_slice(), &[
-            CdefaultVec(0),
-            CdefaultVec(1),
-            CdefaultVec(0),
-            CdefaultVec(3),
-        ]);
+        assert_eq!(
+            s.as_slice(),
+            &[
+                CdefaultVec(0),
+                CdefaultVec(1),
+                CdefaultVec(0),
+                CdefaultVec(3),
+            ]
+        );
 
         // deleting the record 3 should swap in the default but not shrink
         s.remove(Entity::new(3, Generation::new(1)));
-        assert_eq!(s.as_slice(), &[
-            CdefaultVec(0),
-            CdefaultVec(1),
-            CdefaultVec(0),
-            CdefaultVec(0),
-        ]);
+        assert_eq!(
+            s.as_slice(),
+            &[
+                CdefaultVec(0),
+                CdefaultVec(1),
+                CdefaultVec(0),
+                CdefaultVec(0),
+            ]
+        );
     }
 
     #[test]

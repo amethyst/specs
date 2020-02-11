@@ -9,7 +9,9 @@ pub use self::{
         ImmutableParallelRestriction, MutableParallelRestriction, RestrictedStorage,
         SequentialRestriction,
     },
-    storages::{BTreeStorage, DenseVecStorage, DefaultVecStorage, HashMapStorage, NullStorage, VecStorage},
+    storages::{
+        BTreeStorage, DefaultVecStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage,
+    },
     track::{ComponentEvent, Tracked},
 };
 
@@ -271,10 +273,10 @@ where
 }
 
 impl<'e, T, D> Storage<'e, T, D>
-    where
-        T: Component,
-        D: Deref<Target = MaskedStorage<T>>,
-        T::Storage: SliceAccess<T>
+where
+    T: Component,
+    D: Deref<Target = MaskedStorage<T>>,
+    T::Storage: SliceAccess<T>,
 {
     /// Returns the component data as a slice.
     ///
@@ -286,10 +288,10 @@ impl<'e, T, D> Storage<'e, T, D>
 }
 
 impl<'e, T, D> Storage<'e, T, D>
-    where
-        T: Component,
-        D: DerefMut<Target = MaskedStorage<T>>,
-        T::Storage: SliceAccess<T>
+where
+    T: Component,
+    D: DerefMut<Target = MaskedStorage<T>>,
+    T::Storage: SliceAccess<T>,
 {
     /// Returns the component data as a slice.
     ///

@@ -86,7 +86,7 @@ pub struct LazyUpdate {
 impl Default for LazyUpdate {
     fn default() -> Self {
         Self {
-            queue: Some(Default::default())
+            queue: Some(Default::default()),
         }
     }
 }

@@ -291,14 +291,11 @@ where
     }
 }
 
-// SAFETY: This is safe as long as `T` implements `ParJoin` safely.  `MaybeJoin` relies on `T as
-// Join` for all storage access and safely wraps the inner `Join` API, so it should also be able to
-// implement `ParJoin`.
+// SAFETY: This is safe as long as `T` implements `ParJoin` safely.  `MaybeJoin`
+// relies on `T as Join` for all storage access and safely wraps the inner
+// `Join` API, so it should also be able to implement `ParJoin`.
 #[cfg(feature = "parallel")]
-unsafe impl<T> ParJoin for MaybeJoin<T>
-where
-    T: ParJoin,
-{}
+unsafe impl<T> ParJoin for MaybeJoin<T> where T: ParJoin {}
 
 /// `JoinIter` is an `Iterator` over a group of `Storages`.
 #[must_use]
