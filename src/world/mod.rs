@@ -50,7 +50,20 @@ pub trait Builder {
     ///
     /// Panics if the component hasn't been `register()`ed in the
     /// `World`.
+    #[cfg(feature = "parallel")]
     fn with<C: Component + Send + Sync>(self, c: C) -> Self;
+
+    /// Appends a component and associates it with the entity.
+    ///
+    /// If a component was already associated with the entity, it should
+    /// overwrite the previous component.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the component hasn't been `register()`ed in the
+    /// `World`.
+    #[cfg(not(feature = "parallel"))]
+    fn with<C: Component>(self, c: C) -> Self;
 
     /// Finishes the building and returns the entity.
     fn build(self) -> Entity;
