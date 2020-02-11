@@ -1,6 +1,3 @@
-extern crate rayon;
-extern crate specs;
-
 use specs::{prelude::*, storage::HashMapStorage};
 
 // -- Components --
@@ -161,8 +158,10 @@ impl<'a> System<'a> for SysStoreMax {
     }
 }
 
+#[cfg(feature = "parallel")]
 struct JoinParallel;
 
+#[cfg(feature = "parallel")]
 impl<'a> System<'a> for JoinParallel {
     type SystemData = (
         ReadStorage<'a, CompBool>,
@@ -220,13 +219,19 @@ fn main() {
     // "check_positive" depends on  "print_bool" for example,
     // because we want to print the components before executing
     // `SysCheckPositive`.
-    let mut dispatcher = DispatcherBuilder::new()
+    let mut dispatcher_builder = DispatcherBuilder::new()
         .with(SysPrintBool, "print_bool", &[])
         .with(SysCheckPositive, "check_positive", &["print_bool"])
         .with(SysStoreMax::new(), "store_max", &["check_positive"])
         .with(SysSpawn::new(), "spawn", &[])
-        .with(SysPrintBool, "print_bool2", &["check_positive"])
-        .with(JoinParallel, "join_par", &[])
+        .with(SysPrintBool, "print_bool2", &["check_positive"]);
+
+    #[cfg(feature = "parallel")]
+    {
+        dispatcher_builder = dispatcher_builder.with(JoinParallel, "join_par", &[])
+    }
+
+    let mut dispatcher = dispatcher_builder
         .with_barrier() // we want to make sure all systems finished before running the last one
         .with(AddIntToFloat, "add_float_int", &[])
         .build();

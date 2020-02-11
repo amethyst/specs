@@ -1,6 +1,3 @@
-extern crate rayon;
-extern crate specs;
-
 use specs::{
     prelude::*,
     storage::HashMapStorage,
@@ -336,6 +333,7 @@ fn join_two_components() {
 }
 
 #[test]
+#[cfg(feature = "parallel")]
 fn par_join_two_components() {
     use std::sync::{
         atomic::{AtomicBool, Ordering},
@@ -398,6 +396,7 @@ fn par_join_two_components() {
 }
 
 #[test]
+#[cfg(feature = "parallel")]
 fn par_join_with_maybe() {
     use std::sync::{
         atomic::{AtomicBool, Ordering},
@@ -472,6 +471,7 @@ fn par_join_with_maybe() {
 }
 
 #[test]
+#[cfg(feature = "parallel")]
 fn par_join_many_entities_and_systems() {
     use rayon::iter::ParallelIterator;
     use std::sync::Mutex;

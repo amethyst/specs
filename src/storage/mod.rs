@@ -566,6 +566,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
 }
 
 #[cfg(test)]
+#[cfg(feature = "parallel")]
 mod tests_inline {
 
     use crate::{

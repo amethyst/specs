@@ -714,6 +714,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "parallel")]
     fn par_restricted_storage() {
         use crate::join::ParJoin;
         use rayon::iter::ParallelIterator;
@@ -864,6 +865,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "parallel")]
     fn par_storage_mask() {
         use crate::join::ParJoin;
         use rayon::iter::ParallelIterator;
