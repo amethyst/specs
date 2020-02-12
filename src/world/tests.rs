@@ -82,7 +82,7 @@ fn lazy_execution() {
     };
     {
         let lazy = world.read_resource::<LazyUpdate>();
-        lazy.exec(move |world: &World| {
+        lazy.exec(move |world| {
             if let Err(err) = world.write_storage::<Pos>().insert(e, Pos) {
                 panic!("Unable to lazily insert component! {:?}", err);
             }
@@ -99,11 +99,11 @@ fn lazy_execution_order() {
     world.insert(Vec::<u32>::new());
     {
         let lazy = world.read_resource::<LazyUpdate>();
-        lazy.exec(move |world: &World| {
+        lazy.exec(move |world| {
             let mut v = world.write_resource::<Vec<u32>>();
             v.push(1);
         });
-        lazy.exec(move |world: &World| {
+        lazy.exec(move |world| {
             let mut v = world.write_resource::<Vec<u32>>();
             v.push(2);
         });
@@ -128,7 +128,7 @@ fn delete_and_lazy() {
     let mut world = World::new();
     {
         let lazy_update = world.write_resource::<crate::LazyUpdate>();
-        lazy_update.exec(|world: &World| {
+        lazy_update.exec(|world| {
             world.entities().create();
         })
     }
@@ -136,7 +136,7 @@ fn delete_and_lazy() {
     world.maintain();
     {
         let lazy_update = world.write_resource::<crate::LazyUpdate>();
-        lazy_update.exec(|world: &World| {
+        lazy_update.exec(|world| {
             world.entities().create();
         })
     }

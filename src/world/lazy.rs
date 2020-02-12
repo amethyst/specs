@@ -303,7 +303,7 @@ impl LazyUpdate {
     ///
     ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
     ///         for entity in ent.join() {
-    ///             lazy.exec(move |world: &World| {
+    ///             lazy.exec(move |world| {
     ///                 if world.is_alive(entity) {
     ///                     println!("Entity {:?} is alive.", entity);
     ///                 }
@@ -340,7 +340,7 @@ impl LazyUpdate {
     ///
     ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
     ///         for entity in ent.join() {
-    ///             lazy.exec_mut(move |world: &mut World| {
+    ///             lazy.exec_mut(move |world| {
     ///                 // complete extermination!
     ///                 world.delete_all();
     ///             });
