@@ -1,6 +1,6 @@
 [package]
 name = "specs"
-version = "0.15.1"
+version = "0.16.0"
 description = """
 Specs is an Entity-Component-System library written in Rust.
 """
@@ -26,7 +26,7 @@ crossbeam-queue = "0.2"
 hashbrown = "0.6.0"
 hibitset = { version = "0.6.1", default-features = false }
 log = "0.4"
-shred = { version = "0.10.0", default-features = false }
+shred = { version = "0.10.1", default-features = false }
 shrev = "1.1.1"
 tuple_utils = "0.3"
 
@@ -54,7 +54,7 @@ criterion = "0.3"
 ron = "0.5"
 rand = "0.7"
 serde_json = "1.0"
-shred = { version = "0.10.0", features = ["shred-derive"] }
+shred = { version = "0.10.1", default-features = false, features = ["shred-derive"] }
 specs-derive = { path = "specs-derive", version = "0.4.0" }
 
 [[example]]
