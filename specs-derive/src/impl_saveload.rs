@@ -248,7 +248,7 @@ fn saveload_tuple_struct(
 
     let field_ids = saveload_fields.iter().enumerate().map(|(i, _)| Index {
         index: i as u32,
-        span: data.struct_token.span.clone(),
+        span: data.struct_token.span,
     });
     let tmp = field_ids.clone();
     let ser = quote! {
