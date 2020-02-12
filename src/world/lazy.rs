@@ -20,6 +20,24 @@ pub trait LazyUpdateInternal {
     fn update(self: Box<Self>, world: &mut World);
 }
 
+/// Generates two versions of functions within the macro call:
+///
+/// * One with `Send + Sync` bounds when the `"parallel"` feature is enabled.
+/// * One without `Send + Sync` bounds when the `"parallel"` feature is
+///   disabled.
+///
+/// TODO: When trait aliases land on stable we can remove this macro.
+/// See <https://github.com/rust-lang/rust/issues/41517>.
+///
+/// ```rust,ignore
+/// #![cfg(feature = "parallel")]
+/// trait ComponentBound = Component + Send + Sync;
+/// #![cfg(not(feature = "parallel"))]
+/// trait ComponentBound = Component;
+/// ```
+///
+/// Alternative solutions are listed in:
+/// <https://github.com/amethyst/specs/pull/674#issuecomment-585013726>
 macro_rules! parallel_feature {
     (
         $(
