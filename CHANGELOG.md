@@ -3,14 +3,17 @@
 * Update `syn`, `quote` and `proc-macro2` to `1.0`. ([#648])
 * Implement `ParJoin` for `MaybeJoin` if the inner type is `ParJoin`. ([#655])
 * Remove `"nightly"` feature -- improved panic messages are available on stable. ([#671])
-* Bump `shred` to `0.10.1`. ([#671], [#674])
+* Bump `shred` to `0.10.2`. ([#671], [#674], [#683])
 * Components and resources no longer need to be `Send + Sync` if parallel feature is disabled ([#673], [#674])
+* Bump `uuid` to `0.8.1`. ([#683])
+* Bump `rayon` to `1.3.0`. ([#683])
 
 [#648]: https://github.com/amethyst/specs/pull/648
 [#655]: https://github.com/amethyst/specs/pull/655
 [#671]: https://github.com/slide-rs/specs/pull/671
 [#673]: https://github.com/slide-rs/specs/issues/673
 [#674]: https://github.com/slide-rs/specs/pull/674
+[#683]: https://github.com/slide-rs/specs/pull/683
 
 # 0.15.1
 
