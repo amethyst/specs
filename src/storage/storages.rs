@@ -365,7 +365,7 @@ where
         // swap it into the vec
         std::ptr::swap(self.0.get_unchecked_mut(id as usize), &mut v);
         // return the old value
-        return v;
+        v
     }
 }
 
