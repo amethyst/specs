@@ -42,6 +42,7 @@ uuid_entity = ["uuid", "serde"]
 stdweb = ["uuid/stdweb"]
 wasm-bindgen = ["uuid/wasm-bindgen"]
 storage-event-control = []
+derive = ["shred-derive", "specs-derive"]
 
 shred-derive = ["shred/shred-derive"]
 
