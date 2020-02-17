@@ -13,9 +13,9 @@ A clear and concise description of what the bug is.
 
 ## Meta
 
-Rust version: 
-Specs version / commit: 
-Operating system: 
+Rust version:
+Specs version / commit:
+Operating system:
 
 ## Reproduction
 

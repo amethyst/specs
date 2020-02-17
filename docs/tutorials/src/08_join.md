@@ -43,6 +43,7 @@ The returned entity value can also be used to get a component from a storage as 
 The previous example will iterate over all entities that have all the components 
 we need, but what if we want to iterate over an entity whether it has a component 
 or not?
+
 To do that, we can wrap the `Storage` with `maybe()`: it wraps the `Storage` in a 
 `MaybeJoin` struct which, rather than returning a component directly, returns 
 `None` if the component is missing and `Some(T)` if it's there.
@@ -52,7 +53,7 @@ for (pos, vel, mass) in
     (&mut pos_storage, &vel_storage, (&mut mass_storage).maybe()).join() {
     println!("Processing entity: {:?}", ent);
     *pos += *vel;
-    
+
     if let Some(mass) = mass {
         let x = *vel / 300_000_000.0;
         let y = 1 - x * x;
@@ -61,12 +62,13 @@ for (pos, vel, mass) in
     }
 }
 ```
+
 In this example we iterate over all entities with a position and a velocity and 
 perform the calculation for the new position as usual. However, in case the entity
 has a mass, we also calculate the current mass based on the velocity. 
 Thus, mass is an **optional** component here.
 
-WARNING: Do not have a join of only `MaybeJoin`s. Otherwise the join will iterate 
+**WARNING:** Do not have a join of only `MaybeJoin`s. Otherwise the join will iterate 
 over every single index of the bitset. If you want a join with all `MaybeJoin`s, 
 add an EntitiesRes to the join as well to bound the join to all entities that are alive.
 
@@ -87,6 +89,7 @@ for (target, damage) in (&target_storage, &damage_storage).join() {
     }
 }
 ```
+
 Even though this is a somewhat contrived example, this is a common pattern 
 when entities interact.
 

@@ -60,8 +60,9 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> TokenStream {
     let mut impl_generics = ast.generics.clone();
     impl_generics.params.push(parse_quote!(MA));
     let (impl_generics, saveload_ty_generics, where_clause) = impl_generics.split_for_impl();
-    let (_, ty_generics, _) = ast.generics.split_for_impl(); // We don't want the type generics we just made
-                                                             // because they have MA which our normal type doesn't have
+    // We don't want the type generics we just made because they have MA which our
+    // normal type doesn't have
+    let (_, ty_generics, _) = ast.generics.split_for_impl();
 
     let type_def = derive.type_def;
     let saveload_name = derive.saveload_name;
@@ -247,7 +248,7 @@ fn saveload_tuple_struct(
 
     let field_ids = saveload_fields.iter().enumerate().map(|(i, _)| Index {
         index: i as u32,
-        span: data.struct_token.span.clone(),
+        span: data.struct_token.span,
     });
     let tmp = field_ids.clone();
     let ser = quote! {
@@ -321,7 +322,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
         }
     }
 
-    let variants = &saveload.variants;
+    let variants = saveload.variants.iter();
 
     let (_, saveload_ty_generics, saveload_where_clause) = saveload_generics.split_for_impl();
     let enum_def = quote! {
@@ -333,7 +334,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
     let mut big_match_ser = quote! {};
     let mut big_match_de = quote! {};
 
-    for variant in variants {
+    for variant in saveload.variants.iter() {
         let ident = &variant.ident;
 
         match &variant.fields {
@@ -467,5 +468,6 @@ fn replace_entity_type(ty: &mut Type) {
         Type::Infer(_) => unreachable!(),
         Type::Macro(_) => unreachable!(),
         Type::Verbatim(_) => unimplemented!(),
+        _ => unimplemented!(),
     }
 }

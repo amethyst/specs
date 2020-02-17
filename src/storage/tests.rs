@@ -1,8 +1,9 @@
-use mopa::Any;
+use std::any::Any;
 
 use super::*;
 use crate::world::{Component, Entity, Generation, Index, WorldExt};
 use shred::World;
+use std::mem::MaybeUninit;
 
 fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
@@ -225,6 +226,22 @@ mod test {
         type Storage = VecStorage<Self>;
     }
 
+    #[derive(PartialEq, Eq, Debug, Default)]
+    struct CdefaultVec(u32);
+    impl From<u32> for CdefaultVec {
+        fn from(v: u32) -> CdefaultVec {
+            CdefaultVec(v)
+        }
+    }
+    impl AsMut<u32> for CdefaultVec {
+        fn as_mut(&mut self) -> &mut u32 {
+            &mut self.0
+        }
+    }
+    impl Component for CdefaultVec {
+        type Storage = DefaultVecStorage<Self>;
+    }
+
     fn test_add<T: Component + From<u32> + Debug + Eq>()
     where
         T::Storage: Default,
@@ -414,6 +431,47 @@ mod test {
         }
     }
 
+    fn test_slice_access<T: Component + From<u32> + Debug + Eq>()
+    where
+        T::Storage: Default + SliceAccess<T, Element = T>,
+    {
+        let mut w = World::new();
+        let mut s: Storage<T, _> = create(&mut w);
+
+        for i in 0..1_000 {
+            if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
+        }
+
+        let slice = s.as_slice();
+        assert_eq!(slice.len(), 1_000);
+        for (i, v) in slice.iter().enumerate() {
+            assert_eq!(v, &(i as u32 + 2718).into());
+        }
+    }
+
+    fn test_maybeuninit_slice<T: Component + From<u32> + Debug + Eq>()
+    where
+        T::Storage: Default + SliceAccess<T, Element = MaybeUninit<T>>,
+    {
+        let mut w = World::new();
+        let mut s: Storage<T, _> = create(&mut w);
+
+        for i in 0..1_000 {
+            if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
+                panic!("Failed to insert component into entity! {:?}", err);
+            }
+        }
+
+        let slice = s.as_slice();
+        assert_eq!(slice.len(), 1_000);
+        for (i, v) in slice.iter().enumerate() {
+            let v = unsafe { &*v.as_ptr() };
+            assert_eq!(v, &(i as u32 + 2718).into());
+        }
+    }
+
     #[test]
     fn vec_test_add() {
         test_add::<Cvec>();
@@ -446,6 +504,10 @@ mod test {
     fn vec_test_anti() {
         test_anti::<Cvec>();
     }
+    #[test]
+    fn vec_test_maybeuninit_slice() {
+        test_maybeuninit_slice::<Cvec>();
+    }
 
     #[test]
     fn vec_arc() {
@@ -464,6 +526,78 @@ mod test {
             }
             storage.clean(&bitset);
         }
+    }
+
+    #[test]
+    fn default_vec_test_add() {
+        test_add::<CdefaultVec>();
+    }
+    #[test]
+    fn default_vec_test_sub() {
+        test_sub::<CdefaultVec>();
+    }
+    #[test]
+    fn default_vec_test_get_mut() {
+        test_get_mut::<CdefaultVec>();
+    }
+    #[test]
+    fn default_vec_test_get_mut_or_default() {
+        test_get_mut_or_default::<CdefaultVec>();
+    }
+    #[test]
+    fn default_vec_test_add_gen() {
+        test_add_gen::<CdefaultVec>();
+    }
+    #[test]
+    fn default_vec_test_sub_gen() {
+        test_sub_gen::<CdefaultVec>();
+    }
+    #[test]
+    fn default_vec_test_clear() {
+        test_clear::<CdefaultVec>();
+    }
+    #[test]
+    fn default_vec_test_anti() {
+        test_anti::<CdefaultVec>();
+    }
+    #[test]
+    fn default_vec_test_slice_access() {
+        test_slice_access::<CdefaultVec>();
+    }
+
+    #[test]
+    fn default_vec_test_defaults() {
+        let mut w = World::new();
+        let mut s: Storage<CdefaultVec, _> = create(&mut w);
+
+        // insert 1 and 3 at 1 and 3
+        s.insert(Entity::new(1, Generation::new(1)), 1.into())
+            .unwrap();
+        s.insert(Entity::new(3, Generation::new(1)), 3.into())
+            .unwrap();
+
+        // should contain default values at other locations
+        assert_eq!(
+            s.as_slice(),
+            &[
+                CdefaultVec(0),
+                CdefaultVec(1),
+                CdefaultVec(0),
+                CdefaultVec(3),
+            ]
+        );
+
+        // deleting the record 3 should swap in the default but not shrink
+        s.remove(Entity::new(3, Generation::new(1)));
+        assert_eq!(
+            s.as_slice(),
+            &[
+                CdefaultVec(0),
+                CdefaultVec(1),
+                CdefaultVec(0),
+                CdefaultVec(0),
+            ]
+        );
     }
 
     #[test]
@@ -580,6 +714,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "parallel")]
     fn par_restricted_storage() {
         use crate::join::ParJoin;
         use rayon::iter::ParallelIterator;
@@ -635,6 +770,9 @@ mod test {
 
         let e5 = w.create_entity().build();
         let e6 = w.create_entity().with(Cvec(10)).build();
+
+        let e7 = w.create_entity().build();
+        let e8 = w.create_entity().with(Cvec(10)).build();
 
         let mut s1 = w.write_storage::<Cvec>();
 
@@ -698,10 +836,19 @@ mod test {
 
             toggle(e5);
             toggle(e6);
+
+            assert_eq!(s1.get(e5), Some(&Cvec(15)));
+            assert_eq!(s1.get(e6), None);
         }
 
-        assert_eq!(s1.get(e5), Some(&Cvec(15)));
-        assert_eq!(s1.get(e6), None);
+        // Check that `StorageEntry::replace` works as expected
+        {
+            assert_eq!(s1.entry(e7).unwrap().replace(Cvec(1337)), None);
+            assert_eq!(s1.entry(e8).unwrap().replace(Cvec(11)), Some(Cvec(10)));
+            assert_eq!(s1.entry(e7).unwrap().replace(Cvec(9001)), Some(Cvec(1337)));
+            assert_eq!(s1.get(e7), Some(&Cvec(9001)));
+            assert_eq!(s1.get(e8), Some(&Cvec(11)));
+        }
     }
 
     #[test]
@@ -730,6 +877,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "parallel")]
     fn par_storage_mask() {
         use crate::join::ParJoin;
         use rayon::iter::ParallelIterator;

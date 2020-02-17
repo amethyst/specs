@@ -1,6 +1,6 @@
 [package]
 name = "specs-derive"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Eyal Kalderon <ebkalderon@gmail.com>"]
 description = "Custom derive macro for Specs components"
 documentation = "https://docs.rs/specs-derive"
@@ -10,9 +10,9 @@ license = "MIT/Apache-2.0"
 edition = "2018"
 
 [dependencies]
-proc-macro2 = "0.4"
-syn = "0.15"
-quote = "0.6"
+proc-macro2 = "1.0.8"
+syn = "1.0.14"
+quote = "1.0.2"
 
 [lib]
 proc-macro = true

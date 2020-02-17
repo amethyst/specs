@@ -1,11 +1,5 @@
-extern crate rayon;
-extern crate shred;
-#[macro_use]
-extern crate shred_derive;
-extern crate specs;
+use specs::{prelude::*, storage::HashMapStorage};
 
-use shred::ResourceId;
-use specs::{prelude::*, storage::HashMapStorage, WorldExt};
 // -- Components --
 // A component exists for 0..n
 // entities.
@@ -99,7 +93,7 @@ struct SysSpawn {
 
 impl SysSpawn {
     fn new() -> Self {
-        SysSpawn { counter: 0 }
+        Self { counter: 0 }
     }
 }
 
@@ -130,7 +124,7 @@ struct SysStoreMax(Option<Entity>);
 
 impl SysStoreMax {
     fn new() -> Self {
-        SysStoreMax(None)
+        Self(None)
     }
 }
 
@@ -164,8 +158,10 @@ impl<'a> System<'a> for SysStoreMax {
     }
 }
 
+#[cfg(feature = "parallel")]
 struct JoinParallel;
 
+#[cfg(feature = "parallel")]
 impl<'a> System<'a> for JoinParallel {
     type SystemData = (
         ReadStorage<'a, CompBool>,
@@ -174,7 +170,7 @@ impl<'a> System<'a> for JoinParallel {
     );
 
     fn run(&mut self, (comp_bool, comp_int, mut comp_float): Self::SystemData) {
-        use rayon::prelude::*;
+        use specs::rayon::prelude::*;
         (&comp_bool, &comp_int, &mut comp_float)
             .par_join()
             // only iterate over entities with a `CompBool(true)`
@@ -202,7 +198,8 @@ impl<'a> System<'a> for AddIntToFloat {
         }
 
         // An alternative way to write this out:
-        // (note that `entities` is just another system data of type `Èntities<'a>`)
+        // (note that `entities` is just another system data of type
+        // `Entities<'a>`)
         //
         // ```
         // for (entity, f) in (&entities, &comp_float).join() {
@@ -222,13 +219,19 @@ fn main() {
     // "check_positive" depends on  "print_bool" for example,
     // because we want to print the components before executing
     // `SysCheckPositive`.
-    let mut dispatcher = DispatcherBuilder::new()
+    let mut dispatcher_builder = DispatcherBuilder::new()
         .with(SysPrintBool, "print_bool", &[])
         .with(SysCheckPositive, "check_positive", &["print_bool"])
         .with(SysStoreMax::new(), "store_max", &["check_positive"])
         .with(SysSpawn::new(), "spawn", &[])
-        .with(SysPrintBool, "print_bool2", &["check_positive"])
-        .with(JoinParallel, "join_par", &[])
+        .with(SysPrintBool, "print_bool2", &["check_positive"]);
+
+    #[cfg(feature = "parallel")]
+    {
+        dispatcher_builder = dispatcher_builder.with(JoinParallel, "join_par", &[])
+    }
+
+    let mut dispatcher = dispatcher_builder
         .with_barrier() // we want to make sure all systems finished before running the last one
         .with(AddIntToFloat, "add_float_int", &[])
         .build();

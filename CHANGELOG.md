@@ -1,3 +1,60 @@
+# 0.16.1
+
+* Implement `Clone` for some `JoinIter`. ([#620])
+* Bump `hibitset` to `0.6.3`. ([#620])
+* Add `fn StorageEntry::replace`. ([#622])
+
+[#620]: https://github.com/slide-rs/specs/pull/620
+
+# 0.16.0
+
+* Update `syn`, `quote` and `proc-macro2` to `1.0`. ([#648])
+* Implement `ParJoin` for `MaybeJoin` if the inner type is `ParJoin`. ([#655])
+* Remove `"nightly"` feature -- improved panic messages are available on stable. ([#671])
+* Bump `shred` to `0.10.2`. ([#671], [#674], [#683])
+* Components and resources no longer need to be `Send + Sync` if parallel feature is disabled ([#673], [#674])
+* Bump `uuid` to `0.8.1`. ([#683])
+* Bump `rayon` to `1.3.0`. ([#683])
+
+[#648]: https://github.com/amethyst/specs/pull/648
+[#655]: https://github.com/amethyst/specs/pull/655
+[#671]: https://github.com/slide-rs/specs/pull/671
+[#673]: https://github.com/slide-rs/specs/issues/673
+[#674]: https://github.com/slide-rs/specs/pull/674
+[#683]: https://github.com/slide-rs/specs/pull/683
+
+# 0.15.1
+
+* Benchmark uses `nalgebra` instead of `cgmath`. ([#619])
+* Bumped `shrev` from `1.0` to `1.1`. ([#619]).
+* Update hashbrown to 0.6.0, criterion to 0.3 ([#627], [#632])
+* Remove `mopa` in favour of `std::any::Any` ([#631])
+
+[#619]: https://github.com/slide-rs/specs/pull/619
+[#627]: https://github.com/slide-rs/specs/pull/627
+[#631]: https://github.com/slide-rs/specs/pull/631
+[#632]: https://github.com/slide-rs/specs/pull/632
+
+# 0.15.0
+
+* Removed `common` and `RudyStorage` ([#542])
+* Moved `World` to `shred`, added `WorldExt` trait for Specs functionality ([#550])
+* Add `UuidMarker` for UUID <-> `Entity` mappings ([#584])
+* Implement `Join` on `BitSetLike` trait object ([#599])
+* Expose inner field of `AntiStorage` ([#603])
+* Remove `fnv` in favour of `hashbrown` ([#606])
+* Reexport `hibitset`, `rayon`, `shred` and `shrev` ([#606])
+* Reexport `shred_derive::SystemData` when `shred-derive` feature is enabled ([#606])
+* Reexport `specs_derive::{Component, ConvertSaveload}` when `specs-derive` feature is enabled
+([#606])
+
+[#542]: https://github.com/slide-rs/specs/pull/542
+[#550]: https://github.com/slide-rs/specs/pull/550
+[#584]: https://github.com/slide-rs/specs/pull/584
+[#599]: https://github.com/slide-rs/specs/pull/599
+[#603]: https://github.com/slide-rs/specs/pull/603
+[#606]: https://github.com/slide-rs/specs/pull/606
+
 # 0.14.2
 
 * Add `Join`-able entries API to `Storage` ([#518])

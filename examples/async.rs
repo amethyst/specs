@@ -60,14 +60,28 @@ fn main() {
     // logical dependencies on other systems.
     // Since we only have one, we don't depend on anything.
     // See the `full` example for dependencies.
-    let mut dispatcher = DispatcherBuilder::new()
-        .with(SysA, "sys_a", &[])
-        .build_async(world);
+    #[cfg(feature = "parallel")]
+    {
+        let mut dispatcher = DispatcherBuilder::new()
+            .with(SysA, "sys_a", &[])
+            .build_async(world);
 
-    // This dispatches all the systems in parallel and async.
-    dispatcher.dispatch();
+        // This dispatches all the systems in parallel and async.
+        dispatcher.dispatch();
 
-    // Do something on the main thread
+        // Do something on the main thread
 
-    dispatcher.wait();
+        dispatcher.wait();
+    }
+
+    #[cfg(not(feature = "parallel"))]
+    {
+        eprintln!("The `async` example should be built with the `\"parallel\"` feature enabled.");
+
+        let mut dispatcher = DispatcherBuilder::new().with(SysA, "sys_a", &[]).build();
+
+        dispatcher.setup(&mut world);
+
+        dispatcher.dispatch(&mut world);
+    };
 }

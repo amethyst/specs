@@ -2,7 +2,7 @@ language: rust
 
 rust:
 - nightly
-- 1.34.0
+- 1.38.0
 - stable
 
 cache:
@@ -22,7 +22,7 @@ script:
     cargo build --all-features --verbose;
     cargo test --all-features --verbose --no-run;
     cargo bench --verbose --no-run --all-features;
-  elif [ "$TRAVIS_RUST_VERSION" == "1.34.0" ]; then
+  elif [ "$TRAVIS_RUST_VERSION" == "1.38.0" ]; then
     cargo check --tests --no-default-features;
     cargo check --tests --no-default-features --features "parallel";
     cargo check --tests --no-default-features --features "serde";
@@ -61,7 +61,7 @@ after_success: |
   make install DESTDIR=../../kcov-build &&
   cd ../.. &&
   rm -rf kcov-master &&
-  for file in target/debug/specs-*; do 
+  for file in target/debug/specs-*; do
     [ -x "${file}" ] || continue;
     mkdir -p "target/cov/$(basename $file)";
     ./kcov-build/usr/local/bin/kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file";

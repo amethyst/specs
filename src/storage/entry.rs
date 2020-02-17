@@ -51,7 +51,7 @@ where
                 .entities
                 .alloc
                 .generation(e.id())
-                .unwrap_or(Generation::one());
+                .unwrap_or_else(Generation::one);
             Err(WrongGeneration {
                 action: "attempting to get an entry to a storage",
                 actual_gen: gen,
@@ -110,7 +110,7 @@ where
     /// for (mut counter, _) in (counters.entries(), &marker).join() {
     ///     let counter = counter.or_insert_with(Default::default);
     ///     counter.increase();
-    ///         
+    ///
     ///     if counter.reached_limit() {
     ///         counter.reset();
     ///         // Do something
@@ -254,6 +254,18 @@ where
     T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,
 {
+    /// Inserts a component and returns the old value in case this entry was
+    /// already occupied.
+    pub fn replace(self, component: T) -> Option<T> {
+        match self {
+            StorageEntry::Occupied(mut occupied) => Some(occupied.insert(component)),
+            StorageEntry::Vacant(vacant) => {
+                vacant.insert(component);
+                None
+            }
+        }
+    }
+
     /// Inserts a component if the entity does not have it already.
     pub fn or_insert(self, component: T) -> &'a mut T {
         self.or_insert_with(|| component)

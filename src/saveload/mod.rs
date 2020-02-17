@@ -24,7 +24,7 @@
 //! see the docs for the `Marker` trait.
 //!
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{error::NoError, world::Entity};
 

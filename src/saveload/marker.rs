@@ -1,17 +1,18 @@
 //! Provides `Marker` and `MarkerAllocator` traits
 
-use std::{collections::HashMap, fmt::Debug, hash::Hash, marker::PhantomData};
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug},
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+};
+
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
-    join::Join,
-    storage::{DenseVecStorage, ReadStorage, WriteStorage},
-    world::{
-        Component, EntitiesRes, Entity, EntityBuilder, EntityResBuilder, LazyBuilder, WorldExt,
-    },
+    prelude::*,
+    world::{EntitiesRes, EntityResBuilder, LazyBuilder},
 };
-use shred::Resource;
-
-use serde::{de::DeserializeOwned, ser::Serialize};
 
 /// A common trait for `EntityBuilder` and `LazyBuilder` with a marker function,
 /// allowing either to be used.
@@ -37,7 +38,7 @@ pub trait MarkedBuilder {
     ///
     /// let mut world = World::new();
     /// world.register::<SimpleMarker<NetworkSync>>();
-    /// world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
+    /// world.insert(SimpleMarkerAllocator::<NetworkSync>::new());
     ///
     /// mark_entity(world.create_entity());
     /// ```
@@ -73,7 +74,7 @@ impl<'a> MarkedBuilder for LazyBuilder<'a> {
     ///
     /// let mut world = World::new();
     /// world.register::<SimpleMarker<NetworkSync>>();
-    /// world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
+    /// world.insert(SimpleMarkerAllocator::<NetworkSync>::new());
     ///
     /// # let lazy = world.read_resource::<LazyUpdate>();
     /// # let entities = world.entities();
@@ -118,7 +119,7 @@ impl<'a> EntityResBuilder<'a> {
     ///
     /// let mut world = World::new();
     /// world.register::<SimpleMarker<NetworkSync>>();
-    /// world.add_resource(SimpleMarkerAllocator::<NetworkSync>::new());
+    /// world.insert(SimpleMarkerAllocator::<NetworkSync>::new());
     ///
     /// let mut storage = world.write_storage::<SimpleMarker<NetworkSync>>();
     /// let mut alloc = world.write_resource::<SimpleMarkerAllocator<NetworkSync>>();
@@ -220,7 +221,7 @@ impl<'a> EntityResBuilder<'a> {
 ///     let mut world = World::new();
 ///     world.register::<NetMarker>();
 ///
-///     world.add_resource(NetNode {
+///     world.insert(NetNode {
 ///         range: 0..100,
 ///         mapping: HashMap::new(),
 ///     });
@@ -363,11 +364,42 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     fn maintain(&mut self, _entities: &EntitiesRes, _storage: &ReadStorage<M>);
 }
 
-/// Basic marker implementation usable for saving and loading, uses `u64` as identifier
-#[derive(Derivative, Serialize, Deserialize)]
-#[derivative(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+/// Basic marker implementation usable for saving and loading, uses `u64` as
+/// identifier
+#[derive(Serialize, Deserialize)]
 #[repr(transparent)]
 pub struct SimpleMarker<T: ?Sized>(u64, #[serde(skip)] PhantomData<T>);
+
+impl<T: ?Sized> Clone for SimpleMarker<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T: ?Sized> Copy for SimpleMarker<T> {}
+
+impl<T: ?Sized> PartialEq for SimpleMarker<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<T: ?Sized> Eq for SimpleMarker<T> {}
+
+impl<T: ?Sized> Hash for SimpleMarker<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+impl<T: ?Sized> Debug for SimpleMarker<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_tuple("SimpleMarker")
+            .field(&self.0)
+            .field(&self.1)
+            .finish()
+    }
+}
 
 impl<T> Component for SimpleMarker<T>
 where
@@ -389,25 +421,43 @@ where
 }
 
 /// Basic marker allocator, uses `u64` as identifier
-#[derive(Derivative)]
-#[derivative(Clone, Debug)]
 pub struct SimpleMarkerAllocator<T: ?Sized> {
     index: u64,
     mapping: HashMap<u64, Entity>,
     _phantom_data: PhantomData<T>,
 }
 
-impl<T> Default for SimpleMarkerAllocator<T> {
-    fn default() -> Self {
-        SimpleMarkerAllocator::new()
+impl<T: ?Sized> Debug for SimpleMarkerAllocator<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("SimpleMarkerAllocator")
+            .field("index", &self.index)
+            .field("mapping", &self.mapping)
+            .field("_phantom_data", &self._phantom_data)
+            .finish()
     }
 }
 
-impl<T> SimpleMarkerAllocator<T> {
-    /// Create new `SimpleMarkerAllocator` which will yield `SimpleMarker`s starting
-    /// with `0`
+impl<T: ?Sized> Clone for SimpleMarkerAllocator<T> {
+    fn clone(&self) -> Self {
+        Self {
+            index: self.index,
+            mapping: self.mapping.clone(),
+            _phantom_data: PhantomData,
+        }
+    }
+}
+
+impl<T: ?Sized> Default for SimpleMarkerAllocator<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T: ?Sized> SimpleMarkerAllocator<T> {
+    /// Create new `SimpleMarkerAllocator` which will yield `SimpleMarker`s
+    /// starting with `0`
     pub fn new() -> Self {
-        SimpleMarkerAllocator {
+        Self {
             index: 0,
             mapping: HashMap::new(),
             _phantom_data: PhantomData,

@@ -11,7 +11,7 @@ struct Sys;
 
 impl<'a> System<'a> for Sys {
     type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
-    
+
     fn run(&mut self, (pos, vel): Self::SystemData) {
         /* ... */
     }
@@ -91,9 +91,6 @@ more, you could even nest these tuples. However, at some point it becomes hard t
 That's why you can also create your own `SystemData` bundle using a struct:
 
 ```rust,ignore
-extern crate shred;
-#[macro_use]
-extern crate shred_derive;
 extern crate specs;
 
 use specs::prelude::*;
@@ -109,3 +106,8 @@ pub struct MySystemData<'a> {
 }
 ```
 
+Make sure to enable the `shred-derive` feature in your `Cargo.toml`:
+
+```toml
+specs = { version = "*", features = ["shred-derive"] }
+```

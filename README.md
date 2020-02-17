@@ -4,8 +4,8 @@
 
 [![Build Status][bi]][bl] [![Crates.io][ci]][cl] [![Gitter][gi]][gl] ![MIT/Apache][li] [![Docs.rs][di]][dl] [![Code coverage][coi]][cov] ![LoC][lo]
 
-[bi]: https://travis-ci.org/slide-rs/specs.svg?branch=master
-[bl]: https://travis-ci.org/slide-rs/specs
+[bi]: https://travis-ci.org/amethyst/specs.svg?branch=master
+[bl]: https://travis-ci.org/amethyst/specs
 
 [ci]: https://img.shields.io/crates/v/specs.svg
 [cl]: https://crates.io/crates/specs/
@@ -35,11 +35,11 @@ Unlike most other ECS libraries out there, it provides
       other and you can use barriers to force several stages in system execution
 * high performance for real-world applications
 
-Minimum Rust version: 1.34
+Minimum Rust version: 1.38
 
 ## [Link to the book][book]
 
-[book]: https://slide-rs.github.io/specs/
+[book]: https://specs.amethyst.rs/docs/tutorials/
 
 ## Example
 
@@ -105,10 +105,10 @@ fn main() {
     let mut dispatcher = DispatcherBuilder::new().with(SysA, "sys_a", &[]).build();
     // This will call the `setup` function of every system.
     // In this example this has no effect since we already registered our components.
-    dispatcher.setup(&mut world.res);
+    dispatcher.setup(&mut world);
 
     // This dispatches all the systems in parallel (but blocking).
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
 }
 ```
 
@@ -121,6 +121,7 @@ Please look into [the examples directory](examples) for more.
 | hibitset | [![hibitset](https://img.shields.io/crates/v/hibitset.svg)](https://crates.rs/crates/hibitset) |
 | rayon    | [![rayon](https://img.shields.io/crates/v/rayon.svg)](https://crates.rs/crates/rayon)          |
 | shred    | [![shred](https://img.shields.io/crates/v/shred.svg)](https://crates.rs/crates/shred)          |
+| shrev    | [![shrev](https://img.shields.io/crates/v/shrev.svg)](https://crates.rs/crates/shrev)          |
 
 ## Contribution
 

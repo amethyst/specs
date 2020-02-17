@@ -3,7 +3,7 @@
 So far for all our component storages and resources, we've been adding
 them to the `World` manually. In Specs, this is not required if you use
 `setup`. This is a manually invoked stage that goes through `SystemData`
-and calls `register`, `add_resource`, etc. for all (with some exceptions)
+and calls `register`, `insert`, etc. for all (with some exceptions)
 components and resources found. The `setup` function can be found in
 the following locations:
 
@@ -26,6 +26,7 @@ through all `System`s in the graph, and call `setup` on each.
 Let's say you began by registering Components and Resources first:
 
 ```rust,ignore
+use specs::prelude::*;
 
 struct Gravity;
 
@@ -45,7 +46,7 @@ impl<'a> System<'a> for SimulationSystem {
 
 fn main() {
     let mut world = World::new();
-    world.add_resource(Gravity);
+    world.insert(Gravity);
     world.register::<Velocity>();
 
     for _ in 0..5 {
@@ -56,7 +57,7 @@ fn main() {
         .with(SimulationSystem, "simulation", &[])
         .build();
 
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
     world.maintain();
 }
 
@@ -71,13 +72,13 @@ fn main() {
         .with(SimulationSystem, "simulation", &[])
         .build();
 
-    dispatcher.setup(&mut world.res);
+    dispatcher.setup(&mut world);
 
     for _ in 0..5 {
         world.create_entity().with(Velocity).build();
     }
 
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
     world.maintain();
 }
 
@@ -115,7 +116,7 @@ to create the `EventChannel` themselves and add it manually to the `World`.
 We can do better!
 
 ```rust,ignore
-use specs::prelude::Resources;
+use specs::prelude::*;
 
 #[derive(Default)]
 struct Sys {
@@ -131,10 +132,9 @@ impl<'a> System<'a> for Sys {
         }
     }
 
-    fn setup(&mut self, res: &mut Resources) {
-        use specs::prelude::SystemData;
-        Self::SystemData::setup(res);
-        self.reader = Some(res.fetch_mut::<EventChannel<Event>>().register_reader());
+    fn setup(&mut self, world: &mut World) {
+        Self::SystemData::setup(world);
+        self.reader = Some(world.fetch_mut::<EventChannel<Event>>().register_reader());
     }
 }
 ```
@@ -142,10 +142,8 @@ impl<'a> System<'a> for Sys {
 This is much better; we can now use `setup` to fully initialize `Sys` without
 requiring our users to create and add resources manually to `World`!
 
-**If we override the `setup` function on a `System`, it is vitally important that we
-remember to add `Self::SystemData::setup(res);`, or setup will not be performed for
-the `System`s `SystemData`.** This could cause panics during setup or during
-the first dispatch.
+**If we override the `setup` function on a `System`, it is vitally important that we remember to add `Self::SystemData::setup(world);`, or setup will not be performed for the `System`s `SystemData`.**
+This could cause panics during setup or during the first dispatch.
 
 ## Setting up in bulk
 

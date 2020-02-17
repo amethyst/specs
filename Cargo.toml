@@ -1,12 +1,12 @@
 [package]
 name = "specs"
-version = "0.14.3"
+version = "0.16.0"
 description = """
 Specs is an Entity-Component-System library written in Rust.
 """
 documentation = "https://docs.rs/specs/"
 repository = "https://github.com/slide-rs/specs"
-homepage = "https://slide-rs.github.io/"
+homepage = "https://specs.amethyst.rs"
 readme = "README.md"
 keywords = ["gamedev", "ecs", "entity", "component"]
 categories = ["concurrency", "game-engines"]
@@ -22,40 +22,40 @@ autobenches = false
 travis-ci = { repository = "slide-rs/specs" }
 
 [dependencies]
-crossbeam = "0.7.1"
-derivative = "1"
-fnv = "1.0"
-hibitset = { version = "0.6.0", default-features = false }
-log = "0.4"
-mopa = "0.2"
-shred = { version = "0.8.0", default-features = false }
-shrev = "1.0.0"
-shred-derive = "0.6.0"
-tuple_utils = "0.3"
-rayon = { version = "1.0.0", optional = true }
-nonzero_signed = "1.0.1"
-uuid = { version = "0.7.4", optional = true, features = ["v4", "serde"] }
+crossbeam-queue = "0.2.1"
+hashbrown = "0.7.0"
+hibitset = { version = "0.6.3", default-features = false }
+log = "0.4.8"
+shred = { version = "0.10.2", default-features = false }
+shrev = "1.1.1"
+tuple_utils = "0.3.0"
 
-serde = { version = "1.0", optional = true, features = ["serde_derive"] }
+rayon = { version = "1.3.0", optional = true }
+serde = { version = "1.0.104", optional = true, features = ["serde_derive"] }
+specs-derive = { version = "0.4.1", path = "specs-derive", optional = true }
+uuid = { version = "0.8.1", optional = true, features = ["v4", "serde"] }
 
 [features]
 default = ["parallel"]
 parallel = ["rayon", "shred/parallel", "hibitset/parallel"]
-nightly = ["shred/nightly"]
 uuid_entity = ["uuid", "serde"]
 stdweb = ["uuid/stdweb"]
 wasm-bindgen = ["uuid/wasm-bindgen"]
+storage-event-control = []
+
+shred-derive = ["shred/shred-derive"]
 
 [package.metadata.docs.rs]
-features = ["parallel", "nightly", "uuid_entity"]
+features = ["parallel", "serde", "shred-derive", "specs-derive", "uuid_entity", "storage-event-control"]
 
 [dev-dependencies]
-cgmath =  { version = "0.17" }
-criterion = "0.2"
-ron = "0.5"
-rand = "0.6.1"
-serde_json = "1.0"
-specs-derive = { path = "specs-derive", version = "0.4.0" }
+nalgebra = "0.19.0"
+criterion = "0.3.1"
+ron = "0.5.1"
+rand = "0.7.3"
+serde_json = "1.0.47"
+shred = { version = "0.10.2", default-features = false, features = ["shred-derive"] }
+specs-derive = { path = "specs-derive", version = "0.4.1" }
 
 [[example]]
 name = "basic"

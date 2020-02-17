@@ -102,7 +102,7 @@ impl Allocator {
             action: "delete",
             actual_gen: self.generations[e.id() as usize]
                 .0
-                .unwrap_or(Generation::one()),
+                .unwrap_or_else(Generation::one),
             entity: e,
         })
     }
@@ -112,7 +112,7 @@ impl Allocator {
         e.gen()
             == match self.generations.get(e.id() as usize) {
                 Some(g) if !g.is_alive() && self.raised.contains(e.id()) => g.raised(),
-                Some(g) => g.0.unwrap_or(Generation::one()),
+                Some(g) => g.0.unwrap_or_else(Generation::one),
                 None => Generation::one(),
             }
     }
@@ -129,7 +129,7 @@ impl Allocator {
     pub fn entity(&self, id: Index) -> Entity {
         let gen = match self.generations.get(id as usize) {
             Some(g) if !g.is_alive() && self.raised.contains(id) => g.raised(),
-            Some(g) => g.0.unwrap_or(Generation::one()),
+            Some(g) => g.0.unwrap_or_else(Generation::one),
             None => Generation::one(),
         };
 
@@ -146,7 +146,7 @@ impl Allocator {
         let gen = self
             .generation(id)
             .map(|gen| if gen.is_alive() { gen } else { gen.raised() })
-            .unwrap_or(Generation::one());
+            .unwrap_or_else(Generation::one);
         Entity(id, gen)
     }
 
@@ -225,8 +225,8 @@ pub struct Entity(Index, Generation);
 impl Entity {
     /// Creates a new entity (externally from ECS).
     #[cfg(test)]
-    pub fn new(index: Index, gen: Generation) -> Entity {
-        Entity(index, gen)
+    pub fn new(index: Index, gen: Generation) -> Self {
+        Self(index, gen)
     }
 
     /// Returns the index of the `Entity`.
@@ -327,7 +327,7 @@ impl<'a> Join for &'a EntitiesRes {
             .alloc
             .generation(idx)
             .map(|gen| if gen.is_alive() { gen } else { gen.raised() })
-            .unwrap_or(Generation::one());
+            .unwrap_or_else(Generation::one);
         Entity(idx, gen)
     }
 }

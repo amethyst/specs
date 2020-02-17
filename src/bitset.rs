@@ -14,7 +14,7 @@ use crate::world::Index;
 macro_rules! define_bit_join {
     ( impl < ( $( $lifetime:tt )* ) ( $( $arg:ident ),* ) > for $bitset:ty ) => {
         impl<$( $lifetime, )* $( $arg ),*> Join for $bitset
-            where $( $arg: BitSetLike ),* 
+            where $( $arg: BitSetLike ),*
         {
             type Type = Index;
             type Value = ();

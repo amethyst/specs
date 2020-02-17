@@ -92,7 +92,7 @@ be executed after the dependency has finished. The final `HelloWorld` system pri
 Now to execute all the systems, just do
 
 ```rust,ignore
-dispatcher.dispatch(&mut world.res);
+dispatcher.dispatch(&mut world);
 ```
 
 ## Full example code
@@ -101,7 +101,7 @@ Here the code for this chapter:
 
 ```rust,ignore
 use specs::{Builder, Component, DispatcherBuilder, ReadStorage,
-            System, VecStorage, World, WriteStorage};
+            System, VecStorage, World, WorldExt, WriteStorage};
 
 #[derive(Debug)]
 struct Position {
@@ -172,7 +172,7 @@ fn main() {
         .with(HelloWorld, "hello_updated", &["update_pos"])
         .build();
 
-    dispatcher.dispatch(&mut world.res);
+    dispatcher.dispatch(&mut world);
     world.maintain();
 }
 ```

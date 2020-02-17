@@ -30,19 +30,35 @@ has 4 layers).
 Here a list of the storages with a short description and a link
 to the corresponding heading.
 
-|Storage Type         |Description               |Optimized for                 |
-|:-------------------:|--------------------------|------------------------------|
-| [`BTreeStorage`]    | Works with a `BTreeMap`  | no particular case           |
-| [`DenseVecStorage`] | Uses a redirection table | fairly often used components |
-| [`HashMapStorage`]  | Uses a `HashMap`         | rare components              |
-| [`NullStorage`]     | Can flag entities        | doesn't depend on rarity     |
-| [`VecStorage`]      | Uses a sparse `Vec`      | commonly used components     |
+|Storage Type            |Description                                         |Optimized for                 |
+|:----------------------:|----------------------------------------------------|------------------------------|
+| [`BTreeStorage`]       | Works with a `BTreeMap`                            | no particular case           |
+| [`DenseVecStorage`]    | Uses a redirection table                           | fairly often used components |
+| [`HashMapStorage`]     | Uses a `HashMap`                                   | rare components              |
+| [`NullStorage`]        | Can flag entities                                  | doesn't depend on rarity     |
+| [`VecStorage`]         | Uses a sparse `Vec`, empty slots are uninitialized | commonly used components     |
+| [`DefaultVecStorage`]  | Uses a sparse `Vec`, empty slots contain `Default` | commonly used components     |
 
 [`BTreeStorage`]: #btreestorage
 [`DenseVecStorage`]: #densevecstorage
 [`HashMapStorage`]: #hashmapstorage
 [`NullStorage`]: #nullstorage
 [`VecStorage`]: #vecstorage
+[`DefaultVecStorage`]: #defaultvecstorage
+
+## Slices
+
+Certain storages provide access to component slices:
+
+|Storage Type            | Slice type          | Density | Indices       |
+|:----------------------:|---------------------|---------|---------------|
+| [`DenseVecStorage`]    | `&[T]`              | Dense   | Arbitrary     |
+| [`VecStorage`]         | `&[MaybeUninit<T>]` | Sparse  | Entity `id()` |
+| [`DefaultVecStorage`]  | `&[T]`              | Sparse  | Entity `id()` |
+
+This is intended as an advanced technique. Component slices provide
+maximally efficient reads and writes, but they are incompatible with
+many of the usual abstractions which makes them more difficult to use.
 
 ## `BTreeStorage`
 
@@ -56,6 +72,11 @@ This storage uses two `Vec`s, one containing the actual data and the other
 one which provides a mapping from the entity id to the index for the data vec
 (it's a redirection table). This is useful when your component is bigger
 than a `usize` because it consumes less RAM.
+
+`DenseVecStorage<T>` provides `as_slice()` and `as_mut_slice()` accessors
+which return `&[T]`. The indices in this slice do not correspond to entity
+IDs, nor do they correspond to indices in any other storage, nor do they
+correspond to indices in this storage at a different point in time.
 
 ## `HashMapStorage`
 
@@ -81,3 +102,24 @@ just leaves uninitialized gaps where we don't have any component.
 Therefore it would be a waste of memory to use this storage for
 rare components, but it's best suited for commonly used components
 (like transform values).
+
+`VecStorage<T>` provides `as_slice()` and `as_mut_slice()` accessors which
+return `&[MaybeUninit<T>]`. Consult the `Storage::mask()` to determine
+which indices are populated. Slice indices cannot be converted to `Entity`
+values because they lack a generation counter, but they do correspond to
+`Entity::id()`s, so indices can be used to collate between multiple
+`VecStorage`s.
+
+## `DefaultVecStorage`
+
+This storage works exactly like `VecStorage`, but instead of leaving gaps
+uninitialized, it fills them with the component's default value. This
+requires the component to `impl Default`, and it results in more memory
+writes than `VecStorage`.
+
+`DefaultVecStorage` provides `as_slice()` and `as_mut_slice()` accessors
+which return `&[T]`. `Storage::mask()` can be used to determine which
+indices are in active use, but all indices are fully initialized, so the
+`mask()` is not necessary for safety. `DefaultVecStorage` indices all
+correspond with each other, with `VecStorage` indices, and with
+`Entity::id()`s.

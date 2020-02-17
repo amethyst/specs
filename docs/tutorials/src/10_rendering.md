@@ -37,7 +37,7 @@ This is what your code could look like:
 ```rust,ignore
 struct ResizeEvents(Vec<(u32, u32)>);
 
-world.add_resource(ResizeEvents(Vec::new()));
+world.insert(ResizeEvents(Vec::new()));
 
 while let Some(event) = window.poll_event() {
     match event {

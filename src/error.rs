@@ -12,7 +12,7 @@ use std::{
 use crate::world::{Entity, Generation};
 
 /// A boxed error implementing `Debug`, `Display` and `Error`.
-pub struct BoxedErr(pub Box<StdError + Send + Sync + 'static>);
+pub struct BoxedErr(pub Box<dyn StdError + Send + Sync + 'static>);
 
 impl BoxedErr {
     /// Creates a new boxed error.
@@ -24,8 +24,8 @@ impl BoxedErr {
     }
 }
 
-impl AsRef<StdError> for BoxedErr {
-    fn as_ref(&self) -> &(StdError + 'static) {
+impl AsRef<dyn StdError> for BoxedErr {
+    fn as_ref(&self) -> &(dyn StdError + 'static) {
         self.0.as_ref()
     }
 }
@@ -94,7 +94,7 @@ impl StdError for Error {
         "A Specs error"
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn cause(&self) -> Option<&dyn StdError> {
         let e = match *self {
             Error::Custom(ref e) => e.as_ref(),
             Error::WrongGeneration(ref e) => e,

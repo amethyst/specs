@@ -9,9 +9,13 @@ pub use self::{
         ImmutableParallelRestriction, MutableParallelRestriction, RestrictedStorage,
         SequentialRestriction,
     },
-    storages::{BTreeStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage},
+    storages::{
+        BTreeStorage, DefaultVecStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage,
+    },
     track::{ComponentEvent, Tracked},
 };
+
+use self::storages::SliceAccess;
 
 use std::{
     self,
@@ -58,9 +62,7 @@ impl<'a> Join for AntiStorage<'a> {
     }
 
     // SAFETY: No invariants to meet and no unsafe code.
-    unsafe fn get(_: &mut (), _: Index) -> () {
-        ()
-    }
+    unsafe fn get(_: &mut (), _: Index) {}
 }
 
 // SAFETY: Since `get` does not do any memory access, this is safe to implement.
@@ -76,7 +78,7 @@ pub trait AnyStorage {
     fn drop(&mut self, entities: &[Entity]);
 }
 
-unsafe impl<T> CastFrom<T> for AnyStorage
+unsafe impl<T> CastFrom<T> for dyn AnyStorage
 where
     T: AnyStorage + 'static,
 {
@@ -129,11 +131,21 @@ pub type InsertResult<T> = Result<Option<T>, Error>;
 
 /// The `UnprotectedStorage` together with the `BitSet` that knows
 /// about which elements are stored, and which are not.
-#[derive(Derivative)]
-#[derivative(Default(bound = "T::Storage: Default"))]
 pub struct MaskedStorage<T: Component> {
     mask: BitSet,
     inner: T::Storage,
+}
+
+impl<T: Component> Default for MaskedStorage<T>
+where
+    T::Storage: Default,
+{
+    fn default() -> Self {
+        Self {
+            mask: Default::default(),
+            inner: Default::default(),
+        }
+    }
 }
 
 impl<T: Component> MaskedStorage<T> {
@@ -263,6 +275,36 @@ where
 impl<'e, T, D> Storage<'e, T, D>
 where
     T: Component,
+    D: Deref<Target = MaskedStorage<T>>,
+    T::Storage: SliceAccess<T>,
+{
+    /// Returns the component data as a slice.
+    ///
+    /// The indices of this slice may not correspond to anything in particular.
+    /// Check the underlying storage documentation for details.
+    pub fn as_slice(&self) -> &[<T::Storage as SliceAccess<T>>::Element] {
+        self.data.inner.as_slice()
+    }
+}
+
+impl<'e, T, D> Storage<'e, T, D>
+where
+    T: Component,
+    D: DerefMut<Target = MaskedStorage<T>>,
+    T::Storage: SliceAccess<T>,
+{
+    /// Returns the component data as a slice.
+    ///
+    /// The indices of this slice may not correspond to anything in particular.
+    /// Check the underlying storage documentation for details.
+    pub fn as_mut_slice(&mut self) -> &mut [<T::Storage as SliceAccess<T>>::Element] {
+        self.data.inner.as_mut_slice()
+    }
+}
+
+impl<'e, T, D> Storage<'e, T, D>
+where
+    T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,
 {
     /// Gets mutable access to the wrapped storage.
@@ -334,6 +376,12 @@ where
         Drain {
             data: &mut self.data,
         }
+    }
+}
+
+impl<'a, T, D: Clone> Clone for Storage<'a, T, D> {
+    fn clone(&self) -> Self {
+        Storage::new(self.entities.clone(), self.data.clone())
     }
 }
 
@@ -518,6 +566,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
 }
 
 #[cfg(test)]
+#[cfg(feature = "parallel")]
 mod tests_inline {
 
     use crate::{

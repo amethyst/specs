@@ -291,6 +291,12 @@ where
     }
 }
 
+// SAFETY: This is safe as long as `T` implements `ParJoin` safely.  `MaybeJoin`
+// relies on `T as Join` for all storage access and safely wraps the inner
+// `Join` API, so it should also be able to implement `ParJoin`.
+#[cfg(feature = "parallel")]
+unsafe impl<T> ParJoin for MaybeJoin<T> where T: ParJoin {}
+
 /// `JoinIter` is an `Iterator` over a group of `Storages`.
 #[must_use]
 pub struct JoinIter<J: Join> {
@@ -302,8 +308,8 @@ impl<J: Join> JoinIter<J> {
     /// Create a new join iterator.
     pub fn new(j: J) -> Self {
         if <J as Join>::is_unconstrained() {
-            println!(
-                "WARNING: `Join` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length."
+            log::warn!(
+                "`Join` possibly iterating through all indices, you might've made a join with all `MaybeJoin`s, which is unbounded in length."
             );
         }
 
@@ -402,6 +408,79 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
         self.keys
             .next()
             .map(|idx| unsafe { J::get(&mut self.values, idx) })
+    }
+}
+
+/// Clones the `JoinIter`.
+/// 
+/// # Examples
+/// 
+/// ```
+/// # use specs::prelude::*;
+/// # #[derive(Debug)]
+/// # struct Position; impl Component for Position { type Storage = VecStorage<Self>; }
+/// # #[derive(Debug)]
+/// # struct Collider; impl Component for Collider { type Storage = VecStorage<Self>; }
+/// let mut world = World::new();
+///
+/// world.register::<Position>();
+/// world.register::<Collider>();
+///
+/// // add some entities to our world
+/// for _ in 0..10 {
+///     let entity = world
+///         .create_entity()
+///         .with(Position)
+///         .with(Collider)
+///         .build();   
+/// }
+///
+/// // check for collisions between entities
+/// let positions = world.read_storage::<Position>();
+/// let colliders = world.read_storage::<Collider>();
+/// 
+/// let mut join_iter = (&positions, &colliders).join();
+/// while let Some(a) = join_iter.next() {
+///     for b in join_iter.clone() {
+///         # let check_collision = |a, b| true;
+///         if check_collision(a, b) {
+///             // do stuff
+///         }
+///     }
+/// }
+/// ```
+/// 
+/// It is *not* possible to clone a `JoinIter` which allows for
+/// mutation of its content, as this would lead to shared mutable
+/// access.
+/// 
+/// ```compile_fail
+/// # use specs::prelude::*;
+/// # #[derive(Debug)]
+/// # struct Position; impl Component for Position { type Storage = VecStorage<Self>; }
+/// # let mut world = World::new();
+/// # world.register::<Position>();
+/// # let entity = world.create_entity().with(Position).build();  
+/// // .. previous example
+/// 
+/// let mut positions = world.write_storage::<Position>();
+/// 
+/// let mut join_iter = (&mut positions).join();
+/// // this must not compile, as the following line would cause
+/// // undefined behavior!
+/// let mut cloned_iter = join_iter.clone();
+/// let (mut alias_one, mut alias_two) = (join_iter.next(), cloned_iter.next());
+/// ```
+impl<J: Join> Clone for JoinIter<J>
+where
+    J::Mask: Clone,
+    J::Value: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            keys: self.keys.clone(),
+            values: self.values.clone(),
+        }
     }
 }
 
