@@ -36,17 +36,24 @@ for (ent, pos, vel) in (&*entities, &mut pos_storage, &vel_storage).join() {
 }
 ```
 
+The returned entity value can also be used to get a component from a storage as usual.
+
 ## Optional components
 
-If we iterate over the `&EntitiesRes` as shown above, we can simply
-use the returned `Entity` values to get components from storages as usual.
+The previous example will iterate over all entities that have all the components 
+we need, but what if we want to iterate over an entity whether it has a component 
+or not?
 
+To do that, we can wrap the `Storage` with `maybe()`: it wraps the `Storage` in a 
+`MaybeJoin` struct which, rather than returning a component directly, returns 
+`None` if the component is missing and `Some(T)` if it's there.
+   
 ```rust,ignore
-for (ent, pos, vel) in (&*entities, &mut pos_storage, &vel_storage).join() {
+for (pos, vel, mass) in 
+    (&mut pos_storage, &vel_storage, (&mut mass_storage).maybe()).join() {
     println!("Processing entity: {:?}", ent);
     *pos += *vel;
 
-    let mass: Option<&mut Mass> = mass_storage.get_mut(ent);
     if let Some(mass) = mass {
         let x = *vel / 300_000_000.0;
         let y = 1 - x * x;
@@ -56,10 +63,35 @@ for (ent, pos, vel) in (&*entities, &mut pos_storage, &vel_storage).join() {
 }
 ```
 
-In this example we iterate over all entities with a position and a velocity
-and perform the calculation for the new position as usual.
-However, in case the entity has a mass, we also calculate the current
-mass based on the velocity. Thus, mass is an **optional** component here.
+In this example we iterate over all entities with a position and a velocity and 
+perform the calculation for the new position as usual. However, in case the entity
+has a mass, we also calculate the current mass based on the velocity. 
+Thus, mass is an **optional** component here.
+
+**WARNING:** Do not have a join of only `MaybeJoin`s. Otherwise the join will iterate 
+over every single index of the bitset. If you want a join with all `MaybeJoin`s, 
+add an EntitiesRes to the join as well to bound the join to all entities that are alive.
+
+### Manually fetching components with `Storage::get()`
+
+Even though `join()`ing over `maybe()` should be preferred because it can optimize how entities are
+iterated, it's always possible to fetch a component manually using `Storage::get()`
+or `Storage::get_mut()`.
+For example, say that you want to damage a target entity every tick, but only if
+it has an `Health`: 
+
+```rust,ignore
+for (target, damage) in (&target_storage, &damage_storage).join() {
+  
+    let target_health: Option<&mut Health> = health_storage.get_mut(target.ent);
+    if let Some(target_health) = target_health {
+      target_health.current -= damage.value;      
+    }
+}
+```
+
+Even though this is a somewhat contrived example, this is a common pattern 
+when entities interact.
 
 ## Excluding components
 
