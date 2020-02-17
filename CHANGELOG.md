@@ -1,3 +1,10 @@
+# Unreleased
+
+* Implement `Clone` for some `JoinIter`. ([#620])
+* Bump `hibitset` to `0.6.3`. ([#620])
+
+[#620]: https://github.com/slide-rs/specs/pull/620
+
 # 0.16.0
 
 * Update `syn`, `quote` and `proc-macro2` to `1.0`. ([#648])
@@ -17,7 +24,7 @@
 
 # 0.15.1
 
-* Benchmark uses `nalgebra` instead of `cgmath`. ([#619]).
+* Benchmark uses `nalgebra` instead of `cgmath`. ([#619])
 * Bumped `shrev` from `1.0` to `1.1`. ([#619]).
 * Update hashbrown to 0.6.0, criterion to 0.3 ([#627], [#632])
 * Remove `mopa` in favour of `std::any::Any` ([#631])

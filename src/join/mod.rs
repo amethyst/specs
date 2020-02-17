@@ -411,6 +411,79 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
     }
 }
 
+/// Clones the `JoinIter`.
+/// 
+/// # Examples
+/// 
+/// ```
+/// # use specs::prelude::*;
+/// # #[derive(Debug)]
+/// # struct Position; impl Component for Position { type Storage = VecStorage<Self>; }
+/// # #[derive(Debug)]
+/// # struct Collider; impl Component for Collider { type Storage = VecStorage<Self>; }
+/// let mut world = World::new();
+///
+/// world.register::<Position>();
+/// world.register::<Collider>();
+///
+/// // add some entities to our world
+/// for _ in 0..10 {
+///     let entity = world
+///         .create_entity()
+///         .with(Position)
+///         .with(Collider)
+///         .build();   
+/// }
+///
+/// // check for collisions between entities
+/// let positions = world.read_storage::<Position>();
+/// let colliders = world.read_storage::<Collider>();
+/// 
+/// let mut join_iter = (&positions, &colliders).join();
+/// while let Some(a) = join_iter.next() {
+///     for b in join_iter.clone() {
+///         # let check_collision = |a, b| true;
+///         if check_collision(a, b) {
+///             // do stuff
+///         }
+///     }
+/// }
+/// ```
+/// 
+/// It is *not* possible to clone a `JoinIter` which allows for
+/// mutation of its content, as this would lead to shared mutable
+/// access.
+/// 
+/// ```compile_fail
+/// # use specs::prelude::*;
+/// # #[derive(Debug)]
+/// # struct Position; impl Component for Position { type Storage = VecStorage<Self>; }
+/// # let mut world = World::new();
+/// # world.register::<Position>();
+/// # let entity = world.create_entity().with(Position).build();  
+/// // .. previous example
+/// 
+/// let mut positions = world.write_storage::<Position>();
+/// 
+/// let mut join_iter = (&mut positions).join();
+/// // this must not compile, as the following line would cause
+/// // undefined behavior!
+/// let mut cloned_iter = join_iter.clone();
+/// let (mut alias_one, mut alias_two) = (join_iter.next(), cloned_iter.next());
+/// ```
+impl<J: Join> Clone for JoinIter<J>
+where
+    J::Mask: Clone,
+    J::Value: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            keys: self.keys.clone(),
+            values: self.values.clone(),
+        }
+    }
+}
+
 macro_rules! define_open {
     // use variables to indicate the arity of the tuple
     ($($from:ident),*) => {
