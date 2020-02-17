@@ -1,7 +1,8 @@
-# Unreleased
+# 0.16.1
 
 * Implement `Clone` for some `JoinIter`. ([#620])
 * Bump `hibitset` to `0.6.3`. ([#620])
+* Add `fn StorageEntry::replace`. ([#622])
 
 [#620]: https://github.com/slide-rs/specs/pull/620
 
