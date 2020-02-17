@@ -1,12 +1,13 @@
-# 0.16.1
+# 0.16.1 (2020-02-18)
 
-* Implement `Clone` for some `JoinIter`. ([#620])
+* `JoinIter` now implements `Clone` when inner types are `Clone` -- usually for immutable `join()`s. ([#620])
 * Bump `hibitset` to `0.6.3`. ([#620])
-* Add `fn StorageEntry::replace`. ([#622])
+* `StorageEntry::replace` replaces a component, returning the previous value if any. ([#622])
 
 [#620]: https://github.com/slide-rs/specs/pull/620
+[#622]: https://github.com/slide-rs/specs/pull/622
 
-# 0.16.0
+# 0.16.0 (2020-02-13)
 
 * Update `syn`, `quote` and `proc-macro2` to `1.0`. ([#648])
 * Implement `ParJoin` for `MaybeJoin` if the inner type is `ParJoin`. ([#655])
@@ -23,7 +24,7 @@
 [#674]: https://github.com/slide-rs/specs/pull/674
 [#683]: https://github.com/slide-rs/specs/pull/683
 
-# 0.15.1
+# 0.15.1 (2019-09-16)
 
 * Benchmark uses `nalgebra` instead of `cgmath`. ([#619])
 * Bumped `shrev` from `1.0` to `1.1`. ([#619]).
@@ -35,7 +36,7 @@
 [#631]: https://github.com/slide-rs/specs/pull/631
 [#632]: https://github.com/slide-rs/specs/pull/632
 
-# 0.15.0
+# 0.15.0 (2019-06-30)
 
 * Removed `common` and `RudyStorage` ([#542])
 * Moved `World` to `shred`, added `WorldExt` trait for Specs functionality ([#550])
@@ -55,7 +56,7 @@
 [#603]: https://github.com/slide-rs/specs/pull/603
 [#606]: https://github.com/slide-rs/specs/pull/606
 
-# 0.14.2
+# 0.14.2 (2019-01-04)
 
 * Add `Join`-able entries API to `Storage` ([#518])
 * Several docs / meta improvements ([#526], [#527], [#528], [#530], [#531])
@@ -71,7 +72,7 @@
 [#533]: https://github.com/slide-rs/specs/pull/533
 [#534]: https://github.com/slide-rs/specs/pull/534
 
-# 0.14.1
+# 0.14.1 (2018-11-23)
 
 * Allow accessing the `EntitiesRes` fetched by a `Storage` ([#515])
 * Book / API doc improvements ([#496], [#507], [#511])
@@ -81,13 +82,13 @@
 [#511]: https://github.com/slide-rs/specs/pull/511
 [#515]: https://github.com/slide-rs/specs/pull/515
 
-# 0.14.0
+# 0.14.0 (2018-10-28)
 
 * Changed `ConvertSaveload::convert_into` and `ConvertSaveload::convert_from` ([#504])
 
 [#504]: https://github.com/slide-rs/specs/pull/504
 
-# 0.13.0
+# 0.13.0 (2018-10-28)
 
 This release can be skipped; please use `0.14` instead.
 
@@ -111,7 +112,7 @@ This release can be skipped; please use `0.14` instead.
 [#495]: https://github.com/slide-rs/specs/pull/495
 [#505]: https://github.com/slide-rs/specs/pull/505
 
-# 0.12.3
+# 0.12.3 (2018-09-21)
 
 * Add `MaybeJoin` to iterate over components without filtering the joint set ([#455])
 * Implement `Join` on `Fetch`/`Read`/`Write`/etc. to eliminate unnecessary dereference ([#472])
@@ -119,19 +120,19 @@ This release can be skipped; please use `0.14` instead.
 [#455]: https://github.com/slide-rs/specs/pull/455
 [#472]: https://github.com/slide-rs/specs/pull/472
 
-# 0.12.2
+# 0.12.2 (2018-09-09)
 
 * Fix `Allocator::kill` in the case of atomically created entities. ([#454])
 
 [#454]: https://github.com/slide-rs/specs/pull/454
 
-# 0.12.1
+# 0.12.1 (2018-08-09)
 
 * Add `#[must_use]` to entity builders to avoid people forgetting to call `.build()`. ([#443])
 
 [#443]: https://github.com/slide-rs/specs/pull/443
 
-# 0.12.0
+# 0.12.0 (2018-06-26)
 
 * `Join::open()` and `Storage::unprotected_storage_mut()` have been marked unsafe.
 Thanks to [@andrewhickman](https://github.com/andrewhickman) for discovering this
@@ -147,13 +148,13 @@ unsoundness!
 [#420]: https://github.com/slide-rs/specs/pull/420
 [#433]: https://github.com/slide-rs/specs/pull/433
 
-# 0.11.2
+# 0.11.2 (2018-05-20)
 
 * Add `unprotected_storage()` and `unprotected_storage_mut()` methods to `Storage` ([#419])
 
 [#419]: https://github.com/slide-rs/specs/pull/419
 
-## 0.11.1
+## 0.11.1 (2018-05-18)
 
 * Add diagrams to book, small code fixes in the book ([#412], [#416], [#417])
 * Increase tuple size for `SerializeComponents` / `DeserializeComponents` ([#415])
@@ -163,7 +164,7 @@ unsoundness!
 [#416]: https://github.com/slide-rs/specs/pull/416
 [#417]: https://github.com/slide-rs/specs/pull/417
 
-## 0.11.0
+## 0.11.0 (2018-05-14)
 
 * Improve docs, book and examples ([#278], [#281], [#283], [#285], [#296], [#313], [#316], [#322], [#350], [#356], [#363])
 * Add `StorageEntry` for easier handling of inserting/removing component ([#274])
@@ -229,7 +230,7 @@ behavior as before).
 
 [shred#77]: https://github.com/slide-rs/shred/pull/77
 
-## 0.10.0
+## 0.10.0 (2017-10-04)
 
 * Separate `CheckStorage` into two variants and fix soundness issues ([#203])
 * Fix `Merge` system and add test for it ([#243], [#248])
@@ -256,7 +257,7 @@ behavior as before).
 [#265]: https://github.com/slide-rs/specs/pull/265
 [#273]: https://github.com/slide-rs/specs/pull/273
 
-## 0.9.3
+## 0.9.3 (2017-07-22)
 
 * Add `specs-derive` crate, custom `#[derive]` for components ([#192])
 * Add lazy updates: insert and remove components, execute closures on world ([#214], [#221])
@@ -265,7 +266,8 @@ behavior as before).
 [#214]: https://github.com/slide-rs/specs/pull/214
 [#221]: https://github.com/slide-rs/specs/pull/221
 
-## 0.9.2
+## 0.9.2 (2017-07-02)
+
 * Fixed grammar in book ([#198])
 * Better docs for `World` and better panic message ([#199])
 * Add support for Emscripten ([#205])
