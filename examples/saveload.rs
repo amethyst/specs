@@ -3,10 +3,7 @@ extern crate ron;
 extern crate serde;
 extern crate specs;
 
-use std::{
-    convert::Infallible,
-    fmt,
-};
+use std::{convert::Infallible, fmt};
 
 use specs::{
     prelude::*,
@@ -69,9 +66,9 @@ impl Component for Mass {
 // It is necessary to supply the `(De)SerializeComponents`-trait with an error
 // type that implements the `Display`-trait. In this case we want to be able to
 // return different errors, and we are going to use a `.ron`-file to store our
-// data. Therefore we use a custom enum, which can display both the `Infallible`and
-// `ron::ser::Error` type. This enum could be extended to incorporate for
-// example `std::io::Error` and more.
+// data. Therefore we use a custom enum, which can display both the
+// `Infallible`and `ron::ser::Error` type. This enum could be extended to
+// incorporate for example `std::io::Error` and more.
 #[derive(Debug)]
 enum Combined {
     Ron(ron::ser::Error),
@@ -161,8 +158,8 @@ fn main() {
             // For serialization we use the
             // [`SerializeComponents`](struct.SerializeComponents.html)-trait's `serialize`
             // function. It takes two generic parameters:
-            // * An unbound type -> `Infallible` (However, the serialize function expects it to
-            //   be bound by the `Display`-trait)
+            // * An unbound type -> `Infallible` (However, the serialize function expects it
+            //   to be bound by the `Display`-trait)
             // * A type implementing the `Marker`-trait ->
             //   [SimpleMarker](struct.SimpleMarker.html) (a convenient, predefined marker)
             //

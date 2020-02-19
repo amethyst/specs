@@ -1,15 +1,9 @@
 extern crate ron;
 
-use std::{
-    hash::Hash,
-    convert::Infallible,
-};
+use std::{convert::Infallible, hash::Hash};
 
 use super::*;
-use crate::{
-    error::Error,
-    prelude::*,
-};
+use crate::{error::Error, prelude::*};
 
 mod marker_test {
     use super::*;

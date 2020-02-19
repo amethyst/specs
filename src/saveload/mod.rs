@@ -83,12 +83,12 @@ pub struct EntityData<M, D> {
 /// ```rust
 /// # extern crate specs;
 /// # #[macro_use] extern crate serde;
-/// use std::convert::Infallible;
 /// use serde::{Deserialize, Serialize};
 /// use specs::{
 ///     prelude::*,
 ///     saveload::{ConvertSaveload, Marker},
 /// };
+/// use std::convert::Infallible;
 ///
 /// struct Target(Entity);
 ///
