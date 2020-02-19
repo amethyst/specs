@@ -3,7 +3,7 @@ extern crate ron;
 use std::{
     hash::Hash,
     convert::Infallible,
-}
+};
 
 use super::*;
 use crate::{

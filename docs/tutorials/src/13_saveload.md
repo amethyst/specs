@@ -136,7 +136,7 @@ Here is an example showing how to serialize:
 
 ```rust,ignore
 specs::saveload::SerializeComponents
-    ::<NoError, SimpleMarker<A>>
+    ::<Infallible, SimpleMarker<A>>
     ::serialize(
         &(position_storage, mass_storage),      // tuple of ReadStorage<'a, _>
         &entities,                              // Entities<'a>
@@ -149,7 +149,7 @@ and now, how to deserialize:
 
 ```rust,ignore
 specs::saveload::DeserializeComponents
-    ::<NoError, SimpleMarker<A>>
+    ::<Infallible, SimpleMarker<A>>
     ::deserialize(
         &mut (position_storage, mass_storage),  // tuple of WriteStorage<'a, _>
         &entities,                              // Entities<'a>
@@ -184,7 +184,7 @@ Each `Component` that you will read from and write to must implement
 that are `Clone + serde::Serialize + serde::DeserializeOwned`, however you may
 need to implement it (or derive it using [`specs-derive`]). In which case, you
 may introduce more bounds to the first generic parameter and will need to
-replace `NoError` with a custom type, this custom type must implement
+replace `Infallible` with a custom type, this custom type must implement
 `From<<TheComponent as ConvertSaveload>::Error>` for all `Component`s,
 basically.
 

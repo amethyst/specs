@@ -28,7 +28,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> TokenStream {
     add_where_clauses(
         &mut ast.generics.where_clause,
         &ast.generics.params,
-        |ty| parse_quote!(#ty: ConvertSaveload<MA, Error = NoError> + ConvertSaveload<MA, Error = NoError>),
+        |ty| parse_quote!(#ty: ConvertSaveload<MA, Error = std::convert::Infallible> + ConvertSaveload<MA, Error = std::convert::Infallible>),
     );
     add_where_clauses(
         &mut ast.generics.where_clause,
@@ -77,7 +77,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> TokenStream {
 
         impl #impl_generics ConvertSaveload<MA> for #name #ty_generics #where_clause {
             type Data = #saveload_name #saveload_ty_generics;
-            type Error = NoError;
+            type Error = std::convert::Infallible;
 
             fn convert_into<F>(&self, mut ids: F) -> Result<Self::Data, Self::Error>
             where
