@@ -5,6 +5,7 @@
 //! Each error in this module has an `Into<Error>` implementation.
 
 use std::{
+    convert::Infallible,
     error::Error as StdError,
     fmt::{Debug, Display, Formatter, Result as FmtResult},
 };
@@ -42,28 +43,18 @@ impl Display for BoxedErr {
     }
 }
 
-impl StdError for BoxedErr {
-    fn description(&self) -> &str {
-        self.as_ref().description()
-    }
-}
+impl StdError for BoxedErr {}
 
 /// The Specs error type.
 /// This is an enum which is able to represent
 /// all error types of this library.
-///
-/// Please note that you should not use `__NonExhaustive`,
-/// which is a variant specifically added for extensibility
-/// without breakage.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Error {
     /// A custom, boxed error.
     Custom(BoxedErr),
     /// Wrong generation error.
     WrongGeneration(WrongGeneration),
-
-    #[doc(hidden)]
-    __NonExhaustive,
 }
 
 impl Display for Error {
@@ -71,14 +62,12 @@ impl Display for Error {
         match *self {
             Error::Custom(ref e) => write!(f, "Custom: {}", e),
             Error::WrongGeneration(ref e) => write!(f, "Wrong generation: {}", e),
-
-            Error::__NonExhaustive => unimplemented!(),
         }
     }
 }
 
-impl From<NoError> for Error {
-    fn from(e: NoError) -> Self {
+impl From<Infallible> for Error {
+    fn from(e: Infallible) -> Self {
         match e {}
     }
 }
@@ -90,16 +79,10 @@ impl From<WrongGeneration> for Error {
 }
 
 impl StdError for Error {
-    fn description(&self) -> &str {
-        "A Specs error"
-    }
-
-    fn cause(&self) -> Option<&dyn StdError> {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
         let e = match *self {
             Error::Custom(ref e) => e.as_ref(),
             Error::WrongGeneration(ref e) => e,
-
-            Error::__NonExhaustive => unimplemented!(),
         };
 
         Some(e)
@@ -122,33 +105,14 @@ impl Display for WrongGeneration {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         write!(
             f,
-            "Tried to {} entity {:?}, but the generation is wrong; it should be {:?}",
+            "Tried to {} entity {:?}, but the generation is no longer valid; it should be {:?}",
             self.action, self.entity, self.actual_gen
         )
     }
 }
 
-impl StdError for WrongGeneration {
-    fn description(&self) -> &str {
-        "Used an entity with a generation that is not valid anymore \
-         (e.g. because the entity has been deleted)"
-    }
-}
+impl StdError for WrongGeneration {}
 
-/// An error type which cannot be instantiated.
-/// Used as a placeholder for associated error types if
-/// something cannot fail.
-#[derive(Debug, PartialEq, Eq)]
-pub enum NoError {}
-
-impl Display for NoError {
-    fn fmt(&self, _: &mut Formatter) -> FmtResult {
-        match *self {}
-    }
-}
-
-impl StdError for NoError {
-    fn description(&self) -> &str {
-        match *self {}
-    }
-}
+/// Reexport of `Infallible` for a smoother transition.
+#[deprecated = "Use std::convert::Infallible instead"]
+pub type NoError = Infallible;

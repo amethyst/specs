@@ -14,7 +14,6 @@ mod tests {
     #[cfg(feature = "uuid_entity")]
     use spocs::saveload::UuidMarker;
     use spocs::{
-        error::NoError,
         saveload::{ConvertSaveload, Marker, SimpleMarker},
         Builder, Entity, World, WorldExt,
     };

@@ -24,9 +24,11 @@
 //! see the docs for the `Marker` trait.
 //!
 
+use std::convert::Infallible;
+
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{error::NoError, world::Entity};
+use crate::world::Entity;
 
 mod de;
 mod marker;
@@ -83,10 +85,10 @@ pub struct EntityData<M, D> {
 /// # #[macro_use] extern crate serde;
 /// use serde::{Deserialize, Serialize};
 /// use specs::{
-///     error::NoError,
 ///     prelude::*,
 ///     saveload::{ConvertSaveload, Marker},
 /// };
+/// use std::convert::Infallible;
 ///
 /// struct Target(Entity);
 ///
@@ -106,7 +108,7 @@ pub struct EntityData<M, D> {
 ///     for<'de> M: Deserialize<'de>,
 /// {
 ///     type Data = TargetData<M>;
-///     type Error = NoError;
+///     type Error = Infallible;
 ///
 ///     fn convert_into<F>(&self, mut ids: F) -> Result<Self::Data, Self::Error>
 ///     where
@@ -150,7 +152,7 @@ where
     C: Clone + Serialize + DeserializeOwned,
 {
     type Data = Self;
-    type Error = NoError;
+    type Error = Infallible;
 
     fn convert_into<F>(&self, _: F) -> Result<Self::Data, Self::Error>
     where
@@ -172,7 +174,7 @@ where
     M: Serialize + DeserializeOwned,
 {
     type Data = M;
-    type Error = NoError;
+    type Error = Infallible;
 
     fn convert_into<F>(&self, mut func: F) -> Result<Self::Data, Self::Error>
     where

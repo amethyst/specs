@@ -1,12 +1,9 @@
 extern crate ron;
 
-use std::hash::Hash;
+use std::{convert::Infallible, hash::Hash};
 
 use super::*;
-use crate::{
-    error::{Error, NoError},
-    prelude::*,
-};
+use crate::{error::Error, prelude::*};
 
 mod marker_test {
     use super::*;
@@ -75,7 +72,7 @@ mod marker_test {
                 ReadStorage<M>,
                 Read<M::Allocator>,
             )| {
-                SerializeComponents::<NoError, M>::serialize(
+                SerializeComponents::<Infallible, M>::serialize(
                     &(&comp_a, &comp_b),
                     &ents,
                     &markers,

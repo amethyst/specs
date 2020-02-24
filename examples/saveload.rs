@@ -3,10 +3,9 @@ extern crate ron;
 extern crate serde;
 extern crate specs;
 
-use std::fmt;
+use std::{convert::Infallible, fmt};
 
 use specs::{
-    error::NoError,
     prelude::*,
     saveload::{
         DeserializeComponents, MarkedBuilder, SerializeComponents, SimpleMarker,
@@ -67,9 +66,9 @@ impl Component for Mass {
 // It is necessary to supply the `(De)SerializeComponents`-trait with an error
 // type that implements the `Display`-trait. In this case we want to be able to
 // return different errors, and we are going to use a `.ron`-file to store our
-// data. Therefore we use a custom enum, which can display both the `NoError`and
-// `ron::ser::Error` type. This enum could be extended to incorporate for
-// example `std::io::Error` and more.
+// data. Therefore we use a custom enum, which can display both the
+// `Infallible`and `ron::ser::Error` type. This enum could be extended to
+// incorporate for example `std::io::Error` and more.
 #[derive(Debug)]
 enum Combined {
     Ron(ron::ser::Error),
@@ -94,8 +93,8 @@ impl From<ron::ser::Error> for Combined {
 }
 
 // This cannot be called.
-impl From<NoError> for Combined {
-    fn from(e: NoError) -> Self {
+impl From<Infallible> for Combined {
+    fn from(e: Infallible) -> Self {
         match e {}
     }
 }
@@ -159,8 +158,8 @@ fn main() {
             // For serialization we use the
             // [`SerializeComponents`](struct.SerializeComponents.html)-trait's `serialize`
             // function. It takes two generic parameters:
-            // * An unbound type -> `NoError` (However, the serialize function expects it to
-            //   be bound by the `Display`-trait)
+            // * An unbound type -> `Infallible` (However, the serialize function expects it
+            //   to be bound by the `Display`-trait)
             // * A type implementing the `Marker`-trait ->
             //   [SimpleMarker](struct.SimpleMarker.html) (a convenient, predefined marker)
             //
@@ -172,7 +171,7 @@ fn main() {
             //
             // Lastly, we provide a mutable reference to the serializer of choice, which has
             // to have the `serde::ser::Serializer`-trait implemented.
-            SerializeComponents::<NoError, SimpleMarker<NetworkSync>>::serialize(
+            SerializeComponents::<Infallible, SimpleMarker<NetworkSync>>::serialize(
                 &(&pos, &mass),
                 &ents,
                 &markers,
