@@ -105,7 +105,7 @@ impl Display for WrongGeneration {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         write!(
             f,
-            "Tried to {} entity {:?}, but the generation is not valid anymore; it should be {:?}",
+            "Tried to {} entity {:?}, but the generation is no longer valid; it should be {:?}",
             self.action, self.entity, self.actual_gen
         )
     }
