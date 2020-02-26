@@ -19,7 +19,7 @@ Add the following line to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-specs = "0.15.0"
+specs = "0.16.1"
 ```
 
 ## Components

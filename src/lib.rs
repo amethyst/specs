@@ -39,7 +39,7 @@
 //! }
 //! ```
 //!
-//! Or alternatively, if you enable the or `derive` feature, you can use a
+//! Or alternatively, if you enable the `"derive"` feature, you can use a
 //! custom `#[derive]` macro:
 //!
 //! ```rust
