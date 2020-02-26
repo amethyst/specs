@@ -2,7 +2,10 @@
 
 * Deprecate `error::NoError` in favor of `std::convert::Infallible` ([#688])
 * Use `#[non_exhaustive]` for `error::Error`. Note this bumps the minimum supported rust version to 1.40 ([#688]).
+* Add the `derive` feature that enables all derive-related smaller features
+  (`specs-derive` and `shred-derive` currently). ([#687])
 
+[#687]: https://github.com/amethyst/specs/pull/687
 [#688]: https://github.com/amethyst/specs/pull/688
 
 # 0.16.1 (2020-02-18)

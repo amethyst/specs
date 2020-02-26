@@ -19,7 +19,7 @@ Add the following line to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-specs = "0.15.0"
+specs = "0.16.1"
 ```
 
 ## Components
@@ -54,11 +54,11 @@ These will be our two component types. Optionally, the `specs-derive` crate
 provides a convenient custom `#[derive]` you can use to define component types
 more succinctly.
 
-But first, you will need to enable the `specs-derive` feature:
+But first, you will need to enable the `derive` feature:
 
 ```toml
 [dependencies]
-specs = { version = "0.15.0", features = ["specs-derive"] }
+specs = { version = "0.15.0", features = ["derive"] }
 ```
 
 Now you can do this:
