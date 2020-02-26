@@ -5,8 +5,8 @@
 * Add the `derive` feature that enables all derive-related smaller features
   (`specs-derive` and `shred-derive` currently). ([#687])
 
-[#688]: https://github.com/amethyst/specs/pull/688
 [#687]: https://github.com/amethyst/specs/pull/687
+[#688]: https://github.com/amethyst/specs/pull/688
 
 # 0.16.1 (2020-02-18)
 
