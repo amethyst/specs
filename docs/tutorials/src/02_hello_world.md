@@ -58,7 +58,7 @@ But first, you will need to enable the `derive` feature:
 
 ```toml
 [dependencies]
-specs = { version = "0.15.0", features = ["derive"] }
+specs = { version = "0.16.1", features = ["specs-derive"] }
 ```
 
 Now you can do this:
