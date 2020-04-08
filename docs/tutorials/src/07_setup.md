@@ -28,11 +28,12 @@ Let's say you began by registering Components and Resources first:
 ```rust,ignore
 use specs::prelude::*;
 
+#[derive(Default)]
 struct Gravity;
 
 struct Velocity;
 
-impl Component for Position {
+impl Component for Velocity {
     type Storage = VecStorage<Self>;
 }
 
@@ -41,7 +42,7 @@ struct SimulationSystem;
 impl<'a> System<'a> for SimulationSystem {
     type SystemData = (Read<'a, Gravity>, WriteStorage<'a, Velocity>);
 
-    fn run(_, _) {}
+    fn run(&mut self, _: Self::SystemData) {}
 }
 
 fn main() {
