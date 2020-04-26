@@ -44,7 +44,8 @@ where
         E: Display,
         S: Serializer,
     {
-        let mut serseq = serializer.serialize_seq(None)?;
+        let count = (entities, markers).join().count();
+        let mut serseq = serializer.serialize_seq(Some(count))?;
         let ids = |entity| -> Option<M> { markers.get(entity).cloned() };
         for (entity, marker) in (entities, markers).join() {
             serseq.serialize_element(&EntityData::<M, Self::Data> {
