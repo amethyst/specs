@@ -7,8 +7,8 @@
 
 use proc_macro2::{Span, TokenStream};
 use syn::{
-    DataEnum, DataStruct, DeriveInput, Field, GenericParam, Generics, Ident, Type, WhereClause,
-    WherePredicate, Attribute
+    Attribute, DataEnum, DataStruct, DeriveInput, Field, GenericParam, Generics, Ident, Type,
+    WhereClause, WherePredicate,
 };
 
 /// Handy collection since tuples got unwieldy and
@@ -102,7 +102,7 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> TokenStream {
 
 struct FieldMetaData {
     field: Field,
-    skip_field: bool
+    skip_field: bool,
 }
 
 /// Implements all elements of saveload common to structs of any type
@@ -189,10 +189,10 @@ fn saveload_named_struct(
         let field_ident = &field.ident;
 
         if field_meta.skip_field {
-            quote!{ #field_ident: self.#field_ident.clone() }
+            quote! { #field_ident: self.#field_ident.clone() }
         } else {
-            quote!{ #field_ident: ConvertSaveload::convert_into(&self.#field_ident, &mut ids)? }
-        }        
+            quote! { #field_ident: ConvertSaveload::convert_into(&self.#field_ident, &mut ids)? }
+        }
     });
 
     let ser = quote! {
@@ -201,17 +201,19 @@ fn saveload_named_struct(
         })
     };
 
-    let field_de = saveload_fields.iter().map(|field_meta| {
-        let field = &field_meta.field;
-        let field_ident = &field.ident;
+    let field_de = saveload_fields
+        .iter()
+        .map(|field_meta| {
+            let field = &field_meta.field;
+            let field_ident = &field.ident;
 
-        if field_meta.skip_field {
-            quote!{ #field_ident: data.#field_ident }
-        } else {
-            quote!{ #field_ident: ConvertSaveload::convert_from(data.#field_ident, &mut ids)? }
-        }        
-    })
-    .collect::<Vec<_>>();
+            if field_meta.skip_field {
+                quote! { #field_ident: data.#field_ident }
+            } else {
+                quote! { #field_ident: ConvertSaveload::convert_from(data.#field_ident, &mut ids)? }
+            }
+        })
+        .collect::<Vec<_>>();
 
     let de = quote! {
         Ok(#name {
@@ -265,19 +267,22 @@ fn saveload_tuple_struct(
         ) #where_clause;
     };
 
-    let field_ser = saveload_fields.iter().enumerate().map(|(i, field_meta)| {
-        let field_ids = Index {
-            index: i as u32,
-            span: data.struct_token.span,
-        };
+    let field_ser = saveload_fields
+        .iter()
+        .enumerate()
+        .map(|(i, field_meta)| {
+            let field_ids = Index {
+                index: i as u32,
+                span: data.struct_token.span,
+            };
 
-        if field_meta.skip_field {
-            quote!{ self.#field_ids.clone() }
-        } else {
-            quote!{ ConvertSaveload::convert_into(&self.#field_ids, &mut ids)? }
-        }        
-    })
-    .collect::<Vec<_>>();
+            if field_meta.skip_field {
+                quote! { self.#field_ids.clone() }
+            } else {
+                quote! { ConvertSaveload::convert_into(&self.#field_ids, &mut ids)? }
+            }
+        })
+        .collect::<Vec<_>>();
 
     let ser = quote! {
         Ok(#saveload_name (
@@ -285,19 +290,22 @@ fn saveload_tuple_struct(
         ))
     };
 
-    let field_de = saveload_fields.iter().enumerate().map(|(i, field_meta)| {
-        let field_ids = Index {
-            index: i as u32,
-            span: data.struct_token.span,
-        };
+    let field_de = saveload_fields
+        .iter()
+        .enumerate()
+        .map(|(i, field_meta)| {
+            let field_ids = Index {
+                index: i as u32,
+                span: data.struct_token.span,
+            };
 
-        if field_meta.skip_field {
-            quote!{ data.#field_ids }
-        } else {
-            quote!{ ConvertSaveload::convert_from(data.#field_ids, &mut ids)? }
-        }        
-    })
-    .collect::<Vec<_>>();
+            if field_meta.skip_field {
+                quote! { data.#field_ids }
+            } else {
+                quote! { ConvertSaveload::convert_from(data.#field_ids, &mut ids)? }
+            }
+        })
+        .collect::<Vec<_>>();
 
     let de = quote! {
         Ok(#name (
@@ -308,7 +316,10 @@ fn saveload_tuple_struct(
     (struct_def, ser, de)
 }
 
-fn convert_fields_to_metadata<'a, T>(fields: T) -> Vec<FieldMetaData> where T: IntoIterator<Item = &'a Field> {
+fn convert_fields_to_metadata<'a, T>(fields: T) -> Vec<FieldMetaData>
+where
+    T: IntoIterator<Item = &'a Field>,
+{
     fields
         .into_iter()
         .map(|f| {
@@ -318,7 +329,7 @@ fn convert_fields_to_metadata<'a, T>(fields: T) -> Vec<FieldMetaData> where T: I
 
             FieldMetaData {
                 field: resolved,
-                skip_field: field_should_skip(&f)
+                skip_field: field_should_skip(&f),
             }
         })
         .collect()
@@ -358,8 +369,7 @@ fn convert_fields_to_metadata<'a, T>(fields: T) -> Vec<FieldMetaData> where T: I
 ///  }
 /// ```
 fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> SaveloadDerive {
-    use syn::Fields;
-    use syn::Variant;
+    use syn::{Fields, Variant};
 
     let mut saveload_generics = generics.clone();
     saveload_generics.params.push(parse_quote!(MA));
@@ -402,15 +412,19 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
                 let field_ser = saveload_fields.iter().map(|field_meta| {
                     let field = &field_meta.field;
                     let field_ident = &field.ident;
-            
+
                     if field_meta.skip_field {
                         quote!{ #field_ident: self.#field_ident.clone() }
                     } else {
                         quote!{ #field_ident: ConvertSaveload::convert_into(&self.#field_ident, &mut ids)? }
-                    }        
+                    }
                 });
-                    
-                let names = fields.named.iter().map(|f| f.ident.clone()).collect::<Vec<_>>();
+
+                let names = fields
+                    .named
+                    .iter()
+                    .map(|f| f.ident.clone())
+                    .collect::<Vec<_>>();
 
                 big_match_ser = quote! {
                     #big_match_ser
@@ -420,12 +434,12 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
                 let field_de = saveload_fields.iter().map(|field_meta| {
                     let field = &field_meta.field;
                     let field_ident = &field.ident;
-            
+
                     if field_meta.skip_field {
                         quote!{ #field_ident: data.#field_ident }
                     } else {
                         quote!{ #field_ident: ConvertSaveload::convert_from(data.#field_ident, &mut ids)? }
-                    }        
+                    }
                 })
                 .collect::<Vec<_>>();
 
@@ -437,30 +451,39 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
             Fields::Unnamed(fields) => {
                 let saveload_fields = convert_fields_to_metadata(&fields.unnamed);
 
-                let make_field_ident = |i: usize| Ident::new(&format!("field{}", i), data.enum_token.span);
+                let make_field_ident =
+                    |i: usize| Ident::new(&format!("field{}", i), data.enum_token.span);
 
-                let field_ser_ids = saveload_fields.iter().enumerate().map(|(i, _)| make_field_ident(i)).collect::<Vec<_>>();
+                let field_ser_ids = saveload_fields
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _)| make_field_ident(i))
+                    .collect::<Vec<_>>();
 
                 let field_ser = saveload_fields
                     .iter()
                     .enumerate()
                     .map(|(i, field_meta)| {
                         let field_ident = make_field_ident(i);
-                
+
                         if field_meta.skip_field {
-                            quote!{ #field_ident.clone() }
+                            quote! { #field_ident.clone() }
                         } else {
-                            quote!{ ConvertSaveload::convert_into(#field_ident, &mut ids)? }
-                        }        
-                })
-                .collect::<Vec<_>>();
+                            quote! { ConvertSaveload::convert_into(#field_ident, &mut ids)? }
+                        }
+                    })
+                    .collect::<Vec<_>>();
 
                 big_match_ser = quote! {
                     #big_match_ser
                     #name::#ident( #( ref #field_ser_ids ),* ) => #saveload_name::#ident( #(#field_ser),* ),
                 };
 
-                let field_de_ids = saveload_fields.iter().enumerate().map(|(i, _)| make_field_ident(i)).collect::<Vec<_>>();
+                let field_de_ids = saveload_fields
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _)| make_field_ident(i))
+                    .collect::<Vec<_>>();
 
                 let field_de = saveload_fields
                     .iter()
@@ -469,10 +492,10 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
                         let field_ident = make_field_ident(i);
 
                         if field_meta.skip_field {
-                            quote!{ #field_ident.clone() }
+                            quote! { #field_ident.clone() }
                         } else {
-                            quote!{ ConvertSaveload::convert_from(#field_ident, &mut ids)? }
-                        }  
+                            quote! { ConvertSaveload::convert_from(#field_ident, &mut ids)? }
+                        }
                     })
                     .collect::<Vec<_>>();
 
@@ -586,9 +609,13 @@ fn replace_entity_type(ty: &mut Type) {
     }
 }
 
-pub fn single_parse_outer_from_args(input: syn::parse::ParseStream) -> Result<Attribute, syn::Error> {
+pub fn single_parse_outer_from_args(
+    input: syn::parse::ParseStream,
+) -> Result<Attribute, syn::Error> {
     Ok(Attribute {
-        pound_token: syn::token::Pound { spans: [input.span()] },
+        pound_token: syn::token::Pound {
+            spans: [input.span()],
+        },
         style: syn::AttrStyle::Outer,
         bracket_token: syn::token::Bracket { span: input.span() },
         path: input.call(syn::Path::parse_mod_style)?,
@@ -604,10 +631,11 @@ fn replace_attributes(attrs: &mut Vec<Attribute>) {
                 None
             } else if attr.path.is_ident("convert_save_load_attr") {
                 match attr.parse_args_with(single_parse_outer_from_args) {
-                    Ok(inner_attr) => {
-                        Some(inner_attr)
-                    },
-                    Err(err) => panic!("Unparseable inner attribute on convert_save_load_attr: {}", err)
+                    Ok(inner_attr) => Some(inner_attr),
+                    Err(err) => panic!(
+                        "Unparseable inner attribute on convert_save_load_attr: {}",
+                        err
+                    ),
                 }
             } else {
                 Some(attr.clone())

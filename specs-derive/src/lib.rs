@@ -87,7 +87,10 @@ fn impl_component(ast: &DeriveInput) -> proc_macro2::TokenStream {
 /// #[derive(ConvertSaveload)]
 /// struct Target(Entity);
 /// ```
-#[proc_macro_derive(ConvertSaveload, attributes(convert_save_load_attr, convert_save_load_skip_convert))]
+#[proc_macro_derive(
+    ConvertSaveload,
+    attributes(convert_save_load_attr, convert_save_load_skip_convert)
+)]
 pub fn saveload(input: TokenStream) -> TokenStream {
     use impl_saveload::impl_saveload;
     let mut ast = syn::parse(input).unwrap();
