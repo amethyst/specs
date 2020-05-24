@@ -8,7 +8,7 @@
 use proc_macro2::{Span, TokenStream};
 use syn::{
     DataEnum, DataStruct, DeriveInput, Field, GenericParam, Generics, Ident, Type, WhereClause,
-    WherePredicate,
+    WherePredicate, Attribute
 };
 
 /// Handy collection since tuples got unwieldy and
@@ -100,6 +100,11 @@ pub fn impl_saveload(ast: &mut DeriveInput) -> TokenStream {
     tt
 }
 
+struct FieldMetaData {
+    field: Field,
+    skip_field: bool
+}
+
 /// Implements all elements of saveload common to structs of any type
 fn saveload_struct(
     data: &mut DataStruct,
@@ -116,10 +121,15 @@ fn saveload_struct(
     let saveload_fields: Vec<_> = data
         .fields
         .iter()
-        .cloned()
-        .map(|mut f| {
-            replace_entity_type(&mut f.ty);
-            f
+        .map(|f| {
+            let mut resolved = f.clone();
+
+            replace_field(&mut resolved);
+
+            FieldMetaData {
+                field: resolved,
+                skip_field: field_should_skip(&f)
+            }
         })
         .collect();
 
@@ -127,7 +137,7 @@ fn saveload_struct(
         saveload_named_struct(&name, &saveload_name, &saveload_generics, &saveload_fields)
     } else if let Fields::Unnamed(_) = data.fields {
         saveload_tuple_struct(
-            &data,
+            data,
             &name,
             &saveload_name,
             &saveload_generics,
@@ -175,30 +185,50 @@ fn saveload_named_struct(
     name: &Ident,
     saveload_name: &Ident,
     generics: &Generics,
-    saveload_fields: &[Field],
+    saveload_fields: &[FieldMetaData],
 ) -> (TokenStream, TokenStream, TokenStream) {
     let (_, ty_generics, where_clause) = generics.split_for_impl();
 
+    let fields = saveload_fields.iter().map(|f| f.field.clone());
+
     let struct_def = quote! {
         struct #saveload_name #ty_generics #where_clause {
-            #( #saveload_fields ),*
+            #( #fields ),*
         }
     };
 
-    let field_names = saveload_fields.iter().map(|f| f.ident.clone());
-    let field_names_2 = field_names.clone();
-    let tmp = field_names.clone();
+    let field_ser = saveload_fields.iter().map(|field_meta| {
+        let field = &field_meta.field;
+        let field_ident = &field.ident;
+
+        if field_meta.skip_field {
+            quote!{ #field_ident: self.#field_ident.clone() }
+        } else {
+            quote!{ #field_ident: ConvertSaveload::convert_into(&self.#field_ident, &mut ids)? }
+        }        
+    });
+
     let ser = quote! {
         Ok(#saveload_name {
-            # ( #field_names: ConvertSaveload::convert_into(&self.#field_names_2, &mut ids)? ),*
+            #(#field_ser),*
         })
     };
 
-    let field_names = tmp;
-    let field_names_2 = field_names.clone();
+    let field_de = saveload_fields.iter().map(|field_meta| {
+        let field = &field_meta.field;
+        let field_ident = &field.ident;
+
+        if field_meta.skip_field {
+            quote!{ #field_ident: data.#field_ident }
+        } else {
+            quote!{ #field_ident: ConvertSaveload::convert_from(data.#field_ident, &mut ids)? }
+        }        
+    })
+    .collect::<Vec<_>>();
+
     let de = quote! {
         Ok(#name {
-            # ( #field_names: ConvertSaveload::convert_from(data.#field_names_2, &mut ids)? ),*
+            #(#field_de),*
         })
     };
 
@@ -234,33 +264,57 @@ fn saveload_tuple_struct(
     name: &Ident,
     saveload_name: &Ident,
     generics: &Generics,
-    saveload_fields: &[Field],
+    saveload_fields: &[FieldMetaData],
 ) -> (TokenStream, TokenStream, TokenStream) {
     use syn::Index;
 
     let (_, ty_generics, where_clause) = generics.split_for_impl();
 
+    let fields = saveload_fields.iter().map(|f| f.field.clone());
+
     let struct_def = quote! {
         struct #saveload_name #ty_generics (
-            #( #saveload_fields ),*
+            #( #fields ),*
         ) #where_clause;
     };
 
-    let field_ids = saveload_fields.iter().enumerate().map(|(i, _)| Index {
-        index: i as u32,
-        span: data.struct_token.span,
-    });
-    let tmp = field_ids.clone();
+    let field_ser = saveload_fields.iter().enumerate().map(|(i, field_meta)| {
+        let field_ids = Index {
+            index: i as u32,
+            span: data.struct_token.span,
+        };
+
+        if field_meta.skip_field {
+            quote!{ self.#field_ids.clone() }
+        } else {
+            quote!{ ConvertSaveload::convert_into(&self.#field_ids, &mut ids)? }
+        }        
+    })
+    .collect::<Vec<_>>();
+
     let ser = quote! {
         Ok(#saveload_name (
-            # ( ConvertSaveload::convert_into(&self.#field_ids, &mut ids)? ),*
+            #(#field_ser),*
         ))
     };
 
-    let field_ids = tmp;
+    let field_de = saveload_fields.iter().enumerate().map(|(i, field_meta)| {
+        let field_ids = Index {
+            index: i as u32,
+            span: data.struct_token.span,
+        };
+
+        if field_meta.skip_field {
+            quote!{ data.#field_ids }
+        } else {
+            quote!{ ConvertSaveload::convert_from(data.#field_ids, &mut ids)? }
+        }        
+    })
+    .collect::<Vec<_>>();
+
     let de = quote! {
         Ok(#name (
-            # ( ConvertSaveload::convert_from(data.#field_ids, &mut ids)? ),*
+            #(#field_de),*
         ))
     };
 
@@ -310,14 +364,15 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
     let mut saveload = data.clone();
 
+    //TODO: Support field mangling.
     for variant in saveload.variants.iter_mut() {
         if let Fields::Unnamed(ref mut fields) = variant.fields {
             for f in fields.unnamed.iter_mut() {
-                replace_entity_type(&mut f.ty);
+                replace_field(f);
             }
         } else if let Fields::Named(ref mut fields) = variant.fields {
             for f in fields.named.iter_mut() {
-                replace_entity_type(&mut f.ty);
+                replace_field(f);
             }
         }
     }
@@ -439,6 +494,22 @@ fn add_where_clause(where_clause: &mut Option<WhereClause>, pred: WherePredicate
         .push(pred);
 }
 
+fn attribute_is_skip(attribute: &Attribute) -> bool {
+    attribute.path.is_ident("convert_save_load_skip_convert")
+}
+
+fn field_should_skip(field: &Field) -> bool {
+    field.attrs.iter().any(attribute_is_skip)
+}
+
+fn replace_field(field: &mut Field) {
+    if !field_should_skip(field) {
+        replace_entity_type(&mut field.ty);
+    }
+
+    replace_attributes(&mut field.attrs);
+}
+
 /// Replaces the type with its corresponding `Data` type.
 fn replace_entity_type(ty: &mut Type) {
     match ty {
@@ -454,7 +525,6 @@ fn replace_entity_type(ty: &mut Type) {
             *ty = parse_quote!(<#ty_tok as ConvertSaveload<MA>>::Data);
         }
         Type::Group(ty) => replace_entity_type(&mut *ty.elem),
-
         Type::TraitObject(_) => {}
         Type::ImplTrait(_) => {}
         Type::Slice(_) => {
@@ -470,4 +540,36 @@ fn replace_entity_type(ty: &mut Type) {
         Type::Verbatim(_) => unimplemented!(),
         _ => unimplemented!(),
     }
+}
+
+pub fn single_parse_outer_from_args(input: syn::parse::ParseStream) -> Result<Attribute, syn::Error> {
+    Ok(Attribute {
+        pound_token: syn::token::Pound { spans: [input.span()] },
+        style: syn::AttrStyle::Outer,
+        bracket_token: syn::token::Bracket { span: input.span() },
+        path: input.call(syn::Path::parse_mod_style)?,
+        tokens: input.parse()?,
+    })
+}
+
+fn replace_attributes(attrs: &mut Vec<Attribute>) {
+    let output_attrs = attrs
+        .iter()
+        .filter_map(|attr| {
+            if attr.path.is_ident("convert_save_load_skip_convert") {
+                None
+            } else if attr.path.is_ident("convert_save_load_attr") {
+                match attr.parse_args_with(single_parse_outer_from_args) {
+                    Ok(inner_attr) => {
+                        Some(inner_attr)
+                    },
+                    Err(err) => panic!("Unparseable inner attribute on convert_save_load_attr: {}", err)
+                }
+            } else {
+                Some(attr.clone())
+            }
+        })
+        .collect::<Vec<_>>();
+
+    *attrs = output_attrs
 }
