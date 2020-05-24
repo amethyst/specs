@@ -410,13 +410,12 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
                 let saveload_fields = convert_fields_to_metadata(&fields.named);
 
                 let field_ser = saveload_fields.iter().map(|field_meta| {
-                    let field = &field_meta.field;
-                    let field_ident = &field.ident;
+                    let field_ident = &field_meta.field.ident;
 
                     if field_meta.skip_field {
-                        quote!{ #field_ident: self.#field_ident.clone() }
+                        quote!{ #field_ident: #field_ident.clone() }
                     } else {
-                        quote!{ #field_ident: ConvertSaveload::convert_into(&self.#field_ident, &mut ids)? }
+                        quote!{ #field_ident: ConvertSaveload::convert_into(#field_ident, &mut ids)? }
                     }
                 });
 
@@ -432,13 +431,12 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
                 };
 
                 let field_de = saveload_fields.iter().map(|field_meta| {
-                    let field = &field_meta.field;
-                    let field_ident = &field.ident;
+                    let field_ident = &field_meta.field.ident;
 
                     if field_meta.skip_field {
-                        quote!{ #field_ident: data.#field_ident }
+                        quote!{ #field_ident: #field_ident }
                     } else {
-                        quote!{ #field_ident: ConvertSaveload::convert_from(data.#field_ident, &mut ids)? }
+                        quote!{ #field_ident: ConvertSaveload::convert_from(#field_ident, &mut ids)? }
                     }
                 })
                 .collect::<Vec<_>>();
@@ -609,7 +607,7 @@ fn replace_entity_type(ty: &mut Type) {
     }
 }
 
-pub fn single_parse_outer_from_args(
+fn single_parse_outer_from_args(
     input: syn::parse::ParseStream,
 ) -> Result<Attribute, syn::Error> {
     Ok(Attribute {

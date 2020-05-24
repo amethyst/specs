@@ -52,6 +52,58 @@ mod tests {
         Unit,
     }
 
+    #[derive(Serialize, Deserialize, Clone)]
+    struct TupleSerdeType(u32);
+
+    #[derive(Clone)]
+    struct UnserializableType {
+        inner: u32
+    }
+
+    impl Default for UnserializableType {
+        fn default() -> Self {
+            Self {
+                inner: 0
+            }
+        }
+    }
+
+    #[derive(Serialize, Deserialize, Clone)]
+    struct ComplexSerdeType {
+        #[serde(skip, default)]
+        opaque: UnserializableType
+    }
+
+    #[derive(ConvertSaveload)]
+    struct ComplexSerdeMixedType {
+        #[convert_save_load_skip_convert]
+        #[convert_save_load_attr(serde(skip, default))]
+        opaque: UnserializableType,
+        other: u32
+    }
+
+    #[derive(ConvertSaveload)]
+    pub struct NamedContainsSerdeType {
+        e: Entity,
+        a: ComplexSerdeType,
+        b: ComplexSerdeMixedType,
+    }
+
+    #[derive(ConvertSaveload)]
+    struct TupleContainsSerdeType(Entity, ComplexSerdeMixedType);
+
+    #[derive(ConvertSaveload)]
+    enum NamedEnumContainsSerdeType {
+        A(Entity),
+        B { inner_baz: NamedContainsSerdeType }
+    }
+
+    #[derive(ConvertSaveload)]
+    enum UnnamedEnumContainsSerdeType {
+        A(Entity),
+        B(NamedContainsSerdeType)
+    }
+
     #[derive(ConvertSaveload)]
     struct Generic<E: EntityLike>(E);
 
@@ -78,6 +130,11 @@ mod tests {
         });
         black_box::<M, _>(OneFieldTuple(entity));
         black_box::<M, _>(TwoFieldTuple(entity, 5));
+        black_box::<M, _>(TupleSerdeType(5));
+        black_box::<M, _>(NamedContainsSerdeType{ e: entity, a: ComplexSerdeType { opaque: UnserializableType::default() }, b: ComplexSerdeMixedType { opaque: UnserializableType::default(), other: 5 } });
+        black_box::<M, _>(TupleContainsSerdeType(entity, ComplexSerdeMixedType { opaque: UnserializableType::default(), other: 5 } ));
+        black_box::<M, _>(NamedEnumContainsSerdeType::A(entity));
+        black_box::<M, _>(UnnamedEnumContainsSerdeType::A(entity));
         // The derive will work for all variants
         // so no need to test anything but unit
         black_box::<M, _>(AnEnum::Unit);
