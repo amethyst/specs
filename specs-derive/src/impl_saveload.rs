@@ -176,7 +176,7 @@ fn saveload_named_struct(
 ) -> (TokenStream, TokenStream, TokenStream) {
     let (_, ty_generics, where_clause) = generics.split_for_impl();
 
-    let fields = saveload_fields.iter().map(|f| f.field.clone());
+    let fields = saveload_fields.iter().map(|f| &f.field);
 
     let struct_def = quote! {
         struct #saveload_name #ty_generics #where_clause {
@@ -259,7 +259,7 @@ fn saveload_tuple_struct(
 
     let (_, ty_generics, where_clause) = generics.split_for_impl();
 
-    let fields = saveload_fields.iter().map(|f| f.field.clone());
+    let fields = saveload_fields.iter().map(|f| &f.field);
 
     let struct_def = quote! {
         struct #saveload_name #ty_generics (
@@ -267,19 +267,25 @@ fn saveload_tuple_struct(
         ) #where_clause;
     };
 
-    let field_ser = saveload_fields
+    let field_ids = saveload_fields
         .iter()
         .enumerate()
-        .map(|(i, field_meta)| {
-            let field_ids = Index {
+        .map(|(i, _field_meta)| {
+            Index {
                 index: i as u32,
                 span: data.struct_token.span,
-            };
+            }
+        })
+        .collect::<Vec<_>>();
 
+    let field_ser = saveload_fields
+        .iter()
+        .zip(field_ids.iter())
+        .map(|(field_meta, field_id)| {
             if field_meta.skip_field {
-                quote! { self.#field_ids.clone() }
+                quote! { self.#field_id.clone() }
             } else {
-                quote! { ConvertSaveload::convert_into(&self.#field_ids, &mut ids)? }
+                quote! { ConvertSaveload::convert_into(&self.#field_id, &mut ids)? }
             }
         })
         .collect::<Vec<_>>();
@@ -292,17 +298,12 @@ fn saveload_tuple_struct(
 
     let field_de = saveload_fields
         .iter()
-        .enumerate()
-        .map(|(i, field_meta)| {
-            let field_ids = Index {
-                index: i as u32,
-                span: data.struct_token.span,
-            };
-
+        .zip(field_ids)
+        .map(|(field_meta, field_id)| {
             if field_meta.skip_field {
-                quote! { data.#field_ids }
+                quote! { data.#field_id }
             } else {
-                quote! { ConvertSaveload::convert_from(data.#field_ids, &mut ids)? }
+                quote! { ConvertSaveload::convert_from(data.#field_id, &mut ids)? }
             }
         })
         .collect::<Vec<_>>();
@@ -449,21 +450,16 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
             Fields::Unnamed(fields) => {
                 let saveload_fields = convert_fields_to_metadata(&fields.unnamed);
 
-                let make_field_ident =
-                    |i: usize| Ident::new(&format!("field{}", i), data.enum_token.span);
-
-                let field_ser_ids = saveload_fields
+                let field_ids = saveload_fields
                     .iter()
                     .enumerate()
-                    .map(|(i, _)| make_field_ident(i))
+                    .map(|(i, _)| Ident::new(&format!("field{}", i), data.enum_token.span))
                     .collect::<Vec<_>>();
 
                 let field_ser = saveload_fields
                     .iter()
-                    .enumerate()
-                    .map(|(i, field_meta)| {
-                        let field_ident = make_field_ident(i);
-
+                    .zip(field_ids.iter())
+                    .map(|(field_meta, field_ident)| {
                         if field_meta.skip_field {
                             quote! { #field_ident.clone() }
                         } else {
@@ -474,21 +470,13 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
                 big_match_ser = quote! {
                     #big_match_ser
-                    #name::#ident( #( ref #field_ser_ids ),* ) => #saveload_name::#ident( #(#field_ser),* ),
+                    #name::#ident( #( ref #field_ids ),* ) => #saveload_name::#ident( #(#field_ser),* ),
                 };
-
-                let field_de_ids = saveload_fields
-                    .iter()
-                    .enumerate()
-                    .map(|(i, _)| make_field_ident(i))
-                    .collect::<Vec<_>>();
 
                 let field_de = saveload_fields
                     .iter()
-                    .enumerate()
-                    .map(|(i, field_meta)| {
-                        let field_ident = make_field_ident(i);
-
+                    .zip(field_ids.iter())
+                    .map(|(field_meta, field_ident)| {
                         if field_meta.skip_field {
                             quote! { #field_ident.clone() }
                         } else {
@@ -499,7 +487,7 @@ fn saveload_enum(data: &DataEnum, name: &Ident, generics: &Generics) -> Saveload
 
                 big_match_de = quote! {
                     #big_match_de
-                    #saveload_name::#ident( #( #field_de_ids ),* ) => #name::#ident( #(#field_de),* ),
+                    #saveload_name::#ident( #( #field_ids ),* ) => #name::#ident( #(#field_de),* ),
                 };
             }
             Fields::Unit => {
