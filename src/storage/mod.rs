@@ -7,7 +7,7 @@ pub use self::{
     generic::{GenericReadStorage, GenericWriteStorage},
     restrict::{
         ImmutableParallelRestriction, MutableParallelRestriction, RestrictedStorage,
-        SequentialRestriction,
+        SequentialRestriction, PairedStorage
     },
     storages::{
         BTreeStorage, DefaultVecStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage,
