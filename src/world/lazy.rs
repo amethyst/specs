@@ -11,7 +11,7 @@ impl<T> Default for Queue<T> {
 }
 
 #[cfg(feature = "parallel")]
-pub trait LazyUpdateInternal: Send + Sync {
+pub trait LazyUpdateInternal: Send {
     fn update(self: Box<Self>, world: &mut World);
 }
 
@@ -121,7 +121,7 @@ impl<'a> Builder for LazyBuilder<'a> {
 #[cfg(feature = "parallel")]
 impl<F> LazyUpdateInternal for F
 where
-    F: FnOnce(&mut World) + Send + Sync + 'static,
+    F: FnOnce(&mut World) + Send + 'static,
 {
     fn update(self: Box<Self>, world: &mut World) {
         self(world);
@@ -276,78 +276,154 @@ impl LazyUpdate {
                 storage.remove(e);
             });
         }
+    }
 
-        /// Lazily executes a closure with world access.
-        ///
-        /// ## Examples
-        ///
-        /// ```
-        /// # use specs::prelude::*;
-        /// #
-        /// struct Pos;
-        ///
-        /// impl Component for Pos {
-        ///     type Storage = VecStorage<Self>;
-        /// }
-        ///
-        /// struct Execution;
-        ///
-        /// impl<'a> System<'a> for Execution {
-        ///     type SystemData = (Entities<'a>, Read<'a, LazyUpdate>);
-        ///
-        ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
-        ///         for entity in ent.join() {
-        ///             lazy.exec(move |world| {
-        ///                 if world.is_alive(entity) {
-        ///                     println!("Entity {:?} is alive.", entity);
-        ///                 }
-        ///             });
-        ///         }
-        ///     }
-        /// }
-        /// ```
-        pub fn exec<F>(&self, f: F)
-        where
-            F: FnOnce(&mut World) + 'static,
-        {
-            self.queue
-                .as_ref()
-                .unwrap()
-                .0
-                .push(Box::new(|w: &mut World| f(w)));
-        }
+    /// Lazily executes a closure with world access.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use specs::prelude::*;
+    /// #
+    /// struct Pos;
+    ///
+    /// impl Component for Pos {
+    ///     type Storage = VecStorage<Self>;
+    /// }
+    ///
+    /// struct Execution;
+    ///
+    /// impl<'a> System<'a> for Execution {
+    ///     type SystemData = (Entities<'a>, Read<'a, LazyUpdate>);
+    ///
+    ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
+    ///         for entity in ent.join() {
+    ///             lazy.exec(move |world| {
+    ///                 if world.is_alive(entity) {
+    ///                     println!("Entity {:?} is alive.", entity);
+    ///                 }
+    ///             });
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    #[cfg(feature = "parallel")]
+    pub fn exec<F>(&self, f: F)
+    where
+        F: FnOnce(&mut World) + Send + 'static,
+    {
+        self.queue
+            .as_ref()
+            .unwrap()
+            .0
+            .push(Box::new(|w: &mut World| f(w)));
+    }
 
-        /// Lazily executes a closure with mutable world access.
-        ///
-        /// This can be used to add a resource to the `World` from a system.
-        ///
-        /// ## Examples
-        ///
-        /// ```
-        /// # use specs::prelude::*;
-        /// #
-        ///
-        /// struct Sys;
-        ///
-        /// impl<'a> System<'a> for Sys {
-        ///     type SystemData = (Entities<'a>, Read<'a, LazyUpdate>);
-        ///
-        ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
-        ///         for entity in ent.join() {
-        ///             lazy.exec_mut(move |world| {
-        ///                 // complete extermination!
-        ///                 world.delete_all();
-        ///             });
-        ///         }
-        ///     }
-        /// }
-        /// ```
-        pub fn exec_mut<F>(&self, f: F)
-        where
-            F: FnOnce(&mut World) + 'static,
-        {
-            self.queue.as_ref().unwrap().0.push(Box::new(f));
-        }
+    /// Lazily executes a closure with world access.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use specs::prelude::*;
+    /// #
+    /// struct Pos;
+    ///
+    /// impl Component for Pos {
+    ///     type Storage = VecStorage<Self>;
+    /// }
+    ///
+    /// struct Execution;
+    ///
+    /// impl<'a> System<'a> for Execution {
+    ///     type SystemData = (Entities<'a>, Read<'a, LazyUpdate>);
+    ///
+    ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
+    ///         for entity in ent.join() {
+    ///             lazy.exec(move |world| {
+    ///                 if world.is_alive(entity) {
+    ///                     println!("Entity {:?} is alive.", entity);
+    ///                 }
+    ///             });
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    #[cfg(not(feature = "parallel"))]
+    pub fn exec<F>(&self, f: F)
+    where
+        F: FnOnce(&mut World) + 'static,
+    {
+        self.queue
+            .as_ref()
+            .unwrap()
+            .0
+            .push(Box::new(|w: &mut World| f(w)));
+    }
+
+    /// Lazily executes a closure with mutable world access.
+    ///
+    /// This can be used to add a resource to the `World` from a system.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use specs::prelude::*;
+    /// #
+    ///
+    /// struct Sys;
+    ///
+    /// impl<'a> System<'a> for Sys {
+    ///     type SystemData = (Entities<'a>, Read<'a, LazyUpdate>);
+    ///
+    ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
+    ///         for entity in ent.join() {
+    ///             lazy.exec_mut(move |world| {
+    ///                 // complete extermination!
+    ///                 world.delete_all();
+    ///             });
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    #[cfg(feature = "parallel")]
+    pub fn exec_mut<F>(&self, f: F)
+    where
+        F: FnOnce(&mut World) + Send + 'static,
+    {
+        self.queue.as_ref().unwrap().0.push(Box::new(f));
+    }
+
+    /// Lazily executes a closure with mutable world access.
+    ///
+    /// This can be used to add a resource to the `World` from a system.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use specs::prelude::*;
+    /// #
+    ///
+    /// struct Sys;
+    ///
+    /// impl<'a> System<'a> for Sys {
+    ///     type SystemData = (Entities<'a>, Read<'a, LazyUpdate>);
+    ///
+    ///     fn run(&mut self, (ent, lazy): Self::SystemData) {
+    ///         for entity in ent.join() {
+    ///             lazy.exec_mut(move |world| {
+    ///                 // complete extermination!
+    ///                 world.delete_all();
+    ///             });
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    #[cfg(not(feature = "parallel"))]
+    pub fn exec_mut<F>(&self, f: F)
+    where
+        F: FnOnce(&mut World) + 'static,
+    {
+        self.queue.as_ref().unwrap().0.push(Box::new(f));
     }
 
     /// Creates a new `LazyBuilder` which inserts components
