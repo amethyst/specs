@@ -1,6 +1,7 @@
 use crossbeam_queue::SegQueue;
 
 use crate::{prelude::*, world::EntitiesRes};
+use std::mem;
 
 struct Queue<T>(SegQueue<T>);
 
@@ -152,13 +153,13 @@ where
 /// so there's no need to get `LazyUpdate` mutably.
 /// This resource is added to the world by default.
 pub struct LazyUpdate {
-    queue: Option<Queue<Box<dyn LazyUpdateInternal>>>,
+    queue: Queue<Box<dyn LazyUpdateInternal>>,
 }
 
 impl Default for LazyUpdate {
     fn default() -> Self {
         Self {
-            queue: Some(Default::default()),
+            queue: Default::default(),
         }
     }
 }
@@ -311,8 +312,6 @@ impl LazyUpdate {
             F: FnOnce(&mut World) + 'static,
         {
             self.queue
-                .as_ref()
-                .unwrap()
                 .0
                 .push(Box::new(|w: &mut World| f(w)));
         }
@@ -346,7 +345,7 @@ impl LazyUpdate {
         where
             F: FnOnce(&mut World) + 'static,
         {
-            self.queue.as_ref().unwrap().0.push(Box::new(f));
+            self.queue.0.push(Box::new(f));
         }
     }
 
@@ -379,19 +378,20 @@ impl LazyUpdate {
     /// Allows to temporarily take the inner queue.
     pub(super) fn take(&mut self) -> Self {
         Self {
-            queue: self.queue.take(),
+            queue: mem::replace(&mut self.queue, Default::default()),
         }
     }
 
     /// Needs to be called to restore the inner queue.
     pub(super) fn restore(&mut self, mut maintained: Self) {
-        use std::mem::swap;
-
-        swap(&mut self.queue, &mut maintained.queue);
+        while let Ok(o) = self.queue.0.pop() {
+            maintained.queue.0.push(o);
+        }
+        mem::swap(&mut self.queue, &mut maintained.queue);
     }
 
     pub(super) fn maintain(&mut self, world: &mut World) {
-        let lazy = &mut self.queue.as_mut().unwrap().0;
+        let lazy = &mut self.queue.0;
 
         while let Ok(l) = lazy.pop() {
             l.update(world);
@@ -402,8 +402,6 @@ impl LazyUpdate {
 impl Drop for LazyUpdate {
     fn drop(&mut self) {
         // TODO: remove as soon as leak is fixed in crossbeam
-        if let Some(queue) = self.queue.as_mut() {
-            while queue.0.pop().is_ok() {}
-        }
+        while self.queue.0.pop().is_ok() {}
     }
 }
