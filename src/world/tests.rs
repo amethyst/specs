@@ -85,11 +85,9 @@ fn super_lazy_execution() {
             if let Err(err) = world.write_storage::<Pos>().insert(e, Pos) {
                 panic!("Unable to lazily insert component! {:?}", err);
             }
-        })
+        });
+        assert!(world.read_storage::<Pos>().get(e).is_none());
     });
-
-    world.maintain();
-    assert!(world.read_storage::<Pos>().get(e).is_none());
     world.maintain();
     assert!(world.read_storage::<Pos>().get(e).is_some());
 }
