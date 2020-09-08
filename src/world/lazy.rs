@@ -1,6 +1,7 @@
 use crossbeam_queue::SegQueue;
 
 use crate::{prelude::*, world::EntitiesRes};
+use std::sync::Arc;
 
 struct Queue<T>(SegQueue<T>);
 
@@ -152,13 +153,13 @@ where
 /// so there's no need to get `LazyUpdate` mutably.
 /// This resource is added to the world by default.
 pub struct LazyUpdate {
-    queue: Option<Queue<Box<dyn LazyUpdateInternal>>>,
+    queue: Arc<Queue<Box<dyn LazyUpdateInternal>>>,
 }
 
 impl Default for LazyUpdate {
     fn default() -> Self {
         Self {
-            queue: Some(Default::default()),
+            queue: Default::default(),
         }
     }
 }
@@ -311,10 +312,8 @@ impl LazyUpdate {
             F: FnOnce(&mut World) + 'static,
         {
             self.queue
-                .as_ref()
-                .unwrap()
                 .0
-                .push(Box::new(|w: &mut World| f(w)));
+                .push(Box::new(f));
         }
 
         /// Lazily executes a closure with mutable world access.
@@ -346,7 +345,7 @@ impl LazyUpdate {
         where
             F: FnOnce(&mut World) + 'static,
         {
-            self.queue.as_ref().unwrap().0.push(Box::new(f));
+            self.queue.0.push(Box::new(f));
         }
     }
 
@@ -376,24 +375,14 @@ impl LazyUpdate {
         LazyBuilder { entity, lazy: self }
     }
 
-    /// Allows to temporarily take the inner queue.
-    pub(super) fn take(&mut self) -> Self {
+    pub(super) fn clone(&self) -> Self {
         Self {
-            queue: self.queue.take(),
+            queue: self.queue.clone(),
         }
     }
 
-    /// Needs to be called to restore the inner queue.
-    pub(super) fn restore(&mut self, mut maintained: Self) {
-        use std::mem::swap;
-
-        swap(&mut self.queue, &mut maintained.queue);
-    }
-
-    pub(super) fn maintain(&mut self, world: &mut World) {
-        let lazy = &mut self.queue.as_mut().unwrap().0;
-
-        while let Ok(l) = lazy.pop() {
+    pub(super) fn maintain(&self, world: &mut World) {
+        while let Ok(l) = self.queue.0.pop() {
             l.update(world);
         }
     }
@@ -402,8 +391,6 @@ impl LazyUpdate {
 impl Drop for LazyUpdate {
     fn drop(&mut self) {
         // TODO: remove as soon as leak is fixed in crossbeam
-        if let Some(queue) = self.queue.as_mut() {
-            while queue.0.pop().is_ok() {}
-        }
+        while self.queue.0.pop().is_ok() {}
     }
 }

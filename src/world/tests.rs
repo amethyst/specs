@@ -72,6 +72,27 @@ fn lazy_removal() {
 }
 
 #[test]
+fn super_lazy_execution() {
+    let mut world = World::new();
+    world.register::<Pos>();
+
+    let e = {
+        let entity_res = world.read_resource::<EntitiesRes>();
+        entity_res.create()
+    };
+    world.read_resource::<LazyUpdate>().exec(move |world| {
+        world.read_resource::<LazyUpdate>().exec(move |world| {
+            if let Err(err) = world.write_storage::<Pos>().insert(e, Pos) {
+                panic!("Unable to lazily insert component! {:?}", err);
+            }
+        });
+        assert!(world.read_storage::<Pos>().get(e).is_none());
+    });
+    world.maintain();
+    assert!(world.read_storage::<Pos>().get(e).is_some());
+}
+
+#[test]
 fn lazy_execution() {
     let mut world = World::new();
     world.register::<Pos>();

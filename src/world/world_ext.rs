@@ -401,10 +401,8 @@ impl WorldExt for World {
             self.delete_components(&deleted);
         }
 
-        // we need to swap the queue out to be able to reborrow self mutable here
-        let mut lazy = self.write_resource::<LazyUpdate>().take();
-        lazy.maintain(&mut *self);
-        self.write_resource::<LazyUpdate>().restore(lazy);
+        let lazy = self.write_resource::<LazyUpdate>().clone();
+        lazy.maintain(self);
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {
