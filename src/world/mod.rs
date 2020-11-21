@@ -65,6 +65,40 @@ pub trait Builder {
     #[cfg(not(feature = "parallel"))]
     fn with<C: Component>(self, c: C) -> Self;
 
+    /// Convenience method that calls `self.with(component)` if `Some(component)` is provided
+    ///
+    /// # Panics
+    ///
+    /// Panics if the component hasn't been `register()`ed in the
+    /// `World`.
+    #[cfg(feature = "parallel")]
+    fn maybe_with<C: Component + Send + Sync>(self, c: Option<C>) -> Self
+    where
+        Self: Sized,
+    {
+        match c {
+            Some(c) => self.with(c),
+            None => self,
+        }
+    }
+
+    /// Convenience method that calls `self.with(component)` if `Some(component)` is provided
+    ///
+    /// # Panics
+    ///
+    /// Panics if the component hasn't been `register()`ed in the
+    /// `World`.
+    #[cfg(not(feature = "parallel"))]
+    fn maybe_with<C: Component>(self, c: Option<C>) -> Self
+    where
+        Self: Sized,
+    {
+        match c {
+            Some(c) => self.with(c),
+            None => self,
+        }
+    }
+
     /// Finishes the building and returns the entity.
     fn build(self) -> Entity;
 }
