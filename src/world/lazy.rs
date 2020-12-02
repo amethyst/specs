@@ -382,7 +382,7 @@ impl LazyUpdate {
     }
 
     pub(super) fn maintain(&self, world: &mut World) {
-        while let Ok(l) = self.queue.0.pop() {
+        while let Some(l) = self.queue.0.pop() {
             l.update(world);
         }
     }
@@ -391,6 +391,6 @@ impl LazyUpdate {
 impl Drop for LazyUpdate {
     fn drop(&mut self) {
         // TODO: remove as soon as leak is fixed in crossbeam
-        while self.queue.0.pop().is_ok() {}
+        while self.queue.0.pop().is_some() {}
     }
 }
