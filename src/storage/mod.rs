@@ -4,6 +4,7 @@ pub use self::{
     data::{ReadStorage, WriteStorage},
     entry::{Entries, OccupiedEntry, StorageEntry, VacantEntry},
     flagged::FlaggedStorage,
+    deref_flagged::DerefFlaggedStorage,
     generic::{GenericReadStorage, GenericWriteStorage},
     restrict::{
         ImmutableParallelRestriction, MutableParallelRestriction, RestrictedStorage,
@@ -40,6 +41,7 @@ mod data;
 mod drain;
 mod entry;
 mod flagged;
+mod deref_flagged;
 mod generic;
 mod restrict;
 mod storages;
@@ -319,7 +321,7 @@ where
     }
 
     /// Tries to mutate the data associated with an `Entity`.
-    pub fn get_mut(&mut self, e: Entity) -> Option<&mut T> {
+    pub fn get_mut(&mut self, e: Entity) -> Option<<<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'_>> {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
             // SAFETY: We checked the mask, so all invariants are met.
             Some(unsafe { self.data.inner.get_mut(e.id()) })
@@ -339,7 +341,7 @@ where
             let id = e.id();
             if self.data.mask.contains(id) {
                 // SAFETY: We checked the mask, so all invariants are met.
-                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id) });
+                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id).deref_mut() });
                 Ok(Some(v))
             } else {
                 self.data.mask.add(id);
@@ -442,7 +444,7 @@ where
     D: DerefMut<Target = MaskedStorage<T>>,
 {
     type Mask = &'a BitSet;
-    type Type = &'a mut T;
+    type Type = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'a>;
     type Value = &'a mut T::Storage;
 
     // SAFETY: No unsafe code and no invariants to fulfill.
@@ -451,7 +453,7 @@ where
     }
 
     // TODO: audit unsafe
-    unsafe fn get(v: &mut Self::Value, i: Index) -> &'a mut T {
+    unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
         // This is horribly unsafe. Unfortunately, Rust doesn't provide a way
         // to abstract mutable/immutable state at the moment, so we have to hack
         // our way through it.
@@ -496,6 +498,9 @@ where
 
 /// Used by the framework to quickly join components.
 pub trait UnprotectedStorage<T>: TryDefault {
+    /// The wrapper through with mutable access of a component is performed.
+    type AccessMut<'a>: DerefMut<Target=T> where Self: 'a;
+
     /// Clean the storage given a bitset with bits set for valid indices.
     /// Allows us to safely drop the storage.
     ///
@@ -531,7 +536,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T;
+    unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_>;
 
     /// Inserts new data for a given `Index`.
     ///

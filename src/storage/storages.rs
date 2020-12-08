@@ -32,6 +32,8 @@ impl<T> Default for BTreeStorage<T> {
 }
 
 impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
+    type AccessMut<'a> where T: 'a = &'a mut T;
+
     unsafe fn clean<B>(&mut self, _has: B)
     where
         B: BitSetLike,
@@ -70,6 +72,8 @@ impl<T> Default for HashMapStorage<T> {
 }
 
 impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
+    type AccessMut<'a> where T: 'a = &'a mut T;
+
     unsafe fn clean<B>(&mut self, _has: B)
     where
         B: BitSetLike,
@@ -147,6 +151,8 @@ impl<T> SliceAccess<T> for DenseVecStorage<T> {
 }
 
 impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
+    type AccessMut<'a> where T: 'a = &'a mut T;
+
     unsafe fn clean<B>(&mut self, _has: B)
     where
         B: BitSetLike,
@@ -201,6 +207,8 @@ impl<T> UnprotectedStorage<T> for NullStorage<T>
 where
     T: Default,
 {
+    type AccessMut<'a> where T: 'a = &'a mut T;
+
     unsafe fn clean<B>(&mut self, _has: B)
     where
         B: BitSetLike,
@@ -268,6 +276,8 @@ impl<T> SliceAccess<T> for VecStorage<T> {
 }
 
 impl<T> UnprotectedStorage<T> for VecStorage<T> {
+    type AccessMut<'a> where T: 'a = &'a mut T;
+
     unsafe fn clean<B>(&mut self, has: B)
     where
         B: BitSetLike,
@@ -330,6 +340,8 @@ impl<T> UnprotectedStorage<T> for DefaultVecStorage<T>
 where
     T: Default,
 {
+    type AccessMut<'a> where T: 'a = &'a mut T;
+
     unsafe fn clean<B>(&mut self, _has: B)
     where
         B: BitSetLike,

@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+#![feature(generic_associated_types, associated_type_defaults)]
 
 //! # SPECS Parallel ECS
 //!
@@ -224,7 +225,7 @@ pub use crate::{
     changeset::ChangeSet,
     join::Join,
     storage::{
-        DefaultVecStorage, DenseVecStorage, FlaggedStorage, HashMapStorage, NullStorage,
+        DefaultVecStorage, DenseVecStorage, DerefFlaggedStorage, FlaggedStorage, HashMapStorage, NullStorage,
         ReadStorage, Storage, Tracked, VecStorage, WriteStorage,
     },
     world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate, WorldExt},

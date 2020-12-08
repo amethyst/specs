@@ -412,9 +412,9 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
 }
 
 /// Clones the `JoinIter`.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// # use specs::prelude::*;
 /// # #[derive(Debug)]
@@ -432,13 +432,13 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
 ///         .create_entity()
 ///         .with(Position)
 ///         .with(Collider)
-///         .build();   
+///         .build();
 /// }
 ///
 /// // check for collisions between entities
 /// let positions = world.read_storage::<Position>();
 /// let colliders = world.read_storage::<Collider>();
-/// 
+///
 /// let mut join_iter = (&positions, &colliders).join();
 /// while let Some(a) = join_iter.next() {
 ///     for b in join_iter.clone() {
@@ -449,22 +449,22 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
 ///     }
 /// }
 /// ```
-/// 
+///
 /// It is *not* possible to clone a `JoinIter` which allows for
 /// mutation of its content, as this would lead to shared mutable
 /// access.
-/// 
+///
 /// ```compile_fail
 /// # use specs::prelude::*;
 /// # #[derive(Debug)]
 /// # struct Position; impl Component for Position { type Storage = VecStorage<Self>; }
 /// # let mut world = World::new();
 /// # world.register::<Position>();
-/// # let entity = world.create_entity().with(Position).build();  
+/// # let entity = world.create_entity().with(Position).build();
 /// // .. previous example
-/// 
+///
 /// let mut positions = world.write_storage::<Position>();
-/// 
+///
 /// let mut join_iter = (&mut positions).join();
 /// // this must not compile, as the following line would cause
 /// // undefined behavior!

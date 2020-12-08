@@ -191,7 +191,7 @@ where
     D: DerefMut<Target = MaskedStorage<T>>,
 {
     /// Get a mutable reference to the component associated with the entity.
-    pub fn get_mut(&mut self) -> &mut T {
+    pub fn get_mut(&mut self) -> <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'_> {
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
         unsafe { self.storage.data.inner.get_mut(self.id) }
@@ -199,7 +199,7 @@ where
 
     /// Converts the `OccupiedEntry` into a mutable reference bounded by
     /// the storage's lifetime.
-    pub fn into_mut(self) -> &'a mut T {
+    pub fn into_mut(self) -> <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'a> {
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
         unsafe { self.storage.data.inner.get_mut(self.id) }
@@ -207,7 +207,7 @@ where
 
     /// Inserts a value into the storage and returns the old one.
     pub fn insert(&mut self, mut component: T) -> T {
-        std::mem::swap(&mut component, self.get_mut());
+        std::mem::swap(&mut component, self.get_mut().deref_mut());
         component
     }
 
@@ -230,7 +230,7 @@ where
     D: DerefMut<Target = MaskedStorage<T>>,
 {
     /// Inserts a value into the storage.
-    pub fn insert(self, component: T) -> &'a mut T {
+    pub fn insert(self, component: T) -> <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'a> {
         self.storage.data.mask.add(self.id);
         // SAFETY: This is safe since we added `self.id` to the mask.
         unsafe {
@@ -267,7 +267,7 @@ where
     }
 
     /// Inserts a component if the entity does not have it already.
-    pub fn or_insert(self, component: T) -> &'a mut T {
+    pub fn or_insert(self, component: T) -> <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'a> {
         self.or_insert_with(|| component)
     }
 
@@ -275,7 +275,7 @@ where
     /// when inserting the component. Ensures this entry has a value and if not,
     /// inserts one using the result of the passed closure. Returns a reference
     /// to the value afterwards.
-    pub fn or_insert_with<F>(self, default: F) -> &'a mut T
+    pub fn or_insert_with<F>(self, default: F) -> <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'a>
     where
         F: FnOnce() -> T,
     {
