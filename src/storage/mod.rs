@@ -4,7 +4,6 @@ pub use self::{
     data::{ReadStorage, WriteStorage},
     entry::{Entries, OccupiedEntry, StorageEntry, VacantEntry},
     flagged::FlaggedStorage,
-    deref_flagged::DerefFlaggedStorage,
     generic::{GenericReadStorage, GenericWriteStorage},
     restrict::{
         ImmutableParallelRestriction, MutableParallelRestriction, RestrictedStorage,
@@ -15,6 +14,8 @@ pub use self::{
     },
     track::{ComponentEvent, Tracked},
 };
+#[cfg(feature = "nightly")]
+pub use self::deref_flagged::DerefFlaggedStorage;
 
 use self::storages::SliceAccess;
 
@@ -41,6 +42,7 @@ mod data;
 mod drain;
 mod entry;
 mod flagged;
+#[cfg(feature = "nightly")]
 mod deref_flagged;
 mod generic;
 mod restrict;
@@ -48,6 +50,11 @@ mod storages;
 #[cfg(test)]
 mod tests;
 mod track;
+
+#[cfg(feature = "nightly")]
+type AccessMutReturn<'a, T> = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'a>;
+#[cfg(not(feature = "nightly"))]
+type AccessMutReturn<'a, T> = &'a mut T;
 
 /// An inverted storage type, only useful to iterate entities
 /// that do not have a particular component type.
@@ -321,7 +328,7 @@ where
     }
 
     /// Tries to mutate the data associated with an `Entity`.
-    pub fn get_mut(&mut self, e: Entity) -> Option<<<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'_>> {
+    pub fn get_mut(&mut self, e: Entity) -> Option<AccessMutReturn<'_, T> > {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
             // SAFETY: We checked the mask, so all invariants are met.
             Some(unsafe { self.data.inner.get_mut(e.id()) })
@@ -444,7 +451,7 @@ where
     D: DerefMut<Target = MaskedStorage<T>>,
 {
     type Mask = &'a BitSet;
-    type Type = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'a>;
+    type Type = AccessMutReturn<'a, T>;
     type Value = &'a mut T::Storage;
 
     // SAFETY: No unsafe code and no invariants to fulfill.
@@ -499,6 +506,7 @@ where
 /// Used by the framework to quickly join components.
 pub trait UnprotectedStorage<T>: TryDefault {
     /// The wrapper through with mutable access of a component is performed.
+    #[cfg(feature = "nightly")]
     type AccessMut<'a>: DerefMut<Target=T> where Self: 'a;
 
     /// Clean the storage given a bitset with bits set for valid indices.
@@ -536,7 +544,22 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
+    #[cfg(feature = "nightly")]
     unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_>;
+
+    /// Tries mutating the data associated with an `Index`.
+    /// This is unsafe because the external set used
+    /// to protect this storage is absent.
+    ///
+    /// # Safety
+    ///
+    /// May only be called after a call to `insert` with `id` and
+    /// no following call to `remove` with `id`.
+    ///
+    /// A mask should keep track of those states, and an `id` being contained
+    /// in the tracking mask is sufficient to call this method.
+    #[cfg(not(feature = "nightly"))]
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T;
 
     /// Inserts new data for a given `Index`.
     ///

@@ -43,6 +43,7 @@ stdweb = ["uuid/stdweb"]
 wasm-bindgen = ["uuid/wasm-bindgen"]
 storage-event-control = []
 derive = ["shred-derive", "specs-derive"]
+nightly = []
 
 shred-derive = ["shred/shred-derive"]
 
