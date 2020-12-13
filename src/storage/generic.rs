@@ -1,8 +1,11 @@
+#[cfg(feature = "nightly")]
 use std::ops::DerefMut;
 use crate::{
-    storage::{InsertResult, ReadStorage, WriteStorage, UnprotectedStorage},
+    storage::{InsertResult, ReadStorage, WriteStorage, AccessMutReturn},
     world::{Component, Entity},
 };
+#[cfg(feature = "nightly")]
+use crate::storage::UnprotectedStorage;
 
 pub struct Seal;
 
@@ -84,16 +87,17 @@ pub trait GenericWriteStorage {
     /// The component type of the storage
     type Component: Component;
     /// The wrapper through with mutable access of a component is performed.
+    #[cfg(feature = "nightly")]
     type AccessMut<'a>: DerefMut<Target=Self::Component> where Self: 'a;
 
     /// Get mutable access to an `Entity`s component
-    fn get_mut(&mut self, entity: Entity) -> Option<Self::AccessMut<'_>>;
+    fn get_mut(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, Self::Component>>;
 
     /// Get mutable access to an `Entity`s component. If the component does not
     /// exist, it is automatically created using `Default::default()`.
     ///
     /// Returns None if the entity is dead.
-    fn get_mut_or_default(&mut self, entity: Entity) -> Option<Self::AccessMut<'_>>
+    fn get_mut_or_default(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, Self::Component>>
     where
         Self::Component: Default;
 
@@ -112,13 +116,14 @@ where
     T: Component,
 {
     type Component = T;
+    #[cfg(feature = "nightly")]
     type AccessMut<'b> where Self: 'b = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'b>;
 
-    fn get_mut(&mut self, entity: Entity) -> Option<Self::AccessMut<'_>> {
+    fn get_mut(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, T>> {
         WriteStorage::get_mut(self, entity)
     }
 
-    fn get_mut_or_default(&mut self, entity: Entity) -> Option<Self::AccessMut<'_>>
+    fn get_mut_or_default(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, T>>
     where
         Self::Component: Default,
     {
@@ -149,13 +154,14 @@ where
     T: Component,
 {
     type Component = T;
+    #[cfg(feature = "nightly")]
     type AccessMut<'c> where Self: 'c = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'c>;
 
-    fn get_mut(&mut self, entity: Entity) -> Option<Self::AccessMut<'_>> {
+    fn get_mut(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, T>> {
         WriteStorage::get_mut(*self, entity)
     }
 
-    fn get_mut_or_default(&mut self, entity: Entity) -> Option<Self::AccessMut<'_>>
+    fn get_mut_or_default(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, T>>
     where
         Self::Component: Default,
     {

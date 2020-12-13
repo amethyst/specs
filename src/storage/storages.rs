@@ -32,6 +32,7 @@ impl<T> Default for BTreeStorage<T> {
 }
 
 impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
+    #[cfg(feature = "nightly")]
     type AccessMut<'a> where T: 'a = &'a mut T;
 
     unsafe fn clean<B>(&mut self, _has: B)
@@ -72,6 +73,7 @@ impl<T> Default for HashMapStorage<T> {
 }
 
 impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
+    #[cfg(feature = "nightly")]
     type AccessMut<'a> where T: 'a = &'a mut T;
 
     unsafe fn clean<B>(&mut self, _has: B)
@@ -151,6 +153,7 @@ impl<T> SliceAccess<T> for DenseVecStorage<T> {
 }
 
 impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
+    #[cfg(feature = "nightly")]
     type AccessMut<'a> where T: 'a = &'a mut T;
 
     unsafe fn clean<B>(&mut self, _has: B)
@@ -207,6 +210,7 @@ impl<T> UnprotectedStorage<T> for NullStorage<T>
 where
     T: Default,
 {
+    #[cfg(feature = "nightly")]
     type AccessMut<'a> where T: 'a = &'a mut T;
 
     unsafe fn clean<B>(&mut self, _has: B)
@@ -276,6 +280,7 @@ impl<T> SliceAccess<T> for VecStorage<T> {
 }
 
 impl<T> UnprotectedStorage<T> for VecStorage<T> {
+    #[cfg(feature = "nightly")]
     type AccessMut<'a> where T: 'a = &'a mut T;
 
     unsafe fn clean<B>(&mut self, has: B)
@@ -340,6 +345,7 @@ impl<T> UnprotectedStorage<T> for DefaultVecStorage<T>
 where
     T: Default,
 {
+    #[cfg(feature = "nightly")]
     type AccessMut<'a> where T: 'a = &'a mut T;
 
     unsafe fn clean<B>(&mut self, _has: B)

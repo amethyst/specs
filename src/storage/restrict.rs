@@ -12,7 +12,7 @@ use crate::join::Join;
 #[cfg(feature = "parallel")]
 use crate::join::ParJoin;
 use crate::{
-    storage::{MaskedStorage, Storage, UnprotectedStorage},
+    storage::{MaskedStorage, Storage, UnprotectedStorage, AccessMutReturn},
     world::{Component, EntitiesRes, Entity, Index},
 };
 
@@ -248,7 +248,7 @@ where
 {
     /// Gets the component related to the current entry without checking whether
     /// the storage has it or not.
-    pub fn get_mut_unchecked(&mut self) -> <<C as Component>::Storage as UnprotectedStorage<C>>::AccessMut<'_> {
+    pub fn get_mut_unchecked(&mut self) -> AccessMutReturn<'_, C>  {
         unsafe { self.storage.borrow_mut().get_mut(self.index) }
     }
 }
@@ -289,7 +289,7 @@ where
     /// This only works if this is a non-parallel `RestrictedStorage`,
     /// otherwise you could access the same component mutably in two different
     /// threads.
-    pub fn get_mut(&mut self, entity: Entity) -> Option<<<C as Component>::Storage as UnprotectedStorage<C>>::AccessMut<'_>> {
+    pub fn get_mut(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, C>> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
             Some(unsafe { self.storage.borrow_mut().get_mut(entity.id()) })
         } else {
