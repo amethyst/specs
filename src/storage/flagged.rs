@@ -200,6 +200,9 @@ where
 }
 
 impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
+    #[cfg(feature = "nightly")]
+    type AccessMut<'a> where T: 'a = <T as UnprotectedStorage<C>>::AccessMut<'a>;
+
     unsafe fn clean<B>(&mut self, has: B)
     where
         B: BitSetLike,
@@ -211,6 +214,15 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
         self.storage.get(id)
     }
 
+    #[cfg(feature = "nightly")]
+    unsafe fn get_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
+        if self.emit_event() {
+            self.channel.single_write(ComponentEvent::Modified(id));
+        }
+        self.storage.get_mut(id)
+    }
+
+    #[cfg(not(feature = "nightly"))]
     unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         if self.emit_event() {
             self.channel.single_write(ComponentEvent::Modified(id));

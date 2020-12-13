@@ -323,7 +323,7 @@ pub trait MarkerAllocator<M: Marker>: Resource {
         entities: &EntitiesRes,
     ) -> Entity {
         if let Some(entity) = self.retrieve_entity_internal(marker.id()) {
-            if let Some(marker_comp) = storage.get_mut(entity) {
+            if let Some(mut marker_comp) = storage.get_mut(entity) {
                 marker_comp.update(marker);
 
                 return entity;
@@ -347,17 +347,18 @@ pub trait MarkerAllocator<M: Marker>: Resource {
         entity: Entity,
         storage: &'m mut WriteStorage<M>,
     ) -> Option<(&'m M, bool)> {
-        if let Ok(entry) = storage.entry(entity) {
+        let new = if let Ok(entry) = storage.entry(entity) {
             let mut new = false;
             let marker = entry.or_insert_with(|| {
                 new = true;
                 self.allocate(entity, None)
             });
 
-            Some((marker, new))
+            new
         } else {
-            None
-        }
+            return None
+        };
+        Some((storage.get(entity).unwrap(), new))
     }
 
     /// Maintain internal data. Cleanup if necessary.

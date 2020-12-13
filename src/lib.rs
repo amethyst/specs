@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+#![cfg_attr(feature = "nightly", feature(generic_associated_types, associated_type_defaults))]
 
 //! # SPECS Parallel ECS
 //!
@@ -229,3 +230,6 @@ pub use crate::{
     },
     world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate, WorldExt},
 };
+
+#[cfg(feature = "nightly")]
+pub use crate::storage::DerefFlaggedStorage;
