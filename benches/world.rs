@@ -18,6 +18,20 @@ impl Component for CompInt {
 }
 
 #[derive(Clone, Debug)]
+struct CompIntTwo(i32);
+
+impl Component for CompIntTwo {
+    type Storage = VecStorage<Self>;
+}
+
+#[derive(Clone, Debug)]
+struct CompIntThree(i32);
+
+impl Component for CompIntThree {
+    type Storage = VecStorage<Self>;
+}
+
+#[derive(Clone, Debug)]
 struct CompBool(bool);
 
 impl Component for CompBool {
@@ -28,6 +42,8 @@ fn create_world() -> World {
     let mut w = World::new();
 
     w.register::<CompInt>();
+    w.register::<CompIntTwo>();
+    w.register::<CompIntThree>();
     w.register::<CompBool>();
 
     w
@@ -229,6 +245,18 @@ fn join_multi_threaded(b: &mut Bencher) {
     })
 }
 
+fn fetch_four_storages(b: &mut Bencher) {
+    let world = create_world();
+    b.iter(|| {
+        (
+            world.read_storage::<CompInt>(),
+            world.read_storage::<CompIntTwo>(),
+            world.read_storage::<CompIntThree>(),
+            world.read_storage::<CompBool>(),
+        )
+    })
+}
+
 fn world_benchmarks(c: &mut Criterion) {
     c.bench_function("world build", world_build)
         .bench_function("create now", create_now)
@@ -243,7 +271,8 @@ fn world_benchmarks(c: &mut Criterion) {
         .bench_function("maintain add later", maintain_add_later)
         .bench_function("maintain delete later", maintain_delete_later)
         .bench_function("join single threaded", join_single_threaded)
-        .bench_function("join multi threaded", join_multi_threaded);
+        .bench_function("join multi threaded", join_multi_threaded)
+        .bench_function("fetch four storages", fetch_four_storages);
 }
 
 criterion_group!(world, world_benchmarks);
