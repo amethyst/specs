@@ -1,6 +1,11 @@
 use hibitset::BitSet;
 
-use crate::{join::Join, storage::MaskedStorage, world::Component, Entity};
+use crate::{
+    join::Join,
+    storage::MaskedStorage,
+    world::Component,
+    Entity,
+};
 
 /// A draining storage wrapper which has a `Join` implementation
 /// that removes the components.
