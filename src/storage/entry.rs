@@ -1,6 +1,6 @@
 use hibitset::BitSetAll;
 
-use super::*;
+use super::*; // TODO: remove glob
 use crate::join::Join;
 
 impl<'e, T, D> Storage<'e, T, D>
@@ -194,7 +194,12 @@ where
     pub fn get_mut(&mut self) -> AccessMutReturn<'_, T> {
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
-        unsafe { self.storage.data.inner.get_mut(self.id) }
+        unsafe {
+            self.storage
+                .data
+                .inner
+                .get_mut(HasIndex::from_index(self.id, &self.storage.entities))
+        }
     }
 
     /// Converts the `OccupiedEntry` into a mutable reference bounded by
@@ -202,7 +207,12 @@ where
     pub fn into_mut(self) -> AccessMutReturn<'a, T> {
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
-        unsafe { self.storage.data.inner.get_mut(self.id) }
+        unsafe {
+            self.storage
+                .data
+                .inner
+                .get_mut(HasIndex::from_index(self.id, &self.storage.entities))
+        }
     }
 
     /// Inserts a value into the storage and returns the old one.
@@ -213,7 +223,10 @@ where
 
     /// Removes the component from the storage and returns it.
     pub fn remove(self) -> T {
-        self.storage.data.remove(self.id).unwrap()
+        self.storage
+            .data
+            .remove(HasIndex::from_index(self.id, &self.storage.entities))
+            .unwrap()
     }
 }
 
@@ -232,10 +245,11 @@ where
     /// Inserts a value into the storage.
     pub fn insert(self, component: T) -> AccessMutReturn<'a, T> {
         self.storage.data.mask.add(self.id);
+        let has_index = HasIndex::from_index(self.id, &self.storage.entities);
         // SAFETY: This is safe since we added `self.id` to the mask.
         unsafe {
-            self.storage.data.inner.insert(self.id, component);
-            self.storage.data.inner.get_mut(self.id)
+            self.storage.data.inner.insert(has_index, component);
+            self.storage.data.inner.get_mut(has_index)
         }
     }
 }

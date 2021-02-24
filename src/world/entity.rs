@@ -242,6 +242,54 @@ impl Entity {
     }
 }
 
+/// Trait to interoperate between Entity and Index
+pub trait HasIndex: Copy {
+    /// Extract the Index
+    fn id(self) -> Index;
+
+    /// Convert from an Entity
+    /// Does nothing if `Self` is `Entity`
+    fn from_entity(entity: Entity) -> Self;
+
+    /// Convert from an `Index`
+    /// Requires a lookup if `Self` is `Entity`
+    fn from_index(id: Index, entities: &EntitiesRes) -> Self;
+}
+
+impl HasIndex for Index {
+    #[inline]
+    fn id(self) -> Index {
+        self
+    }
+
+    #[inline]
+    fn from_entity(entity: Entity) -> Self {
+        entity.id()
+    }
+
+    #[inline]
+    fn from_index(id: Index, _entities: &EntitiesRes) -> Self {
+        id
+    }
+}
+
+impl HasIndex for Entity {
+    #[inline]
+    fn id(self) -> Index {
+        self.id()
+    }
+
+    #[inline]
+    fn from_entity(entity: Entity) -> Self {
+        entity
+    }
+
+    #[inline]
+    fn from_index(id: Index, entities: &EntitiesRes) -> Self {
+        entities.entity(id)
+    }
+}
+
 /// The entities of this ECS. This is a resource, stored in the `World`.
 /// If you just want to access it in your system, you can also use the
 /// `Entities` type def.

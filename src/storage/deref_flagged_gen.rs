@@ -8,6 +8,7 @@ use hibitset::BitSetLike;
 use crate::{
     storage::{ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage},
     world::{Component, HasIndex, Index},
+    Entity,
 };
 
 use shrev::EventChannel;
@@ -19,15 +20,15 @@ use shrev::EventChannel;
 /// accesses that only emits modification events when the component is actually
 /// used mutably. This means that simply performing a mutable join or calling
 /// `WriteStorage::get_mut` will not, by itself, trigger a modification event.
-pub struct DerefFlaggedStorage<C, T = DenseVecStorage<C>> {
-    channel: EventChannel<ComponentEvent>,
+pub struct DerefFlaggedGenStorage<C, T = DenseVecStorage<C>> {
+    channel: EventChannel<ComponentEvent<Entity>>,
     storage: T,
     #[cfg(feature = "storage-event-control")]
     event_emission: bool,
     phantom: PhantomData<C>,
 }
 
-impl<C, T> DerefFlaggedStorage<C, T> {
+impl<C, T> DerefFlaggedGenStorage<C, T> {
     #[cfg(feature = "storage-event-control")]
     fn emit_event(&self) -> bool {
         self.event_emission
@@ -39,13 +40,13 @@ impl<C, T> DerefFlaggedStorage<C, T> {
     }
 }
 
-impl<C, T> Default for DerefFlaggedStorage<C, T>
+impl<C, T> Default for DerefFlaggedGenStorage<C, T>
 where
     T: TryDefault,
 {
     fn default() -> Self {
         Self {
-            channel: EventChannel::<ComponentEvent>::default(),
+            channel: EventChannel::<ComponentEvent<Entity>>::default(),
             storage: T::unwrap_default(),
             #[cfg(feature = "storage-event-control")]
             event_emission: true,
@@ -54,13 +55,15 @@ where
     }
 }
 
-impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for DerefFlaggedStorage<C, T> {
+impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C>
+    for DerefFlaggedGenStorage<C, T>
+{
     type AccessMut<'a>
     where
         T: 'a,
     = FlaggedAccessMut<'a, <T as UnprotectedStorage<C>>::AccessMut<'a>, C>;
 
-    type MutIndex = <T as UnprotectedStorage<C>>::MutIndex;
+    type MutIndex = Entity;
 
     unsafe fn clean<B>(&mut self, has: B)
     where
@@ -78,33 +81,35 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for DerefFlag
         FlaggedAccessMut {
             channel: &mut self.channel,
             emit,
-            id: id.id(),
-            access: self.storage.get_mut(id),
+            id,
+            access: self.storage.get_mut(HasIndex::from_entity(id)),
             phantom: PhantomData,
         }
     }
 
     unsafe fn insert(&mut self, id: Self::MutIndex, comp: C) {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Inserted(id.id()));
+            self.channel.single_write(ComponentEvent::Inserted(id));
         }
-        self.storage.insert(id, comp);
+        self.storage.insert(HasIndex::from_entity(id), comp);
     }
 
     unsafe fn remove(&mut self, id: Self::MutIndex) -> C {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Removed(id.id()));
+            self.channel.single_write(ComponentEvent::Removed(id));
         }
-        self.storage.remove(id)
+        self.storage.remove(HasIndex::from_entity(id))
     }
 }
 
-impl<C, T> Tracked for DerefFlaggedStorage<C, T> {
-    fn channel(&self) -> &EventChannel<ComponentEvent> {
+impl<C, T> Tracked for DerefFlaggedGenStorage<C, T> {
+    type Entity = Entity;
+
+    fn channel(&self) -> &EventChannel<ComponentEvent<Self::Entity>> {
         &self.channel
     }
 
-    fn channel_mut(&mut self) -> &mut EventChannel<ComponentEvent> {
+    fn channel_mut(&mut self) -> &mut EventChannel<ComponentEvent<Self::Entity>> {
         &mut self.channel
     }
 
@@ -120,9 +125,9 @@ impl<C, T> Tracked for DerefFlaggedStorage<C, T> {
 }
 
 pub struct FlaggedAccessMut<'a, A, C> {
-    channel: &'a mut EventChannel<ComponentEvent>,
+    channel: &'a mut EventChannel<ComponentEvent<Entity>>,
     emit: bool,
-    id: Index,
+    id: Entity,
     access: A,
     phantom: PhantomData<C>,
 }
