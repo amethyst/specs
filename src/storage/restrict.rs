@@ -13,7 +13,7 @@ use crate::join::Join;
 use crate::join::ParJoin;
 use crate::{
     storage::{MaskedStorage, Storage, UnprotectedStorage, AccessMutReturn},
-    world::{Component, EntitiesRes, Entity, Index},
+    world::{Component, EntitiesRes, Entity},
 };
 
 /// Specifies that the `RestrictedStorage` cannot run in parallel.
@@ -115,9 +115,9 @@ where
         (bitset, (self.data.borrow(), self.entities, bitset))
     }
 
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
+    unsafe fn get(value: &mut Self::Value, entity: Entity) -> Self::Type {
         PairedStorage {
-            index: id,
+            entity,
             storage: value.0,
             entities: value.1,
             bitset: value.2,
@@ -146,10 +146,10 @@ where
         (bitset, (self.data.borrow_mut(), self.entities, bitset))
     }
 
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
+    unsafe fn get(value: &mut Self::Value, entity: Entity) -> Self::Type {
         let value: &'rf mut Self::Value = &mut *(value as *mut Self::Value);
         PairedStorage {
-            index: id,
+            entity,
             storage: value.0,
             entities: value.1,
             bitset: value.2,
@@ -217,10 +217,10 @@ where
     }
 }
 
-/// Pairs a storage with an index, meaning that the index is guaranteed to exist
-/// as long as the `PairedStorage<C, S>` exists.
+/// Pairs a storage with an entity, meaning that the entity is guaranteed to
+/// exist as long as the `PairedStorage<C, S>` exists.
 pub struct PairedStorage<'rf, 'st: 'rf, C, S, B, Restrict> {
-    index: Index,
+    entity: Entity,
     storage: S,
     bitset: B,
     entities: &'rf Fetch<'st, EntitiesRes>,
@@ -236,7 +236,7 @@ where
     /// Gets the component related to the current entry without checking whether
     /// the storage has it or not.
     pub fn get_unchecked(&self) -> &C {
-        unsafe { self.storage.borrow().get(self.index) }
+        unsafe { self.storage.borrow().get(self.entity) }
     }
 }
 
@@ -249,7 +249,7 @@ where
     /// Gets the component related to the current entry without checking whether
     /// the storage has it or not.
     pub fn get_mut_unchecked(&mut self) -> AccessMutReturn<'_, C>  {
-        unsafe { self.storage.borrow_mut().get_mut(self.index) }
+        unsafe { self.storage.borrow_mut().get_mut(self.entity) }
     }
 }
 
@@ -269,7 +269,7 @@ where
     /// `RestrictedStorage`.
     pub fn get(&self, entity: Entity) -> Option<&C> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
-            Some(unsafe { self.storage.borrow().get(entity.id()) })
+            Some(unsafe { self.storage.borrow().get(entity) })
         } else {
             None
         }
@@ -291,7 +291,7 @@ where
     /// threads.
     pub fn get_mut(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, C>> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
-            Some(unsafe { self.storage.borrow_mut().get_mut(entity.id()) })
+            Some(unsafe { self.storage.borrow_mut().get_mut(entity) })
         } else {
             None
         }

@@ -36,14 +36,14 @@ impl<'a> System<'a> for SysA {
             .read(self.reader_id.as_mut().expect("ReaderId not found"));
         for event in events {
             match event {
-                ComponentEvent::Modified(id) => {
-                    self.modified.add(*id);
+                ComponentEvent::Modified(entity) => {
+                    self.modified.add(entity.id());
                 }
-                ComponentEvent::Inserted(id) => {
-                    self.inserted.add(*id);
+                ComponentEvent::Inserted(entity) => {
+                    self.inserted.add(entity.id());
                 }
-                ComponentEvent::Removed(id) => {
-                    self.removed.add(*id);
+                ComponentEvent::Removed(entity) => {
+                    self.removed.add(entity.id());
                 }
             }
         }

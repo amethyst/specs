@@ -7,7 +7,7 @@ use shred::{Fetch, FetchMut, Read, ReadExpect, Resource, Write, WriteExpect};
 use std::ops::{Deref, DerefMut};
 use tuple_utils::Split;
 
-use crate::world::{Entities, Entity, Index};
+use crate::world::{Entities, Entity};
 
 #[cfg(feature = "parallel")]
 mod par_join;
@@ -234,7 +234,7 @@ pub trait Join {
     ///   `Self::Mask`
     /// * The implementation of this method may use unsafe code, but has no
     ///   invariants to meet
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type;
+    unsafe fn get(value: &mut Self::Value, entity: Entity) -> Self::Type;
 
     /// If this `Join` typically returns all indices in the mask, then iterating
     /// over only it or combined with other joins that are also dangerous
@@ -277,9 +277,9 @@ where
 
     // SAFETY: No invariants to meet and the unsafe code checks the mask, thus
     // fulfills the requirements for calling `get`
-    unsafe fn get((mask, value): &mut Self::Value, id: Index) -> Self::Type {
-        if mask.contains(id) {
-            Some(<T as Join>::get(value, id))
+    unsafe fn get((mask, value): &mut Self::Value, entity: Entity) -> Self::Type {
+        if mask.contains(entity.id()) {
+            Some(<T as Join>::get(value, entity))
         } else {
             None
         }
@@ -376,23 +376,7 @@ impl<J: Join> JoinIter<J> {
     pub fn get(&mut self, entity: Entity, entities: &Entities) -> Option<J::Type> {
         if self.keys.contains(entity.id()) && entities.is_alive(entity) {
             // SAFETY: the mask (`keys`) is checked as specified in the docs of `get`.
-            Some(unsafe { J::get(&mut self.values, entity.id()) })
-        } else {
-            None
-        }
-    }
-
-    /// Allows getting joined values for specific raw index.
-    ///
-    /// The raw index for an `Entity` can be retrieved using `Entity::id`
-    /// method.
-    ///
-    /// As this method operates on raw indices, there is no check to see if the
-    /// entity is still alive, so the caller should ensure it instead.
-    pub fn get_unchecked(&mut self, index: Index) -> Option<J::Type> {
-        if self.keys.contains(index) {
-            // SAFETY: the mask (`keys`) is checked as specified in the docs of `get`.
-            Some(unsafe { J::get(&mut self.values, index) })
+            Some(unsafe { J::get(&mut self.values, entity) })
         } else {
             None
         }
@@ -510,9 +494,9 @@ macro_rules! define_open {
             // SAFETY: No invariants to meet and `get` is safe to call as the caller must have checked the mask,
             // which only has a key that exists in all of the storages.
             #[allow(non_snake_case)]
-            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
+            unsafe fn get(v: &mut Self::Value, e: Entity) -> Self::Type {
                 let &mut ($(ref mut $from,)*) = v;
-                ($($from::get($from, i),)*)
+                ($($from::get($from, e),)*)
             }
 
             #[inline]
@@ -582,8 +566,8 @@ macro_rules! immutable_resource_join {
 
             // SAFETY: The mask of `Self` and `T` are identical, thus a check to `Self`'s mask (which is required)
             // is equal to a check of `T`'s mask, which makes `get` safe to call.
-            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
-                <&'a T as Join>::get(v, i)
+            unsafe fn get(v: &mut Self::Value, e: Entity) -> Self::Type {
+                <&'a T as Join>::get(v, e)
             }
 
             #[inline]
@@ -624,8 +608,8 @@ macro_rules! mutable_resource_join {
 
             // SAFETY: The mask of `Self` and `T` are identical, thus a check to `Self`'s mask (which is required)
             // is equal to a check of `T`'s mask, which makes `get_mut` safe to call.
-            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
-                <&'a mut T as Join>::get(v, i)
+            unsafe fn get(v: &mut Self::Value, e: Entity) -> Self::Type {
+                <&'a mut T as Join>::get(v, e)
             }
 
             #[inline]

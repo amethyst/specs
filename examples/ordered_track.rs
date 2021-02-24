@@ -38,13 +38,12 @@ impl<'a> System<'a> for SysA {
         // the events in order to see the final result of the component. Partial
         // iteration over the events might lead to weird bugs and issues.
         for event in events {
-            match event {
-                ComponentEvent::Modified(id) => {
-                    let entity = entities.entity(*id);
+            match *event {
+                ComponentEvent::Modified(entity) => {
                     if let Some(component) = tracked.get(entity) {
                         // This is safe because it can only occur after an `Inserted` event, not a
                         // `Removed` event.
-                        *self.cache.get_mut(id).unwrap() = (entity, component.0);
+                        *self.cache.get_mut(&entity.id()).unwrap() = (entity, component.0);
                         println!("{:?} was changed to {:?}", entity, component.0);
                     } else {
                         println!(
@@ -53,10 +52,9 @@ impl<'a> System<'a> for SysA {
                         );
                     }
                 }
-                ComponentEvent::Inserted(id) => {
-                    let entity = entities.entity(*id);
+                ComponentEvent::Inserted(entity) => {
                     if let Some(component) = tracked.get(entity) {
-                        self.cache.insert(*id, (entity, component.0));
+                        self.cache.insert(entity.id(), (entity, component.0));
                         println!("{:?} had {:?} inserted", entity, component.0);
                     } else {
                         println!(
@@ -65,9 +63,8 @@ impl<'a> System<'a> for SysA {
                         );
                     }
                 }
-                ComponentEvent::Removed(id) => {
-                    let entity = entities.entity(*id);
-                    self.cache.remove(id);
+                ComponentEvent::Removed(entity) => {
+                    self.cache.remove(&entity.id());
                     println!("{:?} had its component removed", entity);
                 }
             }

@@ -322,13 +322,8 @@ impl<'a> Join for &'a EntitiesRes {
         (BitSetOr(&self.alloc.alive, &self.alloc.raised), self)
     }
 
-    unsafe fn get(v: &mut &'a EntitiesRes, idx: Index) -> Entity {
-        let gen = v
-            .alloc
-            .generation(idx)
-            .map(|gen| if gen.is_alive() { gen } else { gen.raised() })
-            .unwrap_or_else(Generation::one);
-        Entity(idx, gen)
+    unsafe fn get(v: &mut &'a EntitiesRes, e: Entity) -> Entity {
+        e
     }
 }
 

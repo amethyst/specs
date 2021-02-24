@@ -1,10 +1,6 @@
 use hibitset::BitSet;
 
-use crate::{
-    join::Join,
-    storage::MaskedStorage,
-    world::{Component, Index},
-};
+use crate::{join::Join, storage::MaskedStorage, world::Component, Entity};
 
 /// A draining storage wrapper which has a `Join` implementation
 /// that removes the components.
@@ -29,8 +25,8 @@ where
     }
 
     // SAFETY: No invariants to meet and no unsafe code.
-    unsafe fn get(value: &mut Self::Value, id: Index) -> T {
-        value.remove(id).expect("Tried to access same index twice")
+    unsafe fn get(value: &mut Self::Value, entity: Entity) -> T {
+        value.remove(entity).expect("Tried to access same index twice")
     }
 }
 

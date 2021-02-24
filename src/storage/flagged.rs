@@ -4,7 +4,8 @@ use hibitset::BitSetLike;
 
 use crate::{
     storage::{ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage},
-    world::{Component, Index},
+    world::Component,
+    Entity,
 };
 
 use shrev::EventChannel;
@@ -71,8 +72,8 @@ use shrev::EventChannel;
 ///                 .read(&mut self.reader_id);
 ///             for event in events {
 ///                 match event {
-///                     ComponentEvent::Modified(id) => { self.modified.add(*id); },
-///                     ComponentEvent::Inserted(id) => { self.inserted.add(*id); },
+///                     ComponentEvent::Modified(entity) => { self.modified.add(entity.id()); },
+///                     ComponentEvent::Inserted(entity) => { self.inserted.add(entity.id()); },
 ///                     _ => { },
 ///                 };
 ///             }
@@ -210,38 +211,38 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
         self.storage.clean(has);
     }
 
-    unsafe fn get(&self, id: Index) -> &C {
-        self.storage.get(id)
+    unsafe fn get(&self, entity: Entity) -> &C {
+        self.storage.get(entity)
     }
 
     #[cfg(feature = "nightly")]
-    unsafe fn get_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
+    unsafe fn get_mut(&mut self, entity: Entity) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Modified(id));
+            self.channel.single_write(ComponentEvent::Modified(entity));
         }
-        self.storage.get_mut(id)
+        self.storage.get_mut(entity)
     }
 
     #[cfg(not(feature = "nightly"))]
-    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
+    unsafe fn get_mut(&mut self, entity: Entity) -> &mut C {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Modified(id));
+            self.channel.single_write(ComponentEvent::Modified(entity));
         }
-        self.storage.get_mut(id)
+        self.storage.get_mut(entity)
     }
 
-    unsafe fn insert(&mut self, id: Index, comp: C) {
+    unsafe fn insert(&mut self, entity: Entity, comp: C) {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Inserted(id));
+            self.channel.single_write(ComponentEvent::Inserted(entity));
         }
-        self.storage.insert(id, comp);
+        self.storage.insert(entity, comp);
     }
 
-    unsafe fn remove(&mut self, id: Index) -> C {
+    unsafe fn remove(&mut self, entity: Entity) -> C {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Removed(id));
+            self.channel.single_write(ComponentEvent::Removed(entity));
         }
-        self.storage.remove(id)
+        self.storage.remove(entity)
     }
 }
 
