@@ -195,7 +195,7 @@ impl<'a> System<'a> for Spawn {
         use rand::Rng;
 
         let mut rng = thread_rng();
-        let mut gen = || rng.gen_range(-4.0, 4.0);
+        let mut gen = || rng.gen_range(-4.0..4.0);
 
         let mut spawns = Vec::new();
 
@@ -247,7 +247,7 @@ impl<'a> System<'a> for RequestSpawns {
         let mut rng = thread_rng();
 
         for requests in (&mut data).join() {
-            let num = rng.gen_range(0, 200);
+            let num = rng.gen_range(0..200);
             if num > 197 {
                 requests.0 = 2;
             }

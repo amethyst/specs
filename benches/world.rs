@@ -39,7 +39,7 @@ fn world_build(b: &mut Bencher) {
 
 fn create_now(b: &mut Bencher) {
     b.iter_with_large_setup(
-        || World::new(),
+        World::new,
         |mut w| {
             w.create_entity().build();
         },
@@ -48,7 +48,7 @@ fn create_now(b: &mut Bencher) {
 
 fn create_now_with_storage(b: &mut Bencher) {
     b.iter_with_large_setup(
-        || create_world(),
+        create_world,
         |mut w| {
             w.create_entity().with(CompInt(0)).build();
         },
@@ -57,7 +57,7 @@ fn create_now_with_storage(b: &mut Bencher) {
 
 fn create_pure(b: &mut Bencher) {
     b.iter_with_large_setup(
-        || World::new(),
+        World::new,
         |w| {
             w.entities().create();
         },
