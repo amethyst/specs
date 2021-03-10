@@ -238,7 +238,7 @@ fn stillborn_entities() {
         fn run(&mut self, (entities, mut comp_int, rand): Self::SystemData) {
             for &i in &rand.values {
                 let result = comp_int.insert(entities.create(), CompInt(i));
-                if let Err(_) = result {
+                if result.is_err() {
                     panic!("Couldn't insert {} into a stillborn entity", i);
                 }
             }

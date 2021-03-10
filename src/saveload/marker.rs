@@ -349,7 +349,7 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     ) -> Option<(&'m M, bool)> {
         let new = if let Ok(entry) = storage.entry(entity) {
             let mut new = false;
-            let marker = entry.or_insert_with(|| {
+            let _marker = entry.or_insert_with(|| {
                 new = true;
                 self.allocate(entity, None)
             });

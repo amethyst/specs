@@ -1,7 +1,5 @@
 //! Joining of components for iteration over entities with specific components.
 
-use std;
-
 use hibitset::{BitIter, BitSetAll, BitSetAnd, BitSetLike};
 use shred::{Fetch, FetchMut, Read, ReadExpect, Resource, Write, WriteExpect};
 use std::ops::{Deref, DerefMut};

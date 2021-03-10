@@ -130,7 +130,7 @@ macro_rules! get {
     }};
 }
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
+#[rustfmt::skip]
 fn insert_benches(c: &mut Criterion) {
     c.bench_function_over_inputs(
         "insert 1b/dense",
@@ -169,7 +169,7 @@ fn insert_benches(c: &mut Criterion) {
     );
 }
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
+#[rustfmt::skip]
 fn remove_benches(c: &mut Criterion) {
     c.bench_function_over_inputs(
         "remove 1b/dense",
@@ -208,7 +208,7 @@ fn remove_benches(c: &mut Criterion) {
     );
 }
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
+#[rustfmt::skip]
 fn get_benches(c: &mut Criterion) {
     c.bench_function_over_inputs(
         "get 1b/dense",
