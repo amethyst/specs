@@ -5,7 +5,8 @@ pub use shred::World;
 pub use self::{
     comp::Component,
     entity::{
-        CreateIterAtomic, Entities, EntitiesRes, Entity, EntityResBuilder, Generation, Index,
+        CreateIterAtomic, Entities, EntitiesRes, Entity, EntityResBuilder, Generation, HasIndex,
+        Index,
     },
     lazy::{LazyBuilder, LazyUpdate},
     world_ext::WorldExt,

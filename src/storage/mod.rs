@@ -6,8 +6,8 @@ pub use self::{
     flagged::FlaggedStorage,
     generic::{GenericReadStorage, GenericWriteStorage},
     restrict::{
-        ImmutableParallelRestriction, MutableParallelRestriction, RestrictedStorage,
-        SequentialRestriction, PairedStorage
+        ImmutableParallelRestriction, MutableParallelRestriction, PairedStorage, RestrictedStorage,
+        SequentialRestriction,
     },
     storages::{
         BTreeStorage, DefaultVecStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage,
@@ -15,7 +15,7 @@ pub use self::{
     track::{ComponentEvent, Tracked},
 };
 #[cfg(feature = "nightly")]
-pub use self::deref_flagged::DerefFlaggedStorage;
+pub use self::{deref_flagged::DerefFlaggedStorage, deref_flagged_gen::DerefFlaggedGenStorage};
 
 use self::storages::SliceAccess;
 
@@ -33,17 +33,19 @@ use crate::join::ParJoin;
 use crate::{
     error::{Error, WrongGeneration},
     join::Join,
-    world::{Component, EntitiesRes, Entity, Generation, Index},
+    world::{Component, EntitiesRes, Entity, Generation, HasIndex, Index},
 };
 
 use self::drain::Drain;
 
 mod data;
+#[cfg(feature = "nightly")]
+mod deref_flagged;
+#[cfg(feature = "nightly")]
+mod deref_flagged_gen;
 mod drain;
 mod entry;
 mod flagged;
-#[cfg(feature = "nightly")]
-mod deref_flagged;
 mod generic;
 mod restrict;
 mod storages;
@@ -106,7 +108,7 @@ where
 {
     fn drop(&mut self, entities: &[Entity]) {
         for entity in entities {
-            MaskedStorage::drop(self, entity.id());
+            MaskedStorage::drop(self, HasIndex::from_entity(*entity));
         }
     }
 }
@@ -179,7 +181,41 @@ impl<T: Component> MaskedStorage<T> {
         }
         self.mask.clear();
     }
+}
 
+#[cfg(feature = "nightly")]
+impl<T, I> MaskedStorage<T>
+where
+    T: Component,
+    T::Storage: UnprotectedStorage<T, MutIndex = I>,
+    I: HasIndex,
+{
+    /// Remove an element by a given index.
+    pub fn remove(&mut self, id: I) -> Option<T> {
+        if self.mask.remove(id.id()) {
+            // SAFETY: We checked the mask (`remove` returned `true`)
+            Some(unsafe { self.inner.remove(id) })
+        } else {
+            None
+        }
+    }
+
+    /// Drop an element by a given index.
+    pub fn drop(&mut self, id: I) {
+        if self.mask.remove(id.id()) {
+            // SAFETY: We checked the mask (`eemove` returned `true`)
+            unsafe {
+                self.inner.drop(id);
+            }
+        }
+    }
+}
+
+#[cfg(not(feature = "nightly"))]
+impl<T> MaskedStorage<T>
+where
+    T: Component,
+{
     /// Remove an element by a given index.
     pub fn remove(&mut self, id: Index) -> Option<T> {
         if self.mask.remove(id) {
@@ -193,17 +229,11 @@ impl<T: Component> MaskedStorage<T> {
     /// Drop an element by a given index.
     pub fn drop(&mut self, id: Index) {
         if self.mask.remove(id) {
-            // SAFETY: We checked the mask (`remove` returned `true`)
+            // SAFETY: We checked the mask (`eemove` returned `true`)
             unsafe {
                 self.inner.drop(id);
             }
         }
-    }
-}
-
-impl<T: Component> Drop for MaskedStorage<T> {
-    fn drop(&mut self) {
-        self.clear();
     }
 }
 
@@ -328,10 +358,10 @@ where
     }
 
     /// Tries to mutate the data associated with an `Entity`.
-    pub fn get_mut(&mut self, e: Entity) -> Option<AccessMutReturn<'_, T> > {
+    pub fn get_mut(&mut self, e: Entity) -> Option<AccessMutReturn<'_, T>> {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
             // SAFETY: We checked the mask, so all invariants are met.
-            Some(unsafe { self.data.inner.get_mut(e.id()) })
+            Some(unsafe { self.data.inner.get_mut(HasIndex::from_entity(e)) })
         } else {
             None
         }
@@ -348,12 +378,17 @@ where
             let id = e.id();
             if self.data.mask.contains(id) {
                 // SAFETY: We checked the mask, so all invariants are met.
-                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id).deref_mut() });
+                std::mem::swap(&mut v, unsafe {
+                    self.data
+                        .inner
+                        .get_mut(HasIndex::from_entity(e))
+                        .deref_mut()
+                });
                 Ok(Some(v))
             } else {
                 self.data.mask.add(id);
                 // SAFETY: The mask was previously empty, so it is safe to insert.
-                unsafe { self.data.inner.insert(id, v) };
+                unsafe { self.data.inner.insert(HasIndex::from_entity(e), v) };
                 Ok(None)
             }
         } else {
@@ -368,7 +403,7 @@ where
     /// Removes the data associated with an `Entity`.
     pub fn remove(&mut self, e: Entity) -> Option<T> {
         if self.entities.is_alive(e) {
-            self.data.remove(e.id())
+            self.data.remove(HasIndex::from_entity(e))
         } else {
             None
         }
@@ -384,6 +419,8 @@ where
     pub fn drain(&mut self) -> Drain<T> {
         Drain {
             data: &mut self.data,
+            #[cfg(feature = "nightly")]
+            entities: &self.entities,
         }
     }
 }
@@ -452,14 +489,35 @@ where
 {
     type Mask = &'a BitSet;
     type Type = AccessMutReturn<'a, T>;
+    // TODO: use HasIndex trait to optionally include EntitiesRes here
+    #[cfg(feature = "nightly")]
+    type Value = (&'a mut T::Storage, &'a EntitiesRes);
+    #[cfg(not(feature = "nightly"))]
     type Value = &'a mut T::Storage;
 
     // SAFETY: No unsafe code and no invariants to fulfill.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        #[cfg(feature = "nightly")]
+        {
+            let (mask, storage) = self.data.open_mut();
+            (mask, (storage, &self.entities))
+        }
+        #[cfg(not(feature = "nightly"))]
         self.data.open_mut()
     }
 
     // TODO: audit unsafe
+    #[cfg(feature = "nightly")]
+    unsafe fn get((storage, entities): &mut Self::Value, i: Index) -> Self::Type {
+        // This is horribly unsafe. Unfortunately, Rust doesn't provide a way
+        // to abstract mutable/immutable state at the moment, so we have to hack
+        // our way through it.
+        let storage: *mut T::Storage = *storage as *mut T::Storage;
+        (*storage).get_mut(HasIndex::from_index(i, entities))
+    }
+
+    // TODO: audit unsafe
+    #[cfg(not(feature = "nightly"))]
     unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
         // This is horribly unsafe. Unfortunately, Rust doesn't provide a way
         // to abstract mutable/immutable state at the moment, so we have to hack
@@ -507,7 +565,15 @@ where
 pub trait UnprotectedStorage<T>: TryDefault {
     /// The wrapper through with mutable access of a component is performed.
     #[cfg(feature = "nightly")]
-    type AccessMut<'a>: DerefMut<Target=T> where Self: 'a;
+    type AccessMut<'a>: DerefMut<Target = T>
+    where
+        Self: 'a;
+
+    /// The index type used for mutable access of a component.
+    /// Useful to allow flagged storages to require the entity generation be supplied along with
+    /// the ID
+    #[cfg(feature = "nightly")]
+    type MutIndex: HasIndex = Index;
 
     /// Clean the storage given a bitset with bits set for valid indices.
     /// Allows us to safely drop the storage.
@@ -545,7 +611,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
     #[cfg(feature = "nightly")]
-    unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_>;
+    unsafe fn get_mut(&mut self, id: Self::MutIndex) -> Self::AccessMut<'_>;
 
     /// Tries mutating the data associated with an `Index`.
     /// This is unsafe because the external set used
@@ -570,6 +636,19 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` missing from the
     /// mask is sufficient to call `insert`.
+    #[cfg(feature = "nightly")]
+    unsafe fn insert(&mut self, id: Self::MutIndex, value: T);
+
+    /// Inserts new data for a given `Index`.
+    ///
+    /// # Safety
+    ///
+    /// May only be called if `insert` was not called with `id` before, or
+    /// was reverted by a call to `remove` with `id.
+    ///
+    /// A mask should keep track of those states, and an `id` missing from the
+    /// mask is sufficient to call `insert`.
+    #[cfg(not(feature = "nightly"))]
     unsafe fn insert(&mut self, id: Index, value: T);
 
     /// Removes the data associated with an `Index`.
@@ -578,6 +657,17 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// May only be called if an element with `id` was `insert`ed and not yet
     /// removed / dropped.
+    /// mask is sufficient to call `insert`.
+    #[cfg(feature = "nightly")]
+    unsafe fn remove(&mut self, id: Self::MutIndex) -> T;
+
+    /// Removes the data associated with an `Index`.
+    ///
+    /// # Safety
+    ///
+    /// May only be called if an element with `id` was `insert`ed and not yet
+    /// removed / dropped.
+    #[cfg(not(feature = "nightly"))]
     unsafe fn remove(&mut self, id: Index) -> T;
 
     /// Drops the data associated with an `Index`.
@@ -589,6 +679,21 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// May only be called if an element with `id` was `insert`ed and not yet
     /// removed / dropped.
+    #[cfg(feature = "nightly")]
+    unsafe fn drop(&mut self, id: Self::MutIndex) {
+        self.remove(id);
+    }
+
+    /// Drops the data associated with an `Index`.
+    /// This could be used when a more efficient implementation for it exists than `remove` when the data
+    /// is no longer needed.
+    /// Defaults to simply calling `remove`.
+    ///
+    /// # Safety
+    ///
+    /// May only be called if an element with `id` was `insert`ed and not yet
+    /// removed / dropped.
+    #[cfg(not(feature = "nightly"))]
     unsafe fn drop(&mut self, id: Index) {
         self.remove(id);
     }

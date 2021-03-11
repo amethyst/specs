@@ -7,6 +7,9 @@ use crate::{
     world::{Component, Index},
 };
 
+#[cfg(feature = "nightly")]
+use crate::world::HasIndex;
+
 use shrev::EventChannel;
 
 /// Wrapper storage that tracks modifications, insertions, and removals of
@@ -201,7 +204,13 @@ where
 
 impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
     #[cfg(feature = "nightly")]
-    type AccessMut<'a> where T: 'a = <T as UnprotectedStorage<C>>::AccessMut<'a>;
+    type AccessMut<'a>
+    where
+        T: 'a,
+    = <T as UnprotectedStorage<C>>::AccessMut<'a>;
+
+    #[cfg(feature = "nightly")]
+    type MutIndex = <T as UnprotectedStorage<C>>::MutIndex;
 
     unsafe fn clean<B>(&mut self, has: B)
     where
@@ -215,9 +224,12 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
     }
 
     #[cfg(feature = "nightly")]
-    unsafe fn get_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
+    unsafe fn get_mut(
+        &mut self,
+        id: Self::MutIndex,
+    ) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Modified(id));
+            self.channel.single_write(ComponentEvent::Modified(id.id()));
         }
         self.storage.get_mut(id)
     }
@@ -230,6 +242,15 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
         self.storage.get_mut(id)
     }
 
+    #[cfg(feature = "nightly")]
+    unsafe fn insert(&mut self, id: Self::MutIndex, comp: C) {
+        if self.emit_event() {
+            self.channel.single_write(ComponentEvent::Inserted(id.id()));
+        }
+        self.storage.insert(id, comp);
+    }
+
+    #[cfg(not(feature = "nightly"))]
     unsafe fn insert(&mut self, id: Index, comp: C) {
         if self.emit_event() {
             self.channel.single_write(ComponentEvent::Inserted(id));
@@ -237,6 +258,15 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
         self.storage.insert(id, comp);
     }
 
+    #[cfg(feature = "nightly")]
+    unsafe fn remove(&mut self, id: Self::MutIndex) -> C {
+        if self.emit_event() {
+            self.channel.single_write(ComponentEvent::Removed(id.id()));
+        }
+        self.storage.remove(id)
+    }
+
+    #[cfg(not(feature = "nightly"))]
     unsafe fn remove(&mut self, id: Index) -> C {
         if self.emit_event() {
             self.channel.single_write(ComponentEvent::Removed(id));

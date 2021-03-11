@@ -6,11 +6,17 @@ use crate::{
     world::{Component, Index},
 };
 
+#[cfg(feature = "nightly")]
+use crate::world::{EntitiesRes, HasIndex};
+
 /// A draining storage wrapper which has a `Join` implementation
 /// that removes the components.
 pub struct Drain<'a, T: Component> {
     /// The masked storage
     pub data: &'a mut MaskedStorage<T>,
+    /// Entities to get the generation for component events
+    #[cfg(feature = "nightly")]
+    pub entities: &'a EntitiesRes,
 }
 
 impl<'a, T> Join for Drain<'a, T>
@@ -19,15 +25,32 @@ where
 {
     type Mask = BitSet;
     type Type = T;
+    #[cfg(feature = "nightly")]
+    type Value = (&'a mut MaskedStorage<T>, &'a EntitiesRes);
+    #[cfg(not(feature = "nightly"))]
     type Value = &'a mut MaskedStorage<T>;
 
     // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let mask = self.data.mask.clone();
 
-        (mask, self.data)
+        #[cfg(feature = "nightly")]
+        let t = (mask, (self.data, self.entities));
+        #[cfg(not(feature = "nightly"))]
+        let t = (mask, self.data);
+
+        t
     }
 
+    // SAFETY: No invariants to meet and no unsafe code.
+    #[cfg(feature = "nightly")]
+    unsafe fn get((storage, entities): &mut Self::Value, id: Index) -> T {
+        storage
+            .remove(HasIndex::from_index(id, entities))
+            .expect("Tried to access same index twice")
+    }
+
+    #[cfg(not(feature = "nightly"))]
     // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn get(value: &mut Self::Value, id: Index) -> T {
         value.remove(id).expect("Tried to access same index twice")
