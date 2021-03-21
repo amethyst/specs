@@ -15,7 +15,7 @@ pub use self::{
     track::{ComponentEvent, Tracked},
 };
 #[cfg(feature = "nightly")]
-pub use self::deref_flagged::DerefFlaggedStorage;
+pub use self::deref_flagged::{DerefFlaggedStorage, FlaggedAccessMut};
 
 use self::storages::SliceAccess;
 
