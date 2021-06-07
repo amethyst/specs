@@ -1,6 +1,6 @@
 [package]
 name = "specs"
-version = "0.16.1"
+version = "0.16.2"
 description = """
 Specs is an Entity-Component-System library written in Rust.
 """
@@ -23,14 +23,14 @@ travis-ci = { repository = "slide-rs/specs" }
 
 [dependencies]
 crossbeam-queue = "0.3"
-hashbrown = "0.9"
+hashbrown = "0.11"
 hibitset = { version = "0.6.3", default-features = false }
 log = "0.4.8"
-shred = { version = "0.11.0", default-features = false }
+shred = { version = "0.12", default-features = false }
 shrev = "1.1.1"
 tuple_utils = "0.3.0"
 
-rayon = { version = "1.5.0", optional = true }
+rayon = { version = "1.5.1", optional = true }
 serde = { version = "1.0.104", optional = true, features = ["serde_derive"] }
 specs-derive = { version = "0.4.1", path = "specs-derive", optional = true }
 uuid = { version = "0.8.1", optional = true, features = ["v4", "serde"] }
@@ -56,7 +56,7 @@ criterion = "0.3.1"
 ron = "0.5.1"
 rand = "0.8"
 serde_json = "1.0.48"
-shred = { version = "0.11.0", default-features = false, features = ["shred-derive"] }
+shred = { version = "0.12.0", default-features = false, features = ["shred-derive"] }
 specs-derive = { path = "specs-derive", version = "0.4.1" }
 
 [[example]]
