@@ -564,7 +564,7 @@ fn maintain_entity_deletion() {
     let mut world = World::new();
     struct DeleteSys {
         pub entity: Option<Entity>,
-    };
+    }
 
     impl<'a> System<'a> for DeleteSys {
         type SystemData = Entities<'a>;
