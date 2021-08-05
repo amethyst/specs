@@ -356,7 +356,7 @@ pub trait MarkerAllocator<M: Marker>: Resource {
 
             new
         } else {
-            return None
+            return None;
         };
         Some((storage.get(entity).unwrap(), new))
     }

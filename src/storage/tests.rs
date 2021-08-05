@@ -361,7 +361,9 @@ mod test {
             if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
                 panic!("Failed to insert component into entity! {:?}", err);
             }
-            if s.insert(Entity::new(i, Generation::new(2)), (i + 31415).into()).is_ok() {
+            if s.insert(Entity::new(i, Generation::new(2)), (i + 31415).into())
+                .is_ok()
+            {
                 panic!("Overwrote entity generation!  I shouldn't have been allowed to do this!");
             }
         }
@@ -383,7 +385,9 @@ mod test {
         let mut s: Storage<T, _> = create(&mut w);
 
         for i in 0..1_000 {
-            if s.insert(Entity::new(i, Generation::new(2)), (i + 2718).into()).is_ok() {
+            if s.insert(Entity::new(i, Generation::new(2)), (i + 2718).into())
+                .is_ok()
+            {
                 panic!("Overwrote entity generation!  I shouldn't have been allowed to do this!");
             }
         }

@@ -426,11 +426,7 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
 ///
 /// // add some entities to our world
 /// for _ in 0..10 {
-///     let entity = world
-///         .create_entity()
-///         .with(Position)
-///         .with(Collider)
-///         .build();
+///     let entity = world.create_entity().with(Position).with(Collider).build();
 /// }
 ///
 /// // check for collisions between entities

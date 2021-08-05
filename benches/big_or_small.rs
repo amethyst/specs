@@ -83,7 +83,7 @@ fn bench_big(b: &mut Bencher) {
         .build();
 
     b.iter(|| {
-        dispatch.dispatch(&mut world);
+        dispatch.dispatch(&world);
         world.maintain();
     })
 }
@@ -108,7 +108,7 @@ fn bench_small(b: &mut Bencher) {
         .build();
 
     b.iter(|| {
-        dispatch.dispatch(&mut world);
+        dispatch.dispatch(&world);
         world.maintain();
     })
 }

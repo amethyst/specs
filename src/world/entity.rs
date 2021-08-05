@@ -501,7 +501,6 @@ impl Extend<Index> for EntityCache {
 /// Resembles a `fetch_add(1, Ordering::Relaxed)` with
 /// checked overflow, returning `None` instead.
 fn atomic_increment(i: &AtomicUsize) -> Option<usize> {
-    use std::usize;
     let mut prev = i.load(Ordering::Relaxed);
     while prev != usize::MAX {
         match i.compare_exchange_weak(prev, prev + 1, Ordering::Relaxed, Ordering::Relaxed) {
@@ -548,7 +547,7 @@ mod tests {
 
         assert_ne!(allocator.allocate(), entity);
 
-        assert_eq!(allocator.killed.contains(entity.id()), true);
+        assert!(allocator.killed.contains(entity.id()));
         assert_eq!(allocator.merge(), vec![entity]);
     }
 

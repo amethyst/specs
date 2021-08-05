@@ -121,11 +121,11 @@ fn saveload_struct(
     let saveload_fields = convert_fields_to_metadata(&data.fields);
 
     let (struct_def, ser, de) = if let Fields::Named(_) = data.fields {
-        saveload_named_struct(&name, &saveload_name, &saveload_generics, &saveload_fields)
+        saveload_named_struct(name, &saveload_name, &saveload_generics, &saveload_fields)
     } else if let Fields::Unnamed(_) = data.fields {
         saveload_tuple_struct(
             data,
-            &name,
+            name,
             &saveload_name,
             &saveload_generics,
             &saveload_fields,
@@ -270,11 +270,9 @@ fn saveload_tuple_struct(
     let field_ids = saveload_fields
         .iter()
         .enumerate()
-        .map(|(i, _field_meta)| {
-            Index {
-                index: i as u32,
-                span: data.struct_token.span,
-            }
+        .map(|(i, _field_meta)| Index {
+            index: i as u32,
+            span: data.struct_token.span,
         })
         .collect::<Vec<_>>();
 
@@ -330,7 +328,7 @@ where
 
             FieldMetaData {
                 field: resolved,
-                skip_field: field_should_skip(&f),
+                skip_field: field_should_skip(f),
             }
         })
         .collect()
@@ -595,9 +593,7 @@ fn replace_entity_type(ty: &mut Type) {
     }
 }
 
-fn single_parse_outer_from_args(
-    input: syn::parse::ParseStream,
-) -> Result<Attribute, syn::Error> {
+fn single_parse_outer_from_args(input: syn::parse::ParseStream) -> Result<Attribute, syn::Error> {
     Ok(Attribute {
         pound_token: syn::token::Pound {
             spans: [input.span()],

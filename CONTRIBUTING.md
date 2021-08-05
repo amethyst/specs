@@ -12,7 +12,7 @@ If you experience any bugs or have feature requests, please [file an issue].
 
 If you want to contribute code, please read the following sections.
 
-There are couple of recommended step before you start working on a ticket:
+There are a couple of recommended step before you start working on a ticket:
 
 1. If you haven't already, please read [the Specs book](https://specs.amethyst.rs/docs/tutorials/)
 2. Please make sure you read our [Code of Conduct](CODE_OF_CONDUCT.md)
@@ -21,7 +21,7 @@ There are couple of recommended step before you start working on a ticket:
 
 ## Creating Pull Requests
 
-Once you worked through the [Getting started](#getting-started) section, congrutalations! You can
+Once you worked through the [Getting started](#getting-started) section, congratulations! You can
 now start working on [a ticket from the issue tracker][tick]. If there's no ticket yet, please
 create one in advance, except your PR provides
 

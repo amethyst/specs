@@ -103,7 +103,7 @@ use crate::{
 ///
 ///     fn run(&mut self, (ent, pos): Self::SystemData) {
 ///         for (ent, pos) in (&*ent, &pos).join() {
-///             println!("Entitiy with id {} has a position of {:?}", ent.id(), pos);
+///             println!("Entity with id {} has a position of {:?}", ent.id(), pos);
 ///         }
 ///     }
 /// }
