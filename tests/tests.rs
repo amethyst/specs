@@ -50,7 +50,7 @@ fn task_panics() {
     DispatcherBuilder::new()
         .with(Sys, "s", &[])
         .build()
-        .dispatch(&mut world);
+        .dispatch(&world);
 }
 
 #[test]
@@ -65,11 +65,11 @@ fn dynamic_create() {
         }
     }
 
-    let mut world = create_world();
+    let world = create_world();
     let mut dispatcher = DispatcherBuilder::new().with(Sys, "s", &[]).build();
 
     for _ in 0..1_000 {
-        dispatcher.dispatch(&mut world);
+        dispatcher.dispatch(&world);
     }
 }
 
@@ -86,11 +86,11 @@ fn dynamic_deletion() {
         }
     }
 
-    let mut world = create_world();
+    let world = create_world();
     let mut dispatcher = DispatcherBuilder::new().with(Sys, "s", &[]).build();
 
     for _ in 0..1_000 {
-        dispatcher.dispatch(&mut world);
+        dispatcher.dispatch(&world);
     }
 }
 
@@ -263,7 +263,7 @@ fn stillborn_entities() {
         .build();
 
     for _ in 0..100 {
-        dispatcher.dispatch(&mut world);
+        dispatcher.dispatch(&world);
     }
 }
 
@@ -329,7 +329,7 @@ fn join_two_components() {
         }
     }
     let mut dispatcher = DispatcherBuilder::new().with(Iter, "iter", &[]).build();
-    dispatcher.dispatch(&mut world);
+    dispatcher.dispatch(&world);
 }
 
 #[test]
@@ -379,7 +379,7 @@ fn par_join_two_components() {
     let mut dispatcher = DispatcherBuilder::new()
         .with(Iter(&first, &second, &error), "iter", &[])
         .build();
-    dispatcher.dispatch(&mut world);
+    dispatcher.dispatch(&world);
     assert_eq!(
         *error.lock().unwrap(),
         None,
@@ -450,7 +450,7 @@ fn par_join_with_maybe() {
     let mut dispatcher = DispatcherBuilder::new()
         .with(Iter(&first, &second, &third, &error), "iter", &[])
         .build();
-    dispatcher.dispatch(&mut world);
+    dispatcher.dispatch(&world);
     assert_eq!(
         *error.lock().unwrap(),
         None,
@@ -511,7 +511,7 @@ fn par_join_many_entities_and_systems() {
         .with_barrier()
         .with(FindFailed(&failed), "find_failed", &[])
         .build();
-    dispatcher.dispatch(&mut world);
+    dispatcher.dispatch(&world);
     for &(id, n) in &*failed.lock().unwrap() {
         panic!(
             "Entity with id {} failed to count to 127. Count was {}",

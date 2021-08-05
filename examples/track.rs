@@ -21,11 +21,6 @@ struct SysA {
 impl<'a> System<'a> for SysA {
     type SystemData = (Entities<'a>, ReadStorage<'a, TrackedComponent>);
 
-    fn setup(&mut self, res: &mut World) {
-        Self::SystemData::setup(res);
-        self.reader_id = Some(WriteStorage::<TrackedComponent>::fetch(&res).register_reader());
-    }
-
     fn run(&mut self, (entities, tracked): Self::SystemData) {
         self.modified.clear();
         self.inserted.clear();
@@ -60,6 +55,11 @@ impl<'a> System<'a> for SysA {
             println!("removed: {:?}", entity);
         }
     }
+
+    fn setup(&mut self, res: &mut World) {
+        Self::SystemData::setup(res);
+        self.reader_id = Some(WriteStorage::<TrackedComponent>::fetch(res).register_reader());
+    }
 }
 
 #[derive(Default)]
@@ -91,7 +91,7 @@ fn main() {
         world.create_entity().with(TrackedComponent(0)).build();
     }
 
-    dispatcher.dispatch(&mut world);
+    dispatcher.dispatch(&world);
     world.maintain();
 
     let entities = (&world.entities(), &world.read_storage::<TrackedComponent>())
@@ -104,6 +104,6 @@ fn main() {
         world.create_entity().with(TrackedComponent(0)).build();
     }
 
-    dispatcher.dispatch(&mut world);
+    dispatcher.dispatch(&world);
     world.maintain();
 }

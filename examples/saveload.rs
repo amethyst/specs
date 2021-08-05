@@ -111,7 +111,7 @@ fn main() {
     world.register::<SimpleMarker<NetworkSync>>();
 
     // Adds a predefined marker allocator to the world, as a resource.
-    // This predifined marker uses a `HashMap<u64, Entity>` to keep track of all
+    // This predefined marker uses a `HashMap<u64, Entity>` to keep track of all
     // entities that should be (de)serializable, as well as which ids are
     // already in use.
     world.insert(SimpleMarkerAllocator::<NetworkSync>::new());
@@ -216,7 +216,7 @@ fn main() {
             use ron::de::Deserializer;
 
             // Typical file operations are omitted in this example, since we do not have a
-            // seperate file, but a `const &str`. We use a convencience function
+            // separate file, but a `const &str`. We use a convencience function
             // of the `ron`-crate: `from_str`, to convert our data form the top of the file.
             if let Ok(mut de) = Deserializer::from_str(ENTITIES) {
                 // Again, we need to pass in a type implementing the `Display`-trait,

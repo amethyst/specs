@@ -1,5 +1,8 @@
 #![warn(missing_docs)]
-#![cfg_attr(feature = "nightly", feature(generic_associated_types, associated_type_defaults))]
+#![cfg_attr(
+    feature = "nightly",
+    feature(generic_associated_types, associated_type_defaults)
+)]
 
 //! # SPECS Parallel ECS
 //!
@@ -207,9 +210,9 @@ pub mod world;
 
 pub use hibitset::BitSet;
 pub use shred::{
-    Accessor, AccessorCow, BatchAccessor, BatchController, BatchUncheckedWorld,
-    Dispatcher, DispatcherBuilder, Read, ReadExpect, RunNow,
-    RunningTime, StaticAccessor, System, SystemData, World, Write, WriteExpect,
+    Accessor, AccessorCow, BatchAccessor, BatchController, BatchUncheckedWorld, Dispatcher,
+    DispatcherBuilder, Read, ReadExpect, RunNow, RunningTime, StaticAccessor, System, SystemData,
+    World, Write, WriteExpect,
 };
 pub use shrev::ReaderId;
 

@@ -32,7 +32,7 @@ Unlike most other ECS libraries out there, it provides
     * its types are mostly not coupled, so you can easily write some part yourself and
       still use Specs
     * `System`s may read from and write to components and resources, can depend on each
-      other and you can use barriers to force several stages in system execution
+      other, and you can use barriers to force several stages in system execution
 * high performance for real-world applications
 
 Minimum Rust version: 1.40

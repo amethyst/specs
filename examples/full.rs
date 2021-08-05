@@ -132,8 +132,6 @@ impl<'a> System<'a> for SysStoreMax {
     type SystemData = StoreMaxData<'a>;
 
     fn run(&mut self, data: StoreMaxData) {
-        use std::i32::MIN;
-
         // Let's print information about
         // last run's entity
         if let Some(e) = self.0 {
@@ -145,7 +143,7 @@ impl<'a> System<'a> for SysStoreMax {
         }
 
         let mut max_entity = None;
-        let mut max = MIN;
+        let mut max = i32::MIN;
 
         for (entity, value) in (&data.entities, &data.comp_int).join() {
             if value.0 >= max {

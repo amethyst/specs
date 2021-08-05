@@ -343,7 +343,7 @@ fn bench_parallel(b: &mut Bencher) {
         .build();
 
     b.iter(|| {
-        d.dispatch(&mut w);
+        d.dispatch(&w);
         w.maintain();
     })
 }

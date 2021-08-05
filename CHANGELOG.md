@@ -202,8 +202,8 @@ unsoundness!
 
 There is one bigger breaking change in this release. Almost all`Fetch` / `FetchMut` types need to be replaced
 with `Read` / `Write`. Both require the resource to implement `Default`, because now the resources can be
-added to the world automatically. If you want to make the resource optional and you don't have a sensible
-default, `Option<Read>` / `Option<Write>` can be used. If you absolutely need the resource and it doesn't
+added to the world automatically. If you want to make the resource optional, and you don't have a sensible
+default, `Option<Read>` / `Option<Write>` can be used. If you absolutely need the resource, and it doesn't
 work without, use `ReadExpect` which will panic in case the resource does not exist (that's the same
 behavior as before).
 

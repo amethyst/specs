@@ -22,7 +22,6 @@
 //! to identify entities even if local ids are different. The allocation
 //! of these ids is what `MarkerAllocator`s are responsible for. For an example,
 //! see the docs for the `Marker` trait.
-//!
 
 use std::convert::Infallible;
 
@@ -154,18 +153,18 @@ where
     type Data = Self;
     type Error = Infallible;
 
-    fn convert_into<F>(&self, _: F) -> Result<Self::Data, Self::Error>
-    where
-        F: FnMut(Entity) -> Option<M>,
-    {
-        Ok(self.clone())
-    }
-
     fn convert_from<F>(data: Self::Data, _: F) -> Result<Self, Self::Error>
     where
         F: FnMut(M) -> Option<Entity>,
     {
         Ok(data)
+    }
+
+    fn convert_into<F>(&self, _: F) -> Result<Self::Data, Self::Error>
+    where
+        F: FnMut(Entity) -> Option<M>,
+    {
+        Ok(self.clone())
     }
 }
 
@@ -176,17 +175,17 @@ where
     type Data = M;
     type Error = Infallible;
 
-    fn convert_into<F>(&self, mut func: F) -> Result<Self::Data, Self::Error>
-    where
-        F: FnMut(Entity) -> Option<M>,
-    {
-        Ok(func(*self).unwrap())
-    }
-
     fn convert_from<F>(data: Self::Data, mut func: F) -> Result<Self, Self::Error>
     where
         F: FnMut(M) -> Option<Entity>,
     {
         Ok(func(data).unwrap())
+    }
+
+    fn convert_into<F>(&self, mut func: F) -> Result<Self::Data, Self::Error>
+    where
+        F: FnMut(Entity) -> Option<M>,
+    {
+        Ok(func(*self).unwrap())
     }
 }
