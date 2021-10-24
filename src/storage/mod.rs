@@ -1,21 +1,32 @@
 //! Component storage types, implementations for component joins, etc.
 
+// TODO: This is unsound without a streaming JoinIter
+//
+// #[cfg(feature = "nightly")]
+// pub use self::deref_flagged::{DerefFlaggedStorage, FlaggedAccessMut};
+// #[cfg(feature = "nightly")]
+// mod deref_flagged;
+//
+
+// TODO: Some parts of this involving mutable components are
+// unsound without a streaming JoinIter.
+//
+// mod restrict;
+// pub use self::restrict::{
+//     ImmutableParallelRestriction, MutableParallelRestriction, PairedStorage, RestrictedStorage,
+//     SequentialRestriction,
+// };
+
 pub use self::{
     data::{ReadStorage, WriteStorage},
     entry::{Entries, OccupiedEntry, StorageEntry, VacantEntry},
     flagged::FlaggedStorage,
     generic::{GenericReadStorage, GenericWriteStorage},
-    restrict::{
-        ImmutableParallelRestriction, MutableParallelRestriction, RestrictedStorage,
-        SequentialRestriction, PairedStorage
-    },
     storages::{
         BTreeStorage, DefaultVecStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage,
     },
     track::{ComponentEvent, Tracked},
 };
-#[cfg(feature = "nightly")]
-pub use self::deref_flagged::{DerefFlaggedStorage, FlaggedAccessMut};
 
 use self::storages::SliceAccess;
 
@@ -42,10 +53,7 @@ mod data;
 mod drain;
 mod entry;
 mod flagged;
-#[cfg(feature = "nightly")]
-mod deref_flagged;
 mod generic;
-mod restrict;
 mod storages;
 #[cfg(test)]
 mod tests;
@@ -328,7 +336,7 @@ where
     }
 
     /// Tries to mutate the data associated with an `Entity`.
-    pub fn get_mut(&mut self, e: Entity) -> Option<AccessMutReturn<'_, T> > {
+    pub fn get_mut(&mut self, e: Entity) -> Option<AccessMutReturn<'_, T>> {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
             // SAFETY: We checked the mask, so all invariants are met.
             Some(unsafe { self.data.inner.get_mut(e.id()) })
@@ -464,6 +472,23 @@ where
         // This is horribly unsafe. Unfortunately, Rust doesn't provide a way
         // to abstract mutable/immutable state at the moment, so we have to hack
         // our way through it.
+
+        // # Safety
+        //
+        // See Join::get safety comments
+        //
+        // The caller is ensures any references returned are dropped before
+        // any future calls to this method with the same Index value.
+        //
+        // Additionally, UnprotectedStorage::get_mut is required to return distinct
+        // mutable references for distinct Index values and to not create references
+        // internally that would alias with other mutable references produced
+        // by calls with distinct Index values. Note, this isn't the same as `DistinctStorage`
+        // which is stricter in that it requires internally mutable operations never alias for
+        // distinct Index value (so it can be called in parallel).
+        // TODO: evaluate IdvStorage for this property (this is in a separate crate).
+        //
+        // Thus, this will not create aliased mutable references.
         let value: *mut Self::Value = v as *mut Self::Value;
         (*value).get_mut(i)
     }
@@ -507,7 +532,8 @@ where
 pub trait UnprotectedStorage<T>: TryDefault {
     /// The wrapper through with mutable access of a component is performed.
     #[cfg(feature = "nightly")]
-    type AccessMut<'a>: DerefMut<Target=T> where Self: 'a;
+    #[rustfmt::skip]
+    type AccessMut<'a>: DerefMut<Target = T> where Self: 'a;
 
     /// Clean the storage given a bitset with bits set for valid indices.
     /// Allows us to safely drop the storage.
@@ -544,6 +570,9 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
+    ///
+    /// Implementations must not create references (even internally) that alias
+    /// references returned by previous calls with distinct `id` values.
     #[cfg(feature = "nightly")]
     unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_>;
 
@@ -558,6 +587,9 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
+    ///
+    /// Implementations must not create references (even internally) that alias
+    /// references returned by previous calls with distinct `id` values.
     #[cfg(not(feature = "nightly"))]
     unsafe fn get_mut(&mut self, id: Index) -> &mut T;
 

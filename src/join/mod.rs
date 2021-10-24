@@ -224,14 +224,24 @@ pub trait Join {
     /// then illegal memory access can occur.
     unsafe fn open(self) -> (Self::Mask, Self::Value);
 
+    // TODO: copy safety notes for callers to the impls of this method.
+    // TODO: also evaluate all impls
     /// Get a joined component value by a given index.
     ///
     /// # Safety
     ///
     /// * A call to `get` must be preceded by a check if `id` is part of
-    ///   `Self::Mask`
-    /// * The implementation of this method may use unsafe code, but has no
-    ///   invariants to meet
+    ///   `Self::Mask`.
+    /// * The caller must ensure the lifetimes of mutable references returned from a call
+    ///   of this method end before subsequent calls with the same `id`.
+    /// * Conversly, the implementation of the method must never create a mutable reference (even if it isn't
+    /// returned) that was returned by a previous call with a distinct `id`. Since there is no
+    /// requirement that the caller (if there was `JoinIter` would half to be a streaming
+    /// iterator).
+    ///   are no guarantees that the caller will release
+    /// * The implementation of this method may use `unsafe` to extend the lifetime of returned references but
+    ///   must ensure that any references within Self::Type cannot outlive the references
+    ///   they were derived from in Self::Value.
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type;
 
     /// If this `Join` typically returns all indices in the mask, then iterating
@@ -322,6 +332,10 @@ impl<J: Join> JoinIter<J> {
 }
 
 impl<J: Join> JoinIter<J> {
+    // TODO: these are unsound because they can be used to get two mutable references to the same
+    // component (in safe code)
+
+    /*
     /// Allows getting joined values for specific entity.
     ///
     /// ## Example
@@ -394,7 +408,7 @@ impl<J: Join> JoinIter<J> {
         } else {
             None
         }
-    }
+    }*/
 }
 
 impl<J: Join> std::iter::Iterator for JoinIter<J> {
