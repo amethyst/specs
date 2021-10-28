@@ -17,6 +17,14 @@
 //     SequentialRestriction,
 // };
 
+#[cfg(feature = "nightly")]
+pub use self::split_flagged::{
+    EventCollector, EventPool, EventSink, FlaggedAccessMut, SplitFlaggedAccessMut,
+    SplitFlaggedStorage, UnsplitFlaggedStorage,
+};
+#[cfg(feature = "nightly")]
+mod split_flagged;
+
 pub use self::{
     data::{ReadStorage, WriteStorage},
     entry::{Entries, OccupiedEntry, StorageEntry, VacantEntry},
@@ -339,7 +347,7 @@ where
     pub fn get_mut(&mut self, e: Entity) -> Option<AccessMutReturn<'_, T>> {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
             // SAFETY: We checked the mask, so all invariants are met.
-            Some(unsafe { self.data.inner.get_mut(e.id()) })
+            Some(unsafe { self.data.inner.get_access_mut(e.id()) })
         } else {
             None
         }
@@ -356,7 +364,7 @@ where
             let id = e.id();
             if self.data.mask.contains(id) {
                 // SAFETY: We checked the mask, so all invariants are met.
-                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id).deref_mut() });
+                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id) });
                 Ok(Some(v))
             } else {
                 self.data.mask.add(id);
@@ -490,7 +498,7 @@ where
         //
         // Thus, this will not create aliased mutable references.
         let value: *mut Self::Value = v as *mut Self::Value;
-        (*value).get_mut(i)
+        (*value).get_access_mut(i)
     }
 }
 
@@ -533,7 +541,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// The wrapper through with mutable access of a component is performed.
     #[cfg(feature = "nightly")]
     #[rustfmt::skip]
-    type AccessMut<'a>: DerefMut<Target = T> where Self: 'a;
+    type AccessMut<'a> where Self: 'a;
 
     /// Clean the storage given a bitset with bits set for valid indices.
     /// Allows us to safely drop the storage.
@@ -573,12 +581,38 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// Implementations must not create references (even internally) that alias
     /// references returned by previous calls with distinct `id` values.
-    #[cfg(feature = "nightly")]
-    unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_>;
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T;
 
     /// Tries mutating the data associated with an `Index`.
     /// This is unsafe because the external set used
     /// to protect this storage is absent.
+    ///
+    /// Unlike, [UnprotectedStorage::get_mut] this method allows the storage
+    /// to wrap the mutable reference (when the `nightly` feature is enabled) to allow
+    /// any logic such as emitting modification events to only occur if the component
+    /// is mutated.
+    ///
+    /// # Safety
+    ///
+    /// May only be called after a call to `insert` with `id` and
+    /// no following call to `remove` with `id`.
+    ///
+    /// A mask should keep track of those states, and an `id` being contained
+    /// in the tracking mask is sufficient to call this method.
+    ///
+    /// Implementations must not create references (even internally) that alias
+    /// references returned by previous calls with distinct `id` values.
+    #[cfg(feature = "nightly")]
+    unsafe fn get_access_mut(&mut self, id: Index) -> Self::AccessMut<'_>;
+
+    /// Tries mutating the data associated with an `Index`.
+    /// This is unsafe because the external set used
+    /// to protect this storage is absent.
+    ///
+    /// Unlike, [UnprotectedStorage::get_mut] this method allows the storage
+    /// to wrap the mutable reference (when the `nightly` feature is enabled) to allow
+    /// any logic such as emitting modification events to only occur if the component
+    /// is mutated.
     ///
     /// # Safety
     ///
@@ -591,7 +625,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// Implementations must not create references (even internally) that alias
     /// references returned by previous calls with distinct `id` values.
     #[cfg(not(feature = "nightly"))]
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T;
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T;
 
     /// Inserts new data for a given `Index`.
     ///

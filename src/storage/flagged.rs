@@ -201,6 +201,7 @@ where
 
 impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
     #[cfg(feature = "nightly")]
+    #[rustfmt::skip]
     type AccessMut<'a> where T: 'a = <T as UnprotectedStorage<C>>::AccessMut<'a>;
 
     unsafe fn clean<B>(&mut self, has: B)
@@ -214,20 +215,27 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
         self.storage.get(id)
     }
 
-    #[cfg(feature = "nightly")]
-    unsafe fn get_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
+    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         if self.emit_event() {
             self.channel.single_write(ComponentEvent::Modified(id));
         }
         self.storage.get_mut(id)
     }
 
-    #[cfg(not(feature = "nightly"))]
-    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
+    #[cfg(feature = "nightly")]
+    unsafe fn get_access_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
         if self.emit_event() {
             self.channel.single_write(ComponentEvent::Modified(id));
         }
-        self.storage.get_mut(id)
+        self.storage.get_access_mut(id)
+    }
+
+    #[cfg(not(feature = "nightly"))]
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut C {
+        if self.emit_event() {
+            self.channel.single_write(ComponentEvent::Modified(id));
+        }
+        self.storage.get_access_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {

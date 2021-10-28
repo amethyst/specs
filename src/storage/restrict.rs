@@ -296,7 +296,7 @@ where
     /// Gets the component related to the current entry without checking whether
     /// the storage has it or not.
     pub fn get_mut_unchecked(&mut self) -> AccessMutReturn<'_, C> {
-        unsafe { self.storage.borrow_mut().get_mut(self.index) }
+        unsafe { self.storage.borrow_mut().get_access_mut(self.index) }
     }
 }
 
@@ -338,7 +338,7 @@ where
     /// threads.
     pub fn get_mut(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, C>> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
-            Some(unsafe { self.storage.borrow_mut().get_mut(entity.id()) })
+            Some(unsafe { self.storage.borrow_mut().get_access_mut(entity.id()) })
         } else {
             None
         }

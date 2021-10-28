@@ -233,3 +233,6 @@ pub use crate::{
     },
     world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate, WorldExt},
 };
+
+#[cfg(feature = "nightly")]
+pub use crate::storage::UnsplitFlaggedStorage;
