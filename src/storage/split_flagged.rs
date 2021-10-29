@@ -21,9 +21,10 @@ use hibitset::BitSet;
 use shrev::EventChannel;
 
 /// Wrapper storage that tracks modifications, insertions, and removals of
-/// components through an `EventChannel`, in a similar manner to `FlaggedStorage`.
+/// components through an `EventChannel`, in a similar manner to
+/// [FlaggedStorage](crate::FlaggedStorage).
 ///
-/// Unlike `FlaggedStorage`, this storage uses a wrapper type for mutable
+/// Unlike [FlaggedStorage](crate::FlaggedStorage), this storage uses a wrapper type for mutable
 /// accesses that only emits modification events when the component is explicitly
 /// accessed mutably which. This means that simply performing a mutable join will
 /// not, by itself, trigger a modification event.
@@ -31,10 +32,13 @@ use shrev::EventChannel;
 /// To use this storage in a mutable join it should first be split into an [SplitFlaggedStorage]
 /// and an [EventPool] using [Storage::split]. This is because the deferred mutable
 /// access through the wrapper type requires passing in the channel separately. This strategy is
-/// neccessary for soundness because [JoinIter] is not a streaming iterator so if we were to place
+/// neccessary for soundness because [crate::join::JoinIter] is not a streaming iterator so if we were to place
 /// a mutable reference to the event channel inside of the mutable component wrapper this will
 /// cause aliasing of mutable references. In addition, this strategy enables us to safely perform
 /// parallel mutable joins with components in this storage.
+///
+/// If immediately triggering the modification event is desired, mutable access on a single
+/// component can be obtained using [Storage::get_mut_tracked].
 ///
 /// Note: no effort is made to ensure a particular ordering of the modification
 /// events that occur withing the scope of a single `split`.
@@ -167,8 +171,8 @@ where
 {
     /// Temporarily divide into a [SplitFlaggedStorage] which borrows the underlying
     /// storage and an [EventPool] which borrows the underlying event channel and
-    /// is used to collect modification events. This allows deferred mutable access of components
-    /// in mutable.
+    /// is used to collect modification events. This allows deferred tracked mutable access of components
+    /// in mutable joins.
     pub fn split(&mut self) -> (SplitFlaggedStorage<'_, C, T>, EventPool<'_, C>) {
         let masked_storage = self.data.deref_mut();
         let split_storage = SplitFlaggedStorage {
@@ -192,7 +196,7 @@ where
 }
 
 impl<C: Component, T: UnprotectedStorage<C>> UnsplitFlaggedStorage<C, T> {
-    /// Access the data associated with an `Index` for mutation. Internally emits
+    /// Access the data associated with an [Index] for mutation. Internally emits
     /// a component modification event if event emission is not disabled for this
     /// storage.
     ///
@@ -213,7 +217,7 @@ where
     D: DerefMut<Target = MaskedStorage<T>>,
     I: UnprotectedStorage<T>,
 {
-    /// Tries to mutate the data associated with an `Entity`. Internally emits
+    /// Tries to mutate the data associated with an [Entity]. Internally emits
     /// a component modification event if event emission is not disabled for this
     /// storage. Conveinence method for [UnsplitFlaggedStorage] which normally requires
     /// .... TODO: describe this when details crystallize.

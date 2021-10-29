@@ -15,6 +15,9 @@ use shrev::EventChannel;
 /// **Note:** Joining over all components of a `FlaggedStorage`
 /// mutably will flag all components.
 ///
+/// **Note:** restricted storages are currently removed since they need some changes to be sound so
+/// the below advice won't currently work. Use `UnsplitFlaggedStorage` instead.
+///
 /// What you want to instead is to use `restrict_mut()` to first
 /// get the entities which contain the component and then conditionally
 /// modify the component after a call to `get_mut_unchecked()` or `get_mut()`.
