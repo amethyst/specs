@@ -37,9 +37,34 @@ It implements `SystemData` so just put it in your `SystemData` tuple.
 Please note that you may never write to these `Entities`, so only
 use `Read`. Even though it's immutable, you can atomically create
 and delete entities with it. Just use the `.create()` and `.delete()`
-methods, respectively. After dynamic entity deletion,
-a call to `World::maintain` is necessary in order to make the changes
-persistent and delete associated components.
+methods, respectively.
+
+For example, if you wanted to delete an entity based after a period of time you could write something similar like this.
+
+```rust
+pub struct Life {
+	life: f32,
+}
+
+struct DecaySys;
+
+impl<'a> System<'a> for DecaySys {
+	type SystemData = (Entities<'a>, WriteStorage<'a, Life>);
+
+	fn run(&mut self, (entities, mut life): Self::SystemData) {
+		for (e, life) in (&entities, &mut life).join() {
+			life -= 0.1;
+
+			if life < 0.0 {
+				entities.delete(e);
+			}
+		}
+	}
+}
+```
+
+> Just remember after dynamic entity deletion, a call to `World::maintain` is necessary in order to make the changes
+  persistent and delete associated components.
 
 ## Adding and removing components
 
