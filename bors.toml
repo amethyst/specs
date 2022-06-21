@@ -1,2 +1,0 @@
-status = ["continuous-integration/travis-ci/push"]
-cut-body-after = "<!-- Reviewable:start -->"

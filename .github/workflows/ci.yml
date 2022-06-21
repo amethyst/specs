@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      # bors needs CI to trigger for pushes to its staging/trying branches
+      - staging
+      - trying
+  pull_request:
+
+env:
+  RUSTFLAGS: -Cdebuginfo=0
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.toolchain == 'nightly' }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        toolchain: [stable, beta, nightly]
+    steps:
+      - uses: actions/checkout@v2
+
+      # install the toolchain we are going to compile and test with
+      - name: install ${{ matrix.toolchain }} toolchain
+        id: install_toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          profile: minimal
+          override: true
+
+      # we want to install the latest nightly with clippy and rustfmt to run checks against stable
+      - name: install nightly toolchain
+        id: install_nightly_toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          components: clippy, rustfmt
+        if: matrix.toolchain == 'stable' && matrix.os == 'ubuntu-latest'
+
+      # run rustfmt and clippy checks, but only once
+      #- run: cargo +nightly fmt --all -- --check
+      #  if: matrix.toolchain == 'stable' && matrix.os == 'ubuntu-latest'
+
+      #- run: cargo +nightly clippy -Z unstable-options --workspace --all-targets --all-features
+      #  if: matrix.toolchain == 'stable' && matrix.os == 'ubuntu-latest'
+
+      # run tests
+      - run: cargo install cargo-hack
+      - run: cargo hack test --workspace --each-feature
+        if: matrix.toolchain == 'nightly'
+      - run: cargo hack test --workspace --each-feature --skip nightly
+        if: matrix.toolchain != 'nightly'
+
+      # build book
+      # - uses: peaceiris/actions-mdbook@v1
+      #   with:
+      #     mdbook-version: 'latest'
+      #   if: matrix.toolchain == 'stable' && matrix.os == 'ubuntu-latest'
+
+      # - run: cargo install mdbook-linkcheck
+      #   if: matrix.toolchain == 'stable' && matrix.os == 'ubuntu-latest'
+
+      # - run: mdbook build docs/book
+      #   if: matrix.toolchain == 'stable' && matrix.os == 'ubuntu-latest'
+
+      # - run: mdbook test -L ./target/debug/deps docs/book
+      #   if: matrix.toolchain == 'stable' && matrix.os == 'ubuntu-latest'
