@@ -4,6 +4,7 @@ extern crate serde;
 extern crate specs;
 
 use std::{convert::Infallible, fmt};
+use ron::ser::PrettyConfig;
 
 use specs::{
     prelude::*,
@@ -67,11 +68,11 @@ impl Component for Mass {
 // type that implements the `Display`-trait. In this case we want to be able to
 // return different errors, and we are going to use a `.ron`-file to store our
 // data. Therefore we use a custom enum, which can display both the
-// `Infallible`and `ron::ser::Error` type. This enum could be extended to
+// `Infallible`and `ron::error::Error` type. This enum could be extended to
 // incorporate for example `std::io::Error` and more.
 #[derive(Debug)]
 enum Combined {
-    Ron(ron::ser::Error),
+    Ron(ron::error::Error),
 }
 
 // Implementing the required `Display`-trait, by matching the `Combined` enum,
@@ -86,8 +87,8 @@ impl fmt::Display for Combined {
 
 // This returns the `ron::ser:Error` in form of the `Combined` enum, which can
 // then be matched and displayed accordingly.
-impl From<ron::ser::Error> for Combined {
-    fn from(x: ron::ser::Error) -> Self {
+impl From<ron::error::Error> for Combined {
+    fn from(x: ron::error::Error) -> Self {
         Combined::Ron(x)
     }
 }
@@ -153,7 +154,10 @@ fn main() {
         fn run(&mut self, (ents, pos, mass, markers): Self::SystemData) {
             // First we need a serializer for the format of choice, in this case the
             // `.ron`-format.
-            let mut ser = ron::ser::Serializer::new(Some(Default::default()), true);
+            let mut buf = Vec::new();
+            let mut config = PrettyConfig::default();
+            config.struct_names = true;
+            let mut ser = ron::ser::Serializer::with_options(&mut buf, Some(config), Default::default()).unwrap();
 
             // For serialization we use the
             // [`SerializeComponents`](struct.SerializeComponents.html)-trait's `serialize`
@@ -183,7 +187,7 @@ fn main() {
 
             // At this point, `ser` could be used to write its contents to a file, which is
             // not done here. Instead we print the content of this pseudo-file.
-            println!("{}", ser.into_output_string());
+            println!("{}", String::from_utf8(buf).expect("Ron should be utf-8"));
         }
     }
 
