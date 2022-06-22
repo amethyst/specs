@@ -12,7 +12,7 @@ use crate::join::Join;
 #[cfg(feature = "parallel")]
 use crate::join::ParJoin;
 use crate::{
-    storage::{MaskedStorage, Storage, UnprotectedStorage, AccessMutReturn},
+    storage::{AccessMutReturn, DistinctStorage, MaskedStorage, Storage, UnprotectedStorage},
     world::{Component, EntitiesRes, Entity, Index},
 };
 
@@ -86,6 +86,7 @@ where
     C: Component,
     S: BorrowMut<C::Storage> + 'rf,
     B: Borrow<BitSet> + 'rf,
+    C::Storage: Sync + DistinctStorage,
 {
 }
 
@@ -147,6 +148,48 @@ where
     }
 
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
+        // TODO: this is unsound with a non streaming JoinIter
+        //
+        // Calls with distinct `id`s will create aliased mutable
+        // references that are returned all referencing the same Self::Value.
+        //
+        // Additionally, using `get_mut` with two separate `PairedStorages`s can
+        // produce aliased mutable references:
+        //
+        // use specs::prelude::*;
+        // use specs::storage::PairedStorage;
+        //
+        // struct Pos(f32);
+        //
+        // impl Component for Pos {
+        //     type Storage = VecStorage<Self>;
+        // }
+        //
+        // fn main() {
+        //     let mut world = World::new();
+        //
+        //     world.register::<Pos>();
+        //
+        //     world.create_entity().with(Pos(0.0)).build();
+        //     world.create_entity().with(Pos(1.6)).build();
+        //     world.create_entity().with(Pos(5.4)).build();
+        //
+        //     let entities = world.entities();
+        //     let mut pos = world.write_storage::<Pos>();
+        //
+        //     let mut restrict_pos = pos.restrict_mut();
+        //     let mut vec: Vec<PairedStorage<'_, '_, _, &mut _, _, _>> = (&mut restrict_pos).join().collect();
+        //     let (a, vec) = vec.split_first_mut().unwrap();
+        //     let (b, _) = vec.split_first_mut().unwrap();
+        //     let entity = entities.entity(0);
+        //     let alias_a: &mut Pos = a.get_mut(entity).unwrap();
+        //     let alias_b: &mut Pos = b.get_mut(entity).unwrap();
+        //     assert!(core::ptr::eq(alias_a, alias_b));
+        // }
+        //
+        // Also, since PairedStorage is Send, event if the underlying storage does not impl DistinctStorage
+        // sending a PairedStorage to another thread can be used to call the underlying get_mut
+        // simultaneously
         let value: &'rf mut Self::Value = &mut *(value as *mut Self::Value);
         PairedStorage {
             index: id,
@@ -235,6 +278,10 @@ where
 {
     /// Gets the component related to the current entry without checking whether
     /// the storage has it or not.
+    //
+    // TODO: this is a misleading name since it implies something does need to be checked but we are
+    // skipping it, when instead this is just getting the one entity's component that can be
+    // retrieved without a check because we know it exists.
     pub fn get_unchecked(&self) -> &C {
         unsafe { self.storage.borrow().get(self.index) }
     }
@@ -248,8 +295,8 @@ where
 {
     /// Gets the component related to the current entry without checking whether
     /// the storage has it or not.
-    pub fn get_mut_unchecked(&mut self) -> AccessMutReturn<'_, C>  {
-        unsafe { self.storage.borrow_mut().get_mut(self.index) }
+    pub fn get_mut_unchecked(&mut self) -> AccessMutReturn<'_, C> {
+        unsafe { self.storage.borrow_mut().get_access_mut(self.index) }
     }
 }
 
@@ -291,7 +338,7 @@ where
     /// threads.
     pub fn get_mut(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, C>> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
-            Some(unsafe { self.storage.borrow_mut().get_mut(entity.id()) })
+            Some(unsafe { self.storage.borrow_mut().get_access_mut(entity.id()) })
         } else {
             None
         }

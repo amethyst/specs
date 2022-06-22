@@ -126,7 +126,7 @@ impl<'a, T> Join for &'a mut ChangeSet<T> {
     // exists yet.
     unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
         let value: *mut Self::Value = v as *mut Self::Value;
-        (*value).get_mut(id)
+        (*value).get_access_mut(id)
     }
 }
 

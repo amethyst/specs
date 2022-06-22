@@ -33,6 +33,7 @@ impl<T> Default for BTreeStorage<T> {
 
 impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
     #[cfg(feature = "nightly")]
+    #[rustfmt::skip]
     type AccessMut<'a> where T: 'a = &'a mut T;
 
     unsafe fn clean<B>(&mut self, _has: B)
@@ -48,6 +49,10 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
         self.0.get_mut(&id).unwrap()
+    }
+
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
+        self.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, v: T) {
@@ -74,6 +79,7 @@ impl<T> Default for HashMapStorage<T> {
 
 impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     #[cfg(feature = "nightly")]
+    #[rustfmt::skip]
     type AccessMut<'a> where T: 'a = &'a mut T;
 
     unsafe fn clean<B>(&mut self, _has: B)
@@ -89,6 +95,10 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
         self.0.get_mut(&id).unwrap()
+    }
+
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
+        self.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, v: T) {
@@ -154,6 +164,7 @@ impl<T> SliceAccess<T> for DenseVecStorage<T> {
 
 impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
     #[cfg(feature = "nightly")]
+    #[rustfmt::skip]
     type AccessMut<'a> where T: 'a = &'a mut T;
 
     unsafe fn clean<B>(&mut self, _has: B)
@@ -171,6 +182,10 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
         let did = self.data_id.get_unchecked(id as usize).assume_init();
         self.data.get_unchecked_mut(did as usize)
+    }
+
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
+        self.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, v: T) {
@@ -211,6 +226,7 @@ where
     T: Default,
 {
     #[cfg(feature = "nightly")]
+    #[rustfmt::skip]
     type AccessMut<'a> where T: 'a = &'a mut T;
 
     unsafe fn clean<B>(&mut self, _has: B)
@@ -225,6 +241,10 @@ where
 
     unsafe fn get_mut(&mut self, _: Index) -> &mut T {
         &mut self.0
+    }
+
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
+        self.get_mut(id)
     }
 
     unsafe fn insert(&mut self, _: Index, _: T) {}
@@ -281,6 +301,7 @@ impl<T> SliceAccess<T> for VecStorage<T> {
 
 impl<T> UnprotectedStorage<T> for VecStorage<T> {
     #[cfg(feature = "nightly")]
+    #[rustfmt::skip]
     type AccessMut<'a> where T: 'a = &'a mut T;
 
     unsafe fn clean<B>(&mut self, has: B)
@@ -303,6 +324,10 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
         &mut *self.0.get_unchecked_mut(id as usize).as_mut_ptr()
+    }
+
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
+        self.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, v: T) {
@@ -346,6 +371,7 @@ where
     T: Default,
 {
     #[cfg(feature = "nightly")]
+    #[rustfmt::skip]
     type AccessMut<'a> where T: 'a = &'a mut T;
 
     unsafe fn clean<B>(&mut self, _has: B)
@@ -361,6 +387,10 @@ where
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
         self.0.get_unchecked_mut(id as usize)
+    }
+
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
+        self.get_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, v: T) {

@@ -194,7 +194,7 @@ where
     pub fn get_mut(&mut self) -> AccessMutReturn<'_, T> {
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
-        unsafe { self.storage.data.inner.get_mut(self.id) }
+        unsafe { self.storage.data.inner.get_access_mut(self.id) }
     }
 
     /// Converts the `OccupiedEntry` into a mutable reference bounded by
@@ -202,12 +202,16 @@ where
     pub fn into_mut(self) -> AccessMutReturn<'a, T> {
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
-        unsafe { self.storage.data.inner.get_mut(self.id) }
+        unsafe { self.storage.data.inner.get_access_mut(self.id) }
     }
 
     /// Inserts a value into the storage and returns the old one.
     pub fn insert(&mut self, mut component: T) -> T {
-        std::mem::swap(&mut component, self.get_mut().deref_mut());
+        // SAFETY: This is safe since `OccupiedEntry` is only constructed
+        // after checking the mask.
+        std::mem::swap(&mut component, unsafe {
+            self.storage.data.inner.get_mut(self.id)
+        });
         component
     }
 
@@ -235,7 +239,7 @@ where
         // SAFETY: This is safe since we added `self.id` to the mask.
         unsafe {
             self.storage.data.inner.insert(self.id, component);
-            self.storage.data.inner.get_mut(self.id)
+            self.storage.data.inner.get_access_mut(self.id)
         }
     }
 }

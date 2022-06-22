@@ -71,8 +71,9 @@ name = "cluster_bomb"
 [[example]]
 name = "bitset"
 
-[[example]]
-name = "track"
+# TODO: restricted storage is unsound without streaming iterator or some changes made to it (i.e. to not allow access to component data on other entities in the mutable case)
+# [[example]]
+# name = "track"
 
 [[example]]
 name = "ordered_track"

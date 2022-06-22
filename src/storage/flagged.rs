@@ -15,6 +15,9 @@ use shrev::EventChannel;
 /// **Note:** Joining over all components of a `FlaggedStorage`
 /// mutably will flag all components.
 ///
+/// **Note:** restricted storages are currently removed since they need some changes to be sound so
+/// the below advice won't currently work. Use `UnsplitFlaggedStorage` instead.
+///
 /// What you want to instead is to use `restrict_mut()` to first
 /// get the entities which contain the component and then conditionally
 /// modify the component after a call to `get_mut_unchecked()` or `get_mut()`.
@@ -201,6 +204,7 @@ where
 
 impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
     #[cfg(feature = "nightly")]
+    #[rustfmt::skip]
     type AccessMut<'a> where T: 'a = <T as UnprotectedStorage<C>>::AccessMut<'a>;
 
     unsafe fn clean<B>(&mut self, has: B)
@@ -214,20 +218,27 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
         self.storage.get(id)
     }
 
-    #[cfg(feature = "nightly")]
-    unsafe fn get_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
+    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         if self.emit_event() {
             self.channel.single_write(ComponentEvent::Modified(id));
         }
         self.storage.get_mut(id)
     }
 
-    #[cfg(not(feature = "nightly"))]
-    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
+    #[cfg(feature = "nightly")]
+    unsafe fn get_access_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
         if self.emit_event() {
             self.channel.single_write(ComponentEvent::Modified(id));
         }
-        self.storage.get_mut(id)
+        self.storage.get_access_mut(id)
+    }
+
+    #[cfg(not(feature = "nightly"))]
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut C {
+        if self.emit_event() {
+            self.channel.single_write(ComponentEvent::Modified(id));
+        }
+        self.storage.get_access_mut(id)
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
