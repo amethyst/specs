@@ -8,6 +8,7 @@ use hibitset::BitSetLike;
 use crate::{
     storage::{ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage},
     world::{Component, Index},
+    Entity,
 };
 
 use shrev::EventChannel;
@@ -64,33 +65,33 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for DerefFlag
         self.storage.clean(has);
     }
 
-    unsafe fn get(&self, id: Index) -> &C {
-        self.storage.get(id)
+    unsafe fn get(&self, entity: Entity) -> &C {
+        self.storage.get(entity)
     }
 
-    unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_> {
+    unsafe fn get_mut(&mut self, entity: Entity) -> Self::AccessMut<'_> {
         let emit = self.emit_event();
         FlaggedAccessMut {
             channel: &mut self.channel,
             emit,
-            id,
-            access: self.storage.get_mut(id),
+            entity,
+            access: self.storage.get_mut(entity),
             phantom: PhantomData,
         }
     }
 
-    unsafe fn insert(&mut self, id: Index, comp: C) {
+    unsafe fn insert(&mut self, entity: Entity, comp: C) {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Inserted(id));
+            self.channel.single_write(ComponentEvent::Inserted(entity));
         }
-        self.storage.insert(id, comp);
+        self.storage.insert(entity, comp);
     }
 
-    unsafe fn remove(&mut self, id: Index) -> C {
+    unsafe fn remove(&mut self, entity: Entity) -> C {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Removed(id));
+            self.channel.single_write(ComponentEvent::Removed(entity));
         }
-        self.storage.remove(id)
+        self.storage.remove(entity)
     }
 }
 
@@ -117,7 +118,7 @@ impl<C, T> Tracked for DerefFlaggedStorage<C, T> {
 pub struct FlaggedAccessMut<'a, A, C> {
     channel: &'a mut EventChannel<ComponentEvent>,
     emit: bool,
-    id: Index,
+    entity: Entity,
     access: A,
     phantom: PhantomData<C>,
 }
@@ -134,7 +135,7 @@ impl<'a, A, C> DerefMut for FlaggedAccessMut<'a, A, C>
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         if self.emit {
-            self.channel.single_write(ComponentEvent::Modified(self.id));
+            self.channel.single_write(ComponentEvent::Modified(self.entity));
         }
         self.access.deref_mut()
     }

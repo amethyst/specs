@@ -5,7 +5,8 @@ use shrev::{EventChannel, ReaderId};
 use crate::{
     join::Join,
     storage::{MaskedStorage, Storage},
-    world::{Component, Index},
+    world::Component,
+    Entity,
 };
 
 /// `UnprotectedStorage`s that track modifications, insertions, and
@@ -33,13 +34,13 @@ pub trait Tracked {
 pub enum ComponentEvent {
     /// An insertion event, note that a modification event will be triggered if
     /// the entity already had a component and had a new one inserted.
-    Inserted(Index),
+    Inserted(Entity),
     /// A modification event, this will be sent any time a component is accessed
     /// mutably so be careful with joins over `&mut storages` as it could
     /// potentially flag all of them.
-    Modified(Index),
+    Modified(Entity),
     /// A removal event.
-    Removed(Index),
+    Removed(Entity),
 }
 
 impl<'e, T, D> Storage<'e, T, D>

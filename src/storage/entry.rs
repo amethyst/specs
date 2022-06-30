@@ -44,7 +44,7 @@ where
                 let (_, mut value): (BitSetAll, _) = entries.open();
                 // SAFETY: We did check the mask, because the mask is `BitSetAll` and every
                 // index is part of it.
-                Ok(Entries::get(&mut value, e.id()))
+                Ok(Entries::get(&mut value, e))
             }
         } else {
             let gen = self
@@ -143,18 +143,18 @@ where
 
     // SAFETY: We are lengthening the lifetime of `value` to `'a`;
     // TODO: how to prove this is safe?
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
+    unsafe fn get(value: &mut Self::Value, entity: Entity) -> Self::Type {
         // This is HACK. See implementation of Join for &'a mut Storage<'e, T, D> for
         // details why it is necessary.
         let storage: *mut Storage<'b, T, D> = *value as *mut Storage<'b, T, D>;
-        if (*storage).data.mask.contains(id) {
+        if (*storage).data.mask.contains(entity.id()) {
             StorageEntry::Occupied(OccupiedEntry {
-                id,
+	            entity,
                 storage: &mut *storage,
             })
         } else {
             StorageEntry::Vacant(VacantEntry {
-                id,
+                entity,
                 storage: &mut *storage,
             })
         }
@@ -168,7 +168,7 @@ where
 
 /// An entry to a storage which has a component associated to the entity.
 pub struct OccupiedEntry<'a, 'b: 'a, T: 'a, D: 'a> {
-    id: Index,
+    entity: Entity,
     storage: &'a mut Storage<'b, T, D>,
 }
 
@@ -181,7 +181,7 @@ where
     pub fn get(&self) -> &T {
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
-        unsafe { self.storage.data.inner.get(self.id) }
+        unsafe { self.storage.data.inner.get(self.entity) }
     }
 }
 
@@ -194,7 +194,7 @@ where
     pub fn get_mut(&mut self) -> AccessMutReturn<'_, T> {
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
-        unsafe { self.storage.data.inner.get_mut(self.id) }
+        unsafe { self.storage.data.inner.get_mut(self.entity) }
     }
 
     /// Converts the `OccupiedEntry` into a mutable reference bounded by
@@ -202,7 +202,7 @@ where
     pub fn into_mut(self) -> AccessMutReturn<'a, T> {
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
-        unsafe { self.storage.data.inner.get_mut(self.id) }
+        unsafe { self.storage.data.inner.get_mut(self.entity) }
     }
 
     /// Inserts a value into the storage and returns the old one.
@@ -213,14 +213,14 @@ where
 
     /// Removes the component from the storage and returns it.
     pub fn remove(self) -> T {
-        self.storage.data.remove(self.id).unwrap()
+        self.storage.data.remove(self.entity).unwrap()
     }
 }
 
 /// An entry to a storage which does not have a component associated to the
 /// entity.
 pub struct VacantEntry<'a, 'b: 'a, T: 'a, D: 'a> {
-    id: Index,
+    entity: Entity,
     storage: &'a mut Storage<'b, T, D>,
 }
 
@@ -231,11 +231,11 @@ where
 {
     /// Inserts a value into the storage.
     pub fn insert(self, component: T) -> AccessMutReturn<'a, T> {
-        self.storage.data.mask.add(self.id);
+        self.storage.data.mask.add(self.entity.id());
         // SAFETY: This is safe since we added `self.id` to the mask.
         unsafe {
-            self.storage.data.inner.insert(self.id, component);
-            self.storage.data.inner.get_mut(self.id)
+            self.storage.data.inner.insert(self.entity, component);
+            self.storage.data.inner.get_mut(self.entity)
         }
     }
 }

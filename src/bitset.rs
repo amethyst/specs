@@ -9,7 +9,7 @@ use hibitset::{AtomicBitSet, BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr,
 use crate::join::Join;
 #[cfg(feature = "parallel")]
 use crate::join::ParJoin;
-use crate::world::Index;
+use crate::world::{Index, Entity};
 
 macro_rules! define_bit_join {
     ( impl < ( $( $lifetime:tt )* ) ( $( $arg:ident ),* ) > for $bitset:ty ) => {
@@ -26,8 +26,8 @@ macro_rules! define_bit_join {
             }
 
             // SAFETY: No unsafe code and no invariants to meet.
-            unsafe fn get(_: &mut Self::Value, id: Index) -> Self::Type {
-                id
+            unsafe fn get(_: &mut Self::Value, entity: Entity) -> Self::Type {
+                entity.id()
             }
         }
 

@@ -924,9 +924,9 @@ mod test {
             let events = s1.channel().read(&mut reader_id);
             for event in events {
                 match event {
-                    ComponentEvent::Modified(id) => modified.add(*id),
-                    ComponentEvent::Inserted(id) => inserted.add(*id),
-                    ComponentEvent::Removed(id) => removed.add(*id),
+                    ComponentEvent::Modified(entity) => modified.add(entity.id()),
+                    ComponentEvent::Inserted(entity) => inserted.add(entity.id()),
+                    ComponentEvent::Removed(entity) => removed.add(entity.id()),
                 };
             }
         }
@@ -949,9 +949,9 @@ mod test {
             let events = s1.channel().read(&mut reader_id);
             for event in events {
                 match event {
-                    ComponentEvent::Modified(id) => modified.add(*id),
-                    ComponentEvent::Inserted(id) => inserted.add(*id),
-                    ComponentEvent::Removed(id) => removed.add(*id),
+                    ComponentEvent::Modified(entity) => modified.add(entity.id()),
+                    ComponentEvent::Inserted(entity) => inserted.add(entity.id()),
+                    ComponentEvent::Removed(entity) => removed.add(entity.id()),
                 };
             }
         }
@@ -974,9 +974,9 @@ mod test {
             let events = s1.channel().read(&mut reader_id);
             for event in events {
                 match event {
-                    ComponentEvent::Modified(id) => modified.add(*id),
-                    ComponentEvent::Inserted(id) => inserted.add(*id),
-                    ComponentEvent::Removed(id) => removed.add(*id),
+                    ComponentEvent::Modified(entity) => modified.add(entity.id()),
+                    ComponentEvent::Inserted(entity) => inserted.add(entity.id()),
+                    ComponentEvent::Removed(entity) => removed.add(entity.id()),
                 };
             }
         }

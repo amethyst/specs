@@ -33,7 +33,7 @@ use crate::join::ParJoin;
 use crate::{
     error::{Error, WrongGeneration},
     join::Join,
-    world::{Component, EntitiesRes, Entity, Generation, Index},
+    world::{Component, EntitiesRes, Entity, Generation},
 };
 
 use self::drain::Drain;
@@ -71,7 +71,7 @@ impl<'a> Join for AntiStorage<'a> {
     }
 
     // SAFETY: No invariants to meet and no unsafe code.
-    unsafe fn get(_: &mut (), _: Index) {}
+    unsafe fn get(_: &mut (), _: Entity) {}
 }
 
 // SAFETY: Since `get` does not do any memory access, this is safe to implement.
@@ -106,7 +106,7 @@ where
 {
     fn drop(&mut self, entities: &[Entity]) {
         for entity in entities {
-            MaskedStorage::drop(self, entity.id());
+            MaskedStorage::drop(self, *entity);
         }
     }
 }
@@ -181,21 +181,21 @@ impl<T: Component> MaskedStorage<T> {
     }
 
     /// Remove an element by a given index.
-    pub fn remove(&mut self, id: Index) -> Option<T> {
-        if self.mask.remove(id) {
+    pub fn remove(&mut self, entity: Entity) -> Option<T> {
+        if self.mask.remove(entity.id()) {
             // SAFETY: We checked the mask (`remove` returned `true`)
-            Some(unsafe { self.inner.remove(id) })
+            Some(unsafe { self.inner.remove(entity) })
         } else {
             None
         }
     }
 
     /// Drop an element by a given index.
-    pub fn drop(&mut self, id: Index) {
-        if self.mask.remove(id) {
+    pub fn drop(&mut self, entity: Entity) {
+        if self.mask.remove(entity.id()) {
             // SAFETY: We checked the mask (`remove` returned `true`)
             unsafe {
-                self.inner.drop(id);
+                self.inner.drop(entity);
             }
         }
     }
@@ -250,7 +250,7 @@ where
     pub fn get(&self, e: Entity) -> Option<&T> {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
             // SAFETY: We checked the mask, so all invariants are met.
-            Some(unsafe { self.data.inner.get(e.id()) })
+            Some(unsafe { self.data.inner.get(e) })
         } else {
             None
         }
@@ -331,7 +331,7 @@ where
     pub fn get_mut(&mut self, e: Entity) -> Option<AccessMutReturn<'_, T> > {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
             // SAFETY: We checked the mask, so all invariants are met.
-            Some(unsafe { self.data.inner.get_mut(e.id()) })
+            Some(unsafe { self.data.inner.get_mut(e) })
         } else {
             None
         }
@@ -348,12 +348,12 @@ where
             let id = e.id();
             if self.data.mask.contains(id) {
                 // SAFETY: We checked the mask, so all invariants are met.
-                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id).deref_mut() });
+                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(e).deref_mut() });
                 Ok(Some(v))
             } else {
                 self.data.mask.add(id);
                 // SAFETY: The mask was previously empty, so it is safe to insert.
-                unsafe { self.data.inner.insert(id, v) };
+                unsafe { self.data.inner.insert(e, v) };
                 Ok(None)
             }
         } else {
@@ -368,7 +368,7 @@ where
     /// Removes the data associated with an `Entity`.
     pub fn remove(&mut self, e: Entity) -> Option<T> {
         if self.entities.is_alive(e) {
-            self.data.remove(e.id())
+            self.data.remove(e)
         } else {
             None
         }
@@ -417,8 +417,8 @@ where
 
     // SAFETY: Since we require that the mask was checked, an element for `i` must
     // have been inserted without being removed.
-    unsafe fn get(v: &mut Self::Value, i: Index) -> &'a T {
-        v.get(i)
+    unsafe fn get(v: &mut Self::Value, e: Entity) -> &'a T {
+        v.get(e)
     }
 }
 
@@ -460,12 +460,12 @@ where
     }
 
     // TODO: audit unsafe
-    unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
+    unsafe fn get(v: &mut Self::Value, e: Entity) -> Self::Type {
         // This is horribly unsafe. Unfortunately, Rust doesn't provide a way
         // to abstract mutable/immutable state at the moment, so we have to hack
         // our way through it.
         let value: *mut Self::Value = v as *mut Self::Value;
-        (*value).get_mut(i)
+        (*value).get_mut(e)
     }
 }
 
@@ -531,7 +531,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
-    unsafe fn get(&self, id: Index) -> &T;
+    unsafe fn get(&self, entity: Entity) -> &T;
 
     /// Tries mutating the data associated with an `Index`.
     /// This is unsafe because the external set used
@@ -545,7 +545,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
     #[cfg(feature = "nightly")]
-    unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_>;
+    unsafe fn get_mut(&mut self, entity: Entity) -> Self::AccessMut<'_>;
 
     /// Tries mutating the data associated with an `Index`.
     /// This is unsafe because the external set used
@@ -559,7 +559,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
     #[cfg(not(feature = "nightly"))]
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T;
+    unsafe fn get_mut(&mut self, entity: Entity) -> &mut T;
 
     /// Inserts new data for a given `Index`.
     ///
@@ -570,17 +570,17 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// A mask should keep track of those states, and an `id` missing from the
     /// mask is sufficient to call `insert`.
-    unsafe fn insert(&mut self, id: Index, value: T);
+    unsafe fn insert(&mut self, entity: Entity, value: T);
 
-    /// Removes the data associated with an `Index`.
+    /// Removes the data associated with an `Entity`.
     ///
     /// # Safety
     ///
     /// May only be called if an element with `id` was `insert`ed and not yet
     /// removed / dropped.
-    unsafe fn remove(&mut self, id: Index) -> T;
+    unsafe fn remove(&mut self, entity: Entity) -> T;
 
-    /// Drops the data associated with an `Index`.
+    /// Drops the data associated with an `Entity`.
     /// This could be used when a more efficient implementation for it exists than `remove` when the data
     /// is no longer needed.
     /// Defaults to simply calling `remove`.
@@ -589,8 +589,8 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// May only be called if an element with `id` was `insert`ed and not yet
     /// removed / dropped.
-    unsafe fn drop(&mut self, id: Index) {
-        self.remove(id);
+    unsafe fn drop(&mut self, entity: Entity) {
+        self.remove(entity);
     }
 }
 

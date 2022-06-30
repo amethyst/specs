@@ -8,6 +8,7 @@ use hibitset::BitSetLike;
 use crate::{
     storage::{DistinctStorage, UnprotectedStorage},
     world::Index,
+    Entity,
 };
 
 /// Some storages can provide slices to access the underlying data.
@@ -42,20 +43,20 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
         // nothing to do
     }
 
-    unsafe fn get(&self, id: Index) -> &T {
-        &self.0[&id]
+    unsafe fn get(&self, entity: Entity) -> &T {
+        &self.0[&entity.id()]
     }
 
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
-        self.0.get_mut(&id).unwrap()
+    unsafe fn get_mut(&mut self, entity: Entity) -> &mut T {
+        self.0.get_mut(&entity.id()).unwrap()
     }
 
-    unsafe fn insert(&mut self, id: Index, v: T) {
-        self.0.insert(id, v);
+    unsafe fn insert(&mut self, entity: Entity, v: T) {
+        self.0.insert(entity.id(), v);
     }
 
-    unsafe fn remove(&mut self, id: Index) -> T {
-        self.0.remove(&id).unwrap()
+    unsafe fn remove(&mut self, entity: Entity) -> T {
+        self.0.remove(&entity.id()).unwrap()
     }
 }
 
@@ -83,20 +84,20 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
         //nothing to do
     }
 
-    unsafe fn get(&self, id: Index) -> &T {
-        &self.0[&id]
+    unsafe fn get(&self, entity: Entity) -> &T {
+        &self.0[&entity.id()]
     }
 
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
-        self.0.get_mut(&id).unwrap()
+    unsafe fn get_mut(&mut self, entity: Entity) -> &mut T {
+        self.0.get_mut(&entity.id()).unwrap()
     }
 
-    unsafe fn insert(&mut self, id: Index, v: T) {
-        self.0.insert(id, v);
+    unsafe fn insert(&mut self, entity: Entity, v: T) {
+        self.0.insert(entity.id(), v);
     }
 
-    unsafe fn remove(&mut self, id: Index) -> T {
-        self.0.remove(&id).unwrap()
+    unsafe fn remove(&mut self, entity: Entity) -> T {
+        self.0.remove(&entity.id()).unwrap()
     }
 }
 
@@ -163,18 +164,18 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
         // nothing to do
     }
 
-    unsafe fn get(&self, id: Index) -> &T {
-        let did = self.data_id.get_unchecked(id as usize).assume_init();
+    unsafe fn get(&self, entity: Entity) -> &T {
+        let did = self.data_id.get_unchecked(entity.id() as usize).assume_init();
         self.data.get_unchecked(did as usize)
     }
 
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
-        let did = self.data_id.get_unchecked(id as usize).assume_init();
+    unsafe fn get_mut(&mut self, entity: Entity) -> &mut T {
+        let did = self.data_id.get_unchecked(entity.id() as usize).assume_init();
         self.data.get_unchecked_mut(did as usize)
     }
 
-    unsafe fn insert(&mut self, id: Index, v: T) {
-        let id = id as usize;
+    unsafe fn insert(&mut self, entity: Entity, v: T) {
+        let id = entity.id() as usize;
         if self.data_id.len() <= id {
             let delta = id + 1 - self.data_id.len();
             self.data_id.reserve(delta);
@@ -188,8 +189,8 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
         self.data.push(v);
     }
 
-    unsafe fn remove(&mut self, id: Index) -> T {
-        let did = self.data_id.get_unchecked(id as usize).assume_init();
+    unsafe fn remove(&mut self, entity: Entity) -> T {
+        let did = self.data_id.get_unchecked(entity.id() as usize).assume_init();
         let last = *self.entity_id.last().unwrap();
         self.data_id
             .get_unchecked_mut(last as usize)
@@ -219,17 +220,17 @@ where
     {
     }
 
-    unsafe fn get(&self, _: Index) -> &T {
+    unsafe fn get(&self, _: Entity) -> &T {
         &self.0
     }
 
-    unsafe fn get_mut(&mut self, _: Index) -> &mut T {
+    unsafe fn get_mut(&mut self, _: Entity) -> &mut T {
         &mut self.0
     }
 
-    unsafe fn insert(&mut self, _: Index, _: T) {}
+    unsafe fn insert(&mut self, _: Entity, _: T) {}
 
-    unsafe fn remove(&mut self, _: Index) -> T {
+    unsafe fn remove(&mut self, _: Entity) -> T {
         Default::default()
     }
 }
@@ -297,16 +298,16 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         self.0.set_len(0);
     }
 
-    unsafe fn get(&self, id: Index) -> &T {
-        &*self.0.get_unchecked(id as usize).as_ptr()
+    unsafe fn get(&self, entity: Entity) -> &T {
+        &*self.0.get_unchecked(entity.id() as usize).as_ptr()
     }
 
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
-        &mut *self.0.get_unchecked_mut(id as usize).as_mut_ptr()
+    unsafe fn get_mut(&mut self, entity: Entity) -> &mut T {
+        &mut *self.0.get_unchecked_mut(entity.id() as usize).as_mut_ptr()
     }
 
-    unsafe fn insert(&mut self, id: Index, v: T) {
-        let id = id as usize;
+    unsafe fn insert(&mut self, entity: Entity, v: T) {
+        let id = entity.id() as usize;
         if self.0.len() <= id {
             let delta = id + 1 - self.0.len();
             self.0.reserve(delta);
@@ -317,9 +318,9 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         *self.0.get_unchecked_mut(id as usize) = MaybeUninit::new(v);
     }
 
-    unsafe fn remove(&mut self, id: Index) -> T {
+    unsafe fn remove(&mut self, entity: Entity) -> T {
         use std::ptr;
-        ptr::read(self.get(id))
+        ptr::read(self.get(entity))
     }
 }
 
@@ -355,16 +356,16 @@ where
         self.0.clear();
     }
 
-    unsafe fn get(&self, id: Index) -> &T {
-        self.0.get_unchecked(id as usize)
+    unsafe fn get(&self, entity: Entity) -> &T {
+        self.0.get_unchecked(entity.id() as usize)
     }
 
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
-        self.0.get_unchecked_mut(id as usize)
+    unsafe fn get_mut(&mut self, entity: Entity) -> &mut T {
+        self.0.get_unchecked_mut(entity.id() as usize)
     }
 
-    unsafe fn insert(&mut self, id: Index, v: T) {
-        let id = id as usize;
+    unsafe fn insert(&mut self, entity: Entity, v: T) {
+        let id = entity.id() as usize;
 
         if self.0.len() <= id {
             // fill all the empty slots with default values
@@ -377,11 +378,11 @@ where
         }
     }
 
-    unsafe fn remove(&mut self, id: Index) -> T {
+    unsafe fn remove(&mut self, entity: Entity) -> T {
         // make a new default value
         let mut v = T::default();
         // swap it into the vec
-        std::ptr::swap(self.0.get_unchecked_mut(id as usize), &mut v);
+        std::ptr::swap(self.0.get_unchecked_mut(entity.id() as usize), &mut v);
         // return the old value
         v
     }

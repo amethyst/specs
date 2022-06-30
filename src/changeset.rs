@@ -2,7 +2,7 @@
 
 use std::{iter::FromIterator, ops::AddAssign};
 
-use crate::{prelude::*, storage::UnprotectedStorage, world::Index};
+use crate::{prelude::*, storage::UnprotectedStorage};
 
 /// Change set that can be collected from an iterator, and joined on for easy
 /// application to components.
@@ -64,12 +64,12 @@ impl<T> ChangeSet<T> {
         if self.mask.contains(entity.id()) {
             // SAFETY: we checked the mask, thus it's safe to call
             unsafe {
-                *self.inner.get_mut(entity.id()) += value;
+                *self.inner.get_mut(entity) += value;
             }
         } else {
             // SAFETY: we checked the mask, thus it's safe to call
             unsafe {
-                self.inner.insert(entity.id(), value);
+                self.inner.insert(entity, value);
             }
             self.mask.add(entity.id());
         }
@@ -124,9 +124,9 @@ impl<'a, T> Join for &'a mut ChangeSet<T> {
     // SAFETY: No unsafe code and no invariants to meet.
     // `DistinctStorage` invariants are also met, but no `ParJoin` implementation
     // exists yet.
-    unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
+    unsafe fn get(v: &mut Self::Value, entity: Entity) -> Self::Type {
         let value: *mut Self::Value = v as *mut Self::Value;
-        (*value).get_mut(id)
+        (*value).get_mut(entity)
     }
 }
 
@@ -143,8 +143,8 @@ impl<'a, T> Join for &'a ChangeSet<T> {
     // SAFETY: No unsafe code and no invariants to meet.
     // `DistinctStorage` invariants are also met, but no `ParJoin` implementation
     // exists yet.
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        value.get(id)
+    unsafe fn get(value: &mut Self::Value, entity: Entity) -> Self::Type {
+        value.get(entity)
     }
 }
 
@@ -163,8 +163,8 @@ impl<T> Join for ChangeSet<T> {
     // SAFETY: No unsafe code and no invariants to meet.
     // `DistinctStorage` invariants are also met, but no `ParJoin` implementation
     // exists yet.
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        value.remove(id)
+    unsafe fn get(value: &mut Self::Value, entity: Entity) -> Self::Type {
+        value.remove(entity)
     }
 }
 
