@@ -38,8 +38,8 @@ where
         'e: 'a,
     {
         if self.entities.is_alive(e) {
+            let entries = self.entries();
             unsafe {
-                let entries = self.entries();
                 // SAFETY: This is safe since we're not swapping out the mask or the values.
                 let (_, mut value): (BitSetAll, _) = entries.open();
                 // SAFETY: We did check the mask, because the mask is `BitSetAll` and every
