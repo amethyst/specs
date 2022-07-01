@@ -62,7 +62,10 @@ mod marker_test {
             .build();
 
         // Serialize all entities
-        let mut ser = ron::ser::Serializer::new(Some(Default::default()), true);
+        let mut buf = Vec::new();
+        let mut config = ron::ser::PrettyConfig::default();
+        config.struct_names = true;
+        let mut ser = ron::ser::Serializer::with_options(&mut buf, Some(config), Default::default()).unwrap();
 
         world.exec(
             |(ents, comp_a, comp_b, markers, _alloc): (
@@ -82,7 +85,7 @@ mod marker_test {
             },
         );
 
-        let serial = ser.into_output_string();
+        let serial = String::from_utf8(buf).expect("Ron should be utf-8");
 
         let mut de = ron::de::Deserializer::from_str(&serial).unwrap();
 
