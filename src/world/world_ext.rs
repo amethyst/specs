@@ -342,7 +342,7 @@ impl WorldExt for World {
     }
 
     fn entities(&self) -> Read<EntitiesRes> {
-        Read::fetch(&self)
+        Read::fetch(self)
     }
 
     fn entities_mut(&self) -> FetchMut<EntitiesRes> {
@@ -410,7 +410,7 @@ impl WorldExt for World {
             .or_insert_with(Default::default);
         for storage in self
             .fetch_mut::<MetaTable<dyn AnyStorage>>()
-            .iter_mut(&self)
+            .iter_mut(self)
         {
             storage.drop(delete);
         }

@@ -191,7 +191,7 @@ impl<'a> Builder for EntityBuilder<'a> {
     #[inline]
     fn with<T: Component>(self, c: T) -> Self {
         {
-            let mut storage: WriteStorage<T> = SystemData::fetch(&self.world);
+            let mut storage: WriteStorage<T> = SystemData::fetch(self.world);
             // This can't fail.  This is guaranteed by the lifetime 'a
             // in the EntityBuilder.
             storage.insert(self.entity, c).unwrap();

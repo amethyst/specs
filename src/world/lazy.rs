@@ -7,7 +7,7 @@ struct Queue<T>(SegQueue<T>);
 
 impl<T> Default for Queue<T> {
     fn default() -> Self {
-        Self(SegQueue::new())
+        Self(SegQueue::default())
     }
 }
 
@@ -152,16 +152,9 @@ where
 /// Please note that the provided methods take `&self`
 /// so there's no need to get `LazyUpdate` mutably.
 /// This resource is added to the world by default.
+#[derive(Default)]
 pub struct LazyUpdate {
     queue: Arc<Queue<Box<dyn LazyUpdateInternal>>>,
-}
-
-impl Default for LazyUpdate {
-    fn default() -> Self {
-        Self {
-            queue: Default::default(),
-        }
-    }
 }
 
 impl LazyUpdate {
