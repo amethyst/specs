@@ -65,7 +65,8 @@ pub trait Builder {
     #[cfg(not(feature = "parallel"))]
     fn with<C: Component>(self, c: C) -> Self;
 
-    /// Convenience method that calls `self.with(component)` if `Some(component)` is provided
+    /// Convenience method that calls `self.with(component)` if
+    /// `Some(component)` is provided
     ///
     /// # Panics
     ///
@@ -82,7 +83,8 @@ pub trait Builder {
         }
     }
 
-    /// Convenience method that calls `self.with(component)` if `Some(component)` is provided
+    /// Convenience method that calls `self.with(component)` if
+    /// `Some(component)` is provided
     ///
     /// # Panics
     ///
@@ -189,7 +191,7 @@ impl<'a> Builder for EntityBuilder<'a> {
     #[inline]
     fn with<T: Component>(self, c: T) -> Self {
         {
-            let mut storage: WriteStorage<T> = SystemData::fetch(&self.world);
+            let mut storage: WriteStorage<T> = SystemData::fetch(self.world);
             // This can't fail.  This is guaranteed by the lifetime 'a
             // in the EntityBuilder.
             storage.insert(self.entity, c).unwrap();

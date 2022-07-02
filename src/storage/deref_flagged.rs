@@ -13,7 +13,8 @@ use crate::{
 use shrev::EventChannel;
 
 /// Wrapper storage that tracks modifications, insertions, and removals of
-/// components through an `EventChannel`, in a similar manner to `FlaggedStorage`.
+/// components through an `EventChannel`, in a similar manner to
+/// `FlaggedStorage`.
 ///
 /// Unlike `FlaggedStorage`, this storage uses a wrapper type for mutable
 /// accesses that only emits modification events when the component is actually
@@ -55,7 +56,10 @@ where
 }
 
 impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for DerefFlaggedStorage<C, T> {
-    type AccessMut<'a> where T: 'a = FlaggedAccessMut<'a, <T as UnprotectedStorage<C>>::AccessMut<'a>, C>;
+    type AccessMut<'a>
+    where
+        T: 'a,
+    = FlaggedAccessMut<'a, <T as UnprotectedStorage<C>>::AccessMut<'a>, C>;
 
     unsafe fn clean<B>(&mut self, has: B)
     where
@@ -123,14 +127,19 @@ pub struct FlaggedAccessMut<'a, A, C> {
 }
 
 impl<'a, A, C> Deref for FlaggedAccessMut<'a, A, C>
-    where A: Deref<Target = C>
+where
+    A: Deref<Target = C>,
 {
     type Target = C;
-    fn deref(&self) -> &Self::Target { self.access.deref() }
+
+    fn deref(&self) -> &Self::Target {
+        self.access.deref()
+    }
 }
 
 impl<'a, A, C> DerefMut for FlaggedAccessMut<'a, A, C>
-    where A: DerefMut<Target = C>
+where
+    A: DerefMut<Target = C>,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         if self.emit {

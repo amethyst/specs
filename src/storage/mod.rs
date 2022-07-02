@@ -1,21 +1,21 @@
 //! Component storage types, implementations for component joins, etc.
 
+#[cfg(feature = "nightly")]
+pub use self::deref_flagged::{DerefFlaggedStorage, FlaggedAccessMut};
 pub use self::{
     data::{ReadStorage, WriteStorage},
     entry::{Entries, OccupiedEntry, StorageEntry, VacantEntry},
     flagged::FlaggedStorage,
     generic::{GenericReadStorage, GenericWriteStorage},
     restrict::{
-        ImmutableParallelRestriction, MutableParallelRestriction, RestrictedStorage,
-        SequentialRestriction, PairedStorage
+        ImmutableParallelRestriction, MutableParallelRestriction, PairedStorage, RestrictedStorage,
+        SequentialRestriction,
     },
     storages::{
         BTreeStorage, DefaultVecStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage,
     },
     track::{ComponentEvent, Tracked},
 };
-#[cfg(feature = "nightly")]
-pub use self::deref_flagged::{DerefFlaggedStorage, FlaggedAccessMut};
 
 use self::storages::SliceAccess;
 
@@ -39,11 +39,11 @@ use crate::{
 use self::drain::Drain;
 
 mod data;
+#[cfg(feature = "nightly")]
+mod deref_flagged;
 mod drain;
 mod entry;
 mod flagged;
-#[cfg(feature = "nightly")]
-mod deref_flagged;
 mod generic;
 mod restrict;
 mod storages;
@@ -328,7 +328,7 @@ where
     }
 
     /// Tries to mutate the data associated with an `Entity`.
-    pub fn get_mut(&mut self, e: Entity) -> Option<AccessMutReturn<'_, T> > {
+    pub fn get_mut(&mut self, e: Entity) -> Option<AccessMutReturn<'_, T>> {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
             // SAFETY: We checked the mask, so all invariants are met.
             Some(unsafe { self.data.inner.get_mut(e.id()) })
@@ -507,7 +507,9 @@ where
 pub trait UnprotectedStorage<T>: TryDefault {
     /// The wrapper through with mutable access of a component is performed.
     #[cfg(feature = "nightly")]
-    type AccessMut<'a>: DerefMut<Target=T> where Self: 'a;
+    type AccessMut<'a>: DerefMut<Target = T>
+    where
+        Self: 'a;
 
     /// Clean the storage given a bitset with bits set for valid indices.
     /// Allows us to safely drop the storage.
@@ -581,8 +583,8 @@ pub trait UnprotectedStorage<T>: TryDefault {
     unsafe fn remove(&mut self, id: Index) -> T;
 
     /// Drops the data associated with an `Index`.
-    /// This could be used when a more efficient implementation for it exists than `remove` when the data
-    /// is no longer needed.
+    /// This could be used when a more efficient implementation for it exists
+    /// than `remove` when the data is no longer needed.
     /// Defaults to simply calling `remove`.
     ///
     /// # Safety
