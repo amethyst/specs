@@ -1,6 +1,6 @@
 [package]
 name = "specs"
-version = "0.17.0"
+version = "0.18.0"
 description = """
 Specs is an Entity-Component-System library written in Rust.
 """
@@ -10,7 +10,7 @@ homepage = "https://specs.amethyst.rs"
 readme = "README.md"
 keywords = ["gamedev", "ecs", "entity", "component"]
 categories = ["concurrency", "game-engines"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 authors = ["slide-rs hackers"]
 exclude = ["bors.toml", ".travis.yml"]
 edition = "2018"
