@@ -3,8 +3,8 @@ extern crate ron;
 extern crate serde;
 extern crate specs;
 
-use std::{convert::Infallible, fmt};
 use ron::ser::PrettyConfig;
+use std::{convert::Infallible, fmt};
 
 use specs::{
     prelude::*,
@@ -157,7 +157,9 @@ fn main() {
             let mut buf = Vec::new();
             let mut config = PrettyConfig::default();
             config.struct_names = true;
-            let mut ser = ron::ser::Serializer::with_options(&mut buf, Some(config), Default::default()).unwrap();
+            let mut ser =
+                ron::ser::Serializer::with_options(&mut buf, Some(config), Default::default())
+                    .unwrap();
 
             // For serialization we use the
             // [`SerializeComponents`](struct.SerializeComponents.html)-trait's `serialize`

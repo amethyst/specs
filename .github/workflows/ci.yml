@@ -49,8 +49,8 @@ jobs:
         if: matrix.toolchain == 'stable' && matrix.os == 'ubuntu-latest'
 
       # run rustfmt and clippy checks, but only once
-      #- run: cargo +nightly fmt --all -- --check
-      #  if: matrix.toolchain == 'stable' && matrix.os == 'ubuntu-latest'
+      - run: cargo +nightly fmt --all -- --check
+        if: matrix.toolchain == 'stable' && matrix.os == 'ubuntu-latest'
 
       #- run: cargo +nightly clippy -Z unstable-options --workspace --all-targets --all-features
       #  if: matrix.toolchain == 'stable' && matrix.os == 'ubuntu-latest'

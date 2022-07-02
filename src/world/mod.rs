@@ -65,7 +65,8 @@ pub trait Builder {
     #[cfg(not(feature = "parallel"))]
     fn with<C: Component>(self, c: C) -> Self;
 
-    /// Convenience method that calls `self.with(component)` if `Some(component)` is provided
+    /// Convenience method that calls `self.with(component)` if
+    /// `Some(component)` is provided
     ///
     /// # Panics
     ///
@@ -82,7 +83,8 @@ pub trait Builder {
         }
     }
 
-    /// Convenience method that calls `self.with(component)` if `Some(component)` is provided
+    /// Convenience method that calls `self.with(component)` if
+    /// `Some(component)` is provided
     ///
     /// # Panics
     ///

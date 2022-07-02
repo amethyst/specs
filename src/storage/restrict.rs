@@ -12,7 +12,7 @@ use crate::join::Join;
 #[cfg(feature = "parallel")]
 use crate::join::ParJoin;
 use crate::{
-    storage::{MaskedStorage, Storage, UnprotectedStorage, AccessMutReturn},
+    storage::{AccessMutReturn, MaskedStorage, Storage, UnprotectedStorage},
     world::{Component, EntitiesRes, Entity, Index},
 };
 
@@ -248,7 +248,7 @@ where
 {
     /// Gets the component related to the current entry without checking whether
     /// the storage has it or not.
-    pub fn get_mut_unchecked(&mut self) -> AccessMutReturn<'_, C>  {
+    pub fn get_mut_unchecked(&mut self) -> AccessMutReturn<'_, C> {
         unsafe { self.storage.borrow_mut().get_mut(self.index) }
     }
 }

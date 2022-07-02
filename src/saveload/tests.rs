@@ -65,7 +65,8 @@ mod marker_test {
         let mut buf = Vec::new();
         let mut config = ron::ser::PrettyConfig::default();
         config.struct_names = true;
-        let mut ser = ron::ser::Serializer::with_options(&mut buf, Some(config), Default::default()).unwrap();
+        let mut ser =
+            ron::ser::Serializer::with_options(&mut buf, Some(config), Default::default()).unwrap();
 
         world.exec(
             |(ents, comp_a, comp_b, markers, _alloc): (
