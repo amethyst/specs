@@ -408,10 +408,7 @@ impl WorldExt for World {
     fn delete_components(&mut self, delete: &[Entity]) {
         self.entry::<MetaTable<dyn AnyStorage>>()
             .or_insert_with(Default::default);
-        for storage in self
-            .fetch_mut::<MetaTable<dyn AnyStorage>>()
-            .iter_mut(self)
-        {
+        for storage in self.fetch_mut::<MetaTable<dyn AnyStorage>>().iter_mut(self) {
             storage.drop(delete);
         }
     }
