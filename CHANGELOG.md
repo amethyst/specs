@@ -1,5 +1,15 @@
 # Unreleased
 
+# 0.18.0 (2022-07-02)
+
+* Increase minumum rustc version to 1.56.1 because of shred and hashbrown dependencies ([#748])
+
+[#748]: https://github.com/amethyst/specs/pull/748
+
+Full changelog: https://github.com/amethyst/specs/compare/v0.17.0...v0.18.0
+
+# 0.17.0 (2021-06-08)
+
 * Deprecate `error::NoError` in favor of `std::convert::Infallible` ([#688])
 * Use `#[non_exhaustive]` for `error::Error`. Note this bumps the minimum supported rust version to 1.40 ([#688]).
 * Add the `derive` feature that enables all derive-related smaller features
