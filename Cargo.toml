@@ -18,12 +18,8 @@ edition = "2018"
 # the `storage_cmp` and `storage_sparse` benches are called from `benches_main`
 autobenches = false
 
-[badges]
-travis-ci = { repository = "slide-rs/specs" }
-
 [dependencies]
 crossbeam-queue = "0.3"
-hashbrown = "0.12"
 hibitset = { version = "0.6.3", default-features = false }
 log = "0.4.8"
 shred = { version = "0.14", default-features = false }
@@ -37,7 +33,7 @@ uuid = { version = "1.0", optional = true, features = ["v4", "serde"] }
 
 [features]
 default = ["parallel"]
-parallel = ["rayon", "shred/parallel", "hibitset/parallel"]
+parallel = ["dep:rayon", "shred/parallel", "hibitset/parallel"]
 uuid_entity = ["uuid", "serde"]
 stdweb = ["uuid/js"]
 storage-event-control = []
