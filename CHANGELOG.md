@@ -1,5 +1,9 @@
 # Unreleased
 
+* Bump shred to version `0.14.1` ([shred changelog][shred-changelog], [#7xx])
+
+[#7xx]: https://github.com/amethyst/specs/pull/7xx
+
 # 0.18.0 (2022-07-02)
 
 * Increase minumum rustc version to 1.56.1 because of shred and hashbrown dependencies ([#748])
