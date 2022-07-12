@@ -1,8 +1,8 @@
-# Unreleased
+# 0.19.0 (2022-07-12)
 
-* Bump shred to version `0.14.1` ([shred changelog][shred-changelog], [#7xx])
+* Bump shred to version `0.14.1`, MSRV to 1.60.0 ([shred changelog][shred-changelog], [#756])
 
-[#7xx]: https://github.com/amethyst/specs/pull/7xx
+[#756]: https://github.com/amethyst/specs/pull/756
 
 # 0.18.0 (2022-07-02)
 
