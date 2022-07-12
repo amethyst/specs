@@ -12,7 +12,7 @@ keywords = ["gamedev", "ecs", "entity", "component"]
 categories = ["concurrency", "game-engines"]
 license = "MIT OR Apache-2.0"
 authors = ["slide-rs hackers"]
-exclude = ["bors.toml", ".travis.yml"]
+include = ["src", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
 edition = "2021"
 rust-version = "1.60.0"
 
