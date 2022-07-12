@@ -13,7 +13,8 @@ categories = ["concurrency", "game-engines"]
 license = "MIT OR Apache-2.0"
 authors = ["slide-rs hackers"]
 exclude = ["bors.toml", ".travis.yml"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.60.0"
 
 # the `storage_cmp` and `storage_sparse` benches are called from `benches_main`
 autobenches = false
