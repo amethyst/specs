@@ -20,10 +20,11 @@ rust-version = "1.60.0"
 autobenches = false
 
 [dependencies]
+ahash = "0.7.6"
 crossbeam-queue = "0.3"
 hibitset = { version = "0.6.3", default-features = false }
 log = "0.4.8"
-shred = { version = "0.14", default-features = false }
+shred = { version = "0.14.1", default-features = false }
 shrev = "1.1.1"
 tuple_utils = "0.4.0"
 

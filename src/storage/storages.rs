@@ -1,10 +1,8 @@
 //! Different types of storages you can use for your components.
 
-use std::{
-    collections::{BTreeMap, HashMap},
-    mem::MaybeUninit,
-};
+use std::{collections::BTreeMap, mem::MaybeUninit};
 
+use ahash::AHashMap as HashMap;
 use hibitset::BitSetLike;
 
 use crate::{
