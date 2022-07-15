@@ -1,4 +1,4 @@
-# 0.19.0 (2022-07-12)
+# 0.19.0 (2022-07-15)
 
 * Bump shred to version `0.14.1`, MSRV to 1.60.0 ([shred changelog][shred-changelog], [#756])
 
