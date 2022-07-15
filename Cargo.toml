@@ -53,7 +53,7 @@ criterion = "0.3.1"
 ron = "0.7.1"
 rand = "0.8"
 serde_json = "1.0.48"
-shred = { version = "0.14.0", default-features = false, features = ["shred-derive"] }
+shred = { version = "0.14.1", default-features = false, features = ["shred-derive"] }
 specs-derive = { path = "specs-derive", version = "0.4.1" }
 
 [[example]]
