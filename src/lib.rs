@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+#![deny(clippy::disallowed_types)]
 #![cfg_attr(
     feature = "nightly",
     feature(generic_associated_types, associated_type_defaults)

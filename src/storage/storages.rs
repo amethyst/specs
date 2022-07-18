@@ -2,7 +2,7 @@
 
 use std::{collections::BTreeMap, mem::MaybeUninit};
 
-use hashbrown::HashMap;
+use ahash::AHashMap as HashMap;
 use hibitset::BitSetLike;
 
 use crate::{
@@ -66,7 +66,7 @@ unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 
 /// `HashMap`-based storage. Best suited for rare components.
 ///
-/// This uses the [hashbrown::HashMap] internally.
+/// This uses the [std::collections::HashMap] internally.
 pub struct HashMapStorage<T>(HashMap<Index, T>);
 
 impl<T> Default for HashMapStorage<T> {
