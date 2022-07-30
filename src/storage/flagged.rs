@@ -1,9 +1,14 @@
+// TODO: promote to the whole crate
+#![deny(unsafe_op_in_unsafe_fn)]
+
 use std::marker::PhantomData;
 
 use hibitset::BitSetLike;
 
 use crate::{
-    storage::{ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage},
+    storage::{
+        ComponentEvent, DenseVecStorage, SyncUnsafeCell, Tracked, TryDefault, UnprotectedStorage,
+    },
     world::{Component, Index},
 };
 
@@ -165,7 +170,7 @@ use shrev::EventChannel;
 /// }
 /// ```
 pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
-    channel: EventChannel<ComponentEvent>,
+    channel: SyncUnsafeCell<EventChannel<ComponentEvent>>,
     storage: T,
     #[cfg(feature = "storage-event-control")]
     event_emission: bool,
@@ -190,7 +195,7 @@ where
 {
     fn default() -> Self {
         FlaggedStorage {
-            channel: EventChannel::<ComponentEvent>::default(),
+            channel: SyncUnsafeCell::new(EventChannel::<ComponentEvent>::default()),
             storage: T::unwrap_default(),
             #[cfg(feature = "storage-event-control")]
             event_emission: true,
@@ -210,51 +215,73 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
     where
         B: BitSetLike,
     {
-        self.storage.clean(has);
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.clean(has) };
     }
 
     unsafe fn get(&self, id: Index) -> &C {
-        self.storage.get(id)
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.get_mut(id) }
     }
 
     #[cfg(feature = "nightly")]
-    unsafe fn get_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
+    unsafe fn get_mut(&self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Modified(id));
+            let channel_ptr = self.channel.get();
+            // SAFETY: Caller required to ensure references returned from other
+            // safe methods such as Tracked::channel are no longer alive.
+            unsafe { &mut *channel_ptr }.single_write(ComponentEvent::Modified(id));
         }
-        self.storage.get_mut(id)
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.get_mut(id) }
     }
 
     #[cfg(not(feature = "nightly"))]
-    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
+    unsafe fn get_mut(&self, id: Index) -> &mut C {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Modified(id));
+            let channel_ptr = self.channel.get();
+            // SAFETY: Caller required to ensure references returned from other
+            // safe methods such as Tracked::channel are no longer alive.
+            unsafe { &mut *channel_ptr }.single_write(ComponentEvent::Modified(id));
         }
-        self.storage.get_mut(id)
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.get_mut(id) }
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Inserted(id));
+            self.channel
+                .get_mut()
+                .single_write(ComponentEvent::Inserted(id));
         }
-        self.storage.insert(id, comp);
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.insert(id, comp) };
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Removed(id));
+            self.channel
+                .get_mut()
+                .single_write(ComponentEvent::Removed(id));
         }
-        self.storage.remove(id)
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.remove(id) }
     }
 }
 
 impl<C, T> Tracked for FlaggedStorage<C, T> {
     fn channel(&self) -> &EventChannel<ComponentEvent> {
-        &self.channel
+        let channel_ptr = self.channel.get();
+        // SAFETY: The only place that mutably accesses the channel via a shared
+        // reference is the impl of `UnprotectedStorage::get_mut` which requires
+        // callers to avoid calling safe methods with `&self` while those
+        // mutable references are in use and to ensure any references from those
+        // safe methods are no longer alive.
+        unsafe { &*channel_ptr }
     }
 
     fn channel_mut(&mut self) -> &mut EventChannel<ComponentEvent> {
-        &mut self.channel
+        self.channel.get_mut()
     }
 
     #[cfg(feature = "storage-event-control")]

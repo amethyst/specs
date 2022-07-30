@@ -37,6 +37,7 @@ use crate::{
 };
 
 use self::drain::Drain;
+use self::sync_unsafe_cell::SyncUnsafeCell;
 
 mod data;
 #[cfg(feature = "nightly")]
@@ -47,6 +48,7 @@ mod flagged;
 mod generic;
 mod restrict;
 mod storages;
+mod sync_unsafe_cell;
 #[cfg(test)]
 mod tests;
 mod track;
@@ -351,9 +353,9 @@ where
                 std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id).deref_mut() });
                 Ok(Some(v))
             } else {
-                self.data.mask.add(id);
                 // SAFETY: The mask was previously empty, so it is safe to insert.
                 unsafe { self.data.inner.insert(id, v) };
+                self.data.mask.add(id);
                 Ok(None)
             }
         } else {
@@ -512,7 +514,8 @@ pub trait UnprotectedStorage<T>: TryDefault {
         Self: 'a;
 
     /// Clean the storage given a bitset with bits set for valid indices.
-    /// Allows us to safely drop the storage.
+    ///
+    /// Allows us to drop the storage without leaking components.
     ///
     /// # Safety
     ///
@@ -529,10 +532,13 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// # Safety
     ///
     /// May only be called after a call to `insert` with `id` and
-    /// no following call to `remove` with `id`.
+    /// no following call to `remove` with `id` or to `clean`.
     ///
     /// A mask should keep track of those states, and an `id` being contained
     /// in the tracking mask is sufficient to call this method.
+    ///
+    /// There must be no extant aliasing mutable reference to this component
+    /// (i.e. obtained from `get_mut` with the same `id`).
     unsafe fn get(&self, id: Index) -> &T;
 
     /// Tries mutating the data associated with an `Index`.
@@ -542,12 +548,22 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// # Safety
     ///
     /// May only be called after a call to `insert` with `id` and
-    /// no following call to `remove` with `id`.
+    /// no following call to `remove` with `id` or to `clean`.
     ///
-    /// A mask should keep track of those states, and an `id` being contained
-    /// in the tracking mask is sufficient to call this method.
+    /// A mask should keep track of those states, and an `id` being contained in
+    /// the tracking mask is sufficient to call this method.
+    ///
+    /// There must be no extant aliasing references to this component (i.e.
+    /// obtained with the same `id` from `get` or `get_mut`). Additionally,
+    /// while the references returned here are in use, safe methods on this
+    /// type that take `&self` (e.g. [`SliceAccess::as_slice`],
+    /// [`Tracked::channel`]) must not be called and any references returned by
+    /// such methods must no longer be alive when `get_mut` is called.
+    ///
+    /// Unless this type implements `DistinctStorage`, calling this from
+    /// multiple threads at once is unsound.
     #[cfg(feature = "nightly")]
-    unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_>;
+    unsafe fn get_mut(&self, id: Index) -> Self::AccessMut<'_>;
 
     /// Tries mutating the data associated with an `Index`.
     /// This is unsafe because the external set used
@@ -556,22 +572,35 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// # Safety
     ///
     /// May only be called after a call to `insert` with `id` and
-    /// no following call to `remove` with `id`.
+    /// no following call to `remove` with `id` or to `clean`.
     ///
-    /// A mask should keep track of those states, and an `id` being contained
-    /// in the tracking mask is sufficient to call this method.
+    /// A mask should keep track of those states, and an `id` being contained in
+    /// the tracking mask is sufficient to call this method.
+    ///
+    /// There must be no extant aliasing references to this component (i.e.
+    /// obtained with the same `id` from `get` or `get_mut`).
+    ///
+    /// Unless this type implements `DistinctStorage`, calling this from
+    /// multiple threads at once is unsound.
     #[cfg(not(feature = "nightly"))]
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T;
+    unsafe fn get_mut(&self, id: Index) -> &mut T;
 
     /// Inserts new data for a given `Index`.
     ///
     /// # Safety
     ///
+    // TODO: does anything rely on `insert` not having been called before or is
+    // this just trying to make sure things are dropped (if so it should not be
+    // listed under the safety requirements)?
     /// May only be called if `insert` was not called with `id` before, or
-    /// was reverted by a call to `remove` with `id.
+    /// was reverted by a call to `remove` with `id` or a call to `clean`.
     ///
     /// A mask should keep track of those states, and an `id` missing from the
     /// mask is sufficient to call `insert`.
+    ///
+    /// If this call unwinds the insertion should be considered to have failed
+    /// and not be included in the mask or count as having called `insert` for
+    /// the safety requirements of other methods here.
     unsafe fn insert(&mut self, id: Index, value: T);
 
     /// Removes the data associated with an `Index`.
