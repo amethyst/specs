@@ -118,8 +118,8 @@ where
 
 /// This is a marker trait which requires you to uphold the following guarantee:
 ///
-/// > Multiple threads may call `get_mut()` with distinct indices without
-/// causing > undefined behavior.
+/// > Multiple threads may call `shared_get_access_mut()` with distinct indices
+/// without causing > undefined behavior.
 ///
 /// This is for example valid for `Vec`:
 ///
@@ -127,15 +127,14 @@ where
 /// vec![1, 2, 3];
 /// ```
 ///
-/// We may modify both element 1 and 2 at the same time; indexing the vector
-/// mutably does not modify anything else than the respective elements.
+/// We may modify both element 1 and 2 at the same time.
 ///
 /// As a counter example, we may have some kind of cached storage; it caches
 /// elements when they're retrieved, so pushes a new element to some
 /// cache-vector. This storage is not allowed to implement `DistinctStorage`.
 ///
 /// Implementing this trait marks the storage safe for concurrent mutation (of
-/// distinct elements), thus allows `join_par()`.
+/// distinct elements), thus allows `par_join()`.
 pub unsafe trait DistinctStorage {}
 
 /// The status of an `insert()`ion into a storage.
@@ -518,11 +517,29 @@ where
     }
 }
 
+macro_rules! get_access_mut_docs {
+    ($fn_definition:item) => {
+        /// Gets mutable access to the the data associated with an `Index`.
+        ///
+        /// This is unsafe because the external set used to protect this storage is
+        /// absent.
+        ///
+        /// # Safety
+        ///
+        /// May only be called after a call to `insert` with `id` and no following
+        /// call to `remove` with `id` or to `clean`.
+        ///
+        /// A mask should keep track of those states, and an `id` being contained in
+        /// the tracking mask is sufficient to call this method.
+        $fn_definition
+    };
+}
+
 /// Used by the framework to quickly join components.
 pub trait UnprotectedStorage<T>: TryDefault {
     /// The wrapper through with mutable access of a component is performed.
     #[cfg(feature = "nightly")]
-    type AccessMut<'a>: DerefMut<Target = T>
+    type AccessMut<'a>
     where
         Self: 'a;
 
@@ -542,9 +559,10 @@ pub trait UnprotectedStorage<T>: TryDefault {
     where
         B: BitSetLike;
 
-    /// Tries reading the data associated with an `Index`.
-    /// This is unsafe because the external set used
-    /// to protect this storage is absent.
+    /// Gets a shared reference to the data associated with an `Index`.
+    ///
+    /// This is unsafe because the external set used to protect this storage is
+    /// absent.
     ///
     /// # Safety
     ///
@@ -558,61 +576,34 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// (i.e. obtained from `get_mut` with the same `id`).
     unsafe fn get(&self, id: Index) -> &T;
 
-    /// Tries mutating the data associated with an `Index`.
-    /// This is unsafe because the external set used
-    /// to protect this storage is absent.
+    /// Gets an exclusive reference to the data associated with an `Index`.
+    ///
+    /// This is unsafe because the external set used to protect this storage is
+    /// absent.
     ///
     /// # Safety
     ///
-    /// May only be called after a call to `insert` with `id` and
-    /// no following call to `remove` with `id` or to `clean`.
+    /// May only be called after a call to `insert` with `id` and no following
+    /// call to `remove` with `id` or to `clean`.
     ///
     /// A mask should keep track of those states, and an `id` being contained in
     /// the tracking mask is sufficient to call this method.
-    ///
-    /// There must be no extant aliasing references to this component (i.e.
-    /// obtained with the same `id` from `get` or `get_mut`). Additionally,
-    /// while the references returned here are in use, safe methods on this
-    /// type that take `&self` (e.g. [`SliceAccess::as_slice`],
-    /// [`Tracked::channel`]) must not be called and any references returned by
-    /// such methods must no longer be alive when `get_mut` is called.
-    ///
-    /// Unless this type implements `DistinctStorage`, calling this from
-    /// multiple threads at once is unsound.
-    #[cfg(feature = "nightly")]
-    unsafe fn get_mut(&self, id: Index) -> Self::AccessMut<'_>;
+    unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_>;
 
-    /// Tries mutating the data associated with an `Index`.
-    /// This is unsafe because the external set used
-    /// to protect this storage is absent.
-    ///
-    /// # Safety
-    ///
-    /// May only be called after a call to `insert` with `id` and
-    /// no following call to `remove` with `id` or to `clean`.
-    ///
-    /// A mask should keep track of those states, and an `id` being contained in
-    /// the tracking mask is sufficient to call this method.
-    ///
-    /// There must be no extant aliasing references to this component (i.e.
-    /// obtained with the same `id` from `get` or `get_mut`). Additionally,
-    /// while the references returned here are in use, safe methods on this
-    /// type that take `&self` (e.g. [`SliceAccess::as_slice`],
-    /// [`Tracked::channel`]) must not be called and any references returned by
-    /// such methods must no longer be alive when `get_mut` is called.
-    ///
-    /// Unless this type implements `DistinctStorage`, calling this from
-    /// multiple threads at once is unsound.
+    #[cfg(feature = "nightly")]
+    get_access_mut_docs! {
+        unsafe fn get_access_mut(&self, id: Index) -> Self::AccessMut<'_>;
+    }
+
     #[cfg(not(feature = "nightly"))]
-    unsafe fn get_mut(&self, id: Index) -> &mut T;
+    get_access_mut_docs! {
+        unsafe fn get_access_mut(&mut self, id: Index) -> &mut T;
+    }
 
     /// Inserts new data for a given `Index`.
     ///
     /// # Safety
     ///
-    // TODO: does anything rely on `insert` not having been called before or is
-    // this just trying to make sure things are dropped (if so it should not be
-    // listed under the safety requirements)?
     /// May only be called if `insert` was not called with `id` before, or
     /// was reverted by a call to `remove` with `id` or a call to `clean`.
     ///
@@ -648,6 +639,52 @@ pub trait UnprotectedStorage<T>: TryDefault {
     unsafe fn drop(&mut self, id: Index) {
         // SAFETY: Requirements passed to the caller.
         unsafe { self.remove(id) };
+    }
+}
+
+macro_rules! shared_get_access_mut_docs {
+    ($fn_definition:item) => {
+        /// Gets mutable access to the the data associated with an `Index`.
+        ///
+        /// This is unsafe because the external set used to protect this storage is
+        /// absent and because it doesn't protect against concurrent calls from
+        /// multiple threads and aliasing must manually be managed.
+        ///
+        /// # Safety
+        ///
+        /// May only be called after a call to `insert` with `id` and no following
+        /// call to `remove` with `id` or to `clean`.
+        ///
+        /// A mask should keep track of those states, and an `id` being contained in
+        /// the tracking mask is sufficient to call this method.
+        ///
+        /// There must be no extant aliasing references to this component (i.e.
+        /// obtained with the same `id`). Additionally, references obtained from
+        /// methods on this type that take `&self` (e.g.
+        /// [`UnprotectedStorage::get`], [`SliceAccess::as_slice`],
+        /// [`Tracked::channel`]) must no longer be alive when
+        /// `shared_get_access_mut` is called and these methods must not be
+        /// called while the references returned here are alive. Essentially,
+        /// the `unsafe` code calling this must hold exclusive access of the
+        /// storage at some level to ensure only known code is calling `&self`
+        /// methods during the usage of this method and the references it
+        /// produces.
+        ///
+        /// Unless this type implements `DistinctStorage`, calling this from
+        /// multiple threads at once is unsound.
+        $fn_definition
+    };
+}
+
+trait SharedGetAccessMutStorage: UnprotectedStorage {
+    #[cfg(feature = "nightly")]
+    shared_get_access_mut_docs! {
+        fn shared_get_access_mut(&self, id: Index) -> Self::AccessMut<'_> {}
+    }
+
+    #[cfg(not(feature = "nightly"))]
+    shared_get_access_mut_docs! {
+        fn shared_get_access_mut(&self, id: Index) -> &mut T {}
     }
 }
 
