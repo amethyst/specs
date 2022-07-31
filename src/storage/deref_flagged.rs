@@ -56,10 +56,8 @@ where
 }
 
 impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for DerefFlaggedStorage<C, T> {
-    type AccessMut<'a>
-    where
-        T: 'a,
-    = FlaggedAccessMut<'a, <T as UnprotectedStorage<C>>::AccessMut<'a>, C>;
+    type AccessMut<'a> = FlaggedAccessMut<'a, <T as UnprotectedStorage<C>>::AccessMut<'a>, C>
+        where T: 'a;
 
     unsafe fn clean<B>(&mut self, has: B)
     where
@@ -72,7 +70,7 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for DerefFlag
         self.storage.get(id)
     }
 
-    unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_> {
+    unsafe fn get_mut(&self, id: Index) -> Self::AccessMut<'_> {
         let emit = self.emit_event();
         FlaggedAccessMut {
             channel: &mut self.channel,

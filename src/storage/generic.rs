@@ -121,10 +121,8 @@ where
     T: Component,
 {
     #[cfg(feature = "nightly")]
-    type AccessMut<'b>
-    where
-        Self: 'b,
-    = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'b>;
+    type AccessMut<'b> = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'b>
+        where Self: 'b;
     type Component = T;
 
     fn get_mut(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, T>> {
@@ -162,10 +160,8 @@ where
     T: Component,
 {
     #[cfg(feature = "nightly")]
-    type AccessMut<'c>
-    where
-        Self: 'c,
-    = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'c>;
+    type AccessMut<'c> = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'c>
+        where Self: 'c;
     type Component = T;
 
     fn get_mut(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, T>> {
