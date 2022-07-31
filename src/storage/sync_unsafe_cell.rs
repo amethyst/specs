@@ -1,5 +1,3 @@
-// TODO: promote to the whole crate
-#![deny(unsafe_op_in_unsafe_fn)]
 //! Stand in for core::cell::SyncUnsafeCell since that is still unstable.
 //!
 //! TODO: Remove when core::cell::SyncUnsafeCell is stabilized

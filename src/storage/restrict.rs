@@ -147,7 +147,8 @@ where
     }
 
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        let value: &'rf mut Self::Value = &mut *(value as *mut Self::Value);
+        // SAFETY: S-TODO update when changing Join trait
+        let value: &'rf mut Self::Value = unsafe { &mut *(value as *mut Self::Value) };
         PairedStorage {
             index: id,
             storage: value.0,
@@ -249,6 +250,7 @@ where
     /// Gets the component related to the current entry without checking whether
     /// the storage has it or not.
     pub fn get_mut_unchecked(&mut self) -> AccessMutReturn<'_, C> {
+        // SAFETY: S-TODO update comment when Join trait is fixed.
         unsafe { self.storage.borrow_mut().get_mut(self.index) }
     }
 }
@@ -291,6 +293,7 @@ where
     /// threads.
     pub fn get_mut(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, C>> {
         if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
+            // SAFETY: S-TODO update comment when Join trait is fixed.
             Some(unsafe { self.storage.borrow_mut().get_mut(entity.id()) })
         } else {
             None

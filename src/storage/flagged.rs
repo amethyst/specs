@@ -1,6 +1,3 @@
-// TODO: promote to the whole crate
-#![deny(unsafe_op_in_unsafe_fn)]
-
 use std::marker::PhantomData;
 
 use hibitset::BitSetLike;
@@ -221,7 +218,7 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
 
     unsafe fn get(&self, id: Index) -> &C {
         // SAFETY: Requirements passed to caller.
-        unsafe { self.storage.get_mut(id) }
+        unsafe { self.storage.get(id) }
     }
 
     #[cfg(feature = "nightly")]

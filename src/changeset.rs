@@ -1,3 +1,6 @@
+// TODO: promote to the whole crate
+#![deny(unsafe_op_in_unsafe_fn)]
+
 //! Provides a changeset that can be collected from an iterator.
 
 use std::{iter::FromIterator, ops::AddAssign};
@@ -62,28 +65,28 @@ impl<T> ChangeSet<T> {
         T: AddAssign,
     {
         if self.mask.contains(entity.id()) {
-            // SAFETY: we checked the mask, thus it's safe to call
-            unsafe {
-                *self.inner.get_mut(entity.id()) += value;
-            }
+            // SAFETY: We have exclusive access (which ensures no aliasing or
+            // concurrent calls from other threads) and we checked the mask,
+            // thus it's safe to call.
+            unsafe { *self.inner.get_mut(entity.id()) += value };
         } else {
-            // SAFETY: we checked the mask, thus it's safe to call
-            unsafe {
-                self.inner.insert(entity.id(), value);
-            }
+            // SAFETY: We checked the mask, thus it's safe to call.
+            unsafe { self.inner.insert(entity.id(), value) };
             self.mask.add(entity.id());
         }
     }
 
     /// Clear the changeset
     pub fn clear(&mut self) {
-        for id in &self.mask {
-            // SAFETY: we checked the mask, thus it's safe to call
-            unsafe {
-                self.inner.remove(id);
-            }
-        }
-        self.mask.clear();
+        // NOTE: We replace with default empty mask temporarily to protect against
+        // unwinding from `Drop` of components.
+        let mut mask_temp = core::mem::take(&mut self.mask);
+        // SAFETY: `self.mask` is the correct mask as specified. We swap in a
+        // temporary empty mask to ensure if this unwinds that the mask will be
+        // cleared.
+        unsafe { self.inner.clean(&mask_temp) };
+        mask_temp.clear();
+        self.mask = mask_temp;
     }
 }
 
@@ -116,17 +119,16 @@ impl<'a, T> Join for &'a mut ChangeSet<T> {
     type Type = &'a mut T;
     type Value = &'a mut DenseVecStorage<T>;
 
-    // SAFETY: No unsafe code and no invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, &mut self.inner)
     }
 
-    // SAFETY: No unsafe code and no invariants to meet.
-    // `DistinctStorage` invariants are also met, but no `ParJoin` implementation
-    // exists yet.
+    // `DistinctStorage` invariants are also met, but no `ParJoin`
+    // implementation exists yet.
     unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
         let value: *mut Self::Value = v as *mut Self::Value;
-        (*value).get_mut(id)
+        // SAFETY: S-TODO modify Join trait
+        unsafe { (*value).get_mut(id) }
     }
 }
 
@@ -135,16 +137,15 @@ impl<'a, T> Join for &'a ChangeSet<T> {
     type Type = &'a T;
     type Value = &'a DenseVecStorage<T>;
 
-    // SAFETY: No unsafe code and no invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, &self.inner)
     }
 
-    // SAFETY: No unsafe code and no invariants to meet.
-    // `DistinctStorage` invariants are also met, but no `ParJoin` implementation
+    // `DistinctStorage` invariants are met, but no `ParJoin` implementation
     // exists yet.
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        value.get(id)
+        // SAFETY: S-TODO
+        unsafe { value.get(id) }
     }
 }
 
@@ -155,16 +156,13 @@ impl<T> Join for ChangeSet<T> {
     type Type = T;
     type Value = DenseVecStorage<T>;
 
-    // SAFETY: No unsafe code and no invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (self.mask, self.inner)
     }
 
-    // SAFETY: No unsafe code and no invariants to meet.
-    // `DistinctStorage` invariants are also met, but no `ParJoin` implementation
-    // exists yet.
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        value.remove(id)
+        // SAFETY: S-TODO
+        unsafe { value.remove(id) }
     }
 }
 

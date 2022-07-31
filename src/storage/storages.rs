@@ -1,5 +1,3 @@
-// TODO: promote to the whole crate
-#![deny(unsafe_op_in_unsafe_fn)]
 //! Different types of storages you can use for your components.
 
 use core::{marker::PhantomData, mem::MaybeUninit, ptr, ptr::NonNull};
@@ -42,7 +40,7 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
     where
         B: BitSetLike,
     {
-        // nothing to do (components will be dropped with the storage)
+        self.0.clear();
     }
 
     unsafe fn get(&self, id: Index) -> &T {
@@ -89,7 +87,7 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     where
         B: BitSetLike,
     {
-        // nothing to do (components will be dropped with the storage)
+        self.0.clear();
     }
 
     unsafe fn get(&self, id: Index) -> &T {
@@ -181,7 +179,12 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
     where
         B: BitSetLike,
     {
-        // nothing to do (components will be dropped with the storage)
+        // NOTE: clearing `data` may panic due to drop impls. So to makes sure
+        // everything is cleared and ensure `remove` is sound we clear `data`
+        // last.
+        self.data_id.clear();
+        self.entity_id.clear();
+        self.data.clear();
     }
 
     unsafe fn get(&self, id: Index) -> &T {

@@ -147,15 +147,18 @@ where
         // This is HACK. See implementation of Join for &'a mut Storage<'e, T, D> for
         // details why it is necessary.
         let storage: *mut Storage<'b, T, D> = *value as *mut Storage<'b, T, D>;
-        if (*storage).data.mask.contains(id) {
+        // SAFETY: S-TODO redo when updating join trait
+        if unsafe { &*storage }.data.mask.contains(id) {
             StorageEntry::Occupied(OccupiedEntry {
                 id,
-                storage: &mut *storage,
+                // SAFETY: S-TODO redo when updating join trait
+                storage: unsafe { &mut *storage },
             })
         } else {
             StorageEntry::Vacant(VacantEntry {
                 id,
-                storage: &mut *storage,
+                // SAFETY: S-TODO redo when updating join trait
+                storage: unsafe { &mut *storage },
             })
         }
     }
@@ -192,6 +195,7 @@ where
 {
     /// Get a mutable reference to the component associated with the entity.
     pub fn get_mut(&mut self) -> AccessMutReturn<'_, T> {
+        // S-TODO update safety comment after changing Join
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
         unsafe { self.storage.data.inner.get_mut(self.id) }
@@ -200,6 +204,7 @@ where
     /// Converts the `OccupiedEntry` into a mutable reference bounded by
     /// the storage's lifetime.
     pub fn into_mut(self) -> AccessMutReturn<'a, T> {
+        // S-TODO update safety comment after changing Join
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
         unsafe { self.storage.data.inner.get_mut(self.id) }
@@ -231,10 +236,11 @@ where
 {
     /// Inserts a value into the storage.
     pub fn insert(self, component: T) -> AccessMutReturn<'a, T> {
-        self.storage.data.mask.add(self.id);
+        // S-TODO safety comment incomplete
         // SAFETY: This is safe since we added `self.id` to the mask.
         unsafe {
             self.storage.data.inner.insert(self.id, component);
+            self.storage.data.mask.add(self.id);
             self.storage.data.inner.get_mut(self.id)
         }
     }

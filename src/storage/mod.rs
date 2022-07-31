@@ -1,3 +1,6 @@
+// TODO: promote to the whole crate
+#![deny(unsafe_op_in_unsafe_fn)]
+
 //! Component storage types, implementations for component joins, etc.
 
 #[cfg(feature = "nightly")]
@@ -175,11 +178,15 @@ impl<T: Component> MaskedStorage<T> {
 
     /// Clear the contents of this storage.
     pub fn clear(&mut self) {
-        // SAFETY: `self.mask` is the correct mask as specified.
-        unsafe {
-            self.inner.clean(&self.mask);
-        }
-        self.mask.clear();
+        // NOTE: We replace with default empty mask temporarily to protect against
+        // unwinding from `Drop` of components.
+        let mut mask_temp = core::mem::take(&mut self.mask);
+        // SAFETY: `self.mask` is the correct mask as specified. We swap in a
+        // temporary empty mask to ensure if this unwinds that the mask will be
+        // cleared.
+        unsafe { self.inner.clean(&mask_temp) };
+        mask_temp.clear();
+        self.mask = mask_temp;
     }
 
     /// Remove an element by a given index.
@@ -195,7 +202,8 @@ impl<T: Component> MaskedStorage<T> {
     /// Drop an element by a given index.
     pub fn drop(&mut self, id: Index) {
         if self.mask.remove(id) {
-            // SAFETY: We checked the mask (`remove` returned `true`)
+            // SAFETY: We checked the mask and removed the id before calling
+            // drop (`remove` returned `true`).
             unsafe {
                 self.inner.drop(id);
             }
@@ -332,7 +340,9 @@ where
     /// Tries to mutate the data associated with an `Entity`.
     pub fn get_mut(&mut self, e: Entity) -> Option<AccessMutReturn<'_, T>> {
         if self.data.mask.contains(e.id()) && self.entities.is_alive(e) {
-            // SAFETY: We checked the mask, so all invariants are met.
+            // SAFETY: We have exclusive access (which ensures no aliasing or
+            // concurrent calls from other threads) and we checked the mask,
+            // thus it's safe to call.
             Some(unsafe { self.data.inner.get_mut(e.id()) })
         } else {
             None
@@ -349,8 +359,10 @@ where
         if self.entities.is_alive(e) {
             let id = e.id();
             if self.data.mask.contains(id) {
-                // SAFETY: We checked the mask, so all invariants are met.
-                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id).deref_mut() });
+                // SAFETY: We have exclusive access (which ensures no aliasing or
+                // concurrent calls from other threads) and we checked the mask, so
+                // all invariants are met.
+                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id) }.deref_mut());
                 Ok(Some(v))
             } else {
                 // SAFETY: The mask was previously empty, so it is safe to insert.
@@ -412,15 +424,15 @@ where
     type Type = &'a T;
     type Value = &'a T::Storage;
 
-    // SAFETY: No unsafe code and no invariants.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.data.mask, &self.data.inner)
     }
 
-    // SAFETY: Since we require that the mask was checked, an element for `i` must
-    // have been inserted without being removed.
     unsafe fn get(v: &mut Self::Value, i: Index) -> &'a T {
-        v.get(i)
+        // S-TODO probably more to add to this comment
+        // SAFETY: Since we require that the mask was checked, an element for
+        // `i` must have been inserted without being removed.
+        unsafe { v.get(i) }
     }
 }
 
@@ -467,7 +479,8 @@ where
         // to abstract mutable/immutable state at the moment, so we have to hack
         // our way through it.
         let value: *mut Self::Value = v as *mut Self::Value;
-        (*value).get_mut(i)
+        // SAFETY: S-TODO modify Join trait
+        unsafe { (*value).get_mut(i) }
     }
 }
 
@@ -513,7 +526,8 @@ pub trait UnprotectedStorage<T>: TryDefault {
     where
         Self: 'a;
 
-    /// Clean the storage given a bitset with bits set for valid indices.
+    /// Clean the storage given a bitset with bits set for valid indices
+    /// dropping all existing components.
     ///
     /// Allows us to drop the storage without leaking components.
     ///
@@ -521,6 +535,9 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// May only be called with the mask which keeps track of the elements
     /// existing in this storage.
+    ///
+    /// If this unwinds (e.g. due to a drop impl panicing), the mask should
+    /// still be cleared.
     unsafe fn clean<B>(&mut self, has: B)
     where
         B: BitSetLike;
@@ -578,7 +595,11 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// the tracking mask is sufficient to call this method.
     ///
     /// There must be no extant aliasing references to this component (i.e.
-    /// obtained with the same `id` from `get` or `get_mut`).
+    /// obtained with the same `id` from `get` or `get_mut`). Additionally,
+    /// while the references returned here are in use, safe methods on this
+    /// type that take `&self` (e.g. [`SliceAccess::as_slice`],
+    /// [`Tracked::channel`]) must not be called and any references returned by
+    /// such methods must no longer be alive when `get_mut` is called.
     ///
     /// Unless this type implements `DistinctStorage`, calling this from
     /// multiple threads at once is unsound.
@@ -620,8 +641,13 @@ pub trait UnprotectedStorage<T>: TryDefault {
     ///
     /// May only be called if an element with `id` was `insert`ed and not yet
     /// removed / dropped.
+    ///
+    /// Caller must ensure this is cleared from the mask even if the drop impl
+    /// of the component panics and this unwinds. Usually, this can be
+    /// accomplished by removing the id from the mask just before calling this.
     unsafe fn drop(&mut self, id: Index) {
-        self.remove(id);
+        // SAFETY: Requirements passed to the caller.
+        unsafe { self.remove(id) };
     }
 }
 
