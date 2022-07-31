@@ -63,36 +63,41 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for DerefFlag
     where
         B: BitSetLike,
     {
-        self.storage.clean(has);
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.clean(has) };
     }
 
     unsafe fn get(&self, id: Index) -> &C {
-        self.storage.get(id)
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.get(id) }
     }
 
-    unsafe fn get_mut(&self, id: Index) -> Self::AccessMut<'_> {
-        let emit = self.emit_event();
+    unsafe fn get_mut(&self, _id: Index) -> Self::AccessMut<'_> {
+        /*let emit = self.emit_event();
         FlaggedAccessMut {
             channel: &mut self.channel,
             emit,
             id,
             access: self.storage.get_mut(id),
             phantom: PhantomData,
-        }
+        }*/
+        todo!("adapt to streaming only")
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
         if self.emit_event() {
             self.channel.single_write(ComponentEvent::Inserted(id));
         }
-        self.storage.insert(id, comp);
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.insert(id, comp) };
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
         if self.emit_event() {
             self.channel.single_write(ComponentEvent::Removed(id));
         }
-        self.storage.remove(id)
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.remove(id) }
     }
 }
 
@@ -116,6 +121,7 @@ impl<C, T> Tracked for DerefFlaggedStorage<C, T> {
     }
 }
 
+/// S-TODO document
 pub struct FlaggedAccessMut<'a, A, C> {
     channel: &'a mut EventChannel<ComponentEvent>,
     emit: bool,
