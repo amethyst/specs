@@ -27,6 +27,7 @@ log = "0.4.8"
 shred = { version = "0.14.1", default-features = false }
 shrev = "1.1.1"
 tuple_utils = "0.4.0"
+nougat = "0.2.3"
 
 rayon = { version = "1.5.1", optional = true }
 serde = { version = "1.0.104", optional = true, features = ["serde_derive"] }

@@ -467,7 +467,6 @@ where
     type Type = AccessMutReturn<'a, T>;
     type Value = &'a mut T::Storage;
 
-    // SAFETY: No unsafe code and no invariants to fulfill.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         self.data.open_mut()
     }

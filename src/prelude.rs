@@ -2,9 +2,9 @@
 //!
 //! Contains all of the most common traits, structures,
 
-pub use crate::join::Join;
 #[cfg(feature = "parallel")]
 pub use crate::join::ParJoin;
+pub use crate::join::{Join, LendJoin};
 pub use hibitset::BitSet;
 pub use shred::{
     Accessor, Dispatcher, DispatcherBuilder, Read, ReadExpect, Resource, ResourceId, RunNow,

@@ -227,7 +227,7 @@ pub use specs_derive::{Component, ConvertSaveload};
 pub use crate::join::ParJoin;
 pub use crate::{
     changeset::ChangeSet,
-    join::Join,
+    join::{Join, LendJoin},
     storage::{
         DefaultVecStorage, DenseVecStorage, FlaggedStorage, HashMapStorage, NullStorage,
         ReadStorage, Storage, Tracked, VecStorage, WriteStorage,
