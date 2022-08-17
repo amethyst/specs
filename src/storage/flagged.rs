@@ -218,8 +218,35 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
         unsafe { self.storage.get(id) }
     }
 
+    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
+        if self.emit_event() {
+            self.channel
+                .get_mut()
+                .single_write(ComponentEvent::Modified(id));
+        }
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.get_mut(id) }
+    }
+
     #[cfg(feature = "nightly")]
-    unsafe fn get_mut(&self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
+    unsafe fn get_access_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
+        if self.emit_event() {
+            self.channel
+                .get_mut()
+                .single_write(ComponentEvent::Modified(id));
+        }
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.get_access_mut(id) }
+    }
+
+    #[cfg(not(feature = "nightly"))]
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut C {
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.get_mut(id) }
+    }
+
+    /*#[cfg(feature = "nightly")]
+    unsafe fn shared_get_access_mut(&self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
         if self.emit_event() {
             let channel_ptr = self.channel.get();
             // SAFETY: Caller required to ensure references returned from other
@@ -231,7 +258,7 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
     }
 
     #[cfg(not(feature = "nightly"))]
-    unsafe fn get_mut(&self, id: Index) -> &mut C {
+    unsafe fn shared_get_access_mut(&self, id: Index) -> &mut C {
         if self.emit_event() {
             let channel_ptr = self.channel.get();
             // SAFETY: Caller required to ensure references returned from other
@@ -240,7 +267,7 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
         }
         // SAFETY: Requirements passed to caller.
         unsafe { self.storage.get_mut(id) }
-    }
+    }*/
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
         if self.emit_event() {

@@ -1,6 +1,3 @@
-// TODO: promote to the whole crate
-#![deny(unsafe_op_in_unsafe_fn)]
-
 //! Provides a changeset that can be collected from an iterator.
 
 use std::{iter::FromIterator, ops::AddAssign};
@@ -161,6 +158,11 @@ impl<T> Join for ChangeSet<T> {
     }
 
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
+        // NOTE: Following the safety requirements of `Join::get`, users can get
+        // this to panic by calling `get` dropping the returned value and
+        // calling `get` with the same `id`. However, such a panic isn't
+        // unsound. Also, the current `JoinIter` implementation will never do
+        // this.
         // SAFETY: S-TODO
         unsafe { value.remove(id) }
     }

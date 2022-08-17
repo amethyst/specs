@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+#![deny(unsafe_op_in_unsafe_fn)]
 #![deny(clippy::disallowed_types)]
 #![cfg_attr(
     feature = "nightly",
@@ -202,7 +203,7 @@ pub extern crate uuid;
 pub mod saveload;
 
 mod bitset;
-pub mod changeset;
+// D-TODO pub mod changeset;
 pub mod error;
 pub mod join;
 pub mod prelude;
@@ -226,7 +227,7 @@ pub use specs_derive::{Component, ConvertSaveload};
 #[cfg(feature = "parallel")]
 pub use crate::join::ParJoin;
 pub use crate::{
-    changeset::ChangeSet,
+    // D-TODO changeset::ChangeSet,
     join::{Join, LendJoin},
     storage::{
         DefaultVecStorage, DenseVecStorage, FlaggedStorage, HashMapStorage, NullStorage,

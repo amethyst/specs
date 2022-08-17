@@ -7,6 +7,8 @@ use std::{
 use hibitset::{AtomicBitSet, BitSet, BitSetOr};
 use shred::Read;
 
+#[nougat::gat(Type)]
+use crate::join::LendJoin;
 #[cfg(feature = "parallel")]
 use crate::join::ParJoin;
 use crate::{error::WrongGeneration, join::Join, storage::WriteStorage, world::Component};
@@ -317,27 +319,70 @@ impl EntitiesRes {
     }
 }
 
-impl<'a> Join for &'a EntitiesRes {
+// SAFETY: It is safe to retrieve elements with any `id` regardless of the mask.
+#[nougat::gat]
+unsafe impl<'a> LendJoin for &'a EntitiesRes {
+    type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
+    type Type<'next> = Entity;
+    type Value = Self;
+
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        (BitSetOr(&self.alloc.alive, &self.alloc.raised), self)
+    }
+
+    unsafe fn get(v: &mut &'a EntitiesRes, id: Index) -> Entity {
+        let gen = v
+            .alloc
+            .generation(id)
+            .map(|gen| if gen.is_alive() { gen } else { gen.raised() })
+            .unwrap_or_else(Generation::one);
+        Entity(id, gen)
+    }
+}
+
+// SAFETY: It is safe to retrieve elements with any `id` regardless of the mask.
+unsafe impl<'a> Join for &'a EntitiesRes {
     type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
     type Type = Entity;
     type Value = Self;
 
-    unsafe fn open(self) -> (Self::Mask, Self) {
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (BitSetOr(&self.alloc.alive, &self.alloc.raised), self)
     }
 
-    unsafe fn get(v: &mut &'a EntitiesRes, idx: Index) -> Entity {
+    unsafe fn get(v: &mut &'a EntitiesRes, id: Index) -> Entity {
         let gen = v
             .alloc
-            .generation(idx)
+            .generation(id)
             .map(|gen| if gen.is_alive() { gen } else { gen.raised() })
             .unwrap_or_else(Generation::one);
-        Entity(idx, gen)
+        Entity(id, gen)
     }
 }
 
+// SAFETY: No unsafe code is used and it is safe to call `get` from multiple
+// threads at once.
+//
+// It is safe to retrieve elements with any `id` regardless of the mask.
 #[cfg(feature = "parallel")]
-unsafe impl<'a> ParJoin for &'a EntitiesRes {}
+unsafe impl<'a> ParJoin for &'a EntitiesRes {
+    type Mask = BitSetOr<&'a BitSet, &'a AtomicBitSet>;
+    type Type = Entity;
+    type Value = Self;
+
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        (BitSetOr(&self.alloc.alive, &self.alloc.raised), self)
+    }
+
+    unsafe fn get(v: &&'a EntitiesRes, id: Index) -> Entity {
+        let gen = v
+            .alloc
+            .generation(id)
+            .map(|gen| if gen.is_alive() { gen } else { gen.raised() })
+            .unwrap_or_else(Generation::one);
+        Entity(id, gen)
+    }
+}
 
 /// An entity builder from `EntitiesRes`.  Allows building an entity with its
 /// components if you have mutable access to the component storages.
@@ -388,6 +433,7 @@ impl fmt::Debug for Generation {
 
 impl Generation {
     pub(crate) fn one() -> Self {
+        // SAFETY: `1` is not zero.
         Generation(unsafe { NonZeroI32::new_unchecked(1) })
     }
 
@@ -415,6 +461,10 @@ impl Generation {
     /// Panics if it is alive.
     fn raised(self) -> Generation {
         assert!(!self.is_alive());
+        // SAFETY: Since `self` is not alive, `self.id()` will be negative so
+        // subtracting it from `1` will give us a value `>= 2`. If this
+        // overflows it will at most wrap to `i32::MIN + 1` (so it will never be
+        // zero).
         unsafe { Generation(NonZeroI32::new_unchecked(1 - self.id())) }
     }
 }
@@ -455,6 +505,8 @@ impl ZeroableGeneration {
     fn raised(self) -> Generation {
         assert!(!self.is_alive());
         let gen = 1i32.checked_sub(self.id()).expect("generation overflow");
+        // SAFETY: Since `self` is not alive, `self.id()` will be negative so
+        // subtracting it from `1` will give us a value `>= 2`.
         Generation(unsafe { NonZeroI32::new_unchecked(gen) })
     }
 

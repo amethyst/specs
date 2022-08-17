@@ -1,4 +1,9 @@
-/// Like the `Join` trait except this is similar to a `LendingIterator` in that
+use super::MaybeJoin;
+use hibitset::{BitIter, BitSetLike};
+
+use crate::world::{Entities, Entity, Index};
+
+/// Like the `Join` trait except this is similar to a lending iterator in that
 /// only one item can be accessed at once.
 ///
 /// # Safety
@@ -15,9 +20,7 @@ pub unsafe trait LendJoin {
     /// This type is using macro magic to emulate GATs on stable. So to refer to
     /// it you need to use the [`LendJoinType<'next, J>`](LendJoinType) type
     /// alias.
-    type Type<'next>
-    where
-        Self: 'next;
+    type Type<'next>;
     /// Type of joined storages.
     type Value;
     /// Type of joined bit mask.
@@ -164,7 +167,7 @@ impl<J: LendJoin> JoinLendIter<J> {
     /// Can be used to iterate with this pattern:
     ///
     /// `while let Some(components) = join_lending_iter.next() {`
-    fn next(&mut self) -> Option<LendJoinType<'_, J>> {
+    pub fn next(&mut self) -> Option<LendJoinType<'_, J>> {
         // SAFETY: since `idx` is yielded from `keys` (the mask), it is necessarily a
         // part of it. Thus, requirements are fulfilled for calling `get`.
         self.keys
@@ -172,7 +175,8 @@ impl<J: LendJoin> JoinLendIter<J> {
             .map(|idx| unsafe { J::get(&mut self.values, idx) })
     }
 
-    fn for_each(mut self, mut f: impl FnMut(LendJoinType<'_, J>)) {
+    /// Calls a closure on each entity in the join.
+    pub fn for_each(mut self, mut f: impl FnMut(LendJoinType<'_, J>)) {
         self.keys.for_each(|idx| {
             // SAFETY: since `idx` is yielded from `keys` (the mask), it is
             // necessarily a part of it. Thus, requirements are fulfilled for

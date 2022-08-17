@@ -2,39 +2,75 @@
 //!
 //! Normally used for `Join`s and filtering entities.
 
-#![cfg_attr(rustfmt, rustfmt_skip)]
+// TODO: rustfmt bug (probably fixed in next rust release)
+// #![cfg_attr(rustfmt, rustfmt::skip)]
 
 use hibitset::{AtomicBitSet, BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr, BitSetXor};
 
 use crate::join::Join;
+#[nougat::gat(Type)]
+use crate::join::LendJoin;
 #[cfg(feature = "parallel")]
 use crate::join::ParJoin;
 use crate::world::Index;
 
 macro_rules! define_bit_join {
     ( impl < ( $( $lifetime:tt )* ) ( $( $arg:ident ),* ) > for $bitset:ty ) => {
-        impl<$( $lifetime, )* $( $arg ),*> Join for $bitset
+        // SAFETY: `get` just returns the provided `id` (`Self::Value` is `()`
+        // and corresponds with any mask instance).
+        #[nougat::gat]
+        unsafe impl<$( $lifetime, )* $( $arg ),*> LendJoin for $bitset
+            where $( $arg: BitSetLike ),*
+        {
+            type Type<'next> = Index;
+            type Value = ();
+            type Mask = $bitset;
+
+            unsafe fn open(self) -> (Self::Mask, Self::Value) {
+                (self, ())
+            }
+
+            unsafe fn get(_: &mut Self::Value, id: Index) -> Self::Type<'_> {
+                id
+            }
+        }
+        // SAFETY: `get` just returns the provided `id` (`Self::Value` is `()`
+        // and corresponds with any mask instance).
+        unsafe impl<$( $lifetime, )* $( $arg ),*> Join for $bitset
             where $( $arg: BitSetLike ),*
         {
             type Type = Index;
             type Value = ();
             type Mask = $bitset;
 
-            // SAFETY: This just moves a `BitSet`; invariants of `Join` are fulfilled, since `Self::Value` cannot be mutated.
             unsafe fn open(self) -> (Self::Mask, Self::Value) {
                 (self, ())
             }
 
-            // SAFETY: No unsafe code and no invariants to meet.
             unsafe fn get(_: &mut Self::Value, id: Index) -> Self::Type {
                 id
             }
         }
 
+        // SAFETY: `get` is safe to call concurrently and just returns the
+        // provided `id` (`Self::Value` is `()` and corresponds with any mask
+        // instance).
         #[cfg(feature = "parallel")]
         unsafe impl<$( $lifetime, )* $( $arg ),*> ParJoin for $bitset
             where $( $arg: BitSetLike ),*
-        { }
+        {
+            type Type = Index;
+            type Value = ();
+            type Mask = $bitset;
+
+            unsafe fn open(self) -> (Self::Mask, Self::Value) {
+                (self, ())
+            }
+
+            unsafe fn get(_: &Self::Value, id: Index) -> Self::Type {
+                id
+            }
+        }
     }
 }
 

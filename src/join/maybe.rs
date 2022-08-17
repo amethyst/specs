@@ -1,4 +1,9 @@
-use super::{Join, LendJoin, ParJoin};
+#[nougat::gat(Type)]
+use super::LendJoin;
+use super::{Join, ParJoin};
+use hibitset::{BitSetAll, BitSetLike};
+
+use crate::world::Index;
 
 /// Returns a structure that implements `Join`/`LendJoin`/`MaybeJoin` if the
 /// contained `T` does and that yields all indices, returning `None` for all
@@ -10,16 +15,17 @@ use super::{Join, LendJoin, ParJoin};
 /// iterate over every single index of the bitset. If you want a join with
 /// all `MaybeJoin`s, add an `EntitiesRes` to the join as well to bound the
 /// join to all entities that are alive.
-pub struct MaybeJoin(pub J);
+pub struct MaybeJoin<J>(pub J);
 
 // SAFETY: We return a mask containing all items, but check the original mask in
 // the `get` implementation.
-unsafe impl LendJoin for MaybeJoin<T>
+#[nougat::gat]
+unsafe impl<T> LendJoin for MaybeJoin<T>
 where
     T: LendJoin,
 {
     type Mask = BitSetAll;
-    type Type = Option<<T as LendJoin>::Type>;
+    type Type<'next> = Option<<T as LendJoin>::Type<'next>>;
     type Value = (<T as LendJoin>::Mask, <T as LendJoin>::Value);
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
@@ -30,7 +36,7 @@ where
         (BitSetAll, (mask, value))
     }
 
-    unsafe fn get((mask, value): &mut Self::Value, id: Index) -> Self::Type {
+    unsafe fn get((mask, value): &mut Self::Value, id: Index) -> Self::Type<'_> {
         if mask.contains(id) {
             // SAFETY: The mask was just checked for `id`.
             Some(unsafe { <T as LendJoin>::get(value, id) })

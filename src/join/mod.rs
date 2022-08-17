@@ -1,13 +1,10 @@
 //! Joining of components for iteration over entities with specific components.
 
-// TODO: promote to the whole crate
-#![deny(unsafe_op_in_unsafe_fn)]
-
-use hibitset::{BitIter, BitSetAll, BitSetAnd, BitSetLike};
+use hibitset::{BitIter, BitSetLike};
 use shred::{Fetch, FetchMut, Read, ReadExpect, Resource, Write, WriteExpect};
 use std::ops::{Deref, DerefMut};
 
-use crate::world::{Entities, Entity, Index};
+use crate::world::Index;
 
 mod bit_and;
 mod lend_join;
@@ -16,7 +13,9 @@ mod maybe;
 mod par_join;
 
 pub use bit_and::BitAnd;
-pub use lend_join::{JoinLendIter, LendJoin, LendJoinType};
+#[nougat::gat(Type)]
+pub use lend_join::LendJoin;
+pub use lend_join::{JoinLendIter, LendJoinType};
 pub use maybe::MaybeJoin;
 #[cfg(feature = "parallel")]
 pub use par_join::{JoinParIter, ParJoin};
@@ -130,8 +129,8 @@ pub unsafe trait Join {
     ///
     /// * A call to `get` must be preceded by a check if `id` is part of
     ///   `Self::Mask`.
-    /// * The use of the mutable reference returned from this method must end
-    ///   before subsequent calls with the same `id`.
+    /// * The value returned from this method must be dropped before subsequent
+    ///   calls with the same `id`. (S-TODO update callers to match edit)
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type;
 
     /// If this `Join` typically returns all indices in the mask, then iterating
@@ -193,11 +192,12 @@ macro_rules! define_open {
         // SAFETY: The returned mask in `open` is the intersection of the masks
         // from each type in this tuple. So if an `id` is present in the
         // combined mask, it will be safe to retrieve the corresponding items.
+        #[nougat::gat]
         unsafe impl<$($from,)*> LendJoin for ($($from),*,)
             where $($from: LendJoin),*,
                   ($(<$from as LendJoin>::Mask,)*): BitAnd,
         {
-            type Type = ($($from::Type),*,);
+            type Type<'next> = ($(<$from as LendJoin>::Type<'next>),*,);
             type Value = ($($from::Value),*,);
             type Mask = <($($from::Mask,)*) as BitAnd>::Value;
 
@@ -215,7 +215,7 @@ macro_rules! define_open {
             }
 
             #[allow(non_snake_case)]
-            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
+            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type<'_> {
                 let &mut ($(ref mut $from,)*) = v;
                 // SAFETY: `get` is safe to call as the caller must have checked
                 // the mask, which only has a key that exists in all of the
@@ -303,7 +303,7 @@ macro_rules! define_open {
 
             #[allow(non_snake_case)]
             unsafe fn get(v: &Self::Value, i: Index) -> Self::Type {
-                let &mut ($(ref mut $from,)*) = v;
+                let &($(ref $from,)*) = v;
                 // SAFETY: `get` is safe to call as the caller must have checked
                 // the mask, which only has a key that exists in all of the
                 // storages.
@@ -317,6 +317,7 @@ macro_rules! define_open {
                 unconstrained
             }
         }
+    }
 }
 
 define_open! {A}
@@ -351,12 +352,13 @@ macro_rules! immutable_resource_join {
         $(
         // SAFETY: Since `T` implements `LendJoin` it is safe to deref and defer
         // to its implementation.
+        #[nougat::gat]
         unsafe impl<'a, 'b, T> LendJoin for &'a $ty
         where
             &'a T: LendJoin,
             T: Resource,
         {
-            type Type = <&'a T as LendJoin>::Type;
+            type Type<'next> = <&'a T as LendJoin>::Type<'next>;
             type Value = <&'a T as LendJoin>::Value;
             type Mask = <&'a T as LendJoin>::Mask;
 
@@ -367,7 +369,7 @@ macro_rules! immutable_resource_join {
                 unsafe { self.deref().open() }
             }
 
-            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
+            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type<'_> {
                 // SAFETY: The mask of `Self` and `T` are identical, thus a
                 // check to `Self`'s mask (which is required) is equal to a
                 // check of `T`'s mask, which makes `get` safe to call.
@@ -412,7 +414,7 @@ macro_rules! immutable_resource_join {
         }
 
         // SAFETY: Since `T` implements `ParJoin` it is safe to deref and defer to
-        // its implementation. S-TODO we can rely on errors if $ty is not sync? 
+        // its implementation. S-TODO we can rely on errors if $ty is not sync?
         #[cfg(feature = "parallel")]
         unsafe impl<'a, 'b, T> ParJoin for &'a $ty
         where
@@ -451,12 +453,13 @@ macro_rules! mutable_resource_join {
         $(
         // SAFETY: Since `T` implements `LendJoin` it is safe to deref and defer
         // to its implementation.
+        #[nougat::gat]
         unsafe impl<'a, 'b, T> LendJoin for &'a mut $ty
         where
             &'a mut T: LendJoin,
             T: Resource,
         {
-            type Type = <&'a mut T as LendJoin>::Type;
+            type Type<'next> = <&'a mut T as LendJoin>::Type<'next>;
             type Value = <&'a mut T as LendJoin>::Value;
             type Mask = <&'a mut T as LendJoin>::Mask;
 
@@ -467,7 +470,7 @@ macro_rules! mutable_resource_join {
                 unsafe { self.deref_mut().open() }
             }
 
-            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
+            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type<'_> {
                 // SAFETY: The mask of `Self` and `T` are identical, thus a check to
                 // `Self`'s mask (which is required) is equal to a check of `T`'s
                 // mask, which makes `get_mut` safe to call.
@@ -512,7 +515,7 @@ macro_rules! mutable_resource_join {
         }
 
         // SAFETY: Since `T` implements `ParJoin` it is safe to deref and defer
-        // its implementation. S-TODO we can rely on errors if $ty is not sync? 
+        // its implementation. S-TODO we can rely on errors if $ty is not sync?
         #[cfg(feature = "parallel")]
         unsafe impl<'a, 'b, T> ParJoin for &'a mut $ty
         where

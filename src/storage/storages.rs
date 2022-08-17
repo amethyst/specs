@@ -1,5 +1,8 @@
 //! Different types of storages you can use for your components.
 
+// S-TODO redo distinct storage safety comments to point to proper method, check
+// trait docs too
+
 use core::{marker::PhantomData, mem::MaybeUninit, ptr, ptr::NonNull};
 use std::collections::BTreeMap;
 
@@ -49,11 +52,19 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
         unsafe { &*ptr }
     }
 
-    unsafe fn get_mut(&self, id: Index) -> &mut T {
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
+        self.0.get_mut(&id).unwrap().get_mut()
+    }
+
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
+        self.0.get_mut(&id).unwrap().get_mut()
+    }
+
+    /*unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
         let ptr = self.0[&id].get();
         // SAFETY: See `VecStorage` impl.
         unsafe { &mut *ptr }
-    }
+    }*/
 
     unsafe fn insert(&mut self, id: Index, v: T) {
         self.0.insert(id, SyncUnsafeCell::new(v));
@@ -96,11 +107,19 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
         unsafe { &*ptr }
     }
 
-    unsafe fn get_mut(&self, id: Index) -> &mut T {
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
+        self.0.get_mut(&id).unwrap().get_mut()
+    }
+
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
+        self.0.get_mut(&id).unwrap().get_mut()
+    }
+
+    /*unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
         let ptr = self.0[&id].get();
         // SAFETY: See `VecStorage` impl.
         unsafe { &mut *ptr }
-    }
+    }*/
 
     unsafe fn insert(&mut self, id: Index, v: T) {
         self.0.insert(id, SyncUnsafeCell::new(v));
@@ -188,6 +207,7 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
     }
 
     unsafe fn get(&self, id: Index) -> &T {
+        // S-TODO recheck these safety notes (and all others in this module)
         // NOTE: `as` cast is not lossy since insert would have encountered an
         // allocation failure if this would overflow `usize.`
         // SAFETY (get_unchecked and assume_init): Caller required to call
@@ -201,7 +221,25 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
         unsafe { &*ptr }
     }
 
-    unsafe fn get_mut(&self, id: Index) -> &mut T {
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
+        // NOTE: `as` cast is not lossy since insert would have encountered an
+        // allocation failure if this would overflow `usize.`
+        // SAFETY (get_unchecked and assume_init): Caller required to call
+        // `insert` with this `id` (with no following call to `remove` with that
+        // id or to `clean`).
+        let did = unsafe { self.data_id.get_unchecked(id as usize).assume_init() };
+        // SAFETY: Indices retrieved from `data_id` with a valid `id` will
+        // always correspond to an element in `data`.
+        unsafe { self.data.get_unchecked_mut(did as usize) }.get_mut()
+    }
+
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
+        // SAFETY: Requirements passed to caller
+        unsafe { self.get_mut(id) }
+    }
+
+    /*unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
+        // S-TODO recheck these safety notes
         // NOTE: `as` cast is not lossy since insert would have encountered an
         // allocation failure if this would overflow `usize.`
         // SAFETY (get_unchecked and assume_init): Caller required to call
@@ -213,9 +251,10 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
         let ptr = unsafe { self.data.get_unchecked(did as usize) }.get();
         // SAFETY: See `VecStorage` impl.
         unsafe { &mut *ptr }
-    }
+    }*/
 
     unsafe fn insert(&mut self, id: Index, v: T) {
+        // S-TODO recheck these safety notes
         let id = if Index::BITS > usize::BITS {
             // Saturate the cast to usize::MAX so if this overflows usize the
             // allocation below will fail.
@@ -250,6 +289,7 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
     }
 
     unsafe fn remove(&mut self, id: Index) -> T {
+        // S-TODO recheck these safety notes
         // NOTE: cast to usize won't overflow since `insert` would have failed
         // to allocate.
         // SAFETY (get_unchecked and assume_init): Caller required to have
@@ -313,7 +353,8 @@ impl<T> UnprotectedStorage<T> for NullStorage<T> {
         unsafe { &*NonNull::dangling().as_ptr() }
     }
 
-    unsafe fn get_mut(&self, _: Index) -> &mut T {
+    unsafe fn get_mut(&mut self, _: Index) -> &mut T {
+        // S-TODO: can we defer to shared_get_access_mut
         // SAFETY: Because the caller is required by the safety docs to first
         // insert a component with this index, this corresponds to an instance
         // of the ZST we conceptually own. The caller also must manage the
@@ -323,6 +364,22 @@ impl<T> UnprotectedStorage<T> for NullStorage<T> {
         // reference from a dangling pointer not UB.
         unsafe { &mut *NonNull::dangling().as_ptr() }
     }
+
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.get_mut(id) }
+    }
+
+    /*unsafe fn shared_get_access_mut(&self, _: Index) -> &mut T {
+        // SAFETY: Because the caller is required by the safety docs to first
+        // insert a component with this index, this corresponds to an instance
+        // of the ZST we conceptually own. The caller also must manage the
+        // aliasing of accesses via get/get_mut.
+        //
+        // Self::default asserts that `T` is a ZST which makes generating a
+        // reference from a dangling pointer not UB.
+        unsafe { &mut *NonNull::dangling().as_ptr() }
+    }*/
 
     unsafe fn insert(&mut self, _: Index, v: T) {
         // We rely on the caller tracking the presence of the ZST via the mask.
@@ -409,6 +466,9 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         // SAFETY: Caller required to call `insert` with this `id` (with no
         // following call to `remove` with that id or to `clean`).
         let ptr = unsafe { self.0.get_unchecked(id as usize) }.get();
+        // S-TODO update these since we tweaked safety docs to focus
+        // requirements on `get_mut`. (also there are the shared_get_mut methods
+        // to consider, well those replace get_mut)
         // SAFETY: Caller required to manage aliasing between this and
         // `get_mut`.
         let maybe_uninit = unsafe { &*ptr };
@@ -417,7 +477,23 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         unsafe { maybe_uninit.assume_init_ref() }
     }
 
-    unsafe fn get_mut(&self, id: Index) -> &mut T {
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
+        // NOTE: `as` cast is not lossy since insert would have encountered an
+        // allocation failure if this would overflow `usize.`
+        // SAFETY: Caller required to call `insert` with this `id` (with no
+        // following call to `remove` with that id or to `clean`).
+        let maybe_uninit = unsafe { self.0.get_unchecked_mut(id as usize) }.get_mut();
+        // SAFETY: Requirement to have `insert`ed this component ensures that it
+        // will be initialized.
+        unsafe { maybe_uninit.assume_init_mut() }
+    }
+
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.get_mut(id) }
+    }
+
+    /*unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
         // NOTE: `as` cast is not lossy since insert would have encountered an
         // allocation failure if this would overflow `usize.`
         // SAFETY: Caller required to call `insert` with this `id` (with no
@@ -431,7 +507,7 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         // SAFETY: Requirement to have `insert`ed this component ensures that it
         // will be initialized.
         unsafe { maybe_uninit.assume_init_mut() }
-    }
+    }*/
 
     unsafe fn insert(&mut self, id: Index, v: T) {
         let id = if Index::BITS > usize::BITS {
@@ -540,14 +616,26 @@ where
         unsafe { &*ptr }
     }
 
-    unsafe fn get_mut(&self, id: Index) -> &mut T {
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
+        // NOTE: `as` cast is not lossy since insert would have encountered an
+        // allocation failure if this would overflow `usize.`
+        // SAFETY: See `VecStorage` impl.
+        unsafe { self.0.get_unchecked_mut(id as usize) }.get_mut()
+    }
+
+    unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.get_mut(id) }
+    }
+
+    /*unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
         // NOTE: `as` cast is not lossy since insert would have encountered an
         // allocation failure if this would overflow `usize.`
         // SAFETY: See `VecStorage` impl.
         let ptr = unsafe { self.0.get_unchecked(id as usize) }.get();
         // SAFETY: See `VecStorage` impl.
         unsafe { &mut *ptr }
-    }
+    }*/
 
     unsafe fn insert(&mut self, id: Index, v: T) {
         let id = if Index::BITS > usize::BITS {

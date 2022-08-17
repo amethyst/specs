@@ -69,7 +69,7 @@ where
     /// Returns the event channel for insertions/removals/modifications of this
     /// storage's components.
     pub fn channel_mut(&mut self) -> &mut EventChannel<ComponentEvent> {
-        unsafe { self.open() }.1.channel_mut()
+        self.data.inner.channel_mut()
     }
 
     /// Starts tracking component events. Note that this reader id should be
@@ -89,6 +89,6 @@ where
     /// not emitted.
     #[cfg(feature = "storage-event-control")]
     pub fn set_event_emission(&mut self, emit: bool) {
-        unsafe { self.open() }.1.set_event_emission(emit);
+        self.data.inner.set_event_emission(emit);
     }
 }

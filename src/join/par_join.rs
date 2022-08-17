@@ -1,12 +1,10 @@
-use std::cell::UnsafeCell;
-
 use hibitset::{BitProducer, BitSetLike};
-
-use crate::join::Join;
 use rayon::iter::{
     plumbing::{bridge_unindexed, Folder, UnindexedConsumer, UnindexedProducer},
     ParallelIterator,
 };
+
+use crate::world::Index;
 
 /// The purpose of the `ParJoin` trait is to provide a way
 /// to access multiple storages in parallel at the same time with
@@ -14,12 +12,9 @@ use rayon::iter::{
 ///
 /// # Safety
 ///
-/// The implementation of `ParallelIterator` for `ParJoin` makes multiple
-/// assumptions on the structure of `Self`. In particular, `ParJoin::get` must
-/// be callable from multiple threads, simultaneously, without creating mutable
-/// references not exclusively associated with `id`.
+/// `ParJoin::get` must be callable from multiple threads, simultaneously.
 ///
-/// The `Self::Mask` value returned with the `Self::Value` must correspond such
+/// The Self::Mask` value returned with the `Self::Value` must correspond such
 /// that it is safe to retrieve items from `Self::Value` whose presence is
 /// indicated in the mask.
 pub unsafe trait ParJoin {
@@ -62,8 +57,8 @@ pub unsafe trait ParJoin {
     ///
     /// * A call to `get` must be preceded by a check if `id` is part of
     ///   `Self::Mask`.
-    /// * The use of the mutable reference returned from this method must end
-    ///   before subsequent calls with the same `id`.
+    /// * The value returned from this method must be dropped before subsequent
+    ///   calls with the same `id`. (S-TODO update callers to match edit)
     unsafe fn get(value: &Self::Value, id: Index) -> Self::Type;
 
     /// If this `LendJoin` typically returns all indices in the mask, then
@@ -85,7 +80,7 @@ where
     J: ParJoin + Send,
     J::Mask: Send + Sync,
     J::Type: Send,
-    J::Value: Send,
+    J::Value: Send + Sync,
 {
     type Item = J::Type;
 
@@ -108,7 +103,7 @@ where
     J: ParJoin + Send,
     J::Mask: Send + Sync + 'a,
     J::Type: Send,
-    J::Value: Send + 'a,
+    J::Value: Send + Sync + 'a,
 {
     keys: BitProducer<'a, J::Mask>,
     values: &'a J::Value,
@@ -118,7 +113,7 @@ impl<'a, J> JoinProducer<'a, J>
 where
     J: ParJoin + Send,
     J::Type: Send,
-    J::Value: 'a + Send,
+    J::Value: 'a + Send + Sync,
     J::Mask: 'a + Send + Sync,
 {
     fn new(keys: BitProducer<'a, J::Mask>, values: &'a J::Value) -> Self {
@@ -130,7 +125,7 @@ impl<'a, J> UnindexedProducer for JoinProducer<'a, J>
 where
     J: ParJoin + Send,
     J::Type: Send,
-    J::Value: 'a + Send,
+    J::Value: 'a + Send + Sync,
     J::Mask: 'a + Send + Sync,
 {
     type Item = J::Type;
