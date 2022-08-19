@@ -1,8 +1,5 @@
 //! Different types of storages you can use for your components.
 
-// S-TODO redo distinct storage safety comments to point to proper method, check
-// trait docs too
-
 use core::{marker::PhantomData, mem::MaybeUninit, ptr, ptr::NonNull};
 use std::collections::BTreeMap;
 
@@ -10,7 +7,7 @@ use ahash::AHashMap as HashMap;
 use hibitset::BitSetLike;
 
 use crate::{
-    storage::{DistinctStorage, SyncUnsafeCell, UnprotectedStorage},
+    storage::{DistinctStorage, SharedGetAccessMutStorage, SyncUnsafeCell, UnprotectedStorage},
     world::Index,
 };
 
@@ -60,12 +57,6 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
         self.0.get_mut(&id).unwrap().get_mut()
     }
 
-    /*unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
-        let ptr = self.0[&id].get();
-        // SAFETY: See `VecStorage` impl.
-        unsafe { &mut *ptr }
-    }*/
-
     unsafe fn insert(&mut self, id: Index, v: T) {
         self.0.insert(id, SyncUnsafeCell::new(v));
     }
@@ -75,8 +66,17 @@ impl<T> UnprotectedStorage<T> for BTreeStorage<T> {
     }
 }
 
-// SAFETY: `get_mut` doesn't perform any overlapping mutable accesses when
-// provided distinct indices.
+impl<T> SharedGetAccessMutStorage<T> for BTreeStorage<T> {
+    unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
+        let ptr = self.0[&id].get();
+        // SAFETY: See `VecStorage` impl.
+        unsafe { &mut *ptr }
+    }
+}
+
+// SAFETY: `shared_get_access_mut` doesn't perform any overlapping mutable
+// accesses when provided distinct indices and is safe to call from multiple
+// threads at once.
 unsafe impl<T> DistinctStorage for BTreeStorage<T> {}
 
 /// `HashMap`-based storage. Best suited for rare components.
@@ -115,12 +115,6 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
         self.0.get_mut(&id).unwrap().get_mut()
     }
 
-    /*unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
-        let ptr = self.0[&id].get();
-        // SAFETY: See `VecStorage` impl.
-        unsafe { &mut *ptr }
-    }*/
-
     unsafe fn insert(&mut self, id: Index, v: T) {
         self.0.insert(id, SyncUnsafeCell::new(v));
     }
@@ -130,8 +124,17 @@ impl<T> UnprotectedStorage<T> for HashMapStorage<T> {
     }
 }
 
-// SAFETY: `get_mut` doesn't perform any overlapping mutable accesses when
-// provided distinct indices.
+impl<T> SharedGetAccessMutStorage<T> for HashMapStorage<T> {
+    unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
+        let ptr = self.0[&id].get();
+        // SAFETY: See `VecStorage` impl.
+        unsafe { &mut *ptr }
+    }
+}
+
+// SAFETY: `shared_get_access_mut` doesn't perform any overlapping mutable
+// accesses when provided distinct indices and is safe to call from multiple
+// threads at once.
 unsafe impl<T> DistinctStorage for HashMapStorage<T> {}
 
 /// Dense vector storage. Has a redirection 2-way table
@@ -173,10 +176,11 @@ impl<T> SliceAccess<T> for DenseVecStorage<T> {
     fn as_slice(&self) -> &[Self::Element] {
         let unsafe_cell_slice_ptr = SyncUnsafeCell::as_cell_of_slice(self.data.as_slice()).get();
         // SAFETY: The only place that mutably accesses these elements via a
-        // shared reference is the impl of `UnprotectedStorage::get_mut` which
-        // requires callers to avoid calling safe methods with `&self` while
-        // those mutable references are in use and to ensure any references
-        // from those safe methods are no longer alive.
+        // shared reference is the impl of
+        // `SharedGetAccessMut::shared_get_access_mut` which requires callers to
+        // avoid calling other methods with `&self` while references returned there
+        // are still in use (and to ensure references from methods like this no
+        // longer exist).
         unsafe { &*unsafe_cell_slice_ptr }
     }
 
@@ -207,7 +211,6 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
     }
 
     unsafe fn get(&self, id: Index) -> &T {
-        // S-TODO recheck these safety notes (and all others in this module)
         // NOTE: `as` cast is not lossy since insert would have encountered an
         // allocation failure if this would overflow `usize.`
         // SAFETY (get_unchecked and assume_init): Caller required to call
@@ -238,23 +241,7 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
         unsafe { self.get_mut(id) }
     }
 
-    /*unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
-        // S-TODO recheck these safety notes
-        // NOTE: `as` cast is not lossy since insert would have encountered an
-        // allocation failure if this would overflow `usize.`
-        // SAFETY (get_unchecked and assume_init): Caller required to call
-        // `insert` with this `id` (with no following call to `remove` with that
-        // id or to `clean`).
-        let did = unsafe { self.data_id.get_unchecked(id as usize).assume_init() };
-        // SAFETY: Indices retrieved from `data_id` with a valid `id` will
-        // always correspond to an element in `data`.
-        let ptr = unsafe { self.data.get_unchecked(did as usize) }.get();
-        // SAFETY: See `VecStorage` impl.
-        unsafe { &mut *ptr }
-    }*/
-
     unsafe fn insert(&mut self, id: Index, v: T) {
-        // S-TODO recheck these safety notes
         let id = if Index::BITS > usize::BITS {
             // Saturate the cast to usize::MAX so if this overflows usize the
             // allocation below will fail.
@@ -289,7 +276,6 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
     }
 
     unsafe fn remove(&mut self, id: Index) -> T {
-        // S-TODO recheck these safety notes
         // NOTE: cast to usize won't overflow since `insert` would have failed
         // to allocate.
         // SAFETY (get_unchecked and assume_init): Caller required to have
@@ -302,15 +288,32 @@ impl<T> UnprotectedStorage<T> for DenseVecStorage<T> {
         // in this storage so this will be in-bounds.
         unsafe { self.data_id.get_unchecked_mut(last as usize) }.write(did);
         // NOTE: casting the index in the dense data array to usize won't
-        // overflow since the maximum number of components if limited to
+        // overflow since the maximum number of components is limited to
         // `Index::MAX + 1`.
         self.entity_id.swap_remove(did as usize);
         self.data.swap_remove(did as usize).0.into_inner()
     }
 }
 
-// SAFETY: `get_mut` doesn't perform any overlapping mutable accesses when
-// provided distinct indices.
+impl<T> SharedGetAccessMutStorage<T> for DenseVecStorage<T> {
+    unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
+        // NOTE: `as` cast is not lossy since insert would have encountered an
+        // allocation failure if this would overflow `usize.`
+        // SAFETY (get_unchecked and assume_init): Caller required to call
+        // `insert` with this `id` (with no following call to `remove` with that
+        // id or to `clean`).
+        let did = unsafe { self.data_id.get_unchecked(id as usize).assume_init() };
+        // SAFETY: Indices retrieved from `data_id` with a valid `id` will
+        // always correspond to an element in `data`.
+        let ptr = unsafe { self.data.get_unchecked(did as usize) }.get();
+        // SAFETY: See `VecStorage` impl.
+        unsafe { &mut *ptr }
+    }
+}
+
+// SAFETY: `shared_get_access_mut` doesn't perform any overlapping mutable
+// accesses when provided distinct indices and is safe to call from multiple
+// threads at once.
 unsafe impl<T> DistinctStorage for DenseVecStorage<T> {}
 
 /// A null storage type, used for cases where the component
@@ -353,33 +356,17 @@ impl<T> UnprotectedStorage<T> for NullStorage<T> {
         unsafe { &*NonNull::dangling().as_ptr() }
     }
 
-    unsafe fn get_mut(&mut self, _: Index) -> &mut T {
-        // S-TODO: can we defer to shared_get_access_mut
-        // SAFETY: Because the caller is required by the safety docs to first
-        // insert a component with this index, this corresponds to an instance
-        // of the ZST we conceptually own. The caller also must manage the
-        // aliasing of accesses via get/get_mut.
-        //
-        // Self::default asserts that `T` is a ZST which makes generating a
-        // reference from a dangling pointer not UB.
-        unsafe { &mut *NonNull::dangling().as_ptr() }
+    unsafe fn get_mut(&mut self, id: Index) -> &mut T {
+        // SAFETY: Exclusive reference to `self` guarantees that that are no
+        // extant references to components and that we aren't calling this from
+        // multiple threads at once. Remaining requirements passed to caller.
+        unsafe { self.shared_get_access_mut(id) }
     }
 
     unsafe fn get_access_mut(&mut self, id: Index) -> &mut T {
         // SAFETY: Requirements passed to caller.
         unsafe { self.get_mut(id) }
     }
-
-    /*unsafe fn shared_get_access_mut(&self, _: Index) -> &mut T {
-        // SAFETY: Because the caller is required by the safety docs to first
-        // insert a component with this index, this corresponds to an instance
-        // of the ZST we conceptually own. The caller also must manage the
-        // aliasing of accesses via get/get_mut.
-        //
-        // Self::default asserts that `T` is a ZST which makes generating a
-        // reference from a dangling pointer not UB.
-        unsafe { &mut *NonNull::dangling().as_ptr() }
-    }*/
 
     unsafe fn insert(&mut self, _: Index, v: T) {
         // We rely on the caller tracking the presence of the ZST via the mask.
@@ -400,8 +387,22 @@ impl<T> UnprotectedStorage<T> for NullStorage<T> {
     }
 }
 
-// SAFETY: `get_mut` doesn't perform any overlapping mutable accesses when
-// provided distinct indices.
+impl<T> SharedGetAccessMutStorage<T> for NullStorage<T> {
+    unsafe fn shared_get_access_mut(&self, _: Index) -> &mut T {
+        // SAFETY: Because the caller is required by the safety docs to first
+        // insert a component with this index, this corresponds to an instance
+        // of the ZST we conceptually own. The caller also must manage the
+        // aliasing of accesses via get/get_mut.
+        //
+        // Self::default asserts that `T` is a ZST which makes generating a
+        // reference from a dangling pointer not UB.
+        unsafe { &mut *NonNull::dangling().as_ptr() }
+    }
+}
+
+// SAFETY: `shared_get_access_mut` doesn't perform any overlapping mutable
+// accesses when provided distinct indices and is safe to call from multiple
+// threads at once.
 unsafe impl<T> DistinctStorage for NullStorage<T> {}
 
 /// Vector storage. Uses a simple `Vec`. Supposed to have maximum
@@ -426,9 +427,11 @@ impl<T> SliceAccess<T> for VecStorage<T> {
     fn as_slice(&self) -> &[Self::Element] {
         let unsafe_cell_slice_ptr = SyncUnsafeCell::as_cell_of_slice(self.0.as_slice()).get();
         // SAFETY: The only place that mutably accesses these elements via a
-        // shared reference is the impl of `UnprotectedStorage::get_mut` which
-        // requires callers to avoid calling safe methods with `&self` while
-        // those mutable references are in use.
+        // shared reference is the impl of
+        // `SharedGetAccessMut::shared_get_access_mut` which requires callers to
+        // avoid calling other methods with `&self` while references returned there
+        // are still in use (and to ensure references from methods like this no
+        // longer exist).
         unsafe { &*unsafe_cell_slice_ptr }
     }
 
@@ -466,11 +469,10 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         // SAFETY: Caller required to call `insert` with this `id` (with no
         // following call to `remove` with that id or to `clean`).
         let ptr = unsafe { self.0.get_unchecked(id as usize) }.get();
-        // S-TODO update these since we tweaked safety docs to focus
-        // requirements on `get_mut`. (also there are the shared_get_mut methods
-        // to consider, well those replace get_mut)
-        // SAFETY: Caller required to manage aliasing between this and
-        // `get_mut`.
+        // SAFETY: Only method that obtains exclusive references from this
+        // unsafe cell is `shared_get_access_mut` and callers are required to
+        // managed aliasing there and prevent other methods from being called
+        // while those exclusive references are alive.
         let maybe_uninit = unsafe { &*ptr };
         // SAFETY: Requirement to have `insert`ed this component ensures that it
         // will be initialized.
@@ -478,7 +480,7 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
     }
 
     unsafe fn get_mut(&mut self, id: Index) -> &mut T {
-        // NOTE: `as` cast is not lossy since insert would have encountered an
+        // NOTE: `as` cast is not lossy since `insert` would have encountered an
         // allocation failure if this would overflow `usize.`
         // SAFETY: Caller required to call `insert` with this `id` (with no
         // following call to `remove` with that id or to `clean`).
@@ -492,22 +494,6 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         // SAFETY: Requirements passed to caller.
         unsafe { self.get_mut(id) }
     }
-
-    /*unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
-        // NOTE: `as` cast is not lossy since insert would have encountered an
-        // allocation failure if this would overflow `usize.`
-        // SAFETY: Caller required to call `insert` with this `id` (with no
-        // following call to `remove` with that id or to `clean`).
-        let ptr = unsafe { self.0.get_unchecked(id as usize) }.get();
-        // SAFETY: Caller required to manage aliasing (both ensuring
-        // `get_mut`/`get` is called without aliasing refs returned here, and
-        // ensuring other safe methods that take `&self` aren't called while the
-        // returned mutable references are alive).
-        let maybe_uninit = unsafe { &mut *ptr };
-        // SAFETY: Requirement to have `insert`ed this component ensures that it
-        // will be initialized.
-        unsafe { maybe_uninit.assume_init_mut() }
-    }*/
 
     unsafe fn insert(&mut self, id: Index, v: T) {
         let id = if Index::BITS > usize::BITS {
@@ -552,8 +538,27 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
     }
 }
 
-// SAFETY: `get_mut` doesn't perform any overlapping mutable accesses when
-// provided distinct indices.
+impl<T> SharedGetAccessMutStorage<T> for VecStorage<T> {
+    unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
+        // NOTE: `as` cast is not lossy since insert would have encountered an
+        // allocation failure if this would overflow `usize.`
+        // SAFETY: Caller required to call `insert` with this `id` (with no
+        // following call to `remove` with that id or to `clean`).
+        let ptr = unsafe { self.0.get_unchecked(id as usize) }.get();
+        // SAFETY: Caller required to manage aliasing (ensuring there are no
+        // extant shared references into the storage, this is called with
+        // distinct ids, and that other methods that take `&self` aren't called
+        // while the exclusive references returned here are alive).
+        let maybe_uninit = unsafe { &mut *ptr };
+        // SAFETY: Requirement to have `insert`ed this component ensures that it
+        // will be initialized.
+        unsafe { maybe_uninit.assume_init_mut() }
+    }
+}
+
+// SAFETY: `shared_get_access_mut` doesn't perform any overlapping mutable
+// accesses when provided distinct indices and is safe to call from multiple
+// threads at once.
 unsafe impl<T> DistinctStorage for VecStorage<T> {}
 
 /// Vector storage, like `VecStorage`, but allows safe access to the
@@ -580,9 +585,11 @@ impl<T> SliceAccess<T> for DefaultVecStorage<T> {
     fn as_slice(&self) -> &[Self::Element] {
         let unsafe_cell_slice_ptr = SyncUnsafeCell::as_cell_of_slice(self.0.as_slice()).get();
         // SAFETY: The only place that mutably accesses these elements via a
-        // shared reference is the impl of `UnprotectedStorage::get_mut` which
-        // requires callers to avoid calling safe methods with `&self` while
-        // those mutable references are in use.
+        // shared reference is the impl of
+        // `SharedGetAccessMut::shared_get_access_mut` which requires callers to
+        // avoid calling other methods with `&self` while references returned there
+        // are still in use (and to ensure references from methods like this no
+        // longer exist).
         unsafe { &*unsafe_cell_slice_ptr }
     }
 
@@ -628,15 +635,6 @@ where
         unsafe { self.get_mut(id) }
     }
 
-    /*unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
-        // NOTE: `as` cast is not lossy since insert would have encountered an
-        // allocation failure if this would overflow `usize.`
-        // SAFETY: See `VecStorage` impl.
-        let ptr = unsafe { self.0.get_unchecked(id as usize) }.get();
-        // SAFETY: See `VecStorage` impl.
-        unsafe { &mut *ptr }
-    }*/
-
     unsafe fn insert(&mut self, id: Index, v: T) {
         let id = if Index::BITS > usize::BITS {
             // Saturate the cast to usize::MAX so if this overflows usize the
@@ -664,6 +662,21 @@ where
     }
 }
 
-// SAFETY: `get_mut` doesn't perform any overlapping mutable accesses when
-// provided distinct indices.
+impl<T> SharedGetAccessMutStorage<T> for DefaultVecStorage<T>
+where
+    T: Default,
+{
+    unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T {
+        // NOTE: `as` cast is not lossy since insert would have encountered an
+        // allocation failure if this would overflow `usize.`
+        // SAFETY: See `VecStorage` impl.
+        let ptr = unsafe { self.0.get_unchecked(id as usize) }.get();
+        // SAFETY: See `VecStorage` impl.
+        unsafe { &mut *ptr }
+    }
+}
+
+// SAFETY: `shared_get_access_mut` doesn't perform any overlapping mutable
+// accesses when provided distinct indices and is safe to call from multiple
+// threads at once.
 unsafe impl<T> DistinctStorage for DefaultVecStorage<T> {}

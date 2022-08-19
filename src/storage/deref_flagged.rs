@@ -72,7 +72,7 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for DerefFlag
         unsafe { self.storage.get(id) }
     }
 
-    unsafe fn get_mut(&self, _id: Index) -> Self::AccessMut<'_> {
+    unsafe fn get_mut(&mut self, _id: Index) -> Self::AccessMut<'_> {
         /*let emit = self.emit_event();
         FlaggedAccessMut {
             channel: &mut self.channel,

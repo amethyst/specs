@@ -140,8 +140,8 @@ where
 
 /// This is a marker trait which requires you to uphold the following guarantee:
 ///
-/// > Multiple threads may call `shared_get_access_mut()` with distinct indices
-/// without causing > undefined behavior.
+/// > Multiple threads may call `SharedGetAccessMutStorage::shared_get_access_mut()`
+/// with distinct indices without causing > undefined behavior.
 ///
 /// This is for example valid for `Vec`:
 ///
@@ -846,7 +846,7 @@ macro_rules! shared_get_access_mut_docs {
 trait SharedGetAccessMutStorage<T>: UnprotectedStorage<T> {
     #[cfg(feature = "nightly")]
     shared_get_access_mut_docs! {
-        unsafe fn shared_get_access_mut(&self, id: Index) -> <Self as UnprotectedStorage>::AccessMut<'_>;
+        unsafe fn shared_get_access_mut(&self, id: Index) -> <Self as UnprotectedStorage<T>>::AccessMut<'_>;
     }
 
     #[cfg(not(feature = "nightly"))]

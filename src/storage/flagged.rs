@@ -4,7 +4,8 @@ use hibitset::BitSetLike;
 
 use crate::{
     storage::{
-        ComponentEvent, DenseVecStorage, SyncUnsafeCell, Tracked, TryDefault, UnprotectedStorage,
+        ComponentEvent, DenseVecStorage, SharedGetAccessMutStorage, SyncUnsafeCell, Tracked,
+        TryDefault, UnprotectedStorage,
     },
     world::{Component, Index},
 };
@@ -245,30 +246,6 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
         unsafe { self.get_mut(id) }
     }
 
-    /*#[cfg(feature = "nightly")]
-    unsafe fn shared_get_access_mut(&self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
-        if self.emit_event() {
-            let channel_ptr = self.channel.get();
-            // SAFETY: Caller required to ensure references returned from other
-            // safe methods such as Tracked::channel are no longer alive.
-            unsafe { &mut *channel_ptr }.single_write(ComponentEvent::Modified(id));
-        }
-        // SAFETY: Requirements passed to caller.
-        unsafe { self.storage.get_mut(id) }
-    }
-
-    #[cfg(not(feature = "nightly"))]
-    unsafe fn shared_get_access_mut(&self, id: Index) -> &mut C {
-        if self.emit_event() {
-            let channel_ptr = self.channel.get();
-            // SAFETY: Caller required to ensure references returned from other
-            // safe methods such as Tracked::channel are no longer alive.
-            unsafe { &mut *channel_ptr }.single_write(ComponentEvent::Modified(id));
-        }
-        // SAFETY: Requirements passed to caller.
-        unsafe { self.storage.get_mut(id) }
-    }*/
-
     unsafe fn insert(&mut self, id: Index, comp: C) {
         if self.emit_event() {
             self.channel
@@ -290,14 +267,48 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
     }
 }
 
+impl<C: Component, T: SharedGetAccessMutStorage<C>> SharedGetAccessMutStorage<C>
+    for FlaggedStorage<C, T>
+{
+    #[cfg(feature = "nightly")]
+    unsafe fn shared_get_access_mut(
+        &self,
+        id: Index,
+    ) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
+        if self.emit_event() {
+            let channel_ptr = self.channel.get();
+            // SAFETY: Caller required to ensure references returned from other
+            // safe methods such as Tracked::channel are no longer alive. This
+            // storage is not marked as `DistincStorage`.
+            unsafe { &mut *channel_ptr }.single_write(ComponentEvent::Modified(id));
+        }
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.shared_get_access_mut(id) }
+    }
+
+    #[cfg(not(feature = "nightly"))]
+    unsafe fn shared_get_access_mut(&self, id: Index) -> &mut C {
+        if self.emit_event() {
+            let channel_ptr = self.channel.get();
+            // SAFETY: Caller required to ensure references returned from other
+            // safe methods such as Tracked::channel are no longer alive. This
+            // storage is not marked as `DistincStorage`.
+            unsafe { &mut *channel_ptr }.single_write(ComponentEvent::Modified(id));
+        }
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.shared_get_access_mut(id) }
+    }
+}
+
 impl<C, T> Tracked for FlaggedStorage<C, T> {
     fn channel(&self) -> &EventChannel<ComponentEvent> {
         let channel_ptr = self.channel.get();
-        // SAFETY: The only place that mutably accesses the channel via a shared
-        // reference is the impl of `UnprotectedStorage::get_mut` which requires
-        // callers to avoid calling safe methods with `&self` while those
-        // mutable references are in use and to ensure any references from those
-        // safe methods are no longer alive.
+        // SAFETY: The only place that mutably accesses the channel via a
+        // shared reference is the impl of
+        // `SharedGetAccessMut::shared_get_access_mut` which requires callers to
+        // avoid calling other methods with `&self` while references returned there
+        // are still in use (and to ensure references from methods like this no
+        // longer exist).
         unsafe { &*channel_ptr }
     }
 

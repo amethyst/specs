@@ -88,7 +88,7 @@ pub trait GenericWriteStorage {
     type Component: Component;
     /// The wrapper through with mutable access of a component is performed.
     #[cfg(feature = "nightly")]
-    type AccessMut<'a>: DerefMut<Target = Self::Component>
+    type AccessMut<'a>
     where
         Self: 'a;
 
