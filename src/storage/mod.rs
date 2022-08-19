@@ -140,7 +140,7 @@ where
 
 /// This is a marker trait which requires you to uphold the following guarantee:
 ///
-/// > Multiple threads may call `SharedGetAccessMutStorage::shared_get_access_mut()`
+/// > Multiple threads may call `SharedGetMutStorage::shared_get_mut()`
 /// with distinct indices without causing > undefined behavior.
 ///
 /// This is for example valid for `Vec`:
@@ -535,21 +535,21 @@ where
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type<'_> {
         // SAFETY: Since we require that the mask was checked, an element for
         // `id` must have been inserted without being removed.
-        unsafe { value.get_access_mut(id) }
+        unsafe { value.get_mut(id) }
     }
 }
 
-mod shared_get_access_mut_only {
-    use super::{AccessMutReturn, Component, Index, SharedGetAccessMutStorage};
+mod shared_get_mut_only {
+    use super::{AccessMutReturn, Component, Index, SharedGetMutStorage};
 
-    /// This type provides a way to ensure only `shared_get_access_mut` can be
-    /// called for the lifetime `'a` and that no references previously obtained
-    /// from the storage exist when it is created. While internally this is a
-    /// shared reference, constructing it requires an exclusive borrow for the
-    /// lifetime `'a`.
-    pub struct SharedGetAccessMutOnly<'a, T: Component>(&'a T::Storage);
+    /// This type provides a way to ensure only `shared_get_mut` can be called
+    /// for the lifetime `'a` and that no references previously obtained from
+    /// the storage exist when it is created. While internally this is a shared
+    /// reference, constructing it requires an exclusive borrow for the lifetime
+    /// `'a`.
+    pub struct SharedGetMutOnly<'a, T: Component>(&'a T::Storage);
 
-    impl<'a, T: Component> SharedGetAccessMutOnly<'a, T> {
+    impl<'a, T: Component> SharedGetMutOnly<'a, T> {
         pub(super) fn new(storage: &'a mut T::Storage) -> Self {
             Self(storage)
         }
@@ -569,7 +569,7 @@ mod shared_get_access_mut_only {
         /// multiple threads at once is unsound.
         pub(super) unsafe fn get(&self, i: Index) -> AccessMutReturn<'a, T>
         where
-            T::Storage: SharedGetAccessMutStorage<T>,
+            T::Storage: SharedGetMutStorage<T>,
         {
             // SAFETY: `Self::new` takes an exclusive reference to this storage,
             // ensuring there are no extant references to its content at the
@@ -579,32 +579,32 @@ mod shared_get_access_mut_only {
             // exposed outside of this module).
             //
             // This means we only have to worry about aliasing references being
-            // produced by calling `shared_get_access_mut`. Ensuring these don't
-            // alias and the remaining safety requirements are passed on to the
+            // produced by calling `shared_get_mut`. Ensuring these don't alias
+            // and the remaining safety requirements are passed on to the
             // caller.
-            unsafe { self.0.shared_get_access_mut(i) }
+            unsafe { self.0.shared_get_mut(i) }
         }
     }
 }
-use shared_get_access_mut_only::SharedGetAccessMutOnly;
+use shared_get_mut_only::SharedGetMutOnly;
 
 // SAFETY: The mask and unprotected storage contained in `MaskedStorage`
 // correspond and `open` returns references to them from the same
 // `MaskedStorage` instance (the storage is wrapped in
-// `SharedGetAccessMutOnly`).
+// `SharedGetMutOnly`).
 unsafe impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
 where
     T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,
-    T::Storage: SharedGetAccessMutStorage<T>,
+    T::Storage: SharedGetMutStorage<T>,
 {
     type Mask = &'a BitSet;
     type Type = AccessMutReturn<'a, T>;
-    type Value = SharedGetAccessMutOnly<'a, T>;
+    type Value = SharedGetMutOnly<'a, T>;
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let (mask, value) = self.data.open_mut();
-        let value = SharedGetAccessMutOnly::new(value);
+        let value = SharedGetMutOnly::new(value);
         (mask, value)
     }
 
@@ -621,26 +621,26 @@ where
     }
 }
 
-// SAFETY: It is safe to call `SharedGetAccessMutOnly<'a, T>::get`  from
-// multiple threads at once since `T::Storage: DistinctStorage`.
+// SAFETY: It is safe to call `SharedGetMutOnly<'a, T>::get`  from multiple
+// threads at once since `T::Storage: DistinctStorage`.
 //
 // The mask and unprotected storage contained in `MaskedStorage` correspond and
 // `open` returns references to them from the same `MaskedStorage` instance (the
-// storage is wrapped in `SharedGetAccessMutOnly`).
+// storage is wrapped in `SharedGetMutOnly`).
 #[cfg(feature = "parallel")]
 unsafe impl<'a, 'e, T, D> ParJoin for &'a mut Storage<'e, T, D>
 where
     T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,
-    T::Storage: Sync + SharedGetAccessMutStorage<T> + DistinctStorage,
+    T::Storage: Sync + SharedGetMutStorage<T> + DistinctStorage,
 {
     type Mask = &'a BitSet;
     type Type = AccessMutReturn<'a, T>;
-    type Value = SharedGetAccessMutOnly<'a, T>;
+    type Value = SharedGetMutOnly<'a, T>;
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let (mask, value) = self.data.open_mut();
-        let value = SharedGetAccessMutOnly::new(value);
+        let value = SharedGetMutOnly::new(value);
         (mask, value)
     }
 
@@ -681,13 +681,13 @@ where
     }
 }
 
-macro_rules! get_access_mut_docs {
+macro_rules! get_mut_docs {
     ($fn_definition:item) => {
         /// Gets mutable access to the the data associated with an `Index`.
         ///
-        /// Unlike `get_mut` this doesn't necessarily directly return a `&mut`
-        /// reference (at least with `nightly` feature). This allows storages
-        /// more flexibility. For example, some flagged storages utilize this to
+        /// This doesn't necessarily directly return a `&mut` reference (at
+        /// least with `nightly` feature). This allows storages more
+        /// flexibility. For example, some flagged storages utilize this to
         /// defer generation of mutation events until the user obtains an `&mut`
         /// reference out of the returned wrapper type.
         ///
@@ -743,28 +743,14 @@ pub trait UnprotectedStorage<T>: TryDefault {
     /// in the tracking mask is sufficient to call this method.
     unsafe fn get(&self, id: Index) -> &T;
 
-    /// Gets an exclusive reference to the data associated with an `Index`.
-    ///
-    /// This is unsafe because the external set used to protect this storage is
-    /// absent.
-    ///
-    /// # Safety
-    ///
-    /// May only be called after a call to `insert` with `id` and no following
-    /// call to `remove` with `id` or to `clean`.
-    ///
-    /// A mask should keep track of those states, and an `id` being contained in
-    /// the tracking mask is sufficient to call this method.
-    unsafe fn get_mut(&mut self, id: Index) -> &mut T;
-
     #[cfg(feature = "nightly")]
-    get_access_mut_docs! {
-        unsafe fn get_access_mut(&mut self, id: Index) -> Self::AccessMut<'_>;
+    get_mut_docs! {
+        unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_>;
     }
 
     #[cfg(not(feature = "nightly"))]
-    get_access_mut_docs! {
-        unsafe fn get_access_mut(&mut self, id: Index) -> &mut T;
+    get_mut_docs! {
+        unsafe fn get_mut(&mut self, id: Index) -> &mut T;
     }
 
     /// Inserts new data for a given `Index`.
@@ -809,7 +795,7 @@ pub trait UnprotectedStorage<T>: TryDefault {
     }
 }
 
-macro_rules! shared_get_access_mut_docs {
+macro_rules! shared_get_mut_docs {
     ($fn_definition:item) => {
         /// Gets mutable access to the the data associated with an `Index`.
         ///
@@ -830,7 +816,7 @@ macro_rules! shared_get_access_mut_docs {
         /// methods on this type that take `&self` (e.g.
         /// [`UnprotectedStorage::get`], [`SliceAccess::as_slice`],
         /// [`Tracked::channel`]) must no longer be alive when
-        /// `shared_get_access_mut` is called and these methods must not be
+        /// `shared_get_mut` is called and these methods must not be
         /// called while the references returned here are alive. Essentially,
         /// the `unsafe` code calling this must hold exclusive access of the
         /// storage at some level to ensure only known code is calling `&self`
@@ -843,15 +829,15 @@ macro_rules! shared_get_access_mut_docs {
     };
 }
 
-trait SharedGetAccessMutStorage<T>: UnprotectedStorage<T> {
+trait SharedGetMutStorage<T>: UnprotectedStorage<T> {
     #[cfg(feature = "nightly")]
-    shared_get_access_mut_docs! {
-        unsafe fn shared_get_access_mut(&self, id: Index) -> <Self as UnprotectedStorage<T>>::AccessMut<'_>;
+    shared_get_mut_docs! {
+        unsafe fn shared_get_ut(&self, id: Index) -> <Self as UnprotectedStorage<T>>::AccessMut<'_>;
     }
 
     #[cfg(not(feature = "nightly"))]
-    shared_get_access_mut_docs! {
-        unsafe fn shared_get_access_mut(&self, id: Index) -> &mut T;
+    shared_get_mut_docs! {
+        unsafe fn shared_get_mut(&self, id: Index) -> &mut T;
     }
 }
 

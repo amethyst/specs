@@ -4,8 +4,8 @@ use hibitset::BitSetLike;
 
 use crate::{
     storage::{
-        ComponentEvent, DenseVecStorage, SharedGetAccessMutStorage, SyncUnsafeCell, Tracked,
-        TryDefault, UnprotectedStorage,
+        ComponentEvent, DenseVecStorage, SharedGetMutStorage, SyncUnsafeCell, Tracked, TryDefault,
+        UnprotectedStorage,
     },
     world::{Component, Index},
 };
@@ -219,7 +219,8 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
         unsafe { self.storage.get(id) }
     }
 
-    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
+    #[cfg(feature = "nightly")]
+    unsafe fn get_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
         if self.emit_event() {
             self.channel
                 .get_mut()
@@ -229,21 +230,15 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
         unsafe { self.storage.get_mut(id) }
     }
 
-    #[cfg(feature = "nightly")]
-    unsafe fn get_access_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
+    #[cfg(not(feature = "nightly"))]
+    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         if self.emit_event() {
             self.channel
                 .get_mut()
                 .single_write(ComponentEvent::Modified(id));
         }
         // SAFETY: Requirements passed to caller.
-        unsafe { self.storage.get_access_mut(id) }
-    }
-
-    #[cfg(not(feature = "nightly"))]
-    unsafe fn get_access_mut(&mut self, id: Index) -> &mut C {
-        // SAFETY: Requirements passed to caller.
-        unsafe { self.get_mut(id) }
+        unsafe { self.storage.get_mut(id) }
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
@@ -267,48 +262,42 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
     }
 }
 
-impl<C: Component, T: SharedGetAccessMutStorage<C>> SharedGetAccessMutStorage<C>
-    for FlaggedStorage<C, T>
-{
+impl<C: Component, T: SharedGetMutStorage<C>> SharedGetMutStorage<C> for FlaggedStorage<C, T> {
     #[cfg(feature = "nightly")]
-    unsafe fn shared_get_access_mut(
-        &self,
-        id: Index,
-    ) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
+    unsafe fn shared_get_mut(&self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
         if self.emit_event() {
             let channel_ptr = self.channel.get();
             // SAFETY: Caller required to ensure references returned from other
             // safe methods such as Tracked::channel are no longer alive. This
-            // storage is not marked as `DistincStorage`.
+            // storage is not marked with a `DistinctStorage` impl.
             unsafe { &mut *channel_ptr }.single_write(ComponentEvent::Modified(id));
         }
         // SAFETY: Requirements passed to caller.
-        unsafe { self.storage.shared_get_access_mut(id) }
+        unsafe { self.storage.shared_get_mut(id) }
     }
 
     #[cfg(not(feature = "nightly"))]
-    unsafe fn shared_get_access_mut(&self, id: Index) -> &mut C {
+    unsafe fn shared_get_mut(&self, id: Index) -> &mut C {
         if self.emit_event() {
             let channel_ptr = self.channel.get();
             // SAFETY: Caller required to ensure references returned from other
             // safe methods such as Tracked::channel are no longer alive. This
-            // storage is not marked as `DistincStorage`.
+            // storage is not marked with a `DistinctStorage` impl.
             unsafe { &mut *channel_ptr }.single_write(ComponentEvent::Modified(id));
         }
         // SAFETY: Requirements passed to caller.
-        unsafe { self.storage.shared_get_access_mut(id) }
+        unsafe { self.storage.shared_get_mut(id) }
     }
 }
 
 impl<C, T> Tracked for FlaggedStorage<C, T> {
     fn channel(&self) -> &EventChannel<ComponentEvent> {
         let channel_ptr = self.channel.get();
-        // SAFETY: The only place that mutably accesses the channel via a
-        // shared reference is the impl of
-        // `SharedGetAccessMut::shared_get_access_mut` which requires callers to
-        // avoid calling other methods with `&self` while references returned there
-        // are still in use (and to ensure references from methods like this no
-        // longer exist).
+        // SAFETY: The only place that mutably accesses the channel via a shared
+        // reference is the impl of `SharedGetMut::shared_get_mut` which
+        // requires callers to avoid calling other methods with `&self` while
+        // references returned there are still in use (and to ensure references
+        // from methods like this no longer exist).
         unsafe { &*channel_ptr }
     }
 
