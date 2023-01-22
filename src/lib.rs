@@ -203,7 +203,7 @@ pub extern crate uuid;
 pub mod saveload;
 
 mod bitset;
-// D-TODO pub mod changeset;
+pub mod changeset;
 pub mod error;
 pub mod join;
 pub mod prelude;
@@ -227,7 +227,7 @@ pub use specs_derive::{Component, ConvertSaveload};
 #[cfg(feature = "parallel")]
 pub use crate::join::ParJoin;
 pub use crate::{
-    // D-TODO changeset::ChangeSet,
+    changeset::ChangeSet,
     join::{Join, LendJoin},
     storage::{
         DefaultVecStorage, DenseVecStorage, FlaggedStorage, HashMapStorage, NullStorage,

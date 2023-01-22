@@ -2,7 +2,11 @@
 
 use std::{iter::FromIterator, ops::AddAssign};
 
-use crate::{prelude::*, storage::UnprotectedStorage, world::Index};
+use crate::{
+    prelude::*,
+    storage::{SharedGetMutOnly, UnprotectedStorage},
+    world::Index,
+};
 
 /// Change set that can be collected from an iterator, and joined on for easy
 /// application to components.
@@ -111,25 +115,75 @@ where
     }
 }
 
-impl<'a, T> Join for &'a mut ChangeSet<T> {
+// TODO: lifetime issues
+// SAFETY: `open` returns references to a mask and storage which are contained
+// together in the `ChangeSet` and correspond.
+/*#[nougat::gat]
+unsafe impl<'a, T> LendJoin for &'a mut ChangeSet<T> {
     type Mask = &'a BitSet;
-    type Type = &'a mut T;
+    type Type<'next> = &'next mut T;
     type Value = &'a mut DenseVecStorage<T>;
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, &mut self.inner)
     }
 
-    // `DistinctStorage` invariants are also met, but no `ParJoin`
-    // implementation exists yet.
-    unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
-        let value: *mut Self::Value = v as *mut Self::Value;
-        // SAFETY: S-TODO modify Join trait
-        unsafe { (*value).get_mut(id) }
+    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type<'_> {
+        // SAFETY: Since we require that the mask was checked, an element for
+        // `id` must have been inserted without being removed.
+        unsafe { value.get_mut(id) }
+    }
+}*/
+
+// SAFETY: `open` returns references to a mask and storage which are contained
+// together in the `ChangeSet` and correspond.
+unsafe impl<'a, T> Join for &'a mut ChangeSet<T> {
+    type Mask = &'a BitSet;
+    type Type = &'a mut T;
+    type Value = SharedGetMutOnly<'a, T, DenseVecStorage<T>>;
+
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        (&self.mask, SharedGetMutOnly::new(&mut self.inner))
+    }
+
+    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
+        // SAFETY:
+        // * Since we require that the mask was checked, an element for
+        //   `id` must have been inserted without being removed.
+        // * We also require that the caller drop the value returned before
+        //   subsequent calls with the same `id`, so there are no extant
+        //   references that were obtained with the same `id`.
+        // * Since we have an exclusive reference to `Self::Value`, we know this
+        //   isn't being called from multiple threads at once.
+        unsafe { value.get(id) }
     }
 }
 
-impl<'a, T> Join for &'a ChangeSet<T> {
+// NOTE: could implement ParJoin for `&'a mut ChangeSet`/`&'a ChangeSet`
+
+// TODO: lifetime issues
+// SAFETY: `open` returns references to a mask and storage which are contained
+// together in the `ChangeSet` and correspond.
+/*#[nougat::gat]
+unsafe impl<'a, T> LendJoin for &'a ChangeSet<T> {
+    type Mask = &'a BitSet;
+    type Type<'next> = &'next T;
+    type Value = &'a DenseVecStorage<T>;
+
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        (&self.mask, &self.inner)
+    }
+
+    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type<'_> {
+        // SAFETY: Since we require that the mask was checked, an element for
+        // `i` must have been inserted without being removed.
+        unsafe { value.get(id) }
+    }
+}*/
+
+// SAFETY: `open` returns references to a mask and storage which are contained
+// together in the `ChangeSet` and correspond.
+unsafe impl<'a, T> Join for &'a ChangeSet<T> {
     type Mask = &'a BitSet;
     type Type = &'a T;
     type Value = &'a DenseVecStorage<T>;
@@ -138,17 +192,20 @@ impl<'a, T> Join for &'a ChangeSet<T> {
         (&self.mask, &self.inner)
     }
 
-    // `DistinctStorage` invariants are met, but no `ParJoin` implementation
-    // exists yet.
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        // SAFETY: S-TODO
+        // SAFETY: Since we require that the mask was checked, an element for
+        // `i` must have been inserted without being removed.
         unsafe { value.get(id) }
     }
 }
 
+// S-TODO: implement LendJoin for ChangeSet
+/*
 /// A `Join` implementation for `ChangeSet` that simply removes all the entries
 /// on a call to `get`.
-impl<T> Join for ChangeSet<T> {
+// SAFETY: `open` returns references to a mask and storage which are contained
+// together in the `ChangeSet` and correspond.
+unsafe impl<T> Join for ChangeSet<T> {
     type Mask = BitSet;
     type Type = T;
     type Value = DenseVecStorage<T>;
@@ -158,12 +215,41 @@ impl<T> Join for ChangeSet<T> {
     }
 
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
+        // S-TODO: Following the safety requirements of `Join::get`, users can get
+        // this to be UB by calling `get` dropping the returned value and
+        // calling `get` with the same `id`.
+        //
+        // Note: the current `JoinIter` implementation will never do
+        // this. `LendJoinIter` does expose an API to do this, but it is useful
+        // to implement `LendJoin` so this can be joined with other types that
+        // only implement `LendJoin`.
+        // SAFETY: S-TODO
+        unsafe { value.remove(id) }
+    }
+}*/
+
+/// A `Join` implementation for `ChangeSet` that simply removes all the entries
+/// on a call to `get`.
+// SAFETY: `open` returns references to a mask and storage which are contained
+// together in the `ChangeSet` and correspond.
+unsafe impl<T> Join for ChangeSet<T> {
+    type Mask = BitSet;
+    type Type = T;
+    type Value = DenseVecStorage<T>;
+
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        (self.mask, self.inner)
+    }
+
+    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
+        // S-TODO this may not actually be safe, see the documentation on `remove` call
         // NOTE: Following the safety requirements of `Join::get`, users can get
         // this to panic by calling `get` dropping the returned value and
         // calling `get` with the same `id`. However, such a panic isn't
         // unsound. Also, the current `JoinIter` implementation will never do
-        // this.
-        // SAFETY: S-TODO
+        // this. `LendJoinIter` does expose an API to do this, but it is useful
+        // to implement `LendJoin` so this can be joined with other types that
+        // only implement `LendJoin`.
         unsafe { value.remove(id) }
     }
 }

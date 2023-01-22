@@ -1,11 +1,9 @@
 #[cfg(feature = "nightly")]
-use crate::storage::UnprotectedStorage;
+use crate::storage::{AccessMut, UnprotectedStorage};
 use crate::{
     storage::{AccessMutReturn, InsertResult, ReadStorage, WriteStorage},
     world::{Component, Entity},
 };
-#[cfg(feature = "nightly")]
-use std::ops::DerefMut;
 
 pub struct Seal;
 
@@ -88,7 +86,7 @@ pub trait GenericWriteStorage {
     type Component: Component;
     /// The wrapper through with mutable access of a component is performed.
     #[cfg(feature = "nightly")]
-    type AccessMut<'a>
+    type AccessMut<'a>: AccessMut<Target = Self::Component>
     where
         Self: 'a;
 

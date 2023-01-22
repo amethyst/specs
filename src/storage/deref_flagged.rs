@@ -6,7 +6,9 @@ use std::{
 use hibitset::BitSetLike;
 
 use crate::{
-    storage::{ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage},
+    storage::{
+        AccessMut, ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage,
+    },
     world::{Component, Index},
 };
 
@@ -143,12 +145,12 @@ where
 
 impl<'a, A, C> DerefMut for FlaggedAccessMut<'a, A, C>
 where
-    A: DerefMut<Target = C>,
+    A: AccessMut<Target = C>,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         if self.emit {
             self.channel.single_write(ComponentEvent::Modified(self.id));
         }
-        self.access.deref_mut()
+        self.access.access_mut()
     }
 }

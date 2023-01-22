@@ -383,7 +383,7 @@ where
                 // SAFETY: We have exclusive access (which ensures no aliasing or
                 // concurrent calls from other threads) and we checked the mask, so
                 // all invariants are met.
-                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id) }.deref_mut());
+                std::mem::swap(&mut v, unsafe { self.data.inner.get_mut(id) }.access_mut());
                 Ok(Some(v))
             } else {
                 // SAFETY: The mask was previously empty, so it is safe to insert.
@@ -540,18 +540,22 @@ where
 }
 
 mod shared_get_mut_only {
-    use super::{AccessMutReturn, Component, Index, SharedGetMutStorage};
+    use super::{AccessMutReturn, Index, SharedGetMutStorage};
+    use core::marker::PhantomData;
 
     /// This type provides a way to ensure only `shared_get_mut` can be called
     /// for the lifetime `'a` and that no references previously obtained from
     /// the storage exist when it is created. While internally this is a shared
     /// reference, constructing it requires an exclusive borrow for the lifetime
     /// `'a`.
-    pub struct SharedGetMutOnly<'a, T: Component>(&'a T::Storage);
+    ///
+    /// This is useful for implementations of [`Join`](super::Join) and
+    /// [`ParJoin`](super::ParJoin).
+    pub struct SharedGetMutOnly<'a, T, S>(&'a S, PhantomData<T>);
 
-    impl<'a, T: Component> SharedGetMutOnly<'a, T> {
-        pub(super) fn new(storage: &'a mut T::Storage) -> Self {
-            Self(storage)
+    impl<'a, T, S> SharedGetMutOnly<'a, T, S> {
+        pub fn new(storage: &'a mut S) -> Self {
+            Self(storage, PhantomData)
         }
 
         /// # Safety
@@ -567,9 +571,9 @@ mod shared_get_mut_only {
         ///
         /// Unless `T::Storage` implements `DistinctStorage`, calling this from
         /// multiple threads at once is unsound.
-        pub(super) unsafe fn get(&self, i: Index) -> AccessMutReturn<'a, T>
+        pub unsafe fn get(&self, i: Index) -> AccessMutReturn<'a, T>
         where
-            T::Storage: SharedGetMutStorage<T>,
+            S: SharedGetMutStorage<T>,
         {
             // SAFETY: `Self::new` takes an exclusive reference to this storage,
             // ensuring there are no extant references to its content at the
@@ -586,7 +590,7 @@ mod shared_get_mut_only {
         }
     }
 }
-use shared_get_mut_only::SharedGetMutOnly;
+pub use shared_get_mut_only::SharedGetMutOnly;
 
 // SAFETY: The mask and unprotected storage contained in `MaskedStorage`
 // correspond and `open` returns references to them from the same
@@ -600,7 +604,7 @@ where
 {
     type Mask = &'a BitSet;
     type Type = AccessMutReturn<'a, T>;
-    type Value = SharedGetMutOnly<'a, T>;
+    type Value = SharedGetMutOnly<'a, T, T::Storage>;
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let (mask, value) = self.data.open_mut();
@@ -636,7 +640,7 @@ where
 {
     type Mask = &'a BitSet;
     type Type = AccessMutReturn<'a, T>;
-    type Value = SharedGetMutOnly<'a, T>;
+    type Value = SharedGetMutOnly<'a, T, T::Storage>;
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let (mask, value) = self.data.open_mut();
@@ -705,11 +709,31 @@ macro_rules! get_mut_docs {
     };
 }
 
+/// DerefMut without autoderefing.
+///
+/// Allows forcing mutable access to be explicit. Useful to implement a flagged
+/// storage where it is easier to discover sites where components are marked as
+/// mutated. Of course, individual storages can use an associated `AccessMut`
+/// type that also implements `DerefMut`, but this provides the common denominator.
+pub trait AccessMut: core::ops::Deref {
+    /// This may generate a mutation event for certain flagged storages.
+    fn access_mut(&mut self) -> &mut Self::Target;
+}
+
+impl<T: ?Sized> AccessMut for T
+where
+    T: core::ops::DerefMut,
+{
+    fn access_mut(&mut self) -> &mut Self::Target {
+        &mut *self
+    }
+}
+
 /// Used by the framework to quickly join components.
 pub trait UnprotectedStorage<T>: TryDefault {
     /// The wrapper through with mutable access of a component is performed.
     #[cfg(feature = "nightly")]
-    type AccessMut<'a>
+    type AccessMut<'a>: AccessMut<Target = T>
     where
         Self: 'a;
 
@@ -829,10 +853,10 @@ macro_rules! shared_get_mut_docs {
     };
 }
 
-trait SharedGetMutStorage<T>: UnprotectedStorage<T> {
+pub trait SharedGetMutStorage<T>: UnprotectedStorage<T> {
     #[cfg(feature = "nightly")]
     shared_get_mut_docs! {
-        unsafe fn shared_get_ut(&self, id: Index) -> <Self as UnprotectedStorage<T>>::AccessMut<'_>;
+        unsafe fn shared_get_mut(&self, id: Index) -> <Self as UnprotectedStorage<T>>::AccessMut<'_>;
     }
 
     #[cfg(not(feature = "nightly"))]
