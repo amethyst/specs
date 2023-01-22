@@ -115,10 +115,9 @@ where
     }
 }
 
-// TODO: lifetime issues
 // SAFETY: `open` returns references to a mask and storage which are contained
 // together in the `ChangeSet` and correspond.
-/*#[nougat::gat]
+#[nougat::gat]
 unsafe impl<'a, T> LendJoin for &'a mut ChangeSet<T> {
     type Mask = &'a BitSet;
     type Type<'next> = &'next mut T;
@@ -128,12 +127,15 @@ unsafe impl<'a, T> LendJoin for &'a mut ChangeSet<T> {
         (&self.mask, &mut self.inner)
     }
 
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type<'_> {
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
+    where
+        Self: 'next,
+    {
         // SAFETY: Since we require that the mask was checked, an element for
         // `id` must have been inserted without being removed.
         unsafe { value.get_mut(id) }
     }
-}*/
+}
 
 // SAFETY: `open` returns references to a mask and storage which are contained
 // together in the `ChangeSet` and correspond.
@@ -161,25 +163,27 @@ unsafe impl<'a, T> Join for &'a mut ChangeSet<T> {
 
 // NOTE: could implement ParJoin for `&'a mut ChangeSet`/`&'a ChangeSet`
 
-// TODO: lifetime issues
 // SAFETY: `open` returns references to a mask and storage which are contained
 // together in the `ChangeSet` and correspond.
-/*#[nougat::gat]
+#[nougat::gat]
 unsafe impl<'a, T> LendJoin for &'a ChangeSet<T> {
     type Mask = &'a BitSet;
-    type Type<'next> = &'next T;
+    type Type<'next> = &'a T;
     type Value = &'a DenseVecStorage<T>;
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, &self.inner)
     }
 
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type<'_> {
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
+    where
+        Self: 'next,
+    {
         // SAFETY: Since we require that the mask was checked, an element for
         // `i` must have been inserted without being removed.
         unsafe { value.get(id) }
     }
-}*/
+}
 
 // SAFETY: `open` returns references to a mask and storage which are contained
 // together in the `ChangeSet` and correspond.
@@ -199,22 +203,24 @@ unsafe impl<'a, T> Join for &'a ChangeSet<T> {
     }
 }
 
-// S-TODO: implement LendJoin for ChangeSet
-/*
 /// A `Join` implementation for `ChangeSet` that simply removes all the entries
 /// on a call to `get`.
 // SAFETY: `open` returns references to a mask and storage which are contained
 // together in the `ChangeSet` and correspond.
-unsafe impl<T> Join for ChangeSet<T> {
+#[nougat::gat]
+unsafe impl<T> LendJoin for ChangeSet<T> {
     type Mask = BitSet;
-    type Type = T;
+    type Type<'next> = T;
     type Value = DenseVecStorage<T>;
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (self.mask, self.inner)
     }
 
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
+    where
+        Self: 'next,
+    {
         // S-TODO: Following the safety requirements of `Join::get`, users can get
         // this to be UB by calling `get` dropping the returned value and
         // calling `get` with the same `id`.
@@ -226,7 +232,7 @@ unsafe impl<T> Join for ChangeSet<T> {
         // SAFETY: S-TODO
         unsafe { value.remove(id) }
     }
-}*/
+}
 
 /// A `Join` implementation for `ChangeSet` that simply removes all the entries
 /// on a call to `get`.
