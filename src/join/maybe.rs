@@ -36,7 +36,10 @@ where
         (BitSetAll, (mask, value))
     }
 
-    unsafe fn get((mask, value): &mut Self::Value, id: Index) -> Self::Type<'_> {
+    unsafe fn get<'next>((mask, value): &'next mut Self::Value, id: Index) -> Self::Type<'next>
+    where
+        Self: 'next,
+    {
         if mask.contains(id) {
             // SAFETY: The mask was just checked for `id`.
             Some(unsafe { <T as LendJoin>::get(value, id) })

@@ -215,7 +215,10 @@ macro_rules! define_open {
             }
 
             #[allow(non_snake_case)]
-            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type<'_> {
+            unsafe fn get<'next>(v: &'next mut Self::Value, i: Index) -> Self::Type<'next>
+            where
+                Self: 'next,
+            {
                 let &mut ($(ref mut $from,)*) = v;
                 // SAFETY: `get` is safe to call as the caller must have checked
                 // the mask, which only has a key that exists in all of the
@@ -369,7 +372,10 @@ macro_rules! immutable_resource_join {
                 unsafe { self.deref().open() }
             }
 
-            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type<'_> {
+            unsafe fn get<'next>(v: &'next mut Self::Value, i: Index) -> Self::Type<'next>
+            where
+                Self: 'next,
+            {
                 // SAFETY: The mask of `Self` and `T` are identical, thus a
                 // check to `Self`'s mask (which is required) is equal to a
                 // check of `T`'s mask, which makes `get` safe to call.
@@ -470,7 +476,10 @@ macro_rules! mutable_resource_join {
                 unsafe { self.deref_mut().open() }
             }
 
-            unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type<'_> {
+            unsafe fn get<'next>(v: &'next mut Self::Value, i: Index) -> Self::Type<'next>
+            where
+                Self: 'next,
+            {
                 // SAFETY: The mask of `Self` and `T` are identical, thus a check to
                 // `Self`'s mask (which is required) is equal to a check of `T`'s
                 // mask, which makes `get_mut` safe to call.

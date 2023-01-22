@@ -30,7 +30,10 @@ macro_rules! define_bit_join {
                 (self, ())
             }
 
-            unsafe fn get(_: &mut Self::Value, id: Index) -> Self::Type<'_> {
+            unsafe fn get<'next>(_: &'next mut Self::Value, id: Index) -> Self::Type<'next>
+            where
+                Self: 'next,
+            {
                 id
             }
         }

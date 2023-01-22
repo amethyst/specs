@@ -20,7 +20,9 @@ pub unsafe trait LendJoin {
     /// This type is using macro magic to emulate GATs on stable. So to refer to
     /// it you need to use the [`LendJoinType<'next, J>`](LendJoinType) type
     /// alias.
-    type Type<'next>;
+    type Type<'next>
+    where
+        Self: 'next;
     /// Type of joined storages.
     type Value;
     /// Type of joined bit mask.
@@ -116,7 +118,9 @@ pub unsafe trait LendJoin {
     ///
     /// * A call to `get` must be preceded by a check if `id` is part of
     ///   `Self::Mask`
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type<'_>;
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
+    where
+        Self: 'next;
 
     /// If this `LendJoin` typically returns all indices in the mask, then
     /// iterating over only it or combined with other joins that are also
