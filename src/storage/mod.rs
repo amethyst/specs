@@ -486,7 +486,7 @@ where
 
 // SAFETY: The mask and unprotected storage contained in `MaskedStorage`
 // correspond and `open` returns references to them from the same
-// `MaskedStorage` instance.
+// `MaskedStorage` instance. Iterating the mask does not repeat indices.
 unsafe impl<'a, 'e, T, D> Join for &'a Storage<'e, T, D>
 where
     T: Component,
@@ -625,8 +625,8 @@ pub use shared_get_mut_only::SharedGetMutOnly;
 
 // SAFETY: The mask and unprotected storage contained in `MaskedStorage`
 // correspond and `open` returns references to them from the same
-// `MaskedStorage` instance (the storage is wrapped in
-// `SharedGetMutOnly`).
+// `MaskedStorage` instance (the storage is wrapped in `SharedGetMutOnly`).
+// Iterating the mask does not repeat indices.
 unsafe impl<'a, 'e, T, D> Join for &'a mut Storage<'e, T, D>
 where
     T: Component,
@@ -647,9 +647,9 @@ where
         // SAFETY:
         // * Since we require that the mask was checked, an element for
         //   `id` must have been inserted without being removed.
-        // * We also require that the caller drop the value returned before
-        //   subsequent calls with the same `id`, so there are no extant
-        //   references that were obtained with the same `id`.
+        // * We also require that there are no subsequent calls with the same
+        //   `id` for this instance of the values from `open`, so there are no
+        //   extant references for the element corresponding to this `id`.
         // * Since we have an exclusive reference to `Self::Value`, we know this
         //   isn't being called from multiple threads at once.
         unsafe { value.get(id) }

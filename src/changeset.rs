@@ -144,7 +144,8 @@ unsafe impl<'a, T> LendJoin for &'a mut ChangeSet<T> {
 unsafe impl<'a, T> RepeatableLendGet for &'a mut ChangeSet<T> {}
 
 // SAFETY: `open` returns references to a mask and storage which are contained
-// together in the `ChangeSet` and correspond.
+// together in the `ChangeSet` and correspond. Iterating mask does not repeat
+// indices.
 unsafe impl<'a, T> Join for &'a mut ChangeSet<T> {
     type Mask = &'a BitSet;
     type Type = &'a mut T;
@@ -158,9 +159,9 @@ unsafe impl<'a, T> Join for &'a mut ChangeSet<T> {
         // SAFETY:
         // * Since we require that the mask was checked, an element for
         //   `id` must have been inserted without being removed.
-        // * We also require that the caller drop the value returned before
-        //   subsequent calls with the same `id`, so there are no extant
-        //   references that were obtained with the same `id`.
+        // * We also require that there are no subsequent calls with the same
+        //   `id` for this instance of the values from `open`, so there are no
+        //   extant references for the element corresponding to this `id`.
         // * Since we have an exclusive reference to `Self::Value`, we know this
         //   isn't being called from multiple threads at once.
         unsafe { value.get(id) }
@@ -197,7 +198,8 @@ unsafe impl<'a, T> LendJoin for &'a ChangeSet<T> {
 unsafe impl<'a, T> RepeatableLendGet for &'a ChangeSet<T> {}
 
 // SAFETY: `open` returns references to a mask and storage which are contained
-// together in the `ChangeSet` and correspond.
+// together in the `ChangeSet` and correspond. Iterating mask does not repeat
+// indices.
 unsafe impl<'a, T> Join for &'a ChangeSet<T> {
     type Mask = &'a BitSet;
     type Type = &'a T;
@@ -251,7 +253,8 @@ unsafe impl<T> LendJoin for ChangeSet<T> {
 /// A `Join` implementation for `ChangeSet` that simply removes all the entries
 /// on a call to `get`.
 // SAFETY: `open` returns references to a mask and storage which are contained
-// together in the `ChangeSet` and correspond.
+// together in the `ChangeSet` and correspond. Iterating mask does not repeat
+// indices.
 unsafe impl<T> Join for ChangeSet<T> {
     type Mask = BitSet;
     type Type = T;

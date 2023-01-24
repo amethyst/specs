@@ -61,7 +61,7 @@ where
 unsafe impl<T> RepeatableLendGet for MaybeJoin<T> where T: RepeatableLendGet {}
 
 // SAFETY: We return a mask containing all items, but check the original mask in
-// the `get` implementation.
+// the `get` implementation. Iterating the mask does not repeat indices.
 unsafe impl<T> Join for MaybeJoin<T>
 where
     T: Join,

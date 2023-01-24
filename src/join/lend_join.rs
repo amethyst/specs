@@ -123,8 +123,6 @@ pub unsafe trait LendJoin {
     /// * Multiple calls with the same `id` are not allowed, for a particular
     ///   instance of the values from [`open`](Join::open). Unless this type
     ///   implements the unsafe trait [`RepeatableLendGet`].
-    ///   (S-TODO update callers to match edit)
-    ///   (S-TODO update immplemetors to match edit)
     unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
     where
         Self: 'next;

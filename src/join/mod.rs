@@ -94,7 +94,9 @@ pub use par_join::{JoinParIter, ParJoin};
 ///
 /// The `Self::Mask` value returned with the `Self::Value` must correspond such
 /// that it is safe to retrieve items from `Self::Value` whose presence is
-/// indicated in the mask.
+/// indicated in the mask. As part of this, `BitSetLike::iter` must not produce
+/// an iterator that repeats an `Index` value if the `LendJoin::get` impl relies
+/// on not being called twice with the same `Index`. (S-TODO update impls)
 pub unsafe trait Join {
     /// Type of joined components.
     type Type;
@@ -123,7 +125,7 @@ pub unsafe trait Join {
 
     /// Get a joined component value by a given index.
     ///
-    // S-TODO: evaluate all impls
+    // S-TODO: evaluate all impls (TODO: probably restrict, entry, and drain)
     ///
     /// # Safety
     ///
@@ -131,8 +133,6 @@ pub unsafe trait Join {
     ///   `Self::Mask`.
     /// * Multiple calls with the same `id` are not allowed, for a particular
     ///   instance of the values from [`open`](Join::open).
-    ///   (S-TODO update callers to match edit)
-    ///   (S-TODO update immplemetors to match edit)
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type;
 
     /// If this `Join` typically returns all indices in the mask, then iterating
@@ -177,8 +177,9 @@ impl<J: Join> std::iter::Iterator for JoinIter<J> {
     type Item = J::Type;
 
     fn next(&mut self) -> Option<J::Type> {
-        // SAFETY: since `idx` is yielded from `keys` (the mask), it is necessarily a
-        // part of it. Thus, requirements are fulfilled for calling `get`.
+        // SAFETY: Since `idx` is yielded from `keys` (the mask), it is
+        // necessarily a part of it. `Join` requires that the iterator doesn't
+        // repeat indices and we advance the iterator for each `get` call.
         self.keys
             .next()
             .map(|idx| unsafe { J::get(&mut self.values, idx) })
@@ -225,9 +226,9 @@ macro_rules! define_open {
                 let &mut ($(ref mut $from,)*) = v;
                 // SAFETY: `get` is safe to call as the caller must have checked
                 // the mask, which only has a key that exists in all of the
-                // storages. Requirement to Requirement to not call with the
-                // same ID more than once (unless `RepeatableLendGet` is
-                // implemented) is passed to the caller.
+                // storages. Requirement to not call with the same ID more than
+                // once (unless `RepeatableLendGet` is implemented) is passed to
+                // the caller.
                 unsafe { ($($from::get($from, i),)*) }
             }
 
@@ -249,6 +250,7 @@ macro_rules! define_open {
         // SAFETY: The returned mask in `open` is the intersection of the masks
         // from each type in this tuple. So if an `id` is present in the
         // combined mask, it will be safe to retrieve the corresponding items.
+        // Iterating the mask does not repeat indices.
         unsafe impl<$($from,)*> Join for ($($from),*,)
             where $($from: Join),*,
                   ($(<$from as Join>::Mask,)*): BitAnd,
@@ -275,7 +277,8 @@ macro_rules! define_open {
                 let &mut ($(ref mut $from,)*) = v;
                 // SAFETY: `get` is safe to call as the caller must have checked
                 // the mask, which only has a key that exists in all of the
-                // storages.
+                // storages. Requirement to not use the same ID multiple times
+                // is also passed to the caller.
                 unsafe { ($($from::get($from, i),)*) }
             }
 
@@ -433,6 +436,8 @@ macro_rules! immutable_resource_join {
                 // SAFETY: The mask of `Self` and `T` are identical, thus a
                 // check to `Self`'s mask (which is required) is equal to a
                 // check of `T`'s mask, which makes `get` safe to call.
+                // Requirement to not use the same ID multiple times is passed
+                // to the caller.
                 unsafe { <&'a T as Join>::get(v, i) }
             }
 
@@ -546,9 +551,11 @@ macro_rules! mutable_resource_join {
             }
 
             unsafe fn get(v: &mut Self::Value, i: Index) -> Self::Type {
-                // SAFETY: The mask of `Self` and `T` are identical, thus a check to
-                // `Self`'s mask (which is required) is equal to a check of `T`'s
-                // mask, which makes `get_mut` safe to call.
+                // SAFETY: The mask of `Self` and `T` are identical, thus a
+                // check to `Self`'s mask (which is required) is equal to a
+                // check of `T`'s mask, which makes `get_mut` safe to call.
+                // Requirement to not use the same ID multiple times is passed
+                // to the caller.
                 unsafe { <&'a mut T as Join>::get(v, i) }
             }
 
