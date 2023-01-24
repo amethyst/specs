@@ -15,7 +15,7 @@ mod par_join;
 pub use bit_and::BitAnd;
 #[nougat::gat(Type)]
 pub use lend_join::LendJoin;
-pub use lend_join::{JoinLendIter, LendJoinType};
+pub use lend_join::{JoinLendIter, LendJoinType, RepeatableLendGet};
 pub use maybe::MaybeJoin;
 #[cfg(feature = "parallel")]
 pub use par_join::{JoinParIter, ParJoin};
@@ -129,8 +129,10 @@ pub unsafe trait Join {
     ///
     /// * A call to `get` must be preceded by a check if `id` is part of
     ///   `Self::Mask`.
-    /// * The value returned from this method must be dropped before subsequent
-    ///   calls with the same `id`. (S-TODO update callers to match edit)
+    /// * Multiple calls with the same `id` are not allowed, for a particular
+    ///   instance of the values from [`open`](Join::open).
+    ///   (S-TODO update callers to match edit)
+    ///   (S-TODO update immplemetors to match edit)
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type;
 
     /// If this `Join` typically returns all indices in the mask, then iterating
@@ -192,6 +194,7 @@ macro_rules! define_open {
         // SAFETY: The returned mask in `open` is the intersection of the masks
         // from each type in this tuple. So if an `id` is present in the
         // combined mask, it will be safe to retrieve the corresponding items.
+        // Iterating the mask does not repeat indices.
         #[nougat::gat]
         unsafe impl<$($from,)*> LendJoin for ($($from),*,)
             where $($from: LendJoin),*,
@@ -222,7 +225,9 @@ macro_rules! define_open {
                 let &mut ($(ref mut $from,)*) = v;
                 // SAFETY: `get` is safe to call as the caller must have checked
                 // the mask, which only has a key that exists in all of the
-                // storages.
+                // storages. Requirement to Requirement to not call with the
+                // same ID more than once (unless `RepeatableLendGet` is
+                // implemented) is passed to the caller.
                 unsafe { ($($from::get($from, i),)*) }
             }
 
@@ -233,6 +238,13 @@ macro_rules! define_open {
                 unconstrained
             }
         }
+
+        // SAFETY: Tuple impls of `LendJoin` simply defer to the individual
+        // storages. Thus, if all of them implement this, it is safe to call
+        // `LendJoin::get` multiple times with the same ID.
+        unsafe impl<$($from,)*> RepeatableLendGet for ($($from),*,)
+            where $($from: RepeatableLendGet),*,
+                  ($(<$from as LendJoin>::Mask,)*): BitAnd, {}
 
         // SAFETY: The returned mask in `open` is the intersection of the masks
         // from each type in this tuple. So if an `id` is present in the
@@ -379,6 +391,9 @@ macro_rules! immutable_resource_join {
                 // SAFETY: The mask of `Self` and `T` are identical, thus a
                 // check to `Self`'s mask (which is required) is equal to a
                 // check of `T`'s mask, which makes `get` safe to call.
+                // Requirement to not call with the same ID more than once
+                // (unless `RepeatableLendGet` is implemented) is passed to the
+                // caller.
                 unsafe { <&'a T as LendJoin>::get(v, i) }
             }
 
@@ -387,6 +402,14 @@ macro_rules! immutable_resource_join {
                 <&'a T as LendJoin>::is_unconstrained()
             }
         }
+
+        // SAFETY: <&'a $ty as LendJoin>::get does not rely on only being called
+        // once with a particular ID as long as `&'a T` does not rely on this.
+        unsafe impl<'a, 'b, T> RepeatableLendGet for &'a $ty
+        where
+            &'a T: RepeatableLendGet,
+            T: Resource,
+        {}
 
         // SAFETY: Since `T` implements `Join` it is safe to deref and defer to
         // its implementation.
@@ -480,9 +503,12 @@ macro_rules! mutable_resource_join {
             where
                 Self: 'next,
             {
-                // SAFETY: The mask of `Self` and `T` are identical, thus a check to
-                // `Self`'s mask (which is required) is equal to a check of `T`'s
-                // mask, which makes `get_mut` safe to call.
+                // SAFETY: The mask of `Self` and `T` are identical, thus a
+                // check to `Self`'s mask (which is required) is equal to a
+                // check of `T`'s mask, which makes `get_mut` safe to call.
+                // Requirement to not call with the same ID more than once
+                // (unless `RepeatableLendGet` is implemented) is passed to the
+                // caller.
                 unsafe { <&'a mut T as LendJoin>::get(v, i) }
             }
 
@@ -491,6 +517,15 @@ macro_rules! mutable_resource_join {
                 <&'a mut T as LendJoin>::is_unconstrained()
             }
         }
+
+        // SAFETY: <&'a mut $ty as LendJoin>::get does not rely on only being
+        // called once with a particular ID as long as `&'a mut T` does not rely
+        // on this.
+        unsafe impl<'a, 'b, T> RepeatableLendGet for &'a mut $ty
+        where
+            &'a mut T: RepeatableLendGet,
+            T: Resource,
+        {}
 
         // SAFETY: Since `T` implements `Join` it is safe to deref and defer to
         // its implementation.

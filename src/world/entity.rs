@@ -11,7 +11,12 @@ use shred::Read;
 use crate::join::LendJoin;
 #[cfg(feature = "parallel")]
 use crate::join::ParJoin;
-use crate::{error::WrongGeneration, join::Join, storage::WriteStorage, world::Component};
+use crate::{
+    error::WrongGeneration,
+    join::{Join, RepeatableLendGet},
+    storage::WriteStorage,
+    world::Component,
+};
 
 /// An index is basically the id of an `Entity`.
 pub type Index = u32;
@@ -342,6 +347,10 @@ unsafe impl<'a> LendJoin for &'a EntitiesRes {
         Entity(id, gen)
     }
 }
+
+// SAFETY: <EntitiesRes as LendJoin>::get does not rely on only being called once
+// with a particular ID.
+unsafe impl<'a> RepeatableLendGet for &'a EntitiesRes {}
 
 // SAFETY: It is safe to retrieve elements with any `id` regardless of the mask.
 unsafe impl<'a> Join for &'a EntitiesRes {

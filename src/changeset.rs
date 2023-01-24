@@ -3,6 +3,7 @@
 use std::{iter::FromIterator, ops::AddAssign};
 
 use crate::{
+    join::RepeatableLendGet,
     prelude::*,
     storage::{SharedGetMutOnly, UnprotectedStorage},
     world::Index,
@@ -116,7 +117,8 @@ where
 }
 
 // SAFETY: `open` returns references to a mask and storage which are contained
-// together in the `ChangeSet` and correspond.
+// together in the `ChangeSet` and correspond. Iterating mask does not repeat
+// indices.
 #[nougat::gat]
 unsafe impl<'a, T> LendJoin for &'a mut ChangeSet<T> {
     type Mask = &'a BitSet;
@@ -136,6 +138,10 @@ unsafe impl<'a, T> LendJoin for &'a mut ChangeSet<T> {
         unsafe { value.get_mut(id) }
     }
 }
+
+// SAFETY: LendJoin::get impl for this type can safely be called multiple times
+// with the same ID.
+unsafe impl<'a, T> RepeatableLendGet for &'a mut ChangeSet<T> {}
 
 // SAFETY: `open` returns references to a mask and storage which are contained
 // together in the `ChangeSet` and correspond.
@@ -164,7 +170,8 @@ unsafe impl<'a, T> Join for &'a mut ChangeSet<T> {
 // NOTE: could implement ParJoin for `&'a mut ChangeSet`/`&'a ChangeSet`
 
 // SAFETY: `open` returns references to a mask and storage which are contained
-// together in the `ChangeSet` and correspond.
+// together in the `ChangeSet` and correspond. Iterating mask does not repeat
+// indices.
 #[nougat::gat]
 unsafe impl<'a, T> LendJoin for &'a ChangeSet<T> {
     type Mask = &'a BitSet;
@@ -180,10 +187,14 @@ unsafe impl<'a, T> LendJoin for &'a ChangeSet<T> {
         Self: 'next,
     {
         // SAFETY: Since we require that the mask was checked, an element for
-        // `i` must have been inserted without being removed.
+        // `id` must have been inserted without being removed.
         unsafe { value.get(id) }
     }
 }
+
+// SAFETY: LendJoin::get impl for this type can safely be called multiple times
+// with the same ID.
+unsafe impl<'a, T> RepeatableLendGet for &'a ChangeSet<T> {}
 
 // SAFETY: `open` returns references to a mask and storage which are contained
 // together in the `ChangeSet` and correspond.
@@ -198,7 +209,7 @@ unsafe impl<'a, T> Join for &'a ChangeSet<T> {
 
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         // SAFETY: Since we require that the mask was checked, an element for
-        // `i` must have been inserted without being removed.
+        // `id` must have been inserted without being removed.
         unsafe { value.get(id) }
     }
 }
@@ -206,7 +217,8 @@ unsafe impl<'a, T> Join for &'a ChangeSet<T> {
 /// A `Join` implementation for `ChangeSet` that simply removes all the entries
 /// on a call to `get`.
 // SAFETY: `open` returns references to a mask and storage which are contained
-// together in the `ChangeSet` and correspond.
+// together in the `ChangeSet` and correspond. Iterating mask does not repeat
+// indices.
 #[nougat::gat]
 unsafe impl<T> LendJoin for ChangeSet<T> {
     type Mask = BitSet;
@@ -221,15 +233,17 @@ unsafe impl<T> LendJoin for ChangeSet<T> {
     where
         Self: 'next,
     {
-        // S-TODO: Following the safety requirements of `Join::get`, users can get
-        // this to be UB by calling `get` dropping the returned value and
-        // calling `get` with the same `id`.
+        // NOTE: This impl is the main reason that `RepeatableLendGet` exists
+        // since it moves the value out of the backing storage and thus can't
+        // be called multiple times with the same ID!
         //
-        // Note: the current `JoinIter` implementation will never do
-        // this. `LendJoinIter` does expose an API to do this, but it is useful
-        // to implement `LendJoin` so this can be joined with other types that
-        // only implement `LendJoin`.
-        // SAFETY: S-TODO
+        // SAFETY: Since we require that the mask was checked, an element for
+        // `id` must have been inserted without being removed. Note, this
+        // removes the element without effecting the mask. However, the caller
+        // is also required to not call this multiple times with the same `id`
+        // value and mask instance. Because `open` takes ownership we don't have
+        // to update the mask for futures uses since the `ChangeSet` is
+        // consumed.
         unsafe { value.remove(id) }
     }
 }
@@ -248,14 +262,13 @@ unsafe impl<T> Join for ChangeSet<T> {
     }
 
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        // S-TODO this may not actually be safe, see the documentation on `remove` call
-        // NOTE: Following the safety requirements of `Join::get`, users can get
-        // this to panic by calling `get` dropping the returned value and
-        // calling `get` with the same `id`. However, such a panic isn't
-        // unsound. Also, the current `JoinIter` implementation will never do
-        // this. `LendJoinIter` does expose an API to do this, but it is useful
-        // to implement `LendJoin` so this can be joined with other types that
-        // only implement `LendJoin`.
+        // SAFETY: Since we require that the mask was checked, an element for
+        // `id` must have been inserted without being removed. Note, this
+        // removes the element without effecting the mask. However, the caller
+        // is also required to not call this multiple times with the same `id`
+        // value and mask instance. Because `open` takes ownership we don't have
+        // to update the mask for futures uses since the `ChangeSet` is
+        // consumed.
         unsafe { value.remove(id) }
     }
 }

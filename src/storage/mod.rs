@@ -34,7 +34,7 @@ use crate::join::LendJoin;
 use crate::join::ParJoin;
 use crate::{
     error::{Error, WrongGeneration},
-    join::Join,
+    join::{Join, RepeatableLendGet},
     world::{Component, EntitiesRes, Entity, Index},
 };
 
@@ -82,6 +82,9 @@ unsafe impl<'a> LendJoin for AntiStorage<'a> {
     {
     }
 }
+
+// SAFETY: <AntiStorage as LendJoin>::get does nothing.
+unsafe impl RepeatableLendGet for AntiStorage<'_> {}
 
 // SAFETY: Items are just `()` and it is always safe to retrieve them regardless
 // of the mask and value returned by `open`.
@@ -447,7 +450,7 @@ where
 
 // SAFETY: The mask and unprotected storage contained in `MaskedStorage`
 // correspond and `open` returns references to them from the same
-// `MaskedStorage` instance.
+// `MaskedStorage` instance. Iterating the mask does not repeat indices.
 #[nougat::gat]
 unsafe impl<'a, 'e, T, D> LendJoin for &'a Storage<'e, T, D>
 where
@@ -470,6 +473,15 @@ where
         // `i` must have been inserted without being removed.
         unsafe { v.get(i) }
     }
+}
+
+// SAFETY: LendJoin::get impl for this type is safe to call multiple times with
+// the same ID.
+unsafe impl<'a, 'e, T, D> RepeatableLendGet for &'a Storage<'e, T, D>
+where
+    T: Component,
+    D: Deref<Target = MaskedStorage<T>>,
+{
 }
 
 // SAFETY: The mask and unprotected storage contained in `MaskedStorage`
@@ -524,7 +536,7 @@ where
 
 // SAFETY: The mask and unprotected storage contained in `MaskedStorage`
 // correspond and `open` returns references to them from the same
-// `MaskedStorage` instance.
+// `MaskedStorage` instance. Iterating the mask does not repeat indices.
 #[nougat::gat]
 unsafe impl<'a, 'e, T, D> LendJoin for &'a mut Storage<'e, T, D>
 where
@@ -547,6 +559,15 @@ where
         // `id` must have been inserted without being removed.
         unsafe { value.get_mut(id) }
     }
+}
+
+// SAFETY: LendJoin::get impl for this type is safe to call multiple times with
+// the same ID.
+unsafe impl<'a, 'e, T, D> RepeatableLendGet for &'a mut Storage<'e, T, D>
+where
+    T: Component,
+    D: DerefMut<Target = MaskedStorage<T>>,
+{
 }
 
 mod shared_get_mut_only {

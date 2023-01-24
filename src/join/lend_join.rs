@@ -10,7 +10,9 @@ use crate::world::{Entities, Entity, Index};
 ///
 /// The `Self::Mask` value returned with the `Self::Value` must correspond such
 /// that it is safe to retrieve items from `Self::Value` whose presence is
-/// indicated in the mask.
+/// indicated in the mask. As part of this, `BitSetLike::iter` must not produce
+/// an iterator that repeats an `Index` value if the `LendJoin::get` impl relies
+/// on not being called twice with the same `Index`.
 #[nougat::gat]
 pub unsafe trait LendJoin {
     /// Type of joined components.
@@ -118,6 +120,11 @@ pub unsafe trait LendJoin {
     ///
     /// * A call to `get` must be preceded by a check if `id` is part of
     ///   `Self::Mask`
+    /// * Multiple calls with the same `id` are not allowed, for a particular
+    ///   instance of the values from [`open`](Join::open). Unless this type
+    ///   implements the unsafe trait [`RepeatableLendGet`].
+    ///   (S-TODO update callers to match edit)
+    ///   (S-TODO update immplemetors to match edit)
     unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
     where
         Self: 'next;
@@ -131,6 +138,12 @@ pub unsafe trait LendJoin {
         false
     }
 }
+
+/// # Safety
+///
+/// Implementing this trait guarantees that `<Self as LendJoin>::get` can soundly be called
+/// multiple times with the same ID.
+pub unsafe trait RepeatableLendGet: LendJoin {}
 
 /// Type alias to refer to the `<J as LendJoin>::Type<'next>` (except this
 /// doesn't actually exist in this form so the `nougat::Gat!` macro is needed).
@@ -172,8 +185,10 @@ impl<J: LendJoin> JoinLendIter<J> {
     ///
     /// `while let Some(components) = join_lending_iter.next() {`
     pub fn next(&mut self) -> Option<LendJoinType<'_, J>> {
-        // SAFETY: since `idx` is yielded from `keys` (the mask), it is necessarily a
-        // part of it. Thus, requirements are fulfilled for calling `get`.
+        // SAFETY: Since `idx` is yielded from `keys` (the mask), it is
+        // necessarily a part of it. `LendJoin` requires that the iterator
+        // doesn't repeat indices and we advance the iterator for each `get`
+        // call in all methods that don't require `RepeatableLendGet`.
         self.keys
             .next()
             .map(|idx| unsafe { J::get(&mut self.values, idx) })
@@ -182,9 +197,10 @@ impl<J: LendJoin> JoinLendIter<J> {
     /// Calls a closure on each entity in the join.
     pub fn for_each(mut self, mut f: impl FnMut(LendJoinType<'_, J>)) {
         self.keys.for_each(|idx| {
-            // SAFETY: since `idx` is yielded from `keys` (the mask), it is
-            // necessarily a part of it. Thus, requirements are fulfilled for
-            // calling `get`.
+            // SAFETY: Since `idx` is yielded from `keys` (the mask), it is
+            // necessarily a part of it. `LendJoin` requires that the iterator
+            // doesn't repeat indices and we advance the iterator for each `get`
+            // call in all methods that don't require `RepeatableLendGet`.
             let item = unsafe { J::get(&mut self.values, idx) };
             f(item);
         })
@@ -239,9 +255,14 @@ impl<J: LendJoin> JoinLendIter<J> {
     ///     );
     /// }
     /// ```
-    pub fn get(&mut self, entity: Entity, entities: &Entities) -> Option<LendJoinType<'_, J>> {
+    pub fn get(&mut self, entity: Entity, entities: &Entities) -> Option<LendJoinType<'_, J>>
+    where
+        J: RepeatableLendGet,
+    {
         if self.keys.contains(entity.id()) && entities.is_alive(entity) {
-            // SAFETY: the mask (`keys`) is checked as specified in the docs of `get`.
+            // SAFETY: the mask (`keys`) is checked as specified in the docs of
+            // `get`. We require `J: RepeatableJoinGet` so this can be safely
+            // called multiple time with the same ID.
             Some(unsafe { J::get(&mut self.values, entity.id()) })
         } else {
             None
@@ -255,9 +276,17 @@ impl<J: LendJoin> JoinLendIter<J> {
     ///
     /// As this method operates on raw indices, there is no check to see if the
     /// entity is still alive, so the caller should ensure it instead.
-    pub fn get_unchecked(&mut self, index: Index) -> Option<LendJoinType<'_, J>> {
+    ///
+    /// Note: Not checking is still sound (thus this method is safe to call),
+    /// but this can return data from deleted entities!
+    pub fn get_unchecked(&mut self, index: Index) -> Option<LendJoinType<'_, J>>
+    where
+        J: RepeatableLendGet,
+    {
         if self.keys.contains(index) {
-            // SAFETY: the mask (`keys`) is checked as specified in the docs of `get`.
+            // SAFETY: the mask (`keys`) is checked as specified in the docs of
+            // `get`. We require `J: RepeatableJoinGet` so this can be safely
+            // called multiple time with the same ID.
             Some(unsafe { J::get(&mut self.values, index) })
         } else {
             None

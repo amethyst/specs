@@ -1,6 +1,6 @@
 #[nougat::gat(Type)]
 use super::LendJoin;
-use super::{Join, ParJoin};
+use super::{Join, ParJoin, RepeatableLendGet};
 use hibitset::{BitSetAll, BitSetLike};
 
 use crate::world::Index;
@@ -18,7 +18,7 @@ use crate::world::Index;
 pub struct MaybeJoin<J>(pub J);
 
 // SAFETY: We return a mask containing all items, but check the original mask in
-// the `get` implementation.
+// the `get` implementation. Iterating the mask does not repeat indices.
 #[nougat::gat]
 unsafe impl<T> LendJoin for MaybeJoin<T>
 where
@@ -41,7 +41,9 @@ where
         Self: 'next,
     {
         if mask.contains(id) {
-            // SAFETY: The mask was just checked for `id`.
+            // SAFETY: The mask was just checked for `id`. Requirement to not
+            // call with the same ID more than once (unless `RepeatableLendGet`
+            // is implemented) is passed to the caller.
             Some(unsafe { <T as LendJoin>::get(value, id) })
         } else {
             None
@@ -53,6 +55,10 @@ where
         true
     }
 }
+
+// SAFETY: <MaybeJoin as LendJoin>::get does not rely on only being called once
+// with a particular ID.
+unsafe impl<T> RepeatableLendGet for MaybeJoin<T> where T: RepeatableLendGet {}
 
 // SAFETY: We return a mask containing all items, but check the original mask in
 // the `get` implementation.
