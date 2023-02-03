@@ -571,7 +571,7 @@ where
 }
 
 mod shared_get_mut_only {
-    use super::{AccessMutReturn, Index, SharedGetMutStorage};
+    use super::{Index, SharedGetMutStorage, UnprotectedStorage};
     use core::marker::PhantomData;
 
     /// This type provides a way to ensure only `shared_get_mut` can be called
@@ -584,25 +584,33 @@ mod shared_get_mut_only {
     /// [`ParJoin`](super::ParJoin).
     pub struct SharedGetMutOnly<'a, T, S>(&'a S, PhantomData<T>);
 
+    macro_rules! get_docs {
+        ($fn_definition:item) => {
+            /// # Safety
+            ///
+            /// May only be called after a call to `insert` with `id` and no following
+            /// call to `remove` with `id` or to `clean`.
+            ///
+            /// A mask should keep track of those states, and an `id` being contained in
+            /// the tracking mask is sufficient to call this method.
+            ///
+            /// There must be no extant aliasing references to this component (i.e.
+            /// obtained with the same `id`).
+            ///
+            /// Unless `T::Storage` implements `DistinctStorage`, calling this from
+            /// multiple threads at once is unsound.
+            $fn_definition
+        };
+    }
+
     impl<'a, T, S> SharedGetMutOnly<'a, T, S> {
         pub fn new(storage: &'a mut S) -> Self {
             Self(storage, PhantomData)
         }
 
-        /// # Safety
-        ///
-        /// May only be called after a call to `insert` with `id` and no following
-        /// call to `remove` with `id` or to `clean`.
-        ///
-        /// A mask should keep track of those states, and an `id` being contained in
-        /// the tracking mask is sufficient to call this method.
-        ///
-        /// There must be no extant aliasing references to this component (i.e.
-        /// obtained with the same `id`).
-        ///
-        /// Unless `T::Storage` implements `DistinctStorage`, calling this from
-        /// multiple threads at once is unsound.
-        pub unsafe fn get(&self, i: Index) -> AccessMutReturn<'a, T>
+        #[cfg(not(feature = "nightly"))]
+        get_docs! {
+        pub unsafe fn get(&self, i: Index) -> &'a mut T
         where
             S: SharedGetMutStorage<T>,
         {
@@ -618,7 +626,17 @@ mod shared_get_mut_only {
             // and the remaining safety requirements are passed on to the
             // caller.
             unsafe { self.0.shared_get_mut(i) }
-        }
+        }}
+
+        #[cfg(feature = "nightly")]
+        get_docs! {
+        pub unsafe fn get(&self, i: Index) -> <S as UnprotectedStorage<T>>::AccessMut<'a>
+        where
+            S: SharedGetMutStorage<T>,
+        {
+            // SAFETY: Same as above.
+            unsafe { self.0.shared_get_mut(i) }
+        }}
     }
 }
 pub use shared_get_mut_only::SharedGetMutOnly;
