@@ -1,13 +1,19 @@
+# Unreleased
+
+* MSRV to 1.65.0 [#7xx].
+
+[#7xx]: https://github.com/amethyst/specs/pull/7xx
+
 # 0.19.0 (2023-06-10)
 
 * Bump MSRV to 1.65.0 ([#766])
 * Added index where entity deletion stopped to the error returned from `WorldExt::delete_entities` ([#766])
 * Fix bug where deleting an entity with the wrong generation could clear the components of an existing entity. ([#766])
-* Bump shred to version `0.14.1`, MSRV to 1.60.0 ([shred changelog][shred-changelog], [#756])
+* Bump shred to version `0.14.1`, MSRV to 1.60.0 ([shred changelog][shred_changelog], [#756])
 
+[shred_changelog]: https://github.com/amethyst/shred/blob/master/CHANGELOG.md#0141-2022-07-14
 [#756]: https://github.com/amethyst/specs/pull/756
 [#766]: https://github.com/amethyst/specs/pull/766
-[shred-changelog]: https://github.com/amethyst/shred/blob/6b754812e304cf6c63ba0364a82a7e0e5025aaa4/CHANGELOG.md#0140-2022-07-12
 
 # 0.18.0 (2022-07-02)
 

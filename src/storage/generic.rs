@@ -1,4 +1,3 @@
-#[cfg(feature = "nightly")]
 use crate::storage::{AccessMut, UnprotectedStorage};
 use crate::{
     storage::{AccessMutReturn, InsertResult, ReadStorage, WriteStorage},
@@ -85,7 +84,6 @@ pub trait GenericWriteStorage {
     /// The component type of the storage
     type Component: Component;
     /// The wrapper through with mutable access of a component is performed.
-    #[cfg(feature = "nightly")]
     type AccessMut<'a>: AccessMut<Target = Self::Component>
     where
         Self: 'a;
@@ -118,7 +116,6 @@ impl<'a, T> GenericWriteStorage for WriteStorage<'a, T>
 where
     T: Component,
 {
-    #[cfg(feature = "nightly")]
     type AccessMut<'b> = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'b>
         where Self: 'b;
     type Component = T;
@@ -157,7 +154,6 @@ impl<'a: 'b, 'b, T> GenericWriteStorage for &'b mut WriteStorage<'a, T>
 where
     T: Component,
 {
-    #[cfg(feature = "nightly")]
     type AccessMut<'c> = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'c>
         where Self: 'c;
     type Component = T;

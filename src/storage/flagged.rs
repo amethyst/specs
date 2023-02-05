@@ -203,7 +203,6 @@ where
 }
 
 impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
-    #[cfg(feature = "nightly")]
     type AccessMut<'a> = <T as UnprotectedStorage<C>>::AccessMut<'a> where T: 'a;
 
     unsafe fn clean<B>(&mut self, has: B)
@@ -219,19 +218,7 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
         unsafe { self.storage.get(id) }
     }
 
-    #[cfg(feature = "nightly")]
     unsafe fn get_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
-        if self.emit_event() {
-            self.channel
-                .get_mut()
-                .single_write(ComponentEvent::Modified(id));
-        }
-        // SAFETY: Requirements passed to caller.
-        unsafe { self.storage.get_mut(id) }
-    }
-
-    #[cfg(not(feature = "nightly"))]
-    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
         if self.emit_event() {
             self.channel
                 .get_mut()
@@ -263,21 +250,7 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedSt
 }
 
 impl<C: Component, T: SharedGetMutStorage<C>> SharedGetMutStorage<C> for FlaggedStorage<C, T> {
-    #[cfg(feature = "nightly")]
     unsafe fn shared_get_mut(&self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
-        if self.emit_event() {
-            let channel_ptr = self.channel.get();
-            // SAFETY: Caller required to ensure references returned from other
-            // safe methods such as Tracked::channel are no longer alive. This
-            // storage is not marked with a `DistinctStorage` impl.
-            unsafe { &mut *channel_ptr }.single_write(ComponentEvent::Modified(id));
-        }
-        // SAFETY: Requirements passed to caller.
-        unsafe { self.storage.shared_get_mut(id) }
-    }
-
-    #[cfg(not(feature = "nightly"))]
-    unsafe fn shared_get_mut(&self, id: Index) -> &mut C {
         if self.emit_event() {
             let channel_ptr = self.channel.get();
             // SAFETY: Caller required to ensure references returned from other

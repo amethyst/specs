@@ -1,10 +1,6 @@
 #![warn(missing_docs)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(clippy::disallowed_types)]
-#![cfg_attr(
-    feature = "nightly",
-    feature(generic_associated_types, associated_type_defaults)
-)]
 
 //! # SPECS Parallel ECS
 //!
@@ -236,5 +232,4 @@ pub use crate::{
     world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate, WorldExt},
 };
 
-#[cfg(feature = "nightly")]
 pub use crate::storage::DerefFlaggedStorage;
