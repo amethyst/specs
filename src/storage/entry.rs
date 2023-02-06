@@ -1,7 +1,8 @@
 use hibitset::BitSetAll;
 
 use super::*;
-use crate::join::Join;
+use crate::join::LendJoin;
+use crate::world::Generation;
 
 impl<'e, T, D> Storage<'e, T, D>
 where
@@ -38,14 +39,7 @@ where
         'e: 'a,
     {
         if self.entities.is_alive(e) {
-            let entries = self.entries();
-            unsafe {
-                // SAFETY: This is safe since we're not swapping out the mask or the values.
-                let (_, mut value): (BitSetAll, _) = entries.open();
-                // SAFETY: We did check the mask, because the mask is `BitSetAll` and every
-                // index is part of it.
-                Ok(Entries::get(&mut value, e.id()))
-            }
+            Ok(self.entry_inner(e.id()))
         } else {
             let gen = self
                 .entities
@@ -107,7 +101,8 @@ where
     /// # }
     /// #
     /// # world.exec(|(mut counters, marker): (WriteStorage<Counter>, ReadStorage<AllowCounter>)| {
-    /// for (mut counter, _) in (counters.entries(), &marker).join() {
+    /// let mut join = (counter.entries(), &marker).lend_join();
+    /// while let Some((mut counter, _)) = join.next() {
     ///     let counter = counter.or_insert_with(Default::default);
     ///     counter.increase();
     ///
@@ -121,46 +116,44 @@ where
     pub fn entries<'a>(&'a mut self) -> Entries<'a, 'e, T, D> {
         Entries(self)
     }
+
+    /// Returns an entry to the component associated with the provided index.
+    ///
+    /// Does not check whether an entity is alive!
+    pub fn entry_inner<'a>(&'a mut self, id: Index) -> StorageEntry<'a, 'e, T, D> {
+        if self.data.mask.contains(id) {
+            StorageEntry::Occupied(OccupiedEntry { id, storage: self })
+        } else {
+            StorageEntry::Vacant(VacantEntry { id, storage: self })
+        }
+    }
 }
 
 /// `Join`-able structure that yields all indices, returning `Entry` for all
-/// elements
+/// elements.
 pub struct Entries<'a, 'b: 'a, T: 'a, D: 'a>(&'a mut Storage<'b, T, D>);
 
-impl<'a, 'b: 'a, T: 'a, D: 'a> Join for Entries<'a, 'b, T, D>
+// SAFETY: We return a mask containing all items, but check the original mask in
+// the `get` implementation. Iterating the mask does not repeat indices.
+#[nougat::gat]
+unsafe impl<'a, 'b: 'a, T: 'a, D: 'a> LendJoin for Entries<'a, 'b, T, D>
 where
     T: Component,
-    D: Deref<Target = MaskedStorage<T>>,
+    D: DerefMut<Target = MaskedStorage<T>>,
 {
     type Mask = BitSetAll;
-    type Type = StorageEntry<'a, 'b, T, D>;
+    type Type<'next> = StorageEntry<'next, 'b, T, D>;
     type Value = &'a mut Storage<'b, T, D>;
 
-    // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (BitSetAll, self.0)
     }
 
-    // SAFETY: We are lengthening the lifetime of `value` to `'a`;
-    // TODO: how to prove this is safe?
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        // This is HACK. See implementation of Join for &'a mut Storage<'e, T, D> for
-        // details why it is necessary.
-        let storage: *mut Storage<'b, T, D> = *value as *mut Storage<'b, T, D>;
-        // SAFETY: S-TODO redo when updating join trait
-        if unsafe { &*storage }.data.mask.contains(id) {
-            StorageEntry::Occupied(OccupiedEntry {
-                id,
-                // SAFETY: S-TODO redo when updating join trait
-                storage: unsafe { &mut *storage },
-            })
-        } else {
-            StorageEntry::Vacant(VacantEntry {
-                id,
-                // SAFETY: S-TODO redo when updating join trait
-                storage: unsafe { &mut *storage },
-            })
-        }
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
+    where
+        Self: 'next,
+    {
+        value.entry_inner(id)
     }
 
     #[inline]
@@ -195,7 +188,6 @@ where
 {
     /// Get a mutable reference to the component associated with the entity.
     pub fn get_mut(&mut self) -> AccessMutReturn<'_, T> {
-        // S-TODO update safety comment after changing Join
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
         unsafe { self.storage.data.inner.get_mut(self.id) }
@@ -204,7 +196,6 @@ where
     /// Converts the `OccupiedEntry` into a mutable reference bounded by
     /// the storage's lifetime.
     pub fn into_mut(self) -> AccessMutReturn<'a, T> {
-        // S-TODO update safety comment after changing Join
         // SAFETY: This is safe since `OccupiedEntry` is only constructed
         // after checking the mask.
         unsafe { self.storage.data.inner.get_mut(self.id) }
@@ -212,7 +203,7 @@ where
 
     /// Inserts a value into the storage and returns the old one.
     pub fn insert(&mut self, mut component: T) -> T {
-        std::mem::swap(&mut component, self.get_mut().deref_mut());
+        core::mem::swap(&mut component, self.get_mut().access_mut());
         component
     }
 
@@ -236,13 +227,14 @@ where
 {
     /// Inserts a value into the storage.
     pub fn insert(self, component: T) -> AccessMutReturn<'a, T> {
-        // S-TODO safety comment incomplete
-        // SAFETY: This is safe since we added `self.id` to the mask.
-        unsafe {
-            self.storage.data.inner.insert(self.id, component);
-            self.storage.data.mask.add(self.id);
-            self.storage.data.inner.get_mut(self.id)
-        }
+        // Note, this method adds `id` to the mask.
+        // SAFETY: `VacantEntry` is only constructed after checking that `id` is
+        // not present in the mask and we consume `VacantEntry` here.
+        unsafe { self.storage.not_present_insert(self.id, component) };
+        // TODO (perf): We could potentially have an insert method that directly
+        // produces a reference to the just inserted value.
+        // SAFETY: We just inserted the component above.
+        unsafe { self.storage.data.inner.get_mut(self.id) }
     }
 }
 
