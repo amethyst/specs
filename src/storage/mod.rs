@@ -96,7 +96,8 @@ unsafe impl<'a> Join for AntiStorage<'a> {
 }
 
 // SAFETY: Since `get` does not do anything it is safe to concurrently call.
-// Items are just `()` and it is always safe to retrieve them regardless
+// Items are just `()` and it is always safe to retrieve them regardless of the
+// mask and value returned by `open`.
 #[cfg(feature = "parallel")]
 unsafe impl<'a> ParJoin for AntiStorage<'a> {
     type Mask = BitSetNot<&'a BitSet>;
@@ -539,6 +540,7 @@ where
 //
 // The mask and unprotected storage contained in `MaskedStorage` correspond and
 // `open` returns references to them from the same `MaskedStorage` instance.
+// Iterating the mask does not repeat indices.
 #[cfg(feature = "parallel")]
 unsafe impl<'a, 'e, T, D> ParJoin for &'a Storage<'e, T, D>
 where
@@ -691,7 +693,8 @@ where
 //
 // The mask and unprotected storage contained in `MaskedStorage` correspond and
 // `open` returns references to them from the same `MaskedStorage` instance (the
-// storage is wrapped in `SharedGetMutOnly`).
+// storage is wrapped in `SharedGetMutOnly`). Iterating the mask does not repeat
+// indices.
 #[cfg(feature = "parallel")]
 unsafe impl<'a, 'e, T, D> ParJoin for &'a mut Storage<'e, T, D>
 where
@@ -713,7 +716,7 @@ where
         // SAFETY:
         // * Since we require that the mask was checked, an element for
         //   `id` must have been inserted without being removed.
-        // * We also require that the caller drop the value returned before
+        // * We also require that the returned value is no longer alive before
         //   subsequent calls with the same `id`, so there are no extant
         //   references that were obtained with the same `id`.
         // * `T::Storage` implements the unsafe trait `DistinctStorage` so it is

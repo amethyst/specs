@@ -297,6 +297,7 @@ macro_rules! define_open {
         // The returned mask in `open` is the intersection of the masks
         // from each type in this tuple. So if an `id` is present in the
         // combined mask, it will be safe to retrieve the corresponding items.
+        // Iterating the mask does not repeat indices.
         #[cfg(feature = "parallel")]
         unsafe impl<$($from,)*> ParJoin for ($($from),*,)
             where $($from: ParJoin),*,
@@ -324,7 +325,9 @@ macro_rules! define_open {
                 let &($(ref $from,)*) = v;
                 // SAFETY: `get` is safe to call as the caller must have checked
                 // the mask, which only has a key that exists in all of the
-                // storages.
+                // storages. Requirement for the return value to no longer be
+                // alive before subsequent calls with the same `id` is passed to
+                // the caller.
                 unsafe { ($($from::get($from, i),)*) }
             }
 
@@ -449,6 +452,7 @@ macro_rules! immutable_resource_join {
 
         // SAFETY: Since `T` implements `ParJoin` it is safe to deref and defer to
         // its implementation. S-TODO we can rely on errors if $ty is not sync?
+        // Iterating the mask does not repeat indices.
         #[cfg(feature = "parallel")]
         unsafe impl<'a, 'b, T> ParJoin for &'a $ty
         where
@@ -470,6 +474,8 @@ macro_rules! immutable_resource_join {
                 // SAFETY: The mask of `Self` and `T` are identical, thus a
                 // check to `Self`'s mask (which is required) is equal to a
                 // check of `T`'s mask, which makes `get` safe to call.
+                // Requirement for the return value to no longer be alive before
+                // subsequent calls with the same ID is passed to the caller.
                 unsafe { <&'a T as ParJoin>::get(v, i) }
             }
 
@@ -585,9 +591,11 @@ macro_rules! mutable_resource_join {
             }
 
             unsafe fn get(v: &Self::Value, i: Index) -> Self::Type {
-                // SAFETY: The mask of `Self` and `T` are identical, thus a check to
-                // `Self`'s mask (which is required) is equal to a check of `T`'s
-                // mask, which makes `get_mut` safe to call.
+                // SAFETY: The mask of `Self` and `T` are identical, thus a
+                // check to `Self`'s mask (which is required) is equal to a
+                // check of `T`'s mask, which makes `get_mut` safe to call.
+                // Requirement for the return value to no longer be alive before
+                // subsequent calls with the same ID is passed to the caller.
                 unsafe { <&'a mut T as ParJoin>::get(v, i) }
             }
 

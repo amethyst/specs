@@ -17,7 +17,7 @@ use crate::world::Index;
 /// The `Self::Mask` value returned with the `Self::Value` must correspond such
 /// that it is safe to retrieve items from `Self::Value` whose presence is
 /// indicated in the mask. As part of this, `BitSetLike::iter` must not produce
-/// an iterator that repeats an `Index` value. (S-TODO update impls)
+/// an iterator that repeats an `Index` value.
 pub unsafe trait ParJoin {
     /// Type of joined components.
     type Type;
@@ -58,8 +58,8 @@ pub unsafe trait ParJoin {
     ///
     /// * A call to `get` must be preceded by a check if `id` is part of
     ///   `Self::Mask`.
-    /// * The value returned from this method must be dropped before subsequent
-    ///   calls with the same `id`. (S-TODO update callers to match edit)
+    /// * The value returned from this method must no longer be alive before
+    ///   subsequent calls with the same `id`.
     unsafe fn get(value: &Self::Value, id: Index) -> Self::Type;
 
     /// If this `LendJoin` typically returns all indices in the mask, then

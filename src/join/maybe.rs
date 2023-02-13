@@ -81,8 +81,7 @@ where
     unsafe fn get((mask, value): &mut Self::Value, id: Index) -> Self::Type {
         if mask.contains(id) {
             // SAFETY: The mask was just checked for `id`. This has the same
-            // requirements on the caller to not call with the same `id` until
-            // the previous value is no longer in use.
+            // requirements on the caller to only call with the same `id` once.
             Some(unsafe { <T as Join>::get(value, id) })
         } else {
             None
@@ -100,7 +99,7 @@ where
 // thread.
 //
 // We return a mask containing all items, but check the original mask in
-// the `get` implementation.
+// the `get` implementation. Iterating the mask does not repeat indices.
 #[cfg(feature = "parallel")]
 unsafe impl<T> ParJoin for MaybeJoin<T>
 where

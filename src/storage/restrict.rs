@@ -354,6 +354,8 @@ where
 //
 // `open` returns references to corresponding mask and storage values contained
 // in the wrapped `Storage`.
+//
+// Iterating the mask does not repeat indices.
 unsafe impl<'rf, 'st: 'rf, C, S> ParJoin for &'rf RestrictedStorage<'rf, 'st, C, S>
 where
     C: Component,
@@ -388,6 +390,8 @@ where
 //
 // `open` returns references to corresponding mask and storage values contained
 // in the wrapped `Storage`.
+//
+// Iterating the mask does not repeat indices.
 #[cfg(feature = "parallel")]
 unsafe impl<'rf, 'st: 'rf, C, S> ParJoin for &'rf mut RestrictedStorage<'rf, 'st, C, S>
 where
