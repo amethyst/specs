@@ -301,6 +301,7 @@ mod test {
         for i in 0..1_000 {
             *s.get_mut(Entity::new(i, Generation::new(1)))
                 .unwrap()
+                .access_mut()
                 .as_mut() -= 718;
         }
 
@@ -330,6 +331,7 @@ mod test {
         for i in 0..1_000 {
             *s.get_mut_or_default(Entity::new(i, Generation::new(1)))
                 .unwrap()
+                .access_mut()
                 .as_mut() += i;
         }
 
@@ -698,9 +700,9 @@ mod test {
         }
 
         for mut comps in (&mut s1.restrict_mut()).join() {
-            let c1 = { comps.get_unchecked().0 };
+            let c1 = { comps.get().0 };
 
-            let c2 = { comps.get_mut_unchecked().0 };
+            let c2 = { comps.get_mut().0 };
 
             assert_eq!(
                 c1, c2,
@@ -740,14 +742,12 @@ mod test {
         let components2 = Mutex::new(Vec::new());
         let components2_mut = Mutex::new(Vec::new());
 
-        (&mut s1.par_restrict_mut())
-            .par_join()
-            .for_each(|mut comps| {
-                let (mut components2, mut components2_mut) =
-                    (components2.lock().unwrap(), components2_mut.lock().unwrap());
-                components2.push(comps.get_unchecked().0);
-                components2_mut.push(comps.get_mut_unchecked().0);
-            });
+        (&mut s1.restrict_mut()).par_join().for_each(|mut comps| {
+            let (mut components2, mut components2_mut) =
+                (components2.lock().unwrap(), components2_mut.lock().unwrap());
+            components2.push(comps.get().0);
+            components2_mut.push(comps.get_mut().0);
+        });
         let components2 = components2.into_inner().unwrap();
         assert_eq!(
             components2,
@@ -994,7 +994,7 @@ mod test {
 
     #[test]
     fn entries() {
-        use crate::{join::Join, storage::WriteStorage, world::Entities};
+        use crate::{join::LendJoin, storage::WriteStorage, world::Entities};
 
         let mut w = World::new();
 
@@ -1018,10 +1018,12 @@ mod test {
         let mut sum = 0;
 
         w.exec(|(e, mut s): (Entities, WriteStorage<CEntries>)| {
-            sum = (&e, s.entries()).join().fold(0, |acc, (_, value)| {
+            let mut acc = 0;
+            (&e, s.entries()).lend_join().for_each(|(_, value)| {
                 let v = value.or_insert(2.into());
-                acc + v.0
+                acc = acc + v.0;
             });
+            sum = acc;
         });
 
         assert_eq!(sum, 135);

@@ -56,6 +56,7 @@ mod tests {
     struct TupleSerdeType(u32);
 
     #[derive(Clone)]
+    #[allow(dead_code)]
     struct UnserializableType {
         inner: u32,
     }
@@ -67,6 +68,7 @@ mod tests {
     }
 
     #[derive(Serialize, Deserialize, Clone)]
+    #[allow(dead_code)]
     struct ComplexSerdeType {
         #[serde(skip, default)]
         opaque: UnserializableType,
