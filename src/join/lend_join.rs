@@ -139,8 +139,8 @@ pub unsafe trait LendJoin {
 
 /// # Safety
 ///
-/// Implementing this trait guarantees that `<Self as LendJoin>::get` can soundly be called
-/// multiple times with the same ID.
+/// Implementing this trait guarantees that `<Self as LendJoin>::get` can
+/// soundly be called multiple times with the same ID.
 pub unsafe trait RepeatableLendGet: LendJoin {}
 
 /// Type alias to refer to the `<J as LendJoin>::Type<'next>` (except this

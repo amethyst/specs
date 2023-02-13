@@ -37,12 +37,12 @@ use crate::{
     world::{Component, EntitiesRes, Entity, Index},
 };
 
-// D-TODO use self::drain::Drain;
+use self::drain::Drain;
 use self::sync_unsafe_cell::SyncUnsafeCell;
 
 mod data;
 mod deref_flagged;
-// D-TODO mod drain;
+mod drain;
 mod entry;
 mod flagged;
 mod generic;
@@ -449,13 +449,13 @@ where
         self.data.clear();
     }
 
-    // /// Creates a draining storage wrapper which can be `.join`ed
-    // /// to get a draining iterator.
-    // D-TODO pub fn drain(&mut self) -> Drain<T> {
-    //    Drain {
-    //        data: &mut self.data,
-    //    }
-    //}
+    /// Creates a draining storage wrapper which can be `.join`ed
+    /// to get a draining iterator.
+    pub fn drain(&mut self) -> Drain<T> {
+        Drain {
+            data: &mut self.data,
+        }
+    }
 }
 
 impl<'a, T, D: Clone> Clone for Storage<'a, T, D> {

@@ -95,8 +95,7 @@ pub use par_join::{JoinParIter, ParJoin};
 /// The `Self::Mask` value returned with the `Self::Value` must correspond such
 /// that it is safe to retrieve items from `Self::Value` whose presence is
 /// indicated in the mask. As part of this, `BitSetLike::iter` must not produce
-/// an iterator that repeats an `Index` value. (S-TODO update impls: probably
-/// drain)
+/// an iterator that repeats an `Index` value.
 pub unsafe trait Join {
     /// Type of joined components.
     type Type;
@@ -125,7 +124,6 @@ pub unsafe trait Join {
 
     /// Get a joined component value by a given index.
     ///
-    // S-TODO: evaluate all impls (TODO: probably restrict, entry, and drain)
     ///
     /// # Safety
     ///
