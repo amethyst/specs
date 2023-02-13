@@ -20,7 +20,7 @@ pub use rayon::iter::ParallelIterator;
 pub use shred::AsyncDispatcher;
 
 pub use crate::{
-    // D-TODO changeset::ChangeSet,
+    changeset::ChangeSet,
     storage::{
         ComponentEvent, DefaultVecStorage, DenseVecStorage, FlaggedStorage, HashMapStorage,
         NullStorage, ReadStorage, Storage, Tracked, VecStorage, WriteStorage,

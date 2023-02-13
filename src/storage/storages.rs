@@ -165,11 +165,7 @@ impl<T> SliceAccess<T> for DenseVecStorage<T> {
     #[inline]
     fn as_slice(&self) -> &[Self::Element] {
         let unsafe_cell_slice_ptr = SyncUnsafeCell::as_cell_of_slice(self.data.as_slice()).get();
-        // SAFETY: The only place that mutably accesses these elements via a
-        // shared reference is the impl of `SharedGetMut::shared_get_mut` which
-        // requires callers to avoid calling other methods with `&self` while
-        // references returned there are still in use (and to ensure references
-        // from methods like this no longer exist).
+        // SAFETY: See `VecStorage` impl.
         unsafe { &*unsafe_cell_slice_ptr }
     }
 
@@ -445,9 +441,9 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         // following call to `remove` with that id or to `clean`).
         let ptr = unsafe { self.0.get_unchecked(id as usize) }.get();
         // SAFETY: Only method that obtains exclusive references from this
-        // unsafe cell is `shared_get_mut` and callers are required to
-        // managed aliasing there and prevent other methods from being called
-        // while those exclusive references are alive.
+        // unsafe cell is `shared_get_mut` and callers of that method are
+        // required to manually ensure that those references don't alias
+        // references from this method.
         let maybe_uninit = unsafe { &*ptr };
         // SAFETY: Requirement to have `insert`ed this component ensures that it
         // will be initialized.
@@ -518,7 +514,10 @@ impl<T> SharedGetMutStorage<T> for VecStorage<T> {
         // SAFETY: Caller required to manage aliasing (ensuring there are no
         // extant shared references into the storage, this is called with
         // distinct ids, and that other methods that take `&self` aren't called
-        // while the exclusive references returned here are alive).
+        // while the exclusive references returned here are alive (except for
+        // `UnprotectedStorage::get` which may be used with this provided the
+        // caller avoids creating aliasing references from both that live at the
+        // same time)).
         let maybe_uninit = unsafe { &mut *ptr };
         // SAFETY: Requirement to have `insert`ed this component ensures that it
         // will be initialized.
@@ -554,11 +553,7 @@ impl<T> SliceAccess<T> for DefaultVecStorage<T> {
     #[inline]
     fn as_slice(&self) -> &[Self::Element] {
         let unsafe_cell_slice_ptr = SyncUnsafeCell::as_cell_of_slice(self.0.as_slice()).get();
-        // SAFETY: The only place that mutably accesses these elements via a
-        // shared reference is the impl of `SharedGetMut::shared_get_mut` which
-        // requires callers to avoid calling other methods with `&self` while
-        // references returned there are still in use (and to ensure references
-        // from methods like this no longer exist).
+        // SAFETY: See `VecStorage` impl.
         unsafe { &*unsafe_cell_slice_ptr }
     }
 

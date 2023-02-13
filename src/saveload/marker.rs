@@ -348,9 +348,7 @@ pub trait MarkerAllocator<M: Marker>: Resource {
         entity: Entity,
         storage: &'m mut WriteStorage<M>,
     ) -> Option<(&'m M, bool)> {
-        todo!()
-        // D-TODO (uncomment when entry API is re-enabled!)
-        /*let new = if let Ok(entry) = storage.entry(entity) {
+        let new = if let Ok(entry) = storage.entry(entity) {
             let mut new = false;
             let _marker = entry.or_insert_with(|| {
                 new = true;
@@ -361,7 +359,7 @@ pub trait MarkerAllocator<M: Marker>: Resource {
         } else {
             return None;
         };
-        Some((storage.get(entity).unwrap(), new))*/
+        Some((storage.get(entity).unwrap(), new))
     }
 
     /// Maintain internal data. Cleanup if necessary.

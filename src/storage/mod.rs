@@ -6,10 +6,10 @@ pub use self::{
     entry::{Entries, OccupiedEntry, StorageEntry, VacantEntry},
     flagged::FlaggedStorage,
     generic::{GenericReadStorage, GenericWriteStorage},
-    // D-TODO restrict::{
-    //    ImmutableParallelRestriction, MutableParallelRestriction, PairedStorage, RestrictedStorage,
-    //    SequentialRestriction,
-    //},
+    restrict::{
+        PairedStorageRead, PairedStorageWriteExclusive, PairedStorageWriteShared,
+        RestrictedStorage, SharedGetOnly,
+    },
     storages::{
         BTreeStorage, DefaultVecStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage,
     },
@@ -46,7 +46,7 @@ mod deref_flagged;
 mod entry;
 mod flagged;
 mod generic;
-// D-TODO mod restrict;
+mod restrict;
 mod storages;
 mod sync_unsafe_cell;
 #[cfg(test)]
@@ -612,24 +612,27 @@ mod shared_get_mut_only {
     pub struct SharedGetMutOnly<'a, T, S>(&'a S, PhantomData<T>);
 
     impl<'a, T, S> SharedGetMutOnly<'a, T, S> {
-        pub fn new(storage: &'a mut S) -> Self {
+        pub(crate) fn new(storage: &'a mut S) -> Self {
             Self(storage, PhantomData)
         }
 
         /// # Safety
         ///
-        /// May only be called after a call to `insert` with `id` and no following
-        /// call to `remove` with `id` or to `clean`.
+        /// May only be called after a call to `insert` with `id` and no
+        /// following call to `remove` with `id` or to `clean`.
         ///
-        /// A mask should keep track of those states, and an `id` being contained in
-        /// the tracking mask is sufficient to call this method.
+        /// A mask should keep track of those states, and an `id` being
+        /// contained in the tracking mask is sufficient to call this method.
         ///
         /// There must be no extant aliasing references to this component (i.e.
         /// obtained with the same `id`).
         ///
-        /// Unless `T::Storage` implements `DistinctStorage`, calling this from
-        /// multiple threads at once is unsound.
-        pub unsafe fn get(&self, i: Index) -> <S as UnprotectedStorage<T>>::AccessMut<'a>
+        /// Unless `S: DistinctStorage`, calling this from multiple threads at
+        /// once is unsound.
+        pub(crate) unsafe fn get_mut(
+            this: &Self,
+            id: Index,
+        ) -> <S as UnprotectedStorage<T>>::AccessMut<'a>
         where
             S: SharedGetMutStorage<T>,
         {
@@ -641,10 +644,10 @@ mod shared_get_mut_only {
             // exposed outside of this module).
             //
             // This means we only have to worry about aliasing references being
-            // produced by calling `shared_get_mut`. Ensuring these don't alias
-            // and the remaining safety requirements are passed on to the
-            // caller.
-            unsafe { self.0.shared_get_mut(i) }
+            // produced by calling `SharedGetMutStorage::shared_get_mut`.
+            // Ensuring these don't alias and the remaining safety requirements
+            // are passed on to the caller.
+            unsafe { this.0.shared_get_mut(id) }
         }
     }
 }
@@ -679,11 +682,11 @@ where
         //   extant references for the element corresponding to this `id`.
         // * Since we have an exclusive reference to `Self::Value`, we know this
         //   isn't being called from multiple threads at once.
-        unsafe { value.get(id) }
+        unsafe { SharedGetMutOnly::get_mut(value, id) }
     }
 }
 
-// SAFETY: It is safe to call `SharedGetMutOnly<'a, T>::get`  from multiple
+// SAFETY: It is safe to call `SharedGetMutOnly<'a, T>::get_mut` from multiple
 // threads at once since `T::Storage: DistinctStorage`.
 //
 // The mask and unprotected storage contained in `MaskedStorage` correspond and
@@ -715,7 +718,7 @@ where
         //   references that were obtained with the same `id`.
         // * `T::Storage` implements the unsafe trait `DistinctStorage` so it is
         //   safe to call this from multiple threads at once.
-        unsafe { value.get(id) }
+        unsafe { SharedGetMutOnly::get_mut(value, id) }
     }
 }
 
@@ -878,14 +881,16 @@ pub trait SharedGetMutStorage<T>: UnprotectedStorage<T> {
     ///
     /// There must be no extant aliasing references to this component (i.e.
     /// obtained with the same `id`). Additionally, references obtained from
-    /// methods on this type that take `&self` (e.g.
-    /// [`UnprotectedStorage::get`], [`SliceAccess::as_slice`],
+    /// methods on this type that take `&self` (e.g. [`SliceAccess::as_slice`],
     /// [`Tracked::channel`]) must no longer be alive when
     /// `shared_get_mut` is called and these methods must not be
-    /// called while the references returned here are alive. Essentially,
-    /// the `unsafe` code calling this must hold exclusive access of the
-    /// storage at some level to ensure only known code is calling `&self`
-    /// methods during the usage of this method and the references it
+    /// called while the references returned here are alive. An exception is
+    /// made for [`UnprotectedStorage::get`] as long as the live references it
+    /// has returned do not alias with live references returned here.
+    ///
+    /// Essentially, the `unsafe` code calling this must hold exclusive access
+    /// of the storage at some level to ensure only known code is calling
+    /// `&self` methods during the usage of this method and the references it
     /// produces.
     ///
     /// Unless this type implements `DistinctStorage`, calling this from

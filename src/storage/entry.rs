@@ -162,6 +162,15 @@ where
     }
 }
 
+// SAFETY: LendJoin::get impl for this type is safe to call multiple times with
+// the same ID.
+unsafe impl<'a, 'b: 'a, T: 'a, D: 'a> RepeatableLendGet for Entries<'a, 'b, T, D>
+where
+    T: Component,
+    D: DerefMut<Target = MaskedStorage<T>>,
+{
+}
+
 /// An entry to a storage which has a component associated to the entity.
 pub struct OccupiedEntry<'a, 'b: 'a, T: 'a, D: 'a> {
     id: Index,

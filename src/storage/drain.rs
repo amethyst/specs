@@ -13,6 +13,9 @@ pub struct Drain<'a, T: Component> {
     pub data: &'a mut MaskedStorage<T>,
 }
 
+// S-TODO implement LendJoin
+// S-TODO implement RepeatableLendGet
+
 impl<'a, T> Join for Drain<'a, T>
 where
     T: Component,
@@ -23,6 +26,10 @@ where
 
     // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        // TODO: Cloning the whole bitset here seems expensive, and it is
+        // hidden from the user, but there is no obvious way to restructure
+        // things to avoid this with the way that bitsets are composed together
+        // for iteration.
         let mask = self.data.mask.clone();
 
         (mask, self.data)

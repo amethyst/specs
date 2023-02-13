@@ -14,9 +14,10 @@ use crate::world::Index;
 ///
 /// `ParJoin::get` must be callable from multiple threads, simultaneously.
 ///
-/// The Self::Mask` value returned with the `Self::Value` must correspond such
+/// The `Self::Mask` value returned with the `Self::Value` must correspond such
 /// that it is safe to retrieve items from `Self::Value` whose presence is
-/// indicated in the mask.
+/// indicated in the mask. As part of this, `BitSetLike::iter` must not produce
+/// an iterator that repeats an `Index` value. (S-TODO update impls)
 pub unsafe trait ParJoin {
     /// Type of joined components.
     type Type;
@@ -146,7 +147,8 @@ where
         let JoinProducer { values, keys, .. } = self;
         // SAFETY: `idx` is obtained from the `Mask` returned by
         // `ParJoin::open`. The indices here are guaranteed to be distinct
-        // because of the fact that the bit set is split.
+        // because of the fact that the bit set is split and because `ParJoin`
+        // requires that the bit set iterator doesn't repeat indices.
         let iter = keys.0.map(|idx| unsafe { J::get(values, idx) });
 
         folder.consume_iter(iter)
