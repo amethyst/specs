@@ -867,6 +867,8 @@ pub trait UnprotectedStorage<T>: TryDefault {
     }
 }
 
+/// Used by the framework to mutably access components in contexts where
+/// exclusive access to the storage is not possible.
 pub trait SharedGetMutStorage<T>: UnprotectedStorage<T> {
     /// Gets mutable access to the the data associated with an `Index`.
     ///

@@ -101,7 +101,7 @@ where
     /// # }
     /// #
     /// # world.exec(|(mut counters, marker): (WriteStorage<Counter>, ReadStorage<AllowCounter>)| {
-    /// let mut join = (counter.entries(), &marker).lend_join();
+    /// let mut join = (counters.entries(), &marker).lend_join();
     /// while let Some((mut counter, _)) = join.next() {
     ///     let counter = counter.or_insert_with(Default::default);
     ///     counter.increase();

@@ -123,7 +123,8 @@ impl<C, T> Tracked for DerefFlaggedStorage<C, T> {
     }
 }
 
-/// S-TODO document
+/// Wrapper type only emits modificaition events when the component is accessed
+/// via mutably dereferencing. Also see [`DerefFlaggedStorage`] documentation.
 pub struct FlaggedAccessMut<'a, A, C> {
     channel: &'a mut EventChannel<ComponentEvent>,
     emit: bool,

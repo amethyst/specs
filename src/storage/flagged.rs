@@ -20,7 +20,7 @@ use shrev::EventChannel;
 ///
 /// What you want to instead is to use `restrict_mut()` to first
 /// get the entities which contain the component and then conditionally
-/// modify the component after a call to `get_mut_unchecked()` or `get_mut()`.
+/// modify the component after a call to `get_mut()` or `get_other_mut()`.
 ///
 /// # Examples
 ///
@@ -102,7 +102,7 @@ use shrev::EventChannel;
 /// #        let condition = true;
 ///         for (entity, mut comps) in (&entities, &mut comps.restrict_mut()).join() {
 ///             if condition { // check whether this component should be modified.
-///                  let mut comp = comps.get_mut_unchecked();
+///                  let mut comp = comps.get_mut();
 ///                  // ...
 ///             }
 ///         }
