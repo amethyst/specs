@@ -207,9 +207,8 @@ impl Allocator {
     }
 
     fn update_generation_length(&mut self, i: usize) {
-        if self.generations.len() <= i as usize {
-            self.generations
-                .resize(i as usize + 1, ZeroableGeneration(None));
+        if self.generations.len() <= i {
+            self.generations.resize(i + 1, ZeroableGeneration(None));
         }
     }
 }

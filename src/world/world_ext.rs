@@ -415,7 +415,7 @@ impl WorldExt for World {
 
     fn delete_components(&mut self, delete: &[Entity]) {
         for mut storage in self.fetch_mut::<MetaTable<dyn AnyStorage>>().iter_mut(self) {
-            (&mut *storage).drop(delete);
+            (*storage).drop(delete);
         }
     }
 }

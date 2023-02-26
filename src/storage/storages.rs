@@ -461,6 +461,8 @@ impl<T> UnprotectedStorage<T> for VecStorage<T> {
         unsafe { maybe_uninit.assume_init_mut() }
     }
 
+    // false positive https://github.com/rust-lang/rust-clippy/issues/10407
+    #[allow(clippy::uninit_vec)]
     unsafe fn insert(&mut self, id: Index, v: T) {
         let id = if Index::BITS > usize::BITS {
             // Saturate the cast to usize::MAX so if this overflows usize the

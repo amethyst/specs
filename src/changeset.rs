@@ -222,6 +222,10 @@ unsafe impl<'a, T> Join for &'a ChangeSet<T> {
 // together in the `ChangeSet` and correspond. Iterating mask does not repeat
 // indices.
 #[nougat::gat]
+// This is a trait impl so method safety documentation is on the trait
+// definition, maybe nougat confuses clippy? But this is the only spot that has
+// this issue.
+#[allow(clippy::missing_safety_doc)]
 unsafe impl<T> LendJoin for ChangeSet<T> {
     type Mask = BitSet;
     type Type<'next> = T;

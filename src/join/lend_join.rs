@@ -182,6 +182,7 @@ impl<J: LendJoin> JoinLendIter<J> {
     /// Can be used to iterate with this pattern:
     ///
     /// `while let Some(components) = join_lending_iter.next() {`
+    #[allow(clippy::should_implement_trait)] // we want this to look like iterator
     pub fn next(&mut self) -> Option<LendJoinType<'_, J>> {
         // SAFETY: Since `idx` is yielded from `keys` (the mask), it is
         // necessarily a part of it. `LendJoin` requires that the iterator

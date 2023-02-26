@@ -141,6 +141,8 @@ where
 
 /// This is a marker trait which requires you to uphold the following guarantee:
 ///
+/// # Safety
+///
 /// > Multiple threads may call `SharedGetMutStorage::shared_get_mut()`
 /// with distinct indices without causing > undefined behavior.
 ///
