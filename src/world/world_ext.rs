@@ -320,7 +320,7 @@ impl WorldExt for World {
         self.entry()
             .or_insert_with(move || MaskedStorage::<T>::new(storage()));
         self.fetch_mut::<MetaTable<dyn AnyStorage>>()
-            .register(&*self.fetch::<MaskedStorage<T>>());
+            .register::<MaskedStorage<T>>();
     }
 
     fn add_resource<T: Resource>(&mut self, res: T) {
@@ -414,8 +414,8 @@ impl WorldExt for World {
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {
-        for storage in self.fetch_mut::<MetaTable<dyn AnyStorage>>().iter_mut(self) {
-            storage.drop(delete);
+        for mut storage in self.fetch_mut::<MetaTable<dyn AnyStorage>>().iter_mut(self) {
+            (&mut *storage).drop(delete);
         }
     }
 }

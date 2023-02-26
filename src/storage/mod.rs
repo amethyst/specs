@@ -117,15 +117,13 @@ pub trait AnyStorage {
     fn drop(&mut self, entities: &[Entity]);
 }
 
+// SAFETY: Returned pointer has a vtable valid for `T` and retains the same
+// address/provenance.
 unsafe impl<T> CastFrom<T> for dyn AnyStorage
 where
     T: AnyStorage + 'static,
 {
-    fn cast(t: &T) -> &Self {
-        t
-    }
-
-    fn cast_mut(t: &mut T) -> &mut Self {
+    fn cast(t: *mut T) -> *mut Self {
         t
     }
 }

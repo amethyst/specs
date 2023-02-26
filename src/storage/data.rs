@@ -124,7 +124,7 @@ where
         res.entry::<MaskedStorage<T>>()
             .or_insert_with(|| MaskedStorage::new(<T::Storage as TryDefault>::unwrap_default()));
         res.fetch_mut::<MetaTable<dyn AnyStorage>>()
-            .register(&*res.fetch::<MaskedStorage<T>>());
+            .register::<MaskedStorage<T>>();
     }
 
     fn fetch(res: &'a World) -> Self {
@@ -211,7 +211,7 @@ where
         res.entry::<MaskedStorage<T>>()
             .or_insert_with(|| MaskedStorage::new(<T::Storage as TryDefault>::unwrap_default()));
         res.fetch_mut::<MetaTable<dyn AnyStorage>>()
-            .register(&*res.fetch::<MaskedStorage<T>>());
+            .register::<MaskedStorage<T>>();
     }
 
     fn fetch(res: &'a World) -> Self {
