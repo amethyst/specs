@@ -5,6 +5,9 @@ use crate::world::{Component, Entity, Generation, Index, WorldExt};
 use shred::World;
 use std::mem::MaybeUninit;
 
+// Make tests finish in reasonable time with miri
+const ITERATIONS: u32 = if cfg!(miri) { 100 } else { 1000 };
+
 fn create<T: Component>(world: &mut World) -> WriteStorage<T>
 where
     T::Storage: Default,
@@ -32,13 +35,13 @@ mod map_test {
         let mut w = World::new();
         let mut c = create(&mut w);
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             if let Err(err) = c.insert(ent(i), Comp(i)) {
                 panic!("Failed to insert component into entity! {:?}", err);
             }
         }
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             assert_eq!(c.get(ent(i)).unwrap().0, i);
         }
     }
@@ -64,21 +67,21 @@ mod map_test {
         let mut w = World::new();
         let mut c = create(&mut w);
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             if let Err(err) = c.insert(ent(i), Comp(i)) {
                 panic!("Failed to insert component into entity! {:?}", err);
             }
         }
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             assert_eq!(c.get(ent(i)).unwrap().0, i);
         }
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             c.remove(ent(i));
         }
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             assert!(c.get(ent(i)).is_none());
         }
     }
@@ -88,7 +91,7 @@ mod map_test {
         let mut w = World::new();
         let mut c = create(&mut w);
 
-        for i in 0..1_000i32 {
+        for i in 0..ITERATIONS as i32 {
             if let Err(err) = c.insert(ent(i as u32), Comp(i)) {
                 panic!("Failed to insert component into entity! {:?}", err);
             }
@@ -97,7 +100,7 @@ mod map_test {
             }
         }
 
-        for i in 0..1_000i32 {
+        for i in 0..ITERATIONS as i32 {
             assert_eq!(c.get(ent(i as u32)).unwrap().0, -i);
         }
     }
@@ -249,13 +252,13 @@ mod test {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
                 panic!("Failed to insert component into entity! {:?}", err);
             }
         }
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             assert_eq!(
                 s.get(Entity::new(i, Generation::new(1))).unwrap(),
                 &(i + 2718).into()
@@ -270,13 +273,13 @@ mod test {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
                 panic!("Failed to insert component into entity! {:?}", err);
             }
         }
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             assert_eq!(
                 s.remove(Entity::new(i, Generation::new(1))).unwrap(),
                 (i + 2718).into()
@@ -292,20 +295,20 @@ mod test {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
                 panic!("Failed to insert component into entity! {:?}", err);
             }
         }
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             *s.get_mut(Entity::new(i, Generation::new(1)))
                 .unwrap()
                 .access_mut()
                 .as_mut() -= 718;
         }
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             assert_eq!(
                 s.get(Entity::new(i, Generation::new(1))).unwrap(),
                 &(i + 2000).into()
@@ -322,21 +325,21 @@ mod test {
 
         // Insert the first 500 components manually, leaving indices 500..1000
         // unoccupied.
-        for i in 0..500 {
+        for i in 0..ITERATIONS / 2 {
             if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i).into()) {
                 panic!("Failed to insert component into entity! {:?}", err);
             }
         }
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             *s.get_mut_or_default(Entity::new(i, Generation::new(1)))
                 .unwrap()
                 .access_mut()
                 .as_mut() += i;
         }
 
-        // The first 500 were initialized, and should be i*2.
-        for i in 0..500 {
+        // The first ITERATIONS / 2 were initialized, and should be i*2.
+        for i in 0..ITERATIONS / 2 {
             assert_eq!(
                 s.get(Entity::new(i, Generation::new(1))).unwrap(),
                 &(i + i).into()
@@ -344,7 +347,7 @@ mod test {
         }
 
         // The rest were Default-initialized, and should equal i.
-        for i in 500..1_000 {
+        for i in ITERATIONS / 2..ITERATIONS {
             assert_eq!(
                 s.get(Entity::new(i, Generation::new(1))).unwrap(),
                 &(i).into()
@@ -359,7 +362,7 @@ mod test {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
                 panic!("Failed to insert component into entity! {:?}", err);
             }
@@ -370,7 +373,7 @@ mod test {
             }
         }
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             assert!(s.get(Entity::new(i, Generation::new(2))).is_none());
             assert_eq!(
                 s.get(Entity::new(i, Generation::new(1))).unwrap(),
@@ -386,7 +389,7 @@ mod test {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             if s.insert(Entity::new(i, Generation::new(2)), (i + 2718).into())
                 .is_ok()
             {
@@ -394,7 +397,7 @@ mod test {
             }
         }
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             assert!(s.remove(Entity::new(i, Generation::new(1))).is_none());
         }
     }
@@ -444,14 +447,14 @@ mod test {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
                 panic!("Failed to insert component into entity! {:?}", err);
             }
         }
 
         let slice = s.as_slice();
-        assert_eq!(slice.len(), 1_000);
+        assert_eq!(slice.len(), ITERATIONS as usize);
         for (i, v) in slice.iter().enumerate() {
             assert_eq!(v, &(i as u32 + 2718).into());
         }
@@ -464,14 +467,14 @@ mod test {
         let mut w = World::new();
         let mut s: Storage<T, _> = create(&mut w);
 
-        for i in 0..1_000 {
+        for i in 0..ITERATIONS {
             if let Err(err) = s.insert(Entity::new(i, Generation::new(1)), (i + 2718).into()) {
                 panic!("Failed to insert component into entity! {:?}", err);
             }
         }
 
         let slice = s.as_slice();
-        assert_eq!(slice.len(), 1_000);
+        assert_eq!(slice.len(), ITERATIONS as usize);
         for (i, v) in slice.iter().enumerate() {
             let v = unsafe { &*v.as_ptr() };
             assert_eq!(v, &(i as u32 + 2718).into());

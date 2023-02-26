@@ -4,6 +4,9 @@ use specs::{
     world::{Builder, WorldExt},
 };
 
+// Make tests finish in reasonable time with miri
+const ITERATIONS: u32 = if cfg!(miri) { 20 } else { 1000 };
+
 #[derive(Clone, Debug, PartialEq)]
 struct CompInt(i8);
 
@@ -97,7 +100,7 @@ fn dynamic_create() {
     let mut world = create_world();
     let mut dispatcher = DispatcherBuilder::new().with(Sys, "s", &[]).build();
 
-    for _ in 0..1_000 {
+    for _ in 0..ITERATIONS {
         dispatcher.dispatch(&mut world);
     }
 }
@@ -118,7 +121,7 @@ fn dynamic_deletion() {
     let mut world = create_world();
     let mut dispatcher = DispatcherBuilder::new().with(Sys, "s", &[]).build();
 
-    for _ in 0..1_000 {
+    for _ in 0..ITERATIONS {
         dispatcher.dispatch(&mut world);
     }
 }
