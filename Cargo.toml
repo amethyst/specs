@@ -24,11 +24,11 @@ ahash = "0.7.6"
 crossbeam-queue = "0.3"
 # waiting on PR and new version to be published
 # hibitset = { version = "0.6.3", default-features = false }
-hibitset = { path = "../hibitset", default-features = false }
+hibitset = { git = "https://github.com/amethyst/hibitset", default-features = false }
 log = "0.4.8"
 # waiting on PR and new version to be published
 # shred = { version = "0.14.1", default-features = false }
-shred = { path = "../shred", default-features = false }
+shred = { git = "https://github.com/Imberflur/shred", branch = "metatable-fix", default-features = false }
 shrev = "1.1.1"
 tuple_utils = "0.4.0"
 nougat = "0.2.3"
@@ -58,7 +58,7 @@ ron = "0.7.1"
 rand = "0.8"
 serde_json = "1.0.48"
 # shred = { version = "0.14.1", default-features = false, features = ["shred-derive"] }
-shred = { path = "../shred", default-features = false, features = ["shred-derive"] }
+shred = { git = "https://github.com/Imberflur/shred", branch = "metatable-fix", default-features = false, features = ["shred-derive"]}
 specs-derive = { path = "specs-derive", version = "0.4.1" }
 
 [[example]]
