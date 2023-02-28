@@ -451,6 +451,68 @@ where
 {
 }
 
+/// Compile test for when `Send` is implemented.
+/// ```rust,compile_fail
+/// use specs::prelude::*;
+///
+/// struct Pos(f32);
+/// impl Component for Pos {
+///     type Storage = FlaggedStorage<Self>;
+/// }
+///
+/// fn main() {
+///     let mut world = World::new();
+///     world.register::<Pos>();
+///     world.create_entity().with(Pos(0.0)).build();
+///     world.create_entity().with(Pos(1.6)).build();
+///     world.create_entity().with(Pos(5.4)).build();
+///     let mut pos = world.write_storage::<Pos>();
+///
+///     let mut restricted_pos = pos.restrict_mut();
+///     let mut joined = (&mut restricted_pos).join();
+///     let mut a = joined.next().unwrap();
+///     let mut b = joined.next().unwrap();
+///     // unsound since Pos::Storage isn't a DistinctStorage
+///     std::thread::scope(|s| {
+///         s.spawn(move || {
+///              a.get_mut();
+///         });
+///     });
+///     b.get_mut();
+/// }
+/// ```
+/// Should compile since `VecStorage` is a `DistinctStorage`.
+/// ```rust
+/// use specs::prelude::*;
+///
+/// struct Pos(f32);
+/// impl Component for Pos {
+///     type Storage = VecStorage<Self>;
+/// }
+///
+/// fn main() {
+///     let mut world = World::new();
+///     world.register::<Pos>();
+///     world.create_entity().with(Pos(0.0)).build();
+///     world.create_entity().with(Pos(1.6)).build();
+///     world.create_entity().with(Pos(5.4)).build();
+///     let mut pos = world.write_storage::<Pos>();
+///
+///     let mut restricted_pos = pos.restrict_mut();
+///     let mut joined = (&mut restricted_pos).join();
+///     let mut a = joined.next().unwrap();
+///     let mut b = joined.next().unwrap();
+///     // sound since Pos::Storage is a DistinctStorage
+///     std::thread::scope(|s| {
+///         s.spawn(move || {
+///              a.get_mut();
+///         });
+///     });
+///     b.get_mut();
+/// }
+/// ```
+fn _dummy() {}
+
 /// Pairs a storage with an index, meaning that the index is guaranteed to
 /// exist.
 ///
