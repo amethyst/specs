@@ -17,9 +17,12 @@ use crate::{
 /// which wraps `T`. The associated type `Element` identifies what
 /// the slices will contain.
 pub trait SliceAccess<T> {
+    /// The type of the underlying data elements.
     type Element;
 
+    /// Returns a slice of the underlying storage.
     fn as_slice(&self) -> &[Self::Element];
+    /// Returns a mutable slice of the underlying storage.
     fn as_mut_slice(&mut self) -> &mut [Self::Element];
 }
 

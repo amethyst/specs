@@ -11,12 +11,11 @@ pub use self::{
         RestrictedStorage, SharedGetOnly,
     },
     storages::{
-        BTreeStorage, DefaultVecStorage, DenseVecStorage, HashMapStorage, NullStorage, VecStorage,
+        BTreeStorage, DefaultVecStorage, DenseVecStorage, HashMapStorage, NullStorage, SliceAccess,
+        VecStorage,
     },
     track::{ComponentEvent, Tracked},
 };
-
-use self::storages::SliceAccess;
 
 use std::{
     self,

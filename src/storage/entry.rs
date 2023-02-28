@@ -54,8 +54,8 @@ where
         }
     }
 
-    /// Returns a `Join`-able structure that yields all indices, returning
-    /// `Entry` for all elements
+    /// Returns a [`LendJoin`]-able structure that yields all indices, returning
+    /// [`StorageEntry`] for all elements
     ///
     /// WARNING: Do not have a join of only `Entries`s. Otherwise the join will
     /// iterate over every single index of the bitset. If you want a join with
@@ -129,8 +129,10 @@ where
     }
 }
 
-/// `Join`-able structure that yields all indices, returning `Entry` for all
-/// elements.
+/// [`LendJoin`]-able structure that yields all indices,
+/// returning [`StorageEntry`] for all elements.
+///
+/// This can be constructed via [`Storage::entries`].
 pub struct Entries<'a, 'b: 'a, T: 'a, D: 'a>(&'a mut Storage<'b, T, D>);
 
 // SAFETY: We return a mask containing all items, but check the original mask in

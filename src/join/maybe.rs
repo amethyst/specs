@@ -9,7 +9,7 @@ use crate::world::Index;
 /// contained `T` does and that yields all indices, returning `None` for all
 /// missing elements and `Some(T)` for found elements.
 ///
-/// For usage see [`LendJoin::maybe()`](LendJoin::Maybe).
+/// For usage see [`LendJoin::maybe()`](LendJoin::maybe).
 ///
 /// WARNING: Do not have a join of only `MaybeJoin`s. Otherwise the join will
 /// iterate over every single index of the bitset. If you want a join with

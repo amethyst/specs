@@ -3,8 +3,36 @@ use hibitset::{BitIter, BitSetLike};
 
 use crate::world::{Entities, Entity, Index};
 
-/// Like the `Join` trait except this is similar to a lending iterator in that
-/// only one item can be accessed at once.
+/// Like the [`Join`](super::Join) trait except this is similar to a [lending
+/// iterator](https://blog.rust-lang.org/2021/08/03/GATs-stabilization-push.html#so-what-are-gats)
+/// in that only one item can be accessed at once.
+///
+/// The type returned from [`.lend_join()`](LendJoin::lend_join),
+/// [`JoinLendIter`] does not implement `Iterator` like
+/// [`JoinIter`](super::JoinIter) does. Instead, it provides a
+/// [`next`](JoinLendIter::next) method that exclusively borrows the
+/// `JoinLendIter` for the lifetime of the returned value.
+///
+/// This limitation allows freedom for more patterns to be soundly implemented.
+/// Thus, `LendJoin` acts as the "lowest common denominator" of the
+/// `Join`-like traits (i.e. if something can implement `Join` it can also
+/// implement `LendJoin`).
+///
+/// In particular, [`Entries`](crate::storage::Entries) only implements
+/// `LendJoin`. As another example,
+/// [`RestrictedStorage`](crate::storage::RestrictedStorage) implements both
+/// `Join` and `LendJoin`. However, for joining mutably, lend join variant
+/// produces
+/// [`PairedStorageWriteExclusive`](crate::storage::PairedStorageWriteExclusive)
+/// values which have `get_other`/`get_other_mut` methods that aren't provided
+/// by [`PairedStorageWriteShared`](crate::storage::PairedStorageWriteShared).
+///
+/// Finally, these limitations allow providing the [`JoinLendIter::get`] method
+/// which can be useful to get a set of components from an entity without
+/// calling `get` individually on each storage (see the example in that method's
+/// docs).
+///
+/// Also see the `lend_join` example.
 ///
 /// # Safety
 ///
@@ -121,7 +149,7 @@ pub unsafe trait LendJoin {
     /// * A call to `get` must be preceded by a check if `id` is part of
     ///   `Self::Mask`
     /// * Multiple calls with the same `id` are not allowed, for a particular
-    ///   instance of the values from [`open`](Join::open). Unless this type
+    ///   instance of the values from [`open`](LendJoin::open). Unless this type
     ///   implements the unsafe trait [`RepeatableLendGet`].
     unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
     where
