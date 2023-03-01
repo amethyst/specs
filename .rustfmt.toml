@@ -1,9 +1,8 @@
 hard_tabs = false
-imports_granularity = "Crate"
 reorder_impl_items = true
 use_field_init_shorthand = true
 use_try_shorthand = true
 format_code_in_doc_comments = true
 wrap_comments = true
-edition = "2018"
+edition = "2021"
 version = "Two"
