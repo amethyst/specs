@@ -62,26 +62,27 @@ shred = { git = "https://github.com/Imberflur/shred", branch = "metatable-fix", 
 specs-derive = { path = "specs-derive", version = "0.4.1" }
 
 [[example]]
+name = "async"
+[[example]]
 name = "basic"
-
-[[example]]
-name = "full"
-
-[[example]]
-name = "cluster_bomb"
-
 [[example]]
 name = "bitset"
-
 [[example]]
-name = "track"
-
+name = "cluster_bomb"
+[[example]]
+name = "full"
+[[example]]
+name = "lend_join"
+test = true
 [[example]]
 name = "ordered_track"
-
 [[example]]
 name = "saveload"
 required-features = ["serde"]
+[[example]]
+name = "slices"
+[[example]]
+name = "track"
 
 [[bench]]
 name = "benches_main"
