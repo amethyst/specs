@@ -505,7 +505,7 @@ where
 ///     // sound since Pos::Storage is a DistinctStorage
 ///     std::thread::scope(|s| {
 ///         s.spawn(move || {
-///              a.get_mut();
+///             a.get_mut();
 ///         });
 ///     });
 ///     b.get_mut();
@@ -572,15 +572,14 @@ where
     /// Gets the component related to the current entity.
     pub fn get_mut(&mut self) -> AccessMutReturn<'_, C> {
         // SAFETY:
-        // * This is constructed in the `get` methods of `Join`/`ParJoin` above.
-        //   These all require that the mask has been checked.
-        // * We also require that either there are no subsequent calls with the
-        //   same `id` (`Join`) or that there are not extant references from a
-        //   call with the same `id` (`ParJoin`). Thus, `id` is unique among
-        //   the instances of `Self` created by the join `get` methods. We then
-        //   tie the lifetime of the returned value to the exclusive borrow of
-        //   self which prevents this or `Self::get` from being called while the
-        //   returned reference is still alive.
+        // * This is constructed in the `get` methods of `Join`/`ParJoin` above. These
+        //   all require that the mask has been checked.
+        // * We also require that either there are no subsequent calls with the same
+        //   `id` (`Join`) or that there are not extant references from a call with the
+        //   same `id` (`ParJoin`). Thus, `id` is unique among the instances of `Self`
+        //   created by the join `get` methods. We then tie the lifetime of the returned
+        //   value to the exclusive borrow of self which prevents this or `Self::get`
+        //   from being called while the returned reference is still alive.
         unsafe { SharedGetOnly::get_mut(&self.storage, self.index) }
     }
 }

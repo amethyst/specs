@@ -676,13 +676,13 @@ where
 
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         // SAFETY:
-        // * Since we require that the mask was checked, an element for
-        //   `id` must have been inserted without being removed.
-        // * We also require that there are no subsequent calls with the same
-        //   `id` for this instance of the values from `open`, so there are no
-        //   extant references for the element corresponding to this `id`.
-        // * Since we have an exclusive reference to `Self::Value`, we know this
-        //   isn't being called from multiple threads at once.
+        // * Since we require that the mask was checked, an element for `id` must have
+        //   been inserted without being removed.
+        // * We also require that there are no subsequent calls with the same `id` for
+        //   this instance of the values from `open`, so there are no extant references
+        //   for the element corresponding to this `id`.
+        // * Since we have an exclusive reference to `Self::Value`, we know this isn't
+        //   being called from multiple threads at once.
         unsafe { SharedGetMutOnly::get_mut(value, id) }
     }
 }
@@ -713,13 +713,13 @@ where
 
     unsafe fn get(value: &Self::Value, id: Index) -> Self::Type {
         // SAFETY:
-        // * Since we require that the mask was checked, an element for
-        //   `id` must have been inserted without being removed.
+        // * Since we require that the mask was checked, an element for `id` must have
+        //   been inserted without being removed.
         // * We also require that the returned value is no longer alive before
-        //   subsequent calls with the same `id`, so there are no extant
-        //   references that were obtained with the same `id`.
-        // * `T::Storage` implements the unsafe trait `DistinctStorage` so it is
-        //   safe to call this from multiple threads at once.
+        //   subsequent calls with the same `id`, so there are no extant references that
+        //   were obtained with the same `id`.
+        // * `T::Storage` implements the unsafe trait `DistinctStorage` so it is safe to
+        //   call this from multiple threads at once.
         unsafe { SharedGetMutOnly::get_mut(value, id) }
     }
 }
@@ -753,7 +753,8 @@ where
 /// Allows forcing mutable access to be explicit. Useful to implement a flagged
 /// storage where it is easier to discover sites where components are marked as
 /// mutated. Of course, individual storages can use an associated `AccessMut`
-/// type that also implements `DerefMut`, but this provides the common denominator.
+/// type that also implements `DerefMut`, but this provides the common
+/// denominator.
 pub trait AccessMut: core::ops::Deref {
     /// This may generate a mutation event for certain flagged storages.
     fn access_mut(&mut self) -> &mut Self::Target;

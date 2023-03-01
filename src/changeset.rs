@@ -157,13 +157,13 @@ unsafe impl<'a, T> Join for &'a mut ChangeSet<T> {
 
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         // SAFETY:
-        // * Since we require that the mask was checked, an element for
-        //   `id` must have been inserted without being removed.
-        // * We also require that there are no subsequent calls with the same
-        //   `id` for this instance of the values from `open`, so there are no
-        //   extant references for the element corresponding to this `id`.
-        // * Since we have an exclusive reference to `Self::Value`, we know this
-        //   isn't being called from multiple threads at once.
+        // * Since we require that the mask was checked, an element for `id` must have
+        //   been inserted without being removed.
+        // * We also require that there are no subsequent calls with the same `id` for
+        //   this instance of the values from `open`, so there are no extant references
+        //   for the element corresponding to this `id`.
+        // * Since we have an exclusive reference to `Self::Value`, we know this isn't
+        //   being called from multiple threads at once.
         unsafe { SharedGetMutOnly::get_mut(value, id) }
     }
 }

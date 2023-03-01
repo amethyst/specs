@@ -347,8 +347,8 @@ unsafe impl<'a> LendJoin for &'a EntitiesRes {
     }
 }
 
-// SAFETY: <EntitiesRes as LendJoin>::get does not rely on only being called once
-// with a particular ID.
+// SAFETY: <EntitiesRes as LendJoin>::get does not rely on only being called
+// once with a particular ID.
 unsafe impl<'a> RepeatableLendGet for &'a EntitiesRes {}
 
 // SAFETY: It is safe to retrieve elements with any `id` regardless of the mask.
