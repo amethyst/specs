@@ -54,6 +54,35 @@ fn task_panics() {
 }
 
 #[test]
+fn delete_wrong_gen() {
+    let mut world = create_world();
+
+    // create
+    let entity_a = world.create_entity().with(CompInt(7)).build();
+    assert_eq!(
+        world.read_component::<CompInt>().get(entity_a),
+        Some(&CompInt(7))
+    );
+    // delete
+    assert!(world.delete_entity(entity_a).is_ok());
+    assert_eq!(world.read_component::<CompInt>().get(entity_a), None);
+    // create
+    let entity_b = world.create_entity().with(CompInt(6)).build();
+    assert_eq!(
+        world.read_component::<CompInt>().get(entity_b),
+        Some(&CompInt(6))
+    );
+    assert_eq!(world.read_component::<CompInt>().get(entity_a), None);
+    // delete stale
+    assert!(world.delete_entity(entity_a).is_err());
+    assert_eq!(
+        world.read_component::<CompInt>().get(entity_b),
+        Some(&CompInt(6))
+    );
+    assert_eq!(world.read_component::<CompInt>().get(entity_a), None);
+}
+
+#[test]
 fn dynamic_create() {
     struct Sys;
 
