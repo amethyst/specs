@@ -259,7 +259,11 @@ pub trait WorldExt {
     fn delete_entity(&mut self, entity: Entity) -> Result<(), WrongGeneration>;
 
     /// Deletes the specified entities and their components.
-    fn delete_entities(&mut self, delete: &[Entity]) -> Result<(), WrongGeneration>;
+    ///
+    /// If an entity with an outdated generation is encountered, the index of
+    /// that entity within the provided slice is returned (entities after this
+    /// index are not deleted).
+    fn delete_entities(&mut self, delete: &[Entity]) -> Result<(), (WrongGeneration, usize)>;
 
     /// Deletes all entities and their components.
     fn delete_all(&mut self);
@@ -315,8 +319,6 @@ impl WorldExt for World {
     {
         self.entry()
             .or_insert_with(move || MaskedStorage::<T>::new(storage()));
-        self.entry::<MetaTable<dyn AnyStorage>>()
-            .or_insert_with(Default::default);
         self.fetch_mut::<MetaTable<dyn AnyStorage>>()
             .register(&*self.fetch::<MaskedStorage<T>>());
     }
@@ -369,12 +371,18 @@ impl WorldExt for World {
 
     fn delete_entity(&mut self, entity: Entity) -> Result<(), WrongGeneration> {
         self.delete_entities(&[entity])
+            .map_err(|(wrong_gen, _)| wrong_gen)
     }
 
-    fn delete_entities(&mut self, delete: &[Entity]) -> Result<(), WrongGeneration> {
-        self.delete_components(delete);
-
-        self.entities_mut().alloc.kill(delete)
+    fn delete_entities(&mut self, delete: &[Entity]) -> Result<(), (WrongGeneration, usize)> {
+        let res = self.entities_mut().alloc.kill(delete);
+        if let Err((wrong_gen, failed_index)) = res {
+            self.delete_components(&delete[..failed_index]);
+            Err((wrong_gen, failed_index))
+        } else {
+            self.delete_components(delete);
+            Ok(())
+        }
     }
 
     fn delete_all(&mut self) {
@@ -406,8 +414,6 @@ impl WorldExt for World {
     }
 
     fn delete_components(&mut self, delete: &[Entity]) {
-        self.entry::<MetaTable<dyn AnyStorage>>()
-            .or_insert_with(Default::default);
         for storage in self.fetch_mut::<MetaTable<dyn AnyStorage>>().iter_mut(self) {
             storage.drop(delete);
         }
