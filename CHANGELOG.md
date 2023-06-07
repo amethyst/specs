@@ -1,5 +1,6 @@
 # 0.19.0 (2022-07-15)
 
+* Bump MSRV to 1.65.0 ([#766])
 * Added index where entity deletion stopped to the error returned from `WorldExt::delete_entities` ([#766])
 * Fix bug where deleting an entity with the wrong generation could clear the components of an existing entity. ([#766])
 * Bump shred to version `0.14.1`, MSRV to 1.60.0 ([shred changelog][shred-changelog], [#756])
