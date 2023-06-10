@@ -1,4 +1,4 @@
-# 0.19.0 (2022-07-15)
+# 0.19.0 (2023-06-10)
 
 * Bump MSRV to 1.65.0 ([#766])
 * Added index where entity deletion stopped to the error returned from `WorldExt::delete_entities` ([#766])
