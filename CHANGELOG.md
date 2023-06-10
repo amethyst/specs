@@ -7,6 +7,7 @@
 
 [#756]: https://github.com/amethyst/specs/pull/756
 [#766]: https://github.com/amethyst/specs/pull/766
+[shred-changelog]: https://github.com/amethyst/shred/blob/6b754812e304cf6c63ba0364a82a7e0e5025aaa4/CHANGELOG.md#0140-2022-07-12
 
 # 0.18.0 (2022-07-02)
 
