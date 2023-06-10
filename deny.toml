@@ -28,3 +28,7 @@ allow = ["MIT", "Apache-2.0", "Unlicense", "BSD-3-Clause"]
 
 # We want really high confidence when inferring licenses from text
 confidence-threshold = 0.93
+
+exceptions = [
+    { allow = ["Unicode-DFS-2016"], name = "unicode-ident" },
+]

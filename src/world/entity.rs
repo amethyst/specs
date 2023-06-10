@@ -60,12 +60,16 @@ pub(crate) struct Allocator {
 
 impl Allocator {
     /// Kills a list of entities immediately.
-    pub fn kill(&mut self, delete: &[Entity]) -> Result<(), WrongGeneration> {
-        for &entity in delete {
+    ///
+    /// If an entity with an outdated generation is encountered, the index of
+    /// that entity within the provided slice is returned (entities after this
+    /// index are not killed).
+    pub fn kill(&mut self, delete: &[Entity]) -> Result<(), (WrongGeneration, usize)> {
+        for (index, &entity) in delete.iter().enumerate() {
             let id = entity.id() as usize;
 
             if !self.is_alive(entity) {
-                return self.del_err(entity);
+                return Err((self.del_err(entity), index));
             }
 
             self.alive.remove(entity.id());
@@ -89,7 +93,7 @@ impl Allocator {
     /// maintained).
     pub fn kill_atomic(&self, e: Entity) -> Result<(), WrongGeneration> {
         if !self.is_alive(e) {
-            return self.del_err(e);
+            return Err(self.del_err(e));
         }
 
         self.killed.add_atomic(e.id());
@@ -97,14 +101,14 @@ impl Allocator {
         Ok(())
     }
 
-    pub(crate) fn del_err(&self, e: Entity) -> Result<(), WrongGeneration> {
-        Err(WrongGeneration {
+    pub(crate) fn del_err(&self, e: Entity) -> WrongGeneration {
+        WrongGeneration {
             action: "delete",
             actual_gen: self.generations[e.id() as usize]
                 .0
                 .unwrap_or_else(Generation::one),
             entity: e,
-        })
+        }
     }
 
     /// Return `true` if the entity is alive.

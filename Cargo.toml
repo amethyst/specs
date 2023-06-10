@@ -14,7 +14,7 @@ license = "MIT OR Apache-2.0"
 authors = ["slide-rs hackers"]
 include = ["src", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
 edition = "2021"
-rust-version = "1.60.0"
+rust-version = "1.65.0"
 
 # the `storage_cmp` and `storage_sparse` benches are called from `benches_main`
 autobenches = false
