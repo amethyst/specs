@@ -410,16 +410,10 @@ where
         // SAFETY: The mask was previously empty, so it is safe to
         // insert. We immediately add the value to the mask below and
         // unwinding from the `insert` call means that we don't need to
-        // include the value in the mask. `BitSet::add` won't unwind on 32-bit
-        // and 64-bit platforms since OOM aborts and any overflow in capacity
-        // calculations (which panics) won't occur for resizing to hold the bit
-        // at `id = u32::MAX`. We rely on `BitSet::add` not having any other
-        // cases where it panics. On 16-bit platforms we insert a guard to abort
-        // if a panic occurs (although I suspect we will run out of memory
-        // before that).
+        // include the value in the mask. If adding to the mask unwinds we
+        // abort.
         unsafe { self.data.inner.insert(id, value) };
-        const _ASSERT_INDEX_IS_U32: Index = 0u32;
-        if cfg!(panic = "abort") || usize::BITS >= 32 {
+        if cfg!(panic = "abort") {
             self.data.mask.add(id);
         } else {
             struct AbortOnDrop;
