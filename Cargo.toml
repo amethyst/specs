@@ -45,6 +45,7 @@ uuid_entity = ["uuid", "serde"]
 stdweb = ["uuid/js"]
 storage-event-control = []
 derive = ["shred-derive", "specs-derive"]
+nightly = ["shred/nightly"]
 
 shred-derive = ["shred/shred-derive"]
 
