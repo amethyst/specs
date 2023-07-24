@@ -96,7 +96,7 @@ impl Allocator {
         Ok(())
     }
 
-    /// Kills and entity atomically (will be updated when the allocator is
+    /// Kills an entity atomically (will be updated when the allocator is
     /// maintained).
     pub fn kill_atomic(&self, e: Entity) -> Result<(), WrongGeneration> {
         if !self.is_alive(e) {
