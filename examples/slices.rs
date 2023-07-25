@@ -42,7 +42,7 @@ impl<'a> System<'a> for SysA {
         // Both the `Pos` and `Vel` components use `DefaultVecStorage`, which supports
         // `as_slice()` and `as_mut_slice()`. This lets us access components without
         // indirection.
-        let mut pos_slice = pos.as_mut_slice();
+        let pos_slice = pos.as_mut_slice();
         let vel_slice = vel.as_slice();
 
         // Note that an entity which has position but not velocity will still have

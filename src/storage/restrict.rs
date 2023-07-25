@@ -356,6 +356,7 @@ where
 // in the wrapped `Storage`.
 //
 // Iterating the mask does not repeat indices.
+#[cfg(feature = "parallel")]
 unsafe impl<'rf, 'st: 'rf, C, S> ParJoin for &'rf RestrictedStorage<'rf, 'st, C, S>
 where
     C: Component,
@@ -460,26 +461,24 @@ where
 ///     type Storage = FlaggedStorage<Self>;
 /// }
 ///
-/// fn main() {
-///     let mut world = World::new();
-///     world.register::<Pos>();
-///     world.create_entity().with(Pos(0.0)).build();
-///     world.create_entity().with(Pos(1.6)).build();
-///     world.create_entity().with(Pos(5.4)).build();
-///     let mut pos = world.write_storage::<Pos>();
+/// let mut world = World::new();
+/// world.register::<Pos>();
+/// world.create_entity().with(Pos(0.0)).build();
+/// world.create_entity().with(Pos(1.6)).build();
+/// world.create_entity().with(Pos(5.4)).build();
+/// let mut pos = world.write_storage::<Pos>();
 ///
-///     let mut restricted_pos = pos.restrict_mut();
-///     let mut joined = (&mut restricted_pos).join();
-///     let mut a = joined.next().unwrap();
-///     let mut b = joined.next().unwrap();
-///     // unsound since Pos::Storage isn't a DistinctStorage
-///     std::thread::scope(|s| {
-///         s.spawn(move || {
-///              a.get_mut();
-///         });
+/// let mut restricted_pos = pos.restrict_mut();
+/// let mut joined = (&mut restricted_pos).join();
+/// let mut a = joined.next().unwrap();
+/// let mut b = joined.next().unwrap();
+/// // unsound since Pos::Storage isn't a DistinctStorage
+/// std::thread::scope(|s| {
+///     s.spawn(move || {
+///          a.get_mut();
 ///     });
-///     b.get_mut();
-/// }
+/// });
+/// b.get_mut();
 /// ```
 /// Should compile since `VecStorage` is a `DistinctStorage`.
 /// ```rust
@@ -490,26 +489,24 @@ where
 ///     type Storage = VecStorage<Self>;
 /// }
 ///
-/// fn main() {
-///     let mut world = World::new();
-///     world.register::<Pos>();
-///     world.create_entity().with(Pos(0.0)).build();
-///     world.create_entity().with(Pos(1.6)).build();
-///     world.create_entity().with(Pos(5.4)).build();
-///     let mut pos = world.write_storage::<Pos>();
+/// let mut world = World::new();
+/// world.register::<Pos>();
+/// world.create_entity().with(Pos(0.0)).build();
+/// world.create_entity().with(Pos(1.6)).build();
+/// world.create_entity().with(Pos(5.4)).build();
+/// let mut pos = world.write_storage::<Pos>();
 ///
-///     let mut restricted_pos = pos.restrict_mut();
-///     let mut joined = (&mut restricted_pos).join();
-///     let mut a = joined.next().unwrap();
-///     let mut b = joined.next().unwrap();
-///     // sound since Pos::Storage is a DistinctStorage
-///     std::thread::scope(|s| {
-///         s.spawn(move || {
-///             a.get_mut();
-///         });
+/// let mut restricted_pos = pos.restrict_mut();
+/// let mut joined = (&mut restricted_pos).join();
+/// let mut a = joined.next().unwrap();
+/// let mut b = joined.next().unwrap();
+/// // sound since Pos::Storage is a DistinctStorage
+/// std::thread::scope(|s| {
+///     s.spawn(move || {
+///         a.get_mut();
 ///     });
-///     b.get_mut();
-/// }
+/// });
+/// b.get_mut();
 /// ```
 fn _dummy() {}
 

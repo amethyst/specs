@@ -411,19 +411,25 @@ where
         // insert. We immediately add the value to the mask below and
         // unwinding from the `insert` call means that we don't need to
         // include the value in the mask. If adding to the mask unwinds we
-        // abort.
+        // remove the value via a drop guard.
+        // NOTE: We rely on any panics in `Bitset::add` leaving the bitset in
+        // the same state as before `add` was called!
         unsafe { self.data.inner.insert(id, value) };
         if cfg!(panic = "abort") {
             self.data.mask.add(id);
         } else {
-            struct AbortOnDrop;
-            impl Drop for AbortOnDrop {
+            struct RemoveOnDrop<'a, T: Component>(&'a mut MaskedStorage<T>, Index);
+            impl<'a, T: Component> Drop for RemoveOnDrop<'a, T> {
                 fn drop(&mut self) {
-                    std::process::abort()
+                    // SAFETY: We just inserted a value here above and failed to
+                    // add it to the bitset.
+                    unsafe {
+                        self.0.inner.remove(self.1);
+                    }
                 }
             }
-            let guard = AbortOnDrop;
-            self.data.mask.add(id);
+            let guard = RemoveOnDrop(&mut self.data, id);
+            guard.0.mask.add(id);
             core::mem::forget(guard);
         }
     }

@@ -944,7 +944,7 @@ mod test {
             assert!(!removed.contains(entity.id()));
         }
 
-        for (_, mut comp) in (&w.entities(), &mut s1).join() {
+        for (_, comp) in (&w.entities(), &mut s1).join() {
             comp.0 += 1;
         }
 

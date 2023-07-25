@@ -1,6 +1,8 @@
 #[nougat::gat(Type)]
 use super::LendJoin;
-use super::{Join, ParJoin, RepeatableLendGet};
+#[cfg(feature = "parallel")]
+use super::ParJoin;
+use super::{Join, RepeatableLendGet};
 use hibitset::{BitSetAll, BitSetLike};
 
 use crate::world::Index;
