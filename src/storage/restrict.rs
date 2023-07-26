@@ -51,14 +51,14 @@ use crate::{
 ///     }
 /// }
 /// ```
-pub struct RestrictedStorage<'rf, 'st: 'rf, C, S> {
+pub struct RestrictedStorage<'rf, C, S> {
     bitset: &'rf BitSet,
     data: S,
-    entities: &'rf Fetch<'st, EntitiesRes>,
+    entities: &'rf Fetch<'rf, EntitiesRes>,
     phantom: PhantomData<C>,
 }
 
-impl<'st, T, D> Storage<'st, T, D>
+impl<T, D> Storage<'_, T, D>
 where
     T: Component,
     D: Deref<Target = MaskedStorage<T>>,
@@ -69,7 +69,7 @@ where
     /// This is returned as a `ParallelRestriction` version since you can only
     /// get immutable components with this which is safe for parallel by
     /// default.
-    pub fn restrict<'rf>(&'rf self) -> RestrictedStorage<'rf, 'st, T, &T::Storage> {
+    pub fn restrict<'rf>(&'rf self) -> RestrictedStorage<'rf, T, &T::Storage> {
         RestrictedStorage {
             bitset: &self.data.mask,
             data: &self.data.inner,
@@ -79,7 +79,7 @@ where
     }
 }
 
-impl<'st, T, D> Storage<'st, T, D>
+impl<T, D> Storage<'_, T, D>
 where
     T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,
@@ -87,7 +87,7 @@ where
     /// Builds a mutable `RestrictedStorage` out of a `Storage`. Allows
     /// restricted access to the inner components without allowing
     /// invalidating the bitset for iteration in `Join`.
-    pub fn restrict_mut<'rf>(&'rf mut self) -> RestrictedStorage<'rf, 'st, T, &mut T::Storage> {
+    pub fn restrict_mut<'rf>(&'rf mut self) -> RestrictedStorage<'rf, T, &mut T::Storage> {
         let (mask, data) = self.data.open_mut();
         RestrictedStorage {
             bitset: mask,
@@ -102,14 +102,14 @@ where
 // contained in the wrapped `Storage`. Iterating the mask does not repeat
 // indices.
 #[nougat::gat]
-unsafe impl<'rf, 'st: 'rf, C, S> LendJoin for &'rf RestrictedStorage<'rf, 'st, C, S>
+unsafe impl<'rf, C, S> LendJoin for &'rf RestrictedStorage<'rf, C, S>
 where
     C: Component,
     S: Borrow<C::Storage>,
 {
     type Mask = &'rf BitSet;
-    type Type<'next> = PairedStorageRead<'rf, 'st, C>;
-    type Value = (&'rf C::Storage, &'rf Fetch<'st, EntitiesRes>, &'rf BitSet);
+    type Type<'next> = PairedStorageRead<'rf, C>;
+    type Value = (&'rf C::Storage, &'rf Fetch<'rf, EntitiesRes>, &'rf BitSet);
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let bitset = self.bitset.borrow();
@@ -129,7 +129,7 @@ where
 
 // SAFETY: LendJoin::get impl for this type can safely be called multiple times
 // with the same ID.
-unsafe impl<'rf, 'st: 'rf, C, S> RepeatableLendGet for &'rf RestrictedStorage<'rf, 'st, C, S>
+unsafe impl<'rf, C, S> RepeatableLendGet for &'rf RestrictedStorage<'rf, C, S>
 where
     C: Component,
     S: Borrow<C::Storage>,
@@ -140,16 +140,16 @@ where
 // contained in the wrapped `Storage`. Iterating the mask does not repeat
 // indices.
 #[nougat::gat]
-unsafe impl<'rf, 'st: 'rf, C, S> LendJoin for &'rf mut RestrictedStorage<'rf, 'st, C, S>
+unsafe impl<'rf, C, S> LendJoin for &'rf mut RestrictedStorage<'rf, C, S>
 where
     C: Component,
     S: BorrowMut<C::Storage>,
 {
     type Mask = &'rf BitSet;
-    type Type<'next> = PairedStorageWriteExclusive<'next, 'st, C>;
+    type Type<'next> = PairedStorageWriteExclusive<'next, C>;
     type Value = (
         &'rf mut C::Storage,
-        &'rf Fetch<'st, EntitiesRes>,
+        &'rf Fetch<'rf, EntitiesRes>,
         &'rf BitSet,
     );
 
@@ -171,7 +171,7 @@ where
 
 // SAFETY: LendJoin::get impl for this type can safely be called multiple times
 // with the same ID.
-unsafe impl<'rf, 'st: 'rf, C, S> RepeatableLendGet for &'rf mut RestrictedStorage<'rf, 'st, C, S>
+unsafe impl<'rf, C, S> RepeatableLendGet for &'rf mut RestrictedStorage<'rf, C, S>
 where
     C: Component,
     S: BorrowMut<C::Storage>,
@@ -181,14 +181,14 @@ where
 // SAFETY: `open` returns references to corresponding mask and storage values
 // contained in the wrapped `Storage`. Iterating the mask does not repeat
 // indices.
-unsafe impl<'rf, 'st: 'rf, C, S> Join for &'rf RestrictedStorage<'rf, 'st, C, S>
+unsafe impl<'rf, C, S> Join for &'rf RestrictedStorage<'rf, C, S>
 where
     C: Component,
     S: Borrow<C::Storage>,
 {
     type Mask = &'rf BitSet;
-    type Type = PairedStorageRead<'rf, 'st, C>;
-    type Value = (&'rf C::Storage, &'rf Fetch<'st, EntitiesRes>, &'rf BitSet);
+    type Type = PairedStorageRead<'rf, C>;
+    type Value = (&'rf C::Storage, &'rf Fetch<'rf, EntitiesRes>, &'rf BitSet);
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let bitset = self.bitset.borrow();
@@ -317,7 +317,7 @@ pub use shared_get_only::SharedGetOnly;
 // SAFETY: `open` returns references to corresponding mask and storage values
 // contained in the wrapped `Storage`. Iterating the mask does not repeat
 // indices.
-unsafe impl<'rf, 'st: 'rf, C, S> Join for &'rf mut RestrictedStorage<'rf, 'st, C, S>
+unsafe impl<'rf, C, S> Join for &'rf mut RestrictedStorage<'rf, C, S>
 where
     C: Component,
     S: BorrowMut<C::Storage>,
@@ -351,15 +351,15 @@ where
 //
 // Iterating the mask does not repeat indices.
 #[cfg(feature = "parallel")]
-unsafe impl<'rf, 'st: 'rf, C, S> ParJoin for &'rf RestrictedStorage<'rf, 'st, C, S>
+unsafe impl<'rf, C, S> ParJoin for &'rf RestrictedStorage<'rf, C, S>
 where
     C: Component,
     S: Borrow<C::Storage>,
     C::Storage: Sync,
 {
     type Mask = &'rf BitSet;
-    type Type = PairedStorageRead<'rf, 'st, C>;
-    type Value = (&'rf C::Storage, &'rf Fetch<'st, EntitiesRes>, &'rf BitSet);
+    type Type = PairedStorageRead<'rf, C>;
+    type Value = (&'rf C::Storage, &'rf Fetch<'rf, EntitiesRes>, &'rf BitSet);
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         let bitset = self.bitset.borrow();
@@ -388,7 +388,7 @@ where
 //
 // Iterating the mask does not repeat indices.
 #[cfg(feature = "parallel")]
-unsafe impl<'rf, 'st: 'rf, C, S> ParJoin for &'rf mut RestrictedStorage<'rf, 'st, C, S>
+unsafe impl<'rf, C, S> ParJoin for &'rf mut RestrictedStorage<'rf, C, S>
 where
     C: Component,
     S: BorrowMut<C::Storage>,
@@ -417,11 +417,11 @@ where
 /// as long as the `PairedStorage<C>` exists.
 ///
 /// Yielded by `lend_join`/`join`/`par_join` on `&storage.restrict()`.
-pub struct PairedStorageRead<'rf, 'st: 'rf, C: Component> {
+pub struct PairedStorageRead<'rf, C: Component> {
     index: Index,
     storage: &'rf C::Storage,
     bitset: &'rf BitSet,
-    entities: &'rf Fetch<'st, EntitiesRes>,
+    entities: &'rf Fetch<'rf, EntitiesRes>,
 }
 
 /// Pairs a storage with an index, meaning that the index is guaranteed to
@@ -508,14 +508,14 @@ fn _dummy() {}
 /// exist.
 ///
 /// Yielded by `lend_join` on `&mut storage.restrict_mut()`.
-pub struct PairedStorageWriteExclusive<'rf, 'st: 'rf, C: Component> {
+pub struct PairedStorageWriteExclusive<'rf, C: Component> {
     index: Index,
     storage: &'rf mut C::Storage,
     bitset: &'rf BitSet,
-    entities: &'rf Fetch<'st, EntitiesRes>,
+    entities: &'rf Fetch<'rf, EntitiesRes>,
 }
 
-impl<'rf, 'st, C> PairedStorageRead<'rf, 'st, C>
+impl<'rf, C> PairedStorageRead<'rf, C>
 where
     C: Component,
 {
@@ -575,7 +575,7 @@ where
     }
 }
 
-impl<'rf, 'st, C> PairedStorageWriteExclusive<'rf, 'st, C>
+impl<'rf, C> PairedStorageWriteExclusive<'rf, C>
 where
     C: Component,
 {
