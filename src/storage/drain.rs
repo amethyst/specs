@@ -36,10 +36,7 @@ where
         (mask, self.data)
     }
 
-    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> T
-    where
-        Self: 'next,
-    {
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> T {
         value.remove(id).expect("Tried to access same index twice")
     }
 }

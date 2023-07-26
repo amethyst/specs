@@ -151,9 +151,7 @@ pub unsafe trait LendJoin {
     /// * Multiple calls with the same `id` are not allowed, for a particular
     ///   instance of the values from [`open`](LendJoin::open). Unless this type
     ///   implements the unsafe trait [`RepeatableLendGet`].
-    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
-    where
-        Self: 'next;
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>;
 
     /// If this `LendJoin` typically returns all indices in the mask, then
     /// iterating over only it or combined with other joins that are also

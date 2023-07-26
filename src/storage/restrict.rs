@@ -116,10 +116,7 @@ where
         (bitset, (self.data.borrow(), self.entities, bitset))
     }
 
-    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
-    where
-        Self: 'next,
-    {
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next> {
         // NOTE: Methods on this type rely on safety requiments of this method.
         PairedStorageRead {
             index: id,
@@ -161,10 +158,7 @@ where
         (bitset, (self.data.borrow_mut(), self.entities, bitset))
     }
 
-    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
-    where
-        Self: 'next,
-    {
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next> {
         // NOTE: Methods on this type rely on safety requiments of this method.
         PairedStorageWriteExclusive {
             index: id,

@@ -334,10 +334,7 @@ unsafe impl<'a> LendJoin for &'a EntitiesRes {
         (BitSetOr(&self.alloc.alive, &self.alloc.raised), self)
     }
 
-    unsafe fn get<'next>(v: &'next mut &'a EntitiesRes, id: Index) -> Entity
-    where
-        Self: 'next,
-    {
+    unsafe fn get<'next>(v: &'next mut &'a EntitiesRes, id: Index) -> Entity {
         let gen = v
             .alloc
             .generation(id)

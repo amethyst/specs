@@ -38,10 +38,7 @@ where
         (BitSetAll, (mask, value))
     }
 
-    unsafe fn get<'next>((mask, value): &'next mut Self::Value, id: Index) -> Self::Type<'next>
-    where
-        Self: 'next,
-    {
+    unsafe fn get<'next>((mask, value): &'next mut Self::Value, id: Index) -> Self::Type<'next> {
         if mask.contains(id) {
             // SAFETY: The mask was just checked for `id`. Requirement to not
             // call with the same ID more than once (unless `RepeatableLendGet`

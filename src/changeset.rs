@@ -129,10 +129,7 @@ unsafe impl<'a, T> LendJoin for &'a mut ChangeSet<T> {
         (&self.mask, &mut self.inner)
     }
 
-    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
-    where
-        Self: 'next,
-    {
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next> {
         // SAFETY: Since we require that the mask was checked, an element for
         // `id` must have been inserted without being removed.
         unsafe { value.get_mut(id) }
@@ -183,10 +180,7 @@ unsafe impl<'a, T> LendJoin for &'a ChangeSet<T> {
         (&self.mask, &self.inner)
     }
 
-    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
-    where
-        Self: 'next,
-    {
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next> {
         // SAFETY: Since we require that the mask was checked, an element for
         // `id` must have been inserted without being removed.
         unsafe { value.get(id) }
@@ -235,10 +229,7 @@ unsafe impl<T> LendJoin for ChangeSet<T> {
         (self.mask, self.inner)
     }
 
-    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
-    where
-        Self: 'next,
-    {
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next> {
         // NOTE: This impl is the main reason that `RepeatableLendGet` exists
         // since it moves the value out of the backing storage and thus can't
         // be called multiple times with the same ID!

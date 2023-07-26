@@ -70,11 +70,7 @@ unsafe impl<'a> LendJoin for AntiStorage<'a> {
         (BitSetNot(self.0), ())
     }
 
-    unsafe fn get<'next>(_: &'next mut (), _: Index)
-    where
-        Self: 'next,
-    {
-    }
+    unsafe fn get<'next>(_: &'next mut (), _: Index) {}
 }
 
 // SAFETY: <AntiStorage as LendJoin>::get does nothing.
@@ -492,10 +488,7 @@ where
         (&self.data.mask, &self.data.inner)
     }
 
-    unsafe fn get<'next>(v: &'next mut Self::Value, i: Index) -> &'a T
-    where
-        Self: 'next,
-    {
+    unsafe fn get<'next>(v: &'next mut Self::Value, i: Index) -> &'a T {
         // SAFETY: Since we require that the mask was checked, an element for
         // `i` must have been inserted without being removed.
         unsafe { v.get(i) }
@@ -579,10 +572,7 @@ where
         self.data.open_mut()
     }
 
-    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
-    where
-        Self: 'next,
-    {
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next> {
         // SAFETY: Since we require that the mask was checked, an element for
         // `id` must have been inserted without being removed.
         unsafe { value.get_mut(id) }

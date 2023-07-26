@@ -218,8 +218,7 @@ macro_rules! define_open {
 
             #[allow(non_snake_case)]
             unsafe fn get<'next>(v: &'next mut Self::Value, i: Index) -> Self::Type<'next>
-            where
-                Self: 'next,
+
             {
                 let &mut ($(ref mut $from,)*) = v;
                 // SAFETY: `get` is safe to call as the caller must have checked
@@ -389,8 +388,7 @@ macro_rules! immutable_resource_join {
             }
 
             unsafe fn get<'next>(v: &'next mut Self::Value, i: Index) -> Self::Type<'next>
-            where
-                Self: 'next,
+
             {
                 // SAFETY: The mask of `Self` and `T` are identical, thus a
                 // check to `Self`'s mask (which is required) is equal to a
@@ -509,8 +507,7 @@ macro_rules! mutable_resource_join {
             }
 
             unsafe fn get<'next>(v: &'next mut Self::Value, i: Index) -> Self::Type<'next>
-            where
-                Self: 'next,
+
             {
                 // SAFETY: The mask of `Self` and `T` are identical, thus a
                 // check to `Self`'s mask (which is required) is equal to a

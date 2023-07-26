@@ -151,10 +151,7 @@ where
         (BitSetAll, self.0)
     }
 
-    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next>
-    where
-        Self: 'next,
-    {
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next> {
         value.entry_inner(id)
     }
 

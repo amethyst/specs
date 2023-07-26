@@ -31,8 +31,7 @@ macro_rules! define_bit_join {
             }
 
             unsafe fn get<'next>(_: &'next mut Self::Value, id: Index) -> Self::Type<'next>
-            where
-                Self: 'next,
+
             {
                 id
             }
