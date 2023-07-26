@@ -1,6 +1,6 @@
 # Unreleased
 
-* MSRV to 1.65.0 [#7xx].
+* MSRV to 1.70.0 [#7xx].
 
 [#7xx]: https://github.com/amethyst/specs/pull/7xx
 
