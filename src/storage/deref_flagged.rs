@@ -74,16 +74,16 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for DerefFlag
         unsafe { self.storage.get(id) }
     }
 
-    unsafe fn get_mut(&mut self, _id: Index) -> Self::AccessMut<'_> {
-        /*let emit = self.emit_event();
+    unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_> {
+        let emit = self.emit_event();
         FlaggedAccessMut {
             channel: &mut self.channel,
             emit,
             id,
-            access: self.storage.get_mut(id),
+            // SAFETY: Requirements passed to caller.
+            access: unsafe { self.storage.get_mut(id) },
             phantom: PhantomData,
-        }*/
-        todo!("adapt to streaming only")
+        }
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
