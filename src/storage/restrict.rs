@@ -112,8 +112,10 @@ where
     type Value = (&'rf C::Storage, &'rf Fetch<'rf, EntitiesRes>, &'rf BitSet);
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
-        let bitset = self.bitset.borrow();
-        (bitset, (self.data.borrow(), self.entities, bitset))
+        (
+            self.bitset,
+            (self.data.borrow(), self.entities, self.bitset),
+        )
     }
 
     unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next> {
@@ -154,8 +156,10 @@ where
     );
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
-        let bitset = self.bitset.borrow();
-        (bitset, (self.data.borrow_mut(), self.entities, bitset))
+        (
+            self.bitset,
+            (self.data.borrow_mut(), self.entities, self.bitset),
+        )
     }
 
     unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next> {
@@ -191,8 +195,10 @@ where
     type Value = (&'rf C::Storage, &'rf Fetch<'rf, EntitiesRes>, &'rf BitSet);
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
-        let bitset = self.bitset.borrow();
-        (bitset, (self.data.borrow(), self.entities, bitset))
+        (
+            self.bitset,
+            (self.data.borrow(), self.entities, self.bitset),
+        )
     }
 
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
@@ -362,8 +368,10 @@ where
     type Value = (&'rf C::Storage, &'rf Fetch<'rf, EntitiesRes>, &'rf BitSet);
 
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
-        let bitset = self.bitset.borrow();
-        (bitset, (self.data.borrow(), self.entities, bitset))
+        (
+            self.bitset,
+            (self.data.borrow(), self.entities, self.bitset),
+        )
     }
 
     unsafe fn get(value: &Self::Value, id: Index) -> Self::Type {
@@ -603,7 +611,7 @@ where
     ///
     /// Functions similar to the normal `Storage::get` implementation.
     pub fn get_other(&self, entity: Entity) -> Option<&C> {
-        if self.bitset.borrow().contains(entity.id()) && self.entities.is_alive(entity) {
+        if self.bitset.contains(entity.id()) && self.entities.is_alive(entity) {
             // SAFETY:We just checked the mask.
             Some(unsafe { self.storage.get(entity.id()) })
         } else {
