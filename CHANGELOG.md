@@ -1,8 +1,12 @@
 # Unreleased
 
-* MSRV to 1.70.0 [#7xx].
+* MSRV to 1.70.0 ([#765])
+* Significant refactor of `Join` and related traits to alleviate soundness
+  issues. Includes introduction of a lending/streaming join via the `LendJoin`
+  trait which is the new common denominator implemented by joinable types.
+  ([#765])
 
-[#7xx]: https://github.com/amethyst/specs/pull/7xx
+[#765]: https://github.com/amethyst/specs/pull/765
 
 # 0.19.0 (2023-06-10)
 
