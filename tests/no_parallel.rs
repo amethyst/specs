@@ -1,5 +1,4 @@
 #![cfg(not(feature = "parallel"))]
-// TODO: ensure we run these with miri too
 
 use std::rc::Rc;
 

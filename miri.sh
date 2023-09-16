@@ -2,6 +2,8 @@
 #
 # Convenience script for running Miri, also the same one that the CI runs!
 
+set -e
+
 # use half the available threads since miri can be a bit memory hungry
 test_threads=$((($(nproc) - 1) / 2 + 1))
 echo using $test_threads threads
@@ -19,3 +21,11 @@ MIRIFLAGS="-Zmiri-disable-isolation -Zmiri-ignore-leaks" \
     --test-threads="$test_threads" \
     # use nocapture or run miri directly to see warnings from miri
     #--nocapture
+
+# Run tests only available when parallel feature is disabled.
+MIRIFLAGS="-Zmiri-disable-isolation -Zmiri-ignore-leaks" \
+    cargo +nightly miri nextest run \
+    --no-default-features \
+    -E "binary(no_parallel)" \
+    --test-threads="$test_threads"
+
