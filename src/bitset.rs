@@ -2,8 +2,7 @@
 //!
 //! Normally used for `Join`s and filtering entities.
 
-// TODO: rustfmt bug (probably fixed in next rust release)
-// #![cfg_attr(rustfmt, rustfmt::skip)]
+#![cfg_attr(rustfmt, rustfmt::skip)]
 
 use hibitset::{AtomicBitSet, BitSet, BitSetAnd, BitSetLike, BitSetNot, BitSetOr, BitSetXor};
 
