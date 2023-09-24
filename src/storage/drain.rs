@@ -1,7 +1,9 @@
 use hibitset::BitSet;
 
+#[nougat::gat(Type)]
+use crate::join::LendJoin;
 use crate::{
-    join::Join,
+    join::{Join, RepeatableLendGet},
     storage::MaskedStorage,
     world::{Component, Index},
 };
@@ -13,7 +15,38 @@ pub struct Drain<'a, T: Component> {
     pub data: &'a mut MaskedStorage<T>,
 }
 
-impl<'a, T> Join for Drain<'a, T>
+// SAFETY: Calling `get` is always safe! Iterating the mask does not repeat
+// indices.
+#[nougat::gat]
+unsafe impl<'a, T> LendJoin for Drain<'a, T>
+where
+    T: Component,
+{
+    type Mask = BitSet;
+    type Type<'next> = T;
+    type Value = &'a mut MaskedStorage<T>;
+
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        // TODO: Cloning the whole bitset here seems expensive, and it is
+        // hidden from the user, but there is no obvious way to restructure
+        // things to avoid this with the way that bitsets are composed together
+        // for iteration.
+        let mask = self.data.mask.clone();
+
+        (mask, self.data)
+    }
+
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> T {
+        value.remove(id).expect("Tried to access same index twice")
+    }
+}
+
+// SAFETY: Calling `get` is always safe!
+unsafe impl<'a, T> RepeatableLendGet for Drain<'a, T> where T: Component {}
+
+// SAFETY: Calling `get` is always safe! Iterating the mask does not repeat
+// indices.
+unsafe impl<'a, T> Join for Drain<'a, T>
 where
     T: Component,
 {
@@ -21,14 +54,16 @@ where
     type Type = T;
     type Value = &'a mut MaskedStorage<T>;
 
-    // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        // TODO: Cloning the whole bitset here seems expensive, and it is
+        // hidden from the user, but there is no obvious way to restructure
+        // things to avoid this with the way that bitsets are composed together
+        // for iteration.
         let mask = self.data.mask.clone();
 
         (mask, self.data)
     }
 
-    // SAFETY: No invariants to meet and no unsafe code.
     unsafe fn get(value: &mut Self::Value, id: Index) -> T {
         value.remove(id).expect("Tried to access same index twice")
     }

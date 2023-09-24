@@ -55,6 +55,7 @@ impl Component for Lifetime {
 }
 
 #[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
 struct Ball {
     radius: f32,
 }
@@ -64,6 +65,7 @@ impl Component for Ball {
 }
 
 #[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
 struct Rect {
     a: f32,
     b: f32,
@@ -91,6 +93,7 @@ impl Component for SpawnRequests {
 }
 
 #[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
 struct Collision {
     a: Entity,
     b: Entity,
@@ -102,6 +105,7 @@ impl Component for Collision {
 }
 
 #[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
 struct Room {
     inner_width: f32,
     inner_height: f32,

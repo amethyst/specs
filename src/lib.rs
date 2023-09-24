@@ -1,9 +1,6 @@
 #![warn(missing_docs)]
+#![deny(unsafe_op_in_unsafe_fn)]
 #![deny(clippy::disallowed_types)]
-#![cfg_attr(
-    feature = "nightly",
-    feature(generic_associated_types, associated_type_defaults)
-)]
 
 //! # SPECS Parallel ECS
 //!
@@ -227,7 +224,7 @@ pub use specs_derive::{Component, ConvertSaveload};
 pub use crate::join::ParJoin;
 pub use crate::{
     changeset::ChangeSet,
-    join::Join,
+    join::{Join, LendJoin},
     storage::{
         DefaultVecStorage, DenseVecStorage, FlaggedStorage, HashMapStorage, NullStorage,
         ReadStorage, Storage, Tracked, VecStorage, WriteStorage,
@@ -235,5 +232,4 @@ pub use crate::{
     world::{Builder, Component, Entities, Entity, EntityBuilder, LazyUpdate, WorldExt},
 };
 
-#[cfg(feature = "nightly")]
 pub use crate::storage::DerefFlaggedStorage;

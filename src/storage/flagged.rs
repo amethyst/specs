@@ -3,7 +3,10 @@ use std::marker::PhantomData;
 use hibitset::BitSetLike;
 
 use crate::{
-    storage::{ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage},
+    storage::{
+        ComponentEvent, DenseVecStorage, SharedGetMutStorage, SyncUnsafeCell, Tracked, TryDefault,
+        UnprotectedStorage,
+    },
     world::{Component, Index},
 };
 
@@ -17,7 +20,7 @@ use shrev::EventChannel;
 ///
 /// What you want to instead is to use `restrict_mut()` to first
 /// get the entities which contain the component and then conditionally
-/// modify the component after a call to `get_mut_unchecked()` or `get_mut()`.
+/// modify the component after a call to `get_mut()` or `get_other_mut()`.
 ///
 /// # Examples
 ///
@@ -99,7 +102,7 @@ use shrev::EventChannel;
 /// #        let condition = true;
 ///         for (entity, mut comps) in (&entities, &mut comps.restrict_mut()).join() {
 ///             if condition { // check whether this component should be modified.
-///                  let mut comp = comps.get_mut_unchecked();
+///                  let mut comp = comps.get_mut();
 ///                  // ...
 ///             }
 ///         }
@@ -165,7 +168,7 @@ use shrev::EventChannel;
 /// }
 /// ```
 pub struct FlaggedStorage<C, T = DenseVecStorage<C>> {
-    channel: EventChannel<ComponentEvent>,
+    channel: SyncUnsafeCell<EventChannel<ComponentEvent>>,
     storage: T,
     #[cfg(feature = "storage-event-control")]
     event_emission: bool,
@@ -190,7 +193,7 @@ where
 {
     fn default() -> Self {
         FlaggedStorage {
-            channel: EventChannel::<ComponentEvent>::default(),
+            channel: SyncUnsafeCell::new(EventChannel::<ComponentEvent>::default()),
             storage: T::unwrap_default(),
             #[cfg(feature = "storage-event-control")]
             event_emission: true,
@@ -200,61 +203,79 @@ where
 }
 
 impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for FlaggedStorage<C, T> {
-    #[cfg(feature = "nightly")]
-    type AccessMut<'a>
-    where
-        T: 'a,
-    = <T as UnprotectedStorage<C>>::AccessMut<'a>;
+    type AccessMut<'a> = <T as UnprotectedStorage<C>>::AccessMut<'a> where T: 'a;
 
     unsafe fn clean<B>(&mut self, has: B)
     where
         B: BitSetLike,
     {
-        self.storage.clean(has);
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.clean(has) };
     }
 
     unsafe fn get(&self, id: Index) -> &C {
-        self.storage.get(id)
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.get(id) }
     }
 
-    #[cfg(feature = "nightly")]
     unsafe fn get_mut(&mut self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Modified(id));
+            self.channel
+                .get_mut()
+                .single_write(ComponentEvent::Modified(id));
         }
-        self.storage.get_mut(id)
-    }
-
-    #[cfg(not(feature = "nightly"))]
-    unsafe fn get_mut(&mut self, id: Index) -> &mut C {
-        if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Modified(id));
-        }
-        self.storage.get_mut(id)
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.get_mut(id) }
     }
 
     unsafe fn insert(&mut self, id: Index, comp: C) {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Inserted(id));
+            self.channel
+                .get_mut()
+                .single_write(ComponentEvent::Inserted(id));
         }
-        self.storage.insert(id, comp);
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.insert(id, comp) };
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
         if self.emit_event() {
-            self.channel.single_write(ComponentEvent::Removed(id));
+            self.channel
+                .get_mut()
+                .single_write(ComponentEvent::Removed(id));
         }
-        self.storage.remove(id)
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.remove(id) }
+    }
+}
+
+impl<C: Component, T: SharedGetMutStorage<C>> SharedGetMutStorage<C> for FlaggedStorage<C, T> {
+    unsafe fn shared_get_mut(&self, id: Index) -> <T as UnprotectedStorage<C>>::AccessMut<'_> {
+        if self.emit_event() {
+            let channel_ptr = self.channel.get();
+            // SAFETY: Caller required to ensure references returned from other
+            // safe methods such as Tracked::channel are no longer alive. This
+            // storage is not marked with a `DistinctStorage` impl.
+            unsafe { &mut *channel_ptr }.single_write(ComponentEvent::Modified(id));
+        }
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.shared_get_mut(id) }
     }
 }
 
 impl<C, T> Tracked for FlaggedStorage<C, T> {
     fn channel(&self) -> &EventChannel<ComponentEvent> {
-        &self.channel
+        let channel_ptr = self.channel.get();
+        // SAFETY: The only place that mutably accesses the channel via a shared
+        // reference is the impl of `SharedGetMut::shared_get_mut` which
+        // requires callers to avoid calling other methods with `&self` while
+        // references returned there are still in use (and to ensure references
+        // from methods like this no longer exist).
+        unsafe { &*channel_ptr }
     }
 
     fn channel_mut(&mut self) -> &mut EventChannel<ComponentEvent> {
-        &mut self.channel
+        self.channel.get_mut()
     }
 
     #[cfg(feature = "storage-event-control")]

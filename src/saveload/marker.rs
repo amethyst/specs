@@ -11,6 +11,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
     prelude::*,
+    storage::AccessMut,
     world::{EntitiesRes, EntityResBuilder, LazyBuilder},
 };
 
@@ -324,7 +325,7 @@ pub trait MarkerAllocator<M: Marker>: Resource {
     ) -> Entity {
         if let Some(entity) = self.retrieve_entity_internal(marker.id()) {
             if let Some(mut marker_comp) = storage.get_mut(entity) {
-                marker_comp.update(marker);
+                marker_comp.access_mut().update(marker);
 
                 return entity;
             }

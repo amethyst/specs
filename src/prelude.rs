@@ -3,6 +3,8 @@
 //! Contains all of the most common traits, structures,
 
 pub use crate::join::Join;
+#[nougat::gat(Type)]
+pub use crate::join::LendJoin;
 #[cfg(feature = "parallel")]
 pub use crate::join::ParJoin;
 pub use hibitset::BitSet;

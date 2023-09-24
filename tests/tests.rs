@@ -4,6 +4,9 @@ use specs::{
     world::{Builder, WorldExt},
 };
 
+// Make tests finish in reasonable time with miri
+const ITERATIONS: u32 = if cfg!(miri) { 20 } else { 1000 };
+
 #[derive(Clone, Debug, PartialEq)]
 struct CompInt(i8);
 
@@ -97,7 +100,7 @@ fn dynamic_create() {
     let mut world = create_world();
     let mut dispatcher = DispatcherBuilder::new().with(Sys, "s", &[]).build();
 
-    for _ in 0..1_000 {
+    for _ in 0..ITERATIONS {
         dispatcher.dispatch(&mut world);
     }
 }
@@ -118,7 +121,7 @@ fn dynamic_deletion() {
     let mut world = create_world();
     let mut dispatcher = DispatcherBuilder::new().with(Sys, "s", &[]).build();
 
-    for _ in 0..1_000 {
+    for _ in 0..ITERATIONS {
         dispatcher.dispatch(&mut world);
     }
 }
@@ -550,7 +553,7 @@ fn par_join_many_entities_and_systems() {
 }
 
 #[test]
-fn getting_specific_entity_with_join() {
+fn getting_specific_entity_with_lend_join() {
     let mut world = create_world();
     world
         .create_entity()
@@ -565,12 +568,16 @@ fn getting_specific_entity_with_join() {
 
         assert_eq!(
             Some((&CompInt(1), &mut CompBool(true))),
-            (&ints, &mut bools).join().get(entity, &world.entities())
+            (&ints, &mut bools)
+                .lend_join()
+                .get(entity, &world.entities())
         );
         bools.remove(entity);
         assert_eq!(
             None,
-            (&ints, &mut bools).join().get(entity, &world.entities())
+            (&ints, &mut bools)
+                .lend_join()
+                .get(entity, &world.entities())
         );
         entity
     };
@@ -584,7 +591,9 @@ fn getting_specific_entity_with_join() {
     let mut bools = world.write_storage::<CompBool>();
     assert_eq!(
         None,
-        (&ints, &mut bools).join().get(entity, &world.entities())
+        (&ints, &mut bools)
+            .lend_join()
+            .get(entity, &world.entities())
     );
 }
 

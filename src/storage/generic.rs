@@ -1,11 +1,8 @@
-#[cfg(feature = "nightly")]
-use crate::storage::UnprotectedStorage;
+use crate::storage::{AccessMut, UnprotectedStorage};
 use crate::{
     storage::{AccessMutReturn, InsertResult, ReadStorage, WriteStorage},
     world::{Component, Entity},
 };
-#[cfg(feature = "nightly")]
-use std::ops::DerefMut;
 
 pub struct Seal;
 
@@ -87,8 +84,7 @@ pub trait GenericWriteStorage {
     /// The component type of the storage
     type Component: Component;
     /// The wrapper through with mutable access of a component is performed.
-    #[cfg(feature = "nightly")]
-    type AccessMut<'a>: DerefMut<Target = Self::Component>
+    type AccessMut<'a>: AccessMut<Target = Self::Component>
     where
         Self: 'a;
 
@@ -120,11 +116,8 @@ impl<'a, T> GenericWriteStorage for WriteStorage<'a, T>
 where
     T: Component,
 {
-    #[cfg(feature = "nightly")]
-    type AccessMut<'b>
-    where
-        Self: 'b,
-    = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'b>;
+    type AccessMut<'b> = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'b>
+        where Self: 'b;
     type Component = T;
 
     fn get_mut(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, T>> {
@@ -161,11 +154,8 @@ impl<'a: 'b, 'b, T> GenericWriteStorage for &'b mut WriteStorage<'a, T>
 where
     T: Component,
 {
-    #[cfg(feature = "nightly")]
-    type AccessMut<'c>
-    where
-        Self: 'c,
-    = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'c>;
+    type AccessMut<'c> = <<T as Component>::Storage as UnprotectedStorage<T>>::AccessMut<'c>
+        where Self: 'c;
     type Component = T;
 
     fn get_mut(&mut self, entity: Entity) -> Option<AccessMutReturn<'_, T>> {

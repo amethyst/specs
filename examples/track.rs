@@ -70,7 +70,7 @@ impl<'a> System<'a> for SysB {
     fn run(&mut self, (entities, mut tracked): Self::SystemData) {
         for (entity, mut restricted) in (&entities, &mut tracked.restrict_mut()).join() {
             if entity.id() % 2 == 0 {
-                let mut comp = restricted.get_mut_unchecked();
+                let comp = restricted.get_mut();
                 comp.0 += 1;
             }
         }

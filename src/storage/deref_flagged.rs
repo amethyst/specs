@@ -6,7 +6,9 @@ use std::{
 use hibitset::BitSetLike;
 
 use crate::{
-    storage::{ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage},
+    storage::{
+        AccessMut, ComponentEvent, DenseVecStorage, Tracked, TryDefault, UnprotectedStorage,
+    },
     world::{Component, Index},
 };
 
@@ -56,20 +58,20 @@ where
 }
 
 impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for DerefFlaggedStorage<C, T> {
-    type AccessMut<'a>
-    where
-        T: 'a,
-    = FlaggedAccessMut<'a, <T as UnprotectedStorage<C>>::AccessMut<'a>, C>;
+    type AccessMut<'a> = FlaggedAccessMut<'a, <T as UnprotectedStorage<C>>::AccessMut<'a>, C>
+        where T: 'a;
 
     unsafe fn clean<B>(&mut self, has: B)
     where
         B: BitSetLike,
     {
-        self.storage.clean(has);
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.clean(has) };
     }
 
     unsafe fn get(&self, id: Index) -> &C {
-        self.storage.get(id)
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.get(id) }
     }
 
     unsafe fn get_mut(&mut self, id: Index) -> Self::AccessMut<'_> {
@@ -78,7 +80,8 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for DerefFlag
             channel: &mut self.channel,
             emit,
             id,
-            access: self.storage.get_mut(id),
+            // SAFETY: Requirements passed to caller.
+            access: unsafe { self.storage.get_mut(id) },
             phantom: PhantomData,
         }
     }
@@ -87,14 +90,16 @@ impl<C: Component, T: UnprotectedStorage<C>> UnprotectedStorage<C> for DerefFlag
         if self.emit_event() {
             self.channel.single_write(ComponentEvent::Inserted(id));
         }
-        self.storage.insert(id, comp);
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.insert(id, comp) };
     }
 
     unsafe fn remove(&mut self, id: Index) -> C {
         if self.emit_event() {
             self.channel.single_write(ComponentEvent::Removed(id));
         }
-        self.storage.remove(id)
+        // SAFETY: Requirements passed to caller.
+        unsafe { self.storage.remove(id) }
     }
 }
 
@@ -118,6 +123,8 @@ impl<C, T> Tracked for DerefFlaggedStorage<C, T> {
     }
 }
 
+/// Wrapper type only emits modificaition events when the component is accessed
+/// via mutably dereferencing. Also see [`DerefFlaggedStorage`] documentation.
 pub struct FlaggedAccessMut<'a, A, C> {
     channel: &'a mut EventChannel<ComponentEvent>,
     emit: bool,
@@ -139,12 +146,12 @@ where
 
 impl<'a, A, C> DerefMut for FlaggedAccessMut<'a, A, C>
 where
-    A: DerefMut<Target = C>,
+    A: AccessMut<Target = C>,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         if self.emit {
             self.channel.single_write(ComponentEvent::Modified(self.id));
         }
-        self.access.deref_mut()
+        self.access.access_mut()
     }
 }

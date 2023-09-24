@@ -1,0 +1,3 @@
+[profile.default-miri]
+slow-timeout = { period = "30s", terminate-after = 1 }
+fail-fast = false

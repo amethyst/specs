@@ -117,8 +117,8 @@ fetch the component as mutable if/when needed.
 for (entity, mut comp) in (&entities, &mut comps.restrict_mut()).join() {
     // Check whether this component should be modified, without fetching it as
     // mutable.
-    if comp.get_unchecked().condition < 5 {
-         let mut comp = comp.get_mut_unchecked();
+    if comp.get().condition < 5 {
+         let mut comp = comp.get_mut();
          // ...
     }
 }

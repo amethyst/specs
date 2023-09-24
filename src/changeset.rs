@@ -2,7 +2,12 @@
 
 use std::{iter::FromIterator, ops::AddAssign};
 
-use crate::{prelude::*, storage::UnprotectedStorage, world::Index};
+use crate::{
+    join::RepeatableLendGet,
+    prelude::*,
+    storage::{SharedGetMutOnly, UnprotectedStorage},
+    world::Index,
+};
 
 /// Change set that can be collected from an iterator, and joined on for easy
 /// application to components.
@@ -62,28 +67,28 @@ impl<T> ChangeSet<T> {
         T: AddAssign,
     {
         if self.mask.contains(entity.id()) {
-            // SAFETY: we checked the mask, thus it's safe to call
-            unsafe {
-                *self.inner.get_mut(entity.id()) += value;
-            }
+            // SAFETY: We have exclusive access (which ensures no aliasing or
+            // concurrent calls from other threads) and we checked the mask,
+            // thus it's safe to call.
+            unsafe { *self.inner.get_mut(entity.id()) += value };
         } else {
-            // SAFETY: we checked the mask, thus it's safe to call
-            unsafe {
-                self.inner.insert(entity.id(), value);
-            }
+            // SAFETY: We checked the mask, thus it's safe to call.
+            unsafe { self.inner.insert(entity.id(), value) };
             self.mask.add(entity.id());
         }
     }
 
     /// Clear the changeset
     pub fn clear(&mut self) {
-        for id in &self.mask {
-            // SAFETY: we checked the mask, thus it's safe to call
-            unsafe {
-                self.inner.remove(id);
-            }
-        }
-        self.mask.clear();
+        // NOTE: We replace with default empty mask temporarily to protect against
+        // unwinding from `Drop` of components.
+        let mut mask_temp = core::mem::take(&mut self.mask);
+        // SAFETY: `self.mask` is the correct mask as specified. We swap in a
+        // temporary empty mask to ensure if this unwinds that the mask will be
+        // cleared.
+        unsafe { self.inner.clean(&mask_temp) };
+        mask_temp.clear();
+        self.mask = mask_temp;
     }
 }
 
@@ -111,60 +116,158 @@ where
     }
 }
 
-impl<'a, T> Join for &'a mut ChangeSet<T> {
+// SAFETY: `open` returns references to a mask and storage which are contained
+// together in the `ChangeSet` and correspond. Iterating mask does not repeat
+// indices.
+#[nougat::gat]
+unsafe impl<'a, T> LendJoin for &'a mut ChangeSet<T> {
     type Mask = &'a BitSet;
-    type Type = &'a mut T;
+    type Type<'next> = &'next mut T;
     type Value = &'a mut DenseVecStorage<T>;
 
-    // SAFETY: No unsafe code and no invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, &mut self.inner)
     }
 
-    // SAFETY: No unsafe code and no invariants to meet.
-    // `DistinctStorage` invariants are also met, but no `ParJoin` implementation
-    // exists yet.
-    unsafe fn get(v: &mut Self::Value, id: Index) -> Self::Type {
-        let value: *mut Self::Value = v as *mut Self::Value;
-        (*value).get_mut(id)
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next> {
+        // SAFETY: Since we require that the mask was checked, an element for
+        // `id` must have been inserted without being removed.
+        unsafe { value.get_mut(id) }
     }
 }
 
-impl<'a, T> Join for &'a ChangeSet<T> {
+// SAFETY: LendJoin::get impl for this type can safely be called multiple times
+// with the same ID.
+unsafe impl<'a, T> RepeatableLendGet for &'a mut ChangeSet<T> {}
+
+// SAFETY: `open` returns references to a mask and storage which are contained
+// together in the `ChangeSet` and correspond. Iterating mask does not repeat
+// indices.
+unsafe impl<'a, T> Join for &'a mut ChangeSet<T> {
     type Mask = &'a BitSet;
-    type Type = &'a T;
+    type Type = &'a mut T;
+    type Value = SharedGetMutOnly<'a, T, DenseVecStorage<T>>;
+
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        (&self.mask, SharedGetMutOnly::new(&mut self.inner))
+    }
+
+    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
+        // SAFETY:
+        // * Since we require that the mask was checked, an element for `id` must have
+        //   been inserted without being removed.
+        // * We also require that there are no subsequent calls with the same `id` for
+        //   this instance of the values from `open`, so there are no extant references
+        //   for the element corresponding to this `id`.
+        // * Since we have an exclusive reference to `Self::Value`, we know this isn't
+        //   being called from multiple threads at once.
+        unsafe { SharedGetMutOnly::get_mut(value, id) }
+    }
+}
+
+// NOTE: could implement ParJoin for `&'a mut ChangeSet`/`&'a ChangeSet`
+
+// SAFETY: `open` returns references to a mask and storage which are contained
+// together in the `ChangeSet` and correspond. Iterating mask does not repeat
+// indices.
+#[nougat::gat]
+unsafe impl<'a, T> LendJoin for &'a ChangeSet<T> {
+    type Mask = &'a BitSet;
+    type Type<'next> = &'a T;
     type Value = &'a DenseVecStorage<T>;
 
-    // SAFETY: No unsafe code and no invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (&self.mask, &self.inner)
     }
 
-    // SAFETY: No unsafe code and no invariants to meet.
-    // `DistinctStorage` invariants are also met, but no `ParJoin` implementation
-    // exists yet.
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next> {
+        // SAFETY: Since we require that the mask was checked, an element for
+        // `id` must have been inserted without being removed.
+        unsafe { value.get(id) }
+    }
+}
+
+// SAFETY: LendJoin::get impl for this type can safely be called multiple times
+// with the same ID.
+unsafe impl<'a, T> RepeatableLendGet for &'a ChangeSet<T> {}
+
+// SAFETY: `open` returns references to a mask and storage which are contained
+// together in the `ChangeSet` and correspond. Iterating mask does not repeat
+// indices.
+unsafe impl<'a, T> Join for &'a ChangeSet<T> {
+    type Mask = &'a BitSet;
+    type Type = &'a T;
+    type Value = &'a DenseVecStorage<T>;
+
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        (&self.mask, &self.inner)
+    }
+
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        value.get(id)
+        // SAFETY: Since we require that the mask was checked, an element for
+        // `id` must have been inserted without being removed.
+        unsafe { value.get(id) }
     }
 }
 
 /// A `Join` implementation for `ChangeSet` that simply removes all the entries
 /// on a call to `get`.
-impl<T> Join for ChangeSet<T> {
+// SAFETY: `open` returns references to a mask and storage which are contained
+// together in the `ChangeSet` and correspond. Iterating mask does not repeat
+// indices.
+#[nougat::gat]
+// This is a trait impl so method safety documentation is on the trait
+// definition, maybe nougat confuses clippy? But this is the only spot that has
+// this issue.
+#[allow(clippy::missing_safety_doc)]
+unsafe impl<T> LendJoin for ChangeSet<T> {
     type Mask = BitSet;
-    type Type = T;
+    type Type<'next> = T;
     type Value = DenseVecStorage<T>;
 
-    // SAFETY: No unsafe code and no invariants to meet.
     unsafe fn open(self) -> (Self::Mask, Self::Value) {
         (self.mask, self.inner)
     }
 
-    // SAFETY: No unsafe code and no invariants to meet.
-    // `DistinctStorage` invariants are also met, but no `ParJoin` implementation
-    // exists yet.
+    unsafe fn get<'next>(value: &'next mut Self::Value, id: Index) -> Self::Type<'next> {
+        // NOTE: This impl is the main reason that `RepeatableLendGet` exists
+        // since it moves the value out of the backing storage and thus can't
+        // be called multiple times with the same ID!
+        //
+        // SAFETY: Since we require that the mask was checked, an element for
+        // `id` must have been inserted without being removed. Note, this
+        // removes the element without effecting the mask. However, the caller
+        // is also required to not call this multiple times with the same `id`
+        // value and mask instance. Because `open` takes ownership we don't have
+        // to update the mask for futures uses since the `ChangeSet` is
+        // consumed.
+        unsafe { value.remove(id) }
+    }
+}
+
+/// A `Join` implementation for `ChangeSet` that simply removes all the entries
+/// on a call to `get`.
+// SAFETY: `open` returns references to a mask and storage which are contained
+// together in the `ChangeSet` and correspond. Iterating mask does not repeat
+// indices.
+unsafe impl<T> Join for ChangeSet<T> {
+    type Mask = BitSet;
+    type Type = T;
+    type Value = DenseVecStorage<T>;
+
+    unsafe fn open(self) -> (Self::Mask, Self::Value) {
+        (self.mask, self.inner)
+    }
+
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        value.remove(id)
+        // SAFETY: Since we require that the mask was checked, an element for
+        // `id` must have been inserted without being removed. Note, this
+        // removes the element without effecting the mask. However, the caller
+        // is also required to not call this multiple times with the same `id`
+        // value and mask instance. Because `open` takes ownership we don't have
+        // to update the mask for futures uses since the `ChangeSet` is
+        // consumed.
+        unsafe { value.remove(id) }
     }
 }
 

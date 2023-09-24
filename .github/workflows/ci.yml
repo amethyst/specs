@@ -25,9 +25,9 @@ jobs:
       fail-fast: true
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        toolchain: [stable, beta, nightly, 1.65.0]
+        toolchain: [stable, beta, nightly, 1.70.0]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # install the toolchain we are going to compile and test with
       - name: install ${{ matrix.toolchain }} toolchain
@@ -77,3 +77,18 @@ jobs:
 
       # - run: mdbook test -L ./target/debug/deps docs/book
       #   if: matrix.toolchain == 'stable' && matrix.os == 'ubuntu-latest'
+
+  miri:
+    name: "Miri"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Miri
+        run: |
+          rustup toolchain install nightly --component miri
+          rustup override set nightly
+          cargo miri setup
+      - name: Install latest nextest release
+        uses: taiki-e/install-action@nextest
+      - name: Test with Miri
+        run: ./miri.sh
