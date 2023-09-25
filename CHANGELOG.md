@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.20.0 (2023-09-24)
+
 * MSRV to 1.70.0 ([#765])
 * Significant refactor of `Join` and related traits to alleviate soundness
   issues. Includes introduction of a lending/streaming join via the `LendJoin`
