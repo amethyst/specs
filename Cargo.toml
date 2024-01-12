@@ -24,7 +24,7 @@ ahash = "0.7.6"
 crossbeam-queue = "0.3"
 hibitset = { version = "0.6.4", default-features = false }
 log = "0.4.8"
-shred = { version = "0.15.0", default-features = false }
+shred = { version = "0.16.0", default-features = false }
 shrev = "1.1.1"
 tuple_utils = "0.4.0"
 nougat = "0.2.3"
@@ -37,8 +37,8 @@ uuid = { version = "1.0", optional = true, features = ["v4", "serde"] }
 [features]
 default = ["parallel"]
 parallel = ["dep:rayon", "shred/parallel", "hibitset/parallel"]
-uuid_entity = ["uuid", "serde"]
-stdweb = ["uuid/js"]
+uuid_entity = ["dep:uuid", "serde"]
+stdweb = ["dep:uuid", "uuid?/js"]
 storage-event-control = []
 derive = ["shred-derive", "specs-derive"]
 nightly = ["shred/nightly"]
@@ -54,7 +54,7 @@ criterion = "0.3.1"
 ron = "0.7.1"
 rand = "0.8"
 serde_json = "1.0.48"
-shred = { version = "0.15.0", default-features = false, features = ["shred-derive"] }
+shred = { version = "0.16.0", default-features = false, features = ["shred-derive"] }
 specs-derive = { path = "specs-derive", version = "0.4.1" }
 
 [[example]]
