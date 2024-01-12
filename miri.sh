@@ -15,7 +15,10 @@ echo "using filter: \"$filter\""
 # Miri currently reports leaks in some tests so we disable that check
 # here (might be due to ptr-int-ptr in crossbeam-epoch so might be
 # resolved in future versions of that crate).
-MIRIFLAGS="-Zmiri-disable-isolation -Zmiri-ignore-leaks" \
+#
+# crossbeam-epoch doesn't pass with stacked borrows so we need to use tree-borrows
+# https://github.com/crossbeam-rs/crossbeam/issues/545
+MIRIFLAGS="-Zmiri-disable-isolation -Zmiri-ignore-leaks -Zmiri-tree-borrows" \
     cargo +nightly miri nextest run \
     -E "$filter" \
     --test-threads="$test_threads" \
@@ -23,7 +26,7 @@ MIRIFLAGS="-Zmiri-disable-isolation -Zmiri-ignore-leaks" \
     #--nocapture
 
 # Run tests only available when parallel feature is disabled.
-MIRIFLAGS="-Zmiri-disable-isolation -Zmiri-ignore-leaks" \
+MIRIFLAGS="-Zmiri-disable-isolation -Zmiri-ignore-leaks -Zmiri-tree-borrows" \
     cargo +nightly miri nextest run \
     --no-default-features \
     -E "binary(no_parallel)" \
