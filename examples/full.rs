@@ -1,4 +1,4 @@
-use specs::{prelude::*, storage::HashMapStorage};
+use specs::{prelude::*, shred, storage::HashMapStorage};
 
 // -- Components --
 // A component exists for 0..n

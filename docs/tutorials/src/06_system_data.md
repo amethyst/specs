@@ -119,6 +119,8 @@ That's why you can also create your own `SystemData` bundle using a struct:
 extern crate specs;
 
 use specs::prelude::*;
+// `shred` needs to be in scope for the `SystemData` derive. 
+use specs::shred;
 
 #[derive(SystemData)]
 pub struct MySystemData<'a> {
