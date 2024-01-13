@@ -20,7 +20,7 @@ rust-version = "1.70.0"
 autobenches = false
 
 [dependencies]
-ahash = "0.7.6"
+ahash = "0.8.5"
 crossbeam-queue = "0.3"
 hibitset = { version = "0.6.4", default-features = false }
 log = "0.4.8"
