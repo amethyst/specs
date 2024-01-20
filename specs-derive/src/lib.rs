@@ -66,7 +66,7 @@ fn impl_component(ast: &DeriveInput) -> proc_macro2::TokenStream {
                 .unwrap()
                 .storage
         })
-        .unwrap_or_else(|| parse_quote!(DenseVecStorage));
+        .unwrap_or_else(|| parse_quote!(::specs::storage::DenseVecStorage));
 
     quote! {
         impl #impl_generics Component for #name #ty_generics #where_clause {
