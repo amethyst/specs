@@ -15,7 +15,7 @@ extern crate syn;
 use proc_macro::TokenStream;
 use syn::{
     parse::{Parse, ParseStream, Result},
-    DeriveInput, Path,
+    DeriveInput, Path, PathArguments,
 };
 
 mod impl_saveload;
@@ -68,9 +68,14 @@ fn impl_component(ast: &DeriveInput) -> proc_macro2::TokenStream {
         })
         .unwrap_or_else(|| parse_quote!(DenseVecStorage));
 
+    let additional_generics = match storage.segments.last().unwrap().arguments {
+        PathArguments::AngleBracketed(_) => quote!(),
+        _ => quote!(<Self>),
+    };
+
     quote! {
         impl #impl_generics Component for #name #ty_generics #where_clause {
-            type Storage = #storage<Self>;
+            type Storage = #storage #additional_generics;
         }
     }
 }
