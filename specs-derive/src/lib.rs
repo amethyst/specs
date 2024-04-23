@@ -28,7 +28,17 @@ mod impl_saveload;
 /// use specs::storage::VecStorage;
 ///
 /// #[derive(Component, Debug)]
-/// #[storage(VecStorage)] // This line is optional, defaults to `DenseVecStorage`
+/// #[storage(VecStorage<Self>)] // This line is optional, defaults to `DenseVecStorage<Self>`
+/// struct Pos(f32, f32, f32);
+/// ```
+///
+/// When the type parameter is `<Self>` it can be omitted i.e.:
+///
+///```rust,ignore
+/// use specs::storage::VecStorage;
+///
+/// #[derive(Component, Debug)]
+/// #[storage(VecStorage)] // Equals to #[storage(VecStorage<Self>)]
 /// struct Pos(f32, f32, f32);
 /// ```
 #[proc_macro_derive(Component, attributes(storage))]
