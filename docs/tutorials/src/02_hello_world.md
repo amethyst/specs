@@ -84,10 +84,25 @@ struct Velocity {
 If the `#[storage(...)]` attribute is omitted, the given component will be
 stored in a `DenseVecStorage` by default. But for this example, we are
 explicitly asking for these components to be kept in a `VecStorage` instead (see
-the later [storages chapter][sc] for more details). But before we move on, we
+the later [storages chapter][sc] for more details).
+
+`#[storage(VecStorage)]` assumes `<Self>` as the default type parameter for the storage.
+More complex type parameters can be specified explicitly:
+
+```rust,ignore
+#[derive(Component, Debug)]
+#[storage(FlaggedStorage<Self, DenseVecStorage<Self>>)]
+pub struct Data {
+    [..]
+}
+```
+(see the later [`FlaggedStorage` and modification events chapter][tc] for more details on `FlaggedStorage`)
+
+But before we move on, we
 need to create a world in which to store all of our components.
 
 [sc]: ./05_storages.html
+[tc]: ./12_tracked.html
 
 ## The `World`
 

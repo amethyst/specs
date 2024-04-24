@@ -15,7 +15,7 @@ extern crate syn;
 use proc_macro::TokenStream;
 use syn::{
     parse::{Parse, ParseStream, Result},
-    DeriveInput, Path,
+    DeriveInput, Path, PathArguments,
 };
 
 mod impl_saveload;
@@ -28,7 +28,17 @@ mod impl_saveload;
 /// use specs::storage::VecStorage;
 ///
 /// #[derive(Component, Debug)]
-/// #[storage(VecStorage)] // This line is optional, defaults to `DenseVecStorage`
+/// #[storage(VecStorage<Self>)] // This line is optional, defaults to `DenseVecStorage<Self>`
+/// struct Pos(f32, f32, f32);
+/// ```
+///
+/// When the type parameter is `<Self>` it can be omitted i.e.:
+///
+///```rust,ignore
+/// use specs::storage::VecStorage;
+///
+/// #[derive(Component, Debug)]
+/// #[storage(VecStorage)] // Equals to #[storage(VecStorage<Self>)]
 /// struct Pos(f32, f32, f32);
 /// ```
 #[proc_macro_derive(Component, attributes(storage))]
@@ -68,9 +78,14 @@ fn impl_component(ast: &DeriveInput) -> proc_macro2::TokenStream {
         })
         .unwrap_or_else(|| parse_quote!(DenseVecStorage));
 
+    let additional_generics = match storage.segments.last().unwrap().arguments {
+        PathArguments::AngleBracketed(_) => quote!(),
+        _ => quote!(<Self>),
+    };
+
     quote! {
         impl #impl_generics Component for #name #ty_generics #where_clause {
-            type Storage = #storage<Self>;
+            type Storage = #storage #additional_generics;
         }
     }
 }
