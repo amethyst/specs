@@ -1,0 +1,43 @@
+name: Website
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+env:
+  RUSTFLAGS: -Cdebuginfo=0
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+
+jobs:
+  Ref-and-Tutorial:
+    name: Doc Reference + Tutorials
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            docs/reference
+            docs/tutorials
+
+      - name: Build Books
+        uses: taiki-e/install-action@v2
+        with:
+          tool: mdbook@0.4.37
+
+      - run: mdbook build docs/reference --dest-dir ${GITHUB_WORKSPACE}/public/docs/reference
+      - run: mdbook build docs/tutorials --dest-dir ${GITHUB_WORKSPACE}/public/docs/tutorials
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Doc Reference
+          path: |
+            public/docs/reference
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Doc Tutorials
+          path: |
+            public/docs/tutorials
