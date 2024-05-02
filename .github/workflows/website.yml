@@ -65,3 +65,30 @@ jobs:
           name: Doc Rust API
           path: |
             target/doc
+
+  Website:
+    name: Doc Website
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            docs/website
+
+      - name: Set Build Flags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Use the API to retrieve the github pages url and set an environment variable containing the value.
+        run: echo "GITHUB_PAGES_URL=$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.html_url')" >> $GITHUB_ENV
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: zola@0.18.0
+
+      - run: zola build --base-url $GITHUB_PAGES_URL
+        working-directory: docs/website
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Doc Zola
+          path: docs/website/public
