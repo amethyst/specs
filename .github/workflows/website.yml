@@ -92,3 +92,43 @@ jobs:
         with:
           name: Doc Zola
           path: docs/website/public
+
+  Deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: [Ref-and-Tutorial, Rust-API, Website]
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Doc Reference
+          path: public/docs/reference
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Doc Tutorials
+          path: public/docs/tutorials
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Doc Rust API
+          path: public/docs/api
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Doc Zola
+          path: public
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
