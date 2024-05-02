@@ -41,3 +41,27 @@ jobs:
           name: Doc Tutorials
           path: |
             public/docs/tutorials
+
+  Rust-API:
+    name: Doc Rust API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+          components: rust-docs
+
+      - name: Build API Doc
+        env:
+          FEATURES: parallel serde derive uuid_entity storage-event-control
+        run: cargo doc --all --features "${FEATURES}" # --no-deps
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Doc Rust API
+          path: |
+            target/doc
