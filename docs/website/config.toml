@@ -1,5 +1,5 @@
-# The URL the site will be built for
-base_url = "https://slide-rs.github.io/"
+# Should be supplied with --base-url
+base_url = "/"
 
 title = "Specs"
 description = "Specs Parallel ECS, a Rust library for parallel data processing using the Entity Component System pattern"
@@ -19,8 +19,7 @@ taxonomies = []
 
 [extra]
 hyde_links = [
-    {url = "/", name = "Home"},
+    {url = ".", name = "Home"},
     {url = "docs", name = "Docs"},
-    {url = "https://github.com/slide-rs/specs", name = "GitHub"},
-#    {url = "about", name = "About"},
+    {absolut_url = "https://github.com/amethyst/specs", name = "GitHub"},
 ]
