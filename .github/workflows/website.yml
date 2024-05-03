@@ -13,34 +13,25 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
-  Ref-and-Tutorial:
-    name: Doc Reference + Tutorials
+  Tutorials:
+    name: Doc Tutorials
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: |
-            docs/reference
-            docs/tutorials
+          sparse-checkout: docs/tutorials
 
       - name: Build Books
         uses: taiki-e/install-action@v2
         with:
           tool: mdbook@0.4.37
 
-      - run: mdbook build docs/reference --dest-dir ${GITHUB_WORKSPACE}/public/docs/reference
       - run: mdbook build docs/tutorials --dest-dir ${GITHUB_WORKSPACE}/public/docs/tutorials
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Doc Reference
-          path: |
-            public/docs/reference
-      - uses: actions/upload-artifact@v4
-        with:
           name: Doc Tutorials
-          path: |
-            public/docs/tutorials
+          path: public/docs/tutorials
 
   Rust-API:
     name: Doc Rust API
@@ -96,7 +87,7 @@ jobs:
   Deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: [Ref-and-Tutorial, Rust-API, Website]
+    needs: [ Tutorials, Rust-API, Website ]
     permissions:
       pages: write
       id-token: write
@@ -105,11 +96,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: Doc Reference
-          path: public/docs/reference
-
       - uses: actions/download-artifact@v4
         with:
           name: Doc Tutorials

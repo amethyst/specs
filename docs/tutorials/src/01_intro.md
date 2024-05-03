@@ -15,10 +15,6 @@ Additional documentation is available on `docs.rs`:
 
 * [API documentation for Specs](https://docs.rs/specs)
 
-There also is a reference-style documentation available here:
-
-* [Specs reference](../reference/)
-
 You don't yet know what an ECS is all about? The next section
 is for you! In case you already know what an ECS is, just skip it.
 
