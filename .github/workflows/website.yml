@@ -66,7 +66,7 @@ jobs:
           sparse-checkout: |
             docs/website
 
-      - name: Set Build Flags
+      - name: Find Base Url
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # Use the API to retrieve the github pages url and set an environment variable containing the value.
