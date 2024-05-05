@@ -1,5 +1,5 @@
-# The URL the site will be built for
-base_url = "https://slide-rs.github.io/"
+# Should be supplied with --base-url
+base_url = "/"
 
 title = "Specs"
 description = "Specs Parallel ECS, a Rust library for parallel data processing using the Entity Component System pattern"
@@ -8,9 +8,12 @@ theme = "hyde"
 # Whether to automatically compile all Sass files in the sass directory
 compile_sass = true
 
+[markdown]
 # Whether to do syntax highlighting
 # Theme can be customised by setting the `highlight_theme` variable to a theme supported by Zola
 highlight_code = true
+
+highlight_theme = "inspired-github"
 
 # Whether to build a search index to be used later on by a JavaScript library
 build_search_index = true
@@ -19,8 +22,7 @@ taxonomies = []
 
 [extra]
 hyde_links = [
-    {url = "/", name = "Home"},
+    {url = ".", name = "Home"},
     {url = "docs", name = "Docs"},
-    {url = "https://github.com/slide-rs/specs", name = "GitHub"},
-#    {url = "about", name = "About"},
+    {absolut_url = "https://github.com/amethyst/specs", name = "GitHub"},
 ]

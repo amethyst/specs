@@ -13,7 +13,3 @@ template = "page-nodate.html"
 
 * [Tutorials for master](tutorials/)
 
-## Reference
-
-* [Specs reference for master](reference/)
-

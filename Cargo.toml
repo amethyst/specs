@@ -5,8 +5,8 @@ description = """
 Specs is an Entity-Component-System library written in Rust.
 """
 documentation = "https://docs.rs/specs/"
-repository = "https://github.com/slide-rs/specs"
-homepage = "https://specs.amethyst.rs"
+repository = "https://github.com/amethyst/specs"
+homepage = "https://amethyst.github.io/specs"
 readme = "README.md"
 keywords = ["gamedev", "ecs", "entity", "component"]
 categories = ["concurrency", "game-engines"]
