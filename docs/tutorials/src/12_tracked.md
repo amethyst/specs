@@ -1,7 +1,7 @@
 # `FlaggedStorage` and modification events
 
 In most games you will have many entities, but from frame to frame there will
-usually be components that will only need to updated when something related is
+usually be components that will only need to be updated when something related is
 modified.
 
 To avoid a lot of unnecessary computation when updating components it
