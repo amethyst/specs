@@ -78,6 +78,22 @@ where
     }
 }
 
+
+impl<'a: 'b, 'b, T> GenericReadStorage for &'b mut WriteStorage<'a, T>
+where
+    T: Component,
+{
+    type Component = T;
+
+    fn get(&self, entity: Entity) -> Option<&Self::Component> {
+        WriteStorage::get(*self, entity)
+    }
+
+    fn _private() -> Seal {
+        Seal
+    }
+}
+
 /// Provides generic write access to `WriteStorage`, both as a value and a
 /// mutable reference.
 pub trait GenericWriteStorage {
