@@ -14,5 +14,13 @@ proc-macro2 = "1.0.8"
 syn = "1.0.14"
 quote = "1.0.2"
 
+[dev-dependencies]
+static_assertions = "1.1.0"
+
+[dev-dependencies.specs]
+version = "0.16.1"
+path = ".."
+features = ["specs-derive"]
+
 [lib]
 proc-macro = true
