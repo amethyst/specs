@@ -172,7 +172,7 @@ fn main() {
         .with(HelloWorld, "hello_updated", &["update_pos"])
         .build();
 
-    dispatcher.dispatch(&mut world);
+    dispatcher.dispatch(&world);
     world.maintain();
 }
 ```
