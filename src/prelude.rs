@@ -19,6 +19,9 @@ pub use rayon::iter::ParallelIterator;
 #[cfg(feature = "parallel")]
 pub use shred::AsyncDispatcher;
 
+#[cfg(feature = "specs_derive")]
+pub use specs_derive::Component;
+
 pub use crate::{
     changeset::ChangeSet,
     storage::{
