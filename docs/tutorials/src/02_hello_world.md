@@ -109,9 +109,11 @@ need to create a world in which to store all of our components.
 ```rust,ignore
 use specs::{World, WorldExt, Builder};
 
-let mut world = World::new();
-world.register::<Position>();
-world.register::<Velocity>();
+fn the_world(){
+    let mut world = World::new();
+    world.register::<Position>();
+    world.register::<Velocity>();
+}
 ```
 
 This will create component storages for `Position`s and `Velocity`s.
@@ -188,9 +190,11 @@ them. To execute the system, you can use `RunNow` like this:
 ```rust,ignore
 use specs::RunNow;
 
-let mut hello_world = HelloWorld;
-hello_world.run_now(&world);
-world.maintain();
+fn run_the_system() {
+    let mut hello_world = HelloWorld;
+    hello_world.run_now(&world);
+    world.maintain();
+}
 ```
 
 The `world.maintain()` is not completely necessary here. Calling maintain should be done in general, however.
